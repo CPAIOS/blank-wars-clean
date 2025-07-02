@@ -22,24 +22,24 @@ interface CharacterSkills {
   lastUpdated?: Date;
 }
 
-// Placeholder function for obedience checking
-function checkObedience(
+// Placeholder function for gameplan adherence checking
+function checkGameplanAdherence(
   character: any, 
   morale: number, 
   isInjured: boolean, 
   lastRoundWasRogue: boolean
-): { willObey: boolean; reason: string } {
-  const baseObedience = 0.8;
+): { willFollowGameplan: boolean; reason: string } {
+  const baseAdherence = 0.8;
   const moraleBonus = morale * 0.001;
   const injuryPenalty = isInjured ? -0.2 : 0;
   const roguePenalty = lastRoundWasRogue ? -0.3 : 0;
   
-  const obedienceChance = baseObedience + moraleBonus + injuryPenalty + roguePenalty;
-  const willObey = Math.random() < obedienceChance;
+  const adherenceChance = baseAdherence + moraleBonus + injuryPenalty + roguePenalty;
+  const willFollowGameplan = Math.random() < adherenceChance;
   
   return {
-    willObey,
-    reason: willObey ? 'Character follows orders' : 'Character rebels against strategy'
+    willFollowGameplan,
+    reason: willFollowGameplan ? 'Character follows the gameplan' : 'Character deviates from strategy'
   };
 }
 import { useBattleAnnouncer } from '@/hooks/useBattleAnnouncer';
@@ -64,7 +64,7 @@ import { AIJudge, RogueAction, CharacterResponseGenerator } from '@/data/aiJudge
 import { CoachingEngine, CoachingSession } from '@/data/coachingSystem';
 import { BattleEngine } from '@/systems/battleEngine';
 import { PhysicalBattleEngine } from '@/systems/physicalBattleEngine';
-import type { BattleCharacter, ExecutedAction } from '@/data/battleFlow';
+import type { BattleCharacter, ExecutedAction, PlannedAction } from '@/data/battleFlow';
 
 // Legacy interface for backward compatibility
 interface Character {
@@ -633,17 +633,21 @@ export default function ImprovedBattleArena() {
     const playerFighter = battleState.currentFighters.player;
     const opponentFighter = battleState.currentFighters.opponent;
 
-    // Check if player character will obey orders
-    const obedienceCheck = checkObedience(
-      playerFighter, 
-      playerMorale, 
-      playerFighter.injuries.length > 0,
-      currentRound > 1 && playerMorale < 50
-    );
+    // Check if player character will follow the gameplan using sophisticated psychology system
+    const battlePlayerFighter = convertToBattleCharacter(playerFighter, playerMorale);
+    const plannedAction: PlannedAction = {
+      type: 'ability',
+      actionType: 'ability',
+      abilityId: playerFighter.abilities[0]?.name || 'basic_attack',
+      targetId: opponentFighter.id,
+      coachingInfluence: playerMorale / 100 // Convert morale to coaching influence
+    };
+    
+    const adherenceCheck = PhysicalBattleEngine.performGameplanAdherenceCheck(battlePlayerFighter, plannedAction);
 
     let roundResult: RoundResult | null = null;
 
-    if (!obedienceCheck.willObey) {
+    if (adherenceCheck.checkResult === 'goes_rogue' || adherenceCheck.checkResult === 'improvises') {
       // Character goes rogue!
       const rogueAction = AIJudge.generateRogueAction(
         playerFighter,
@@ -671,14 +675,16 @@ export default function ImprovedBattleArena() {
         narrativeDescription: ruling.narrativeDescription
       };
 
-      // Generate coaching response
+      // Generate coaching response with psychology reasoning
       const coachResponse = AIJudge.generateCoachingResponse(rogueAction, ruling, playerTeam.coachName);
       const characterResponse = CharacterResponseGenerator.generateResponse(playerFighter, rogueAction, coachResponse);
       
-      setCoachingMessages(prev => [...prev, coachResponse, `${playerFighter.name}: ${characterResponse}`]);
+      // Add psychology reasoning to coaching messages
+      const psychologyReasoning = `Psychology Report: ${adherenceCheck.reasoning}`;
+      setCoachingMessages(prev => [...prev, psychologyReasoning, coachResponse, `${playerFighter.name}: ${characterResponse}`]);
       
     } else {
-      // Character follows orders - normal combat
+      // Character follows gameplan - normal combat
       const damage = Math.floor(playerFighter.traditionalStats.strength * getMoraleModifier(playerMorale));
       
       roundResult = {
@@ -688,10 +694,10 @@ export default function ImprovedBattleArena() {
         attackerAction: playerFighter.abilities[0] || 'refused',
         damage,
         wasStrategyAdherent: true,
-        moraleImpact: 5, // Small morale boost for gameplan adherence
+        moraleImpact: 5, // Small morale boost for following gameplan
         newAttackerHp: playerFighter.currentHp,
         newDefenderHp: opponentFighter.currentHp - damage,
-        narrativeDescription: `${playerFighter.name} follows the strategy perfectly and strikes ${opponentFighter.name}!`
+        narrativeDescription: `${playerFighter.name} follows the strategy perfectly and strikes ${opponentFighter.name}! ${adherenceCheck.reasoning}`
       };
     }
 
@@ -1000,7 +1006,7 @@ export default function ImprovedBattleArena() {
     
     // Coach insists - another training check
     const insistRoll = Math.random() * 100;
-    const obedienceBonus = 20; // Insisting gives a bonus to obedience
+    const coachingBonus = 20; // Insisting gives a bonus to adherence
     const adherenceBonus = 10; // Base adherence bonus
     
     if (insistRoll < player1.trainingLevel + adherenceBonus) {
