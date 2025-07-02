@@ -11,12 +11,21 @@ import {
 
 // Dynamic imports for performance optimization
 import CharacterDatabase from './CharacterDatabase'; // Keep essential components regular
-const ImprovedBattleArena = lazy(() => import('./ImprovedBattleArena'));
+import ChatDemo from './ChatDemo'; // Make chat regular import to avoid lazy loading issues
+
+// Temporarily replace problematic components with placeholders
+const ImprovedBattleArena = () => (
+  <div className="p-8 text-center">
+    <h2 className="text-2xl font-bold mb-4">🛠️ Battle Arena</h2>
+    <p className="text-gray-400">Battle system temporarily disabled for debugging.</p>
+    <p className="text-gray-400 mt-2">Check back soon - fixes incoming!</p>
+  </div>
+);
+
 const TrainingGrounds = lazy(() => import('./TrainingGrounds'));
 const ProgressionDashboard = lazy(() => import('./ProgressionDashboard'));
 const Clubhouse = lazy(() => import('./Clubhouse'));
 const MerchStore = lazy(() => import('./MerchStore'));
-const ChatDemo = lazy(() => import('./ChatDemo'));
 const PackOpening = lazy(() => import('./PackOpening'));
 const EquipmentManager = lazy(() => import('./EquipmentManager'));
 const AbilityManager = lazy(() => import('./AbilityManager'));
