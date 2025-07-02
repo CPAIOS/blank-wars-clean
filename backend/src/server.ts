@@ -320,6 +320,13 @@ io.use((socket, next) => {
 // Socket.io handlers with battle system integration
 io.on('connection', (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
+  
+  // Send immediate connection confirmation
+  socket.emit('connection_established', { 
+    message: 'Connected to Blank Wars server',
+    socketId: socket.id 
+  });
+  
   let authenticatedUser: { id: string; username: string } | null = null;
   
   // Per-socket rate limiting for events

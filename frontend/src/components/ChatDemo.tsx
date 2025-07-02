@@ -94,8 +94,16 @@ export default function ChatDemo() {
       console.log('Connected to chat server');
     });
 
+    newSocket.on('connection_established', (data) => {
+      console.log('Server confirmed connection:', data);
+    });
+
     newSocket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
+      console.error('WebSocket connection error:', error.message);
+    });
+
+    newSocket.on('error', (error) => {
+      console.error('Socket error:', error);
     });
 
     newSocket.on('chat_response', (data: { message: string; character: string }) => {
@@ -161,6 +169,7 @@ export default function ChatDemo() {
     setIsTyping(true);
 
     console.log('Sending message to AI:', content);
+    console.log('Socket connected?', socket.connected);
 
     // Send to AI backend via WebSocket
     socket.emit('chat_message', {
