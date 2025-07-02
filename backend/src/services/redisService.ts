@@ -35,59 +35,75 @@ class RedisService implements CacheInterface {
   }
 
   private async connect(): Promise<void> {
+    // Skip Redis entirely if no REDIS_URL is set (local development)
+    if (!process.env.REDIS_URL) {
+      console.log('📝 No REDIS_URL set - using in-memory cache for local development');
+      this.isConnected = false;
+      return;
+    }
+
     try {
-      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+      const redisUrl = process.env.REDIS_URL;
       const redisOptions = {
         retryDelayOnFailover: 100,
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: 1, // Minimal retries for faster fallback
         lazyConnect: true,
-        connectTimeout: 5000, // Shorter timeout for faster fallback
-        maxRetriesPerRequest: 1, // Fewer retries for faster fallback
+        connectTimeout: 3000, // Short timeout for faster fallback
         enableOfflineQueue: false, // Don't queue commands when disconnected
+        maxRetriesPerRequest: 1, // Ensure no hanging retries
       };
 
-      // Only log connection attempt if REDIS_URL is explicitly set
-      if (process.env.REDIS_URL) {
-        console.log('🔄 Connecting to Redis...');
-      }
+      console.log('🔄 Connecting to Redis...');
       
       this.redis = new Redis(redisUrl, redisOptions);
       this.subscriber = new Redis(redisUrl, redisOptions);
 
-      // Set up error handlers BEFORE connecting to suppress unhandled errors
-      this.redis.on('error', (error) => {
-        if (process.env.REDIS_URL) {
-          console.warn('⚠️ Redis error (falling back to in-memory cache):', error.message);
-        }
-        this.isConnected = false;
+      // Comprehensive error handling to prevent unhandled errors
+      const setupErrorHandlers = (instance: Redis, name: string) => {
+        instance.on('error', (error) => {
+          console.warn(`⚠️ Redis ${name} error (falling back to in-memory cache):`, error.message);
+          this.isConnected = false;
+        });
+
+        instance.on('close', () => {
+          if (this.isConnected) {
+            console.warn(`⚠️ Redis ${name} connection closed`);
+          }
+          this.isConnected = false;
+        });
+
+        instance.on('end', () => {
+          this.isConnected = false;
+        });
+
+        instance.on('reconnecting', () => {
+          console.log(`🔄 Redis ${name} reconnecting...`);
+        });
+
+        // Handle any other events that might throw
+        instance.on('connect', () => {
+          console.log(`✅ Redis ${name} connected`);
+        });
+      };
+
+      setupErrorHandlers(this.redis, 'client');
+      setupErrorHandlers(this.subscriber, 'subscriber');
+
+      // Connect with timeout protection
+      const connectTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Redis connection timeout')), 3000);
       });
 
-      this.redis.on('close', () => {
-        if (this.isConnected && process.env.REDIS_URL) {
-          console.warn('⚠️ Redis connection closed');
-        }
-        this.isConnected = false;
-      });
-
-      this.redis.on('reconnecting', () => {
-        if (process.env.REDIS_URL) {
-          console.log('🔄 Redis reconnecting...');
-        }
-      });
-
-      this.subscriber.on('error', (error) => {
-        // Suppress subscriber errors
-        this.isConnected = false;
-      });
-
-      // Connect both instances
-      await Promise.all([
-        this.redis.connect(),
-        this.subscriber.connect()
+      await Promise.race([
+        Promise.all([
+          this.redis.connect(),
+          this.subscriber.connect()
+        ]),
+        connectTimeout
       ]);
 
       this.isConnected = true;
-      console.log('✅ Redis connected successfully');
+      console.log('✅ Redis fully connected and ready');
 
       // Set up subscriber message handling
       this.subscriber.on('message', (channel, message) => {
@@ -104,10 +120,24 @@ class RedisService implements CacheInterface {
       });
 
     } catch (error) {
-      if (process.env.REDIS_URL) {
-        console.warn('⚠️ Redis unavailable, using in-memory cache');
-      }
+      console.warn('⚠️ Redis connection failed - using in-memory cache:', error instanceof Error ? error.message : String(error));
       this.isConnected = false;
+      
+      // Clean up failed connections
+      if (this.redis) {
+        try {
+          this.redis.disconnect();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      if (this.subscriber) {
+        try {
+          this.subscriber.disconnect();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
     }
   }
 
