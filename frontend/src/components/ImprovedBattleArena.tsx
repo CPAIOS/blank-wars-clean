@@ -125,8 +125,20 @@ interface BattlePhase {
 }
 
 export default function ImprovedBattleArena() {
-  // Memory leak prevention
-  const { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout, clearAllTimeouts } = useTimeoutManager();
+  // Memory leak prevention with error handling
+  let timeoutManager;
+  try {
+    timeoutManager = useTimeoutManager();
+  } catch (error) {
+    console.error('TimeoutManager initialization failed:', error);
+    timeoutManager = {
+      setTimeout: (cb: () => void, delay: number) => setTimeout(cb, delay),
+      clearTimeout: (id: any) => clearTimeout(id),
+      clearAllTimeouts: () => {}
+    };
+  }
+  
+  const { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout, clearAllTimeouts } = timeoutManager;
   
   // New Team Battle System State
   const [playerTeam, setPlayerTeam] = useState<Team>(createDemoPlayerTeam());
@@ -153,7 +165,28 @@ export default function ImprovedBattleArena() {
   const [currentRogueAction, setCurrentRogueAction] = useState<RogueAction | null>(null);
   const [judgeRuling, setJudgeRuling] = useState<any>(null);
 
-  // Battle Announcer Integration
+  // Battle Announcer Integration with error handling
+  let battleAnnouncer;
+  try {
+    battleAnnouncer = useBattleAnnouncer();
+  } catch (error) {
+    console.error('BattleAnnouncer initialization failed:', error);
+    battleAnnouncer = {
+      isAnnouncerSpeaking: false,
+      isEnabled: false,
+      toggleEnabled: () => {},
+      announceBattleStart: () => {},
+      announceRoundStart: () => {},
+      announceAction: () => {},
+      announceVictory: () => {},
+      announceDefeat: () => {},
+      announcePhaseTransition: () => {},
+      announceStrategySelection: () => {},
+      announceBattleCry: () => {},
+      clearQueue: () => {}
+    };
+  }
+  
   const {
     isAnnouncerSpeaking,
     isEnabled: isAnnouncerEnabled,
@@ -167,7 +200,7 @@ export default function ImprovedBattleArena() {
     announceStrategySelection,
     announceBattleCry,
     clearQueue
-  } = useBattleAnnouncer();
+  } = battleAnnouncer;
 
   // WebSocket Battle Integration
   const {
