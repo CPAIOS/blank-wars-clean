@@ -503,17 +503,19 @@ export default function ImprovedBattleArena() {
       `Review their strengths and weaknesses before battle.`
     ];
 
-    let delay = 2000;
+    const delay = 2000; // Use const instead of let
     huddleMessages.forEach((msg, index) => {
+      const capturedMsg = msg; // Capture message for closure
       safeSetTimeout(() => {
-        setCurrentAnnouncement(msg);
-        announceAction(msg);
+        setCurrentAnnouncement(capturedMsg);
+        announceAction(capturedMsg);
       }, delay * (index + 1));
     });
 
+    const totalDelay = delay * huddleMessages.length + 2000; // Capture delay calculation
     safeSetTimeout(() => {
       startStrategySelection(); // Move to strategy selection after huddle
-    }, delay * huddleMessages.length + 2000); // Ensure all messages are displayed before moving on
+    }, totalDelay); // Use captured delay
   };
 
   const startStrategySelection = () => {
@@ -626,24 +628,26 @@ export default function ImprovedBattleArena() {
       });
 
       // Update morale
-      const newPlayerMorale = Math.max(0, Math.min(100, playerMorale + roundResult.moraleImpact));
+      const newPlayerMorale = Math.max(0, Math.min(100, playerMorale + currentRoundResult.moraleImpact));
       setPlayerMorale(newPlayerMorale);
 
       // Announce the result
-      setCurrentAnnouncement(roundResult.narrativeDescription);
-      announceAction(roundResult.narrativeDescription);
+      setCurrentAnnouncement(currentRoundResult.narrativeDescription);
+      announceAction(currentRoundResult.narrativeDescription);
 
       // Check for battle end or continue
+      const capturedRoundResult = currentRoundResult; // Capture for closure
+      const capturedCurrentRound = currentRound; // Capture for closure
       safeSetTimeout(() => {
-        if (roundResult.newDefenderHp <= 0) {
+        if (capturedRoundResult.newDefenderHp <= 0) {
         endBattle('player');
-      } else if (currentRound >= 9) { // Max 9 rounds for demo
+      } else if (capturedCurrentRound >= 9) { // Max 9 rounds for demo
         endBattle('draw');
       } else {
         setCurrentRound(prev => prev + 1);
-        // Switch fighters for next round
-        const nextPlayerIndex = currentRound % playerTeam.characters.length;
-        const nextOpponentIndex = currentRound % opponentTeam.characters.length;
+        // Switch fighters for next round  
+        const nextPlayerIndex = capturedCurrentRound % playerTeam.characters.length;
+        const nextOpponentIndex = capturedCurrentRound % opponentTeam.characters.length;
         
         setBattleState(prev => {
           if (!prev) return null;
