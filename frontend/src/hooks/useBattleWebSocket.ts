@@ -65,6 +65,13 @@ export function useBattleWebSocket(handlers?: Partial<BattleEventHandlers>) {
         }
       });
     }
+
+    return () => {
+      // Cleanup: Remove event handlers when component unmounts or handlers change
+      if (isConnected.current) {
+        battleWebSocket.clearEventHandlers();
+      }
+    };
   }, [handlers]);
 
   // Provide WebSocket interface

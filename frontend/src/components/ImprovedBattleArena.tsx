@@ -925,18 +925,6 @@ export default function ImprovedBattleArena() {
     };
   }, [player1, player2, safeSetTimeout, safeClearTimeout]);
 
-    safeSetTimeout(() => {
-      setPhase({ name: 'strategy-selection' });
-      const announcement = `Round ${currentRound} Strategy Selection - Choose your warrior&apos;s approach for this round.`;
-      setCurrentAnnouncement(announcement);
-      announceStrategySelection();
-      setCoachingMessages([`Round ${currentRound} - Choose one strategy from each category!`]);
-      setSelectedStrategies({ attack: null, defense: null, special: null });
-      setTimer(60); // Increased to 60 seconds for better strategy planning
-      setIsTimerActive(true);
-    }, 5000);
-  };
-
   const handleStrategyRecommendation = async (type: 'attack' | 'defense' | 'special', strategy: string) => {
     // Coach recommends a strategy
     setCoachingMessages(prev => [...prev, `Coach: I recommend ${strategy} for ${type}!`]);
