@@ -16,8 +16,8 @@ COPY src ./src
 # Build the application
 RUN npm run build
 
-# Copy database directory (if needed)
-COPY data ./data
+# Create data directory for SQLite (if needed)
+RUN mkdir -p data
 
 # Expose port
 EXPOSE 4000
