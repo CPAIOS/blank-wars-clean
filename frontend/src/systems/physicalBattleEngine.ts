@@ -151,10 +151,10 @@ export class PhysicalBattleEngine {
   static calculateWeaponDamage(attacker: BattleCharacter, action: ExecutedAction): number {
     // Get equipped weapon stats from equipment system
     const weapon = attacker?.character?.equipment?.weapon;
-    if (!weapon) return 0;
+    if (!weapon || !weapon.stats || !weapon.stats.atk) return 0;
     
     // BOUNDS CHECK: Cap weapon attack value
-    const weaponAttack = Math.max(0, Math.min(999, weapon.stats?.atk || 0));
+    const weaponAttack = Math.max(0, Math.min(999, weapon.stats.atk));
     
     // Weapon compatibility with character archetype
     const compatibilityBonus = this.calculateWeaponCompatibility(attacker, weapon);
@@ -248,9 +248,13 @@ export class PhysicalBattleEngine {
   
   // ============= PHYSICAL COMBAT SUPPORT METHODS =============
   
-  static calculateWeaponCompatibility(attacker: BattleCharacter, weapon: { type: string; attributes?: string[] }): number {
+  static calculateWeaponCompatibility(attacker: BattleCharacter, weapon: { type?: string; attributes?: string[] }): number {
     // Check if weapon is preferred for this character archetype
     const archetype = attacker.character.archetype;
+    const weaponType = weapon.type;
+    
+    // If weapon has no type, return neutral (no bonus/penalty)
+    if (!weaponType) return 0;
     
     // This would be based on equipment system data
     const compatibilityMap: Record<string, string[]> = {
@@ -262,9 +266,9 @@ export class PhysicalBattleEngine {
     };
     
     const preferredWeapons = compatibilityMap[archetype] || [];
-    const isCompatible = preferredWeapons.includes(weapon.type);
+    const isCompatible = preferredWeapons.includes(weaponType);
     
-    return isCompatible ? 10 : -5; // Bonus for compatible weapons, penalty for incompatible
+    return isCompatible ? 10 : 0; // Bonus for compatible weapons, neutral for others
   }
   
   static calculateStatusEffects(
@@ -432,10 +436,6 @@ export class PhysicalBattleEngine {
     };
   }
   
-  // Legacy compatibility method
-  static performGameplanAdherenceCheck(character: BattleCharacter, plannedAction?: PlannedAction): GameplanAdherenceCheck {
-    return this.performGameplanAdherenceCheck(character, plannedAction);
-  }
   
   // ============= INTEGRATION WITH EXISTING BATTLE FLOW =============
   
