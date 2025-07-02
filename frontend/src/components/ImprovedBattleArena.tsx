@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BattleRewards from './BattleRewards';
 import CombatSkillProgression from './CombatSkillProgression';
@@ -140,13 +140,36 @@ export default function ImprovedBattleArena() {
   
   const { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout, clearAllTimeouts } = timeoutManager;
   
-  // New Team Battle System State
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log('ImprovedBattleArena unmounting - cleaning up');
+      clearAllTimeouts();
+      clearQueue(); // Clear audio announcer queue
+    };
+  }, []);
+  
+  // New Team Battle System State with refs for stability
   const [playerTeam, setPlayerTeam] = useState<Team>(createDemoPlayerTeam());
   const [opponentTeam, setOpponentTeam] = useState<Team>(createDemoOpponentTeam());
   const [battleState, setBattleState] = useState<BattleState | null>(null);
   const [currentRound, setCurrentRound] = useState(1);
   const [playerMorale, setPlayerMorale] = useState(75);
   const [opponentMorale, setOpponentMorale] = useState(75);
+  
+  // Refs to avoid stale closures in async operations
+  const battleStateRef = useRef<BattleState | null>(null);
+  const currentRoundRef = useRef(1);
+  const playerMoraleRef = useRef(75);
+  const opponentMoraleRef = useRef(75);
+  
+  // Sync refs with state
+  useEffect(() => {
+    battleStateRef.current = battleState;
+    currentRoundRef.current = currentRound;
+    playerMoraleRef.current = playerMorale;
+    opponentMoraleRef.current = opponentMorale;
+  }, [battleState, currentRound, playerMorale, opponentMorale]);
   
   // Legacy battle state (for backward compatibility)
   const [phase, setPhase] = useState<BattlePhase>({ name: 'pre-battle' });
@@ -202,7 +225,11 @@ export default function ImprovedBattleArena() {
     clearQueue
   } = battleAnnouncer;
 
-  // WebSocket Battle Integration
+  // WebSocket Battle Integration with ref for stability
+  const socketRef = useRef<any>(null);
+  const battleWebSocket = useBattleWebSocket();
+  socketRef.current = battleWebSocket;
+  
   const {
     isConnected,
     isAuthenticated,
@@ -220,7 +247,7 @@ export default function ImprovedBattleArena() {
     onRoundEnd,
     onBattleEnd,
     onChatMessage
-  } = useBattleWebSocket();
+  } = battleWebSocket;
   
   // Chat and AI coaching
   const [coachingMessages, setCoachingMessages] = useState<string[]>([]);
@@ -324,7 +351,10 @@ export default function ImprovedBattleArena() {
     }
   }, [chatMessages]);
 
-  // Timer countdown
+  // Timer countdown with stable reference
+  const handleTimerExpiredRef = useRef<() => void>();
+  handleTimerExpiredRef.current = handleTimerExpired;
+  
   useEffect(() => {
     if (isTimerActive && timer !== null && timer > 0) {
       const interval = setInterval(() => {
@@ -332,61 +362,74 @@ export default function ImprovedBattleArena() {
       }, 1000);
       return () => clearInterval(interval);
     } else if (timer === 0) {
-      handleTimerExpired();
+      handleTimerExpiredRef.current?.();
     }
   }, [timer, isTimerActive]);
 
   // WebSocket Integration Effects
+  // Stable WebSocket event handlers using useCallback
+  const handleBattleStart = useCallback((data: any) => {
+    console.log('Battle starting:', data);
+    setCurrentAnnouncement(`Battle begins! ${data.player1?.username} vs ${data.player2?.username}`);
+    setPhase({ name: 'strategy-selection' });
+    battleAnnouncer.announceBattleStart(data.player1?.username || 'Player 1', data.player2?.username || 'Player 2');
+  }, []);
+
+  const handleRoundStart = useCallback((data: any) => {
+    console.log('Round starting:', data);
+    setCurrentRound(data.round || 1);
+    setCurrentAnnouncement(`Round ${data.round || 1} begins!`);
+    setPhase({ name: 'round-combat' });
+    battleAnnouncer.announceRoundStart(data.round || 1);
+  }, []);
+
+  const handleRoundEnd = useCallback((data: any) => {
+    console.log('Round ended:', data);
+    setCurrentAnnouncement(data.message || 'Round completed!');
+    setPhase({ name: 'round-end' });
+  }, []);
+
+  const handleBattleEnd = useCallback((result: any) => {
+    console.log('Battle ended:', result);
+    setCurrentAnnouncement(result.message || 'Battle completed!');
+    setPhase({ name: 'battle-end' });
+    
+    if (result.winner === socketRef.current?.currentUser?.id) {
+      battleAnnouncer.announceVictory(result.winnerName || 'You');
+    } else {
+      battleAnnouncer.announceDefeat(result.loserName || 'You');
+    }
+    
+    // Show rewards if available
+    if (result.rewards) {
+      setBattleRewards(result.rewards);
+      setShowRewards(true);
+    }
+  }, []);
+
+  const handleChatMessage = useCallback((message: any) => {
+    console.log('Chat message received:', message);
+    setChatMessages(prev => [...prev, message.text || message.message || 'Message received']);
+  }, []);
+
+  // WebSocket event setup with proper cleanup
   useEffect(() => {
-    // Handle battle start
-    onBattleStart((data) => {
-      console.log('Battle starting:', data);
-      setCurrentAnnouncement(`Battle begins! ${data.player1?.username} vs ${data.player2?.username}`);
-      setPhase({ name: 'strategy-selection' });
-      announceBattleStart();
-    });
+    const unsubscribeBattleStart = onBattleStart(handleBattleStart);
+    const unsubscribeRoundStart = onRoundStart(handleRoundStart);
+    const unsubscribeRoundEnd = onRoundEnd(handleRoundEnd);
+    const unsubscribeBattleEnd = onBattleEnd(handleBattleEnd);
+    const unsubscribeChatMessage = onChatMessage(handleChatMessage);
 
-    // Handle round start
-    onRoundStart((data) => {
-      console.log('Round starting:', data);
-      setCurrentRound(data.round || currentRound + 1);
-      setCurrentAnnouncement(`Round ${data.round || currentRound + 1} begins!`);
-      setPhase({ name: 'round-combat' });
-      announceRoundStart(data.round || currentRound + 1);
-    });
-
-    // Handle round end
-    onRoundEnd((data) => {
-      console.log('Round ended:', data);
-      setCurrentAnnouncement(data.message || `Round ${currentRound} completed!`);
-      setPhase({ name: 'round-end' });
-    });
-
-    // Handle battle end
-    onBattleEnd((result) => {
-      console.log('Battle ended:', result);
-      setCurrentAnnouncement(result.message || 'Battle completed!');
-      setPhase({ name: 'battle-end' });
-      
-      if (result.winner === currentUser?.id) {
-        announceVictory();
-      } else {
-        announceDefeat();
-      }
-      
-      // Show rewards if available
-      if (result.rewards) {
-        setBattleRewards(result.rewards);
-        setShowRewards(true);
-      }
-    });
-
-    // Handle chat messages
-    onChatMessage((message) => {
-      console.log('Chat message received:', message);
-      setChatMessages(prev => [...prev, message.text || message.message || 'Message received']);
-    });
-  }, [currentUser, currentRound, onBattleStart, onRoundStart, onRoundEnd, onBattleEnd, onChatMessage, announceBattleStart, announceRoundStart, announceVictory, announceDefeat]);
+    // Cleanup function
+    return () => {
+      console.log('Cleaning up WebSocket listeners');
+      if (typeof unsubscribeBattleStart === 'function') unsubscribeBattleStart();
+      if (typeof unsubscribeRoundStart === 'function') unsubscribeRoundStart();
+      if (typeof unsubscribeRoundEnd === 'function') unsubscribeRoundEnd();
+      if (typeof unsubscribeBattleEnd === 'function') unsubscribeBattleEnd();
+      if (typeof unsubscribeChatMessage === 'function') unsubscribeChatMessage();
+    };
+  }, [onBattleStart, onRoundStart, onRoundEnd, onBattleEnd, onChatMessage, handleBattleStart, handleRoundStart, handleRoundEnd, handleBattleEnd, handleChatMessage]);
 
   // Handle WebSocket connection status
   useEffect(() => {
@@ -668,19 +711,23 @@ export default function ImprovedBattleArena() {
       setCurrentAnnouncement(currentRoundResult.narrativeDescription);
       announceAction(currentRoundResult.narrativeDescription);
 
-      // Check for battle end or continue
+      // Check for battle end or continue using refs for stability
       const capturedRoundResult = currentRoundResult; // Capture for closure
-      const capturedCurrentRound = currentRound; // Capture for closure
       safeSetTimeout(() => {
+        const currentRoundValue = currentRoundRef.current;
+        const currentBattleState = battleStateRef.current;
+        
         if (capturedRoundResult.newDefenderHp <= 0) {
           endBattle('player');
-        } else if (capturedCurrentRound >= 9) { // Max 9 rounds for demo
+        } else if (currentRoundValue >= 9) { // Max 9 rounds for demo
           endBattle('draw');
         } else {
           setCurrentRound(prev => prev + 1);
-          // Switch fighters for next round  
-          const nextPlayerIndex = capturedCurrentRound % playerTeam.characters.length;
-          const nextOpponentIndex = capturedCurrentRound % opponentTeam.characters.length;
+          // Switch fighters for next round using ref values
+          const playerTeamLength = currentBattleState?.teams?.player?.characters?.length || 1;
+          const opponentTeamLength = currentBattleState?.teams?.opponent?.characters?.length || 1;
+          const nextPlayerIndex = currentRoundValue % playerTeamLength;
+          const nextOpponentIndex = currentRoundValue % opponentTeamLength;
         
           setBattleState(prev => {
             if (!prev) return null;
@@ -820,52 +867,63 @@ export default function ImprovedBattleArena() {
     setTimer(null);
   };
 
-  const fetchBattleCries = async () => {
+  const fetchBattleCries = useCallback(async () => {
+    // Ensure component is still mounted
+    const controller = new AbortController();
+    const timeoutId = safeSetTimeout(() => controller.abort(), 2000);
+    
     const announcement = 'The warriors prepare to exchange battle cries...';
     setCurrentAnnouncement(announcement);
-    announceBattleCry();
+    battleAnnouncer.announceBattleCry();
     
-    // Get battle cries for both characters
-    // Set fallback battle cries immediately (API-free for now)
+    // Set fallback battle cries immediately
+    const currentPlayer1 = player1;
+    const currentPlayer2 = player2;
+    
     setBattleCries({
-      player1: `${player1.name}: I'll show you the power of ${player1.personality || 'determination'}!`,
-      player2: `${player2.name}: Prepare yourself for ${player2.personality || 'battle'}!`
+      player1: `${currentPlayer1.name}: I'll show you the power of ${currentPlayer1.personality || 'determination'}!`,
+      player2: `${currentPlayer2.name}: Prepare yourself for ${currentPlayer2.personality || 'battle'}!`
     });
     
     // Try API if available, but don't crash if it fails
     try {
-      const timeoutPromise = new Promise((_, reject) => 
-        safeSetTimeout(() => reject(new Error('API timeout')), 2000)
-      );
-      
-      const [cry1, cry2] = await Promise.race([
-        Promise.all([
-          fetch('http://localhost:4000/api/battle-cry', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ character: player1 })
-          }),
-          fetch('http://localhost:4000/api/battle-cry', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ character: player2 })
-          })
-        ]),
-        timeoutPromise
+      const [cry1, cry2] = await Promise.all([
+        fetch('https://blank-wars-demo-3.onrender.com/api/battle-cry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ character: currentPlayer1 }),
+          signal: controller.signal
+        }).catch(() => null),
+        fetch('https://blank-wars-demo-3.onrender.com/api/battle-cry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ character: currentPlayer2 }),
+          signal: controller.signal
+        }).catch(() => null)
       ]);
 
+      safeClearTimeout(timeoutId);
+
       if (cry1?.ok && cry2?.ok) {
-        const data1 = await cry1.json();
-        const data2 = await cry2.json();
-        setBattleCries({
-          player1: data1.battleCry || `${player1.name}: For glory!`,
-          player2: data2.battleCry || `${player2.name}: Victory will be mine!`
-        });
+        const data1 = await cry1.json().catch(() => null);
+        const data2 = await cry2.json().catch(() => null);
+        if (data1 && data2) {
+          setBattleCries({
+            player1: data1.battleCry || `${currentPlayer1.name}: For glory!`,
+            player2: data2.battleCry || `${currentPlayer2.name}: Victory will be mine!`
+          });
+        }
       }
     } catch (error) {
       console.warn('Battle cry API not available, using fallback cries');
-      // Fallback already set above
+      safeClearTimeout(timeoutId);
     }
+    
+    return () => {
+      controller.abort();
+      safeClearTimeout(timeoutId);
+    };
+  }, [player1, player2, safeSetTimeout, safeClearTimeout]);
 
     safeSetTimeout(() => {
       setPhase({ name: 'strategy-selection' });
