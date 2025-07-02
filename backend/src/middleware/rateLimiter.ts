@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 // General API rate limiter
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Increased for development - Limit each IP to 500 requests per windowMs
+  max: 2000, // Increased for demo - Limit each IP to 2000 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
@@ -55,7 +55,7 @@ export const battleLimiter = rateLimit({
 // Rate limiter for WebSocket connections
 export const wsLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 50, // Increased for development - Limit each IP to 50 WebSocket connection attempts per minute
+  max: 200, // Increased for demo - Limit each IP to 200 WebSocket connection attempts per minute
   message: 'Too many WebSocket connection attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false
