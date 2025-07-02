@@ -1,9 +1,10 @@
 import OpenAI from 'openai';
 import { Character } from '../types/index';
 
-// Initialize OpenAI client
+// Initialize OpenAI client with cleaned API key
+const cleanApiKey = process.env.OPENAI_API_KEY?.replace(/\s/g, '').trim();
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: cleanApiKey,
 });
 
 export interface ChatContext {
