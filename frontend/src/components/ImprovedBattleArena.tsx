@@ -616,11 +616,12 @@ export default function ImprovedBattleArena() {
 
     // Update battle state
     if (roundResult) {
+      const currentRoundResult = roundResult; // Capture the value to avoid closure issues
       setBattleState(prev => {
         if (!prev) return null;
         return {
           ...prev,
-          roundResults: [...prev.roundResults, roundResult]
+          roundResults: [...prev.roundResults, currentRoundResult]
         };
       });
 
