@@ -305,6 +305,8 @@ async function authenticateSocket(token: string): Promise<{ id: string; username
 }
 
 // Apply rate limiting middleware to WebSocket connections
+// TEMPORARILY DISABLED FOR DEMO - Re-enable for production
+/*
 io.use((socket, next) => {
   const req = socket.request as any;
   req.ip = socket.handshake.address;
@@ -316,6 +318,7 @@ io.use((socket, next) => {
     next();
   });
 });
+*/
 
 // Socket.io handlers with battle system integration
 io.on('connection', (socket) => {
