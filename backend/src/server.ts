@@ -504,11 +504,24 @@ io.on('connection', (socket) => {
       };
       
       // Generate AI response
+      console.log('🤖 Calling AI Chat Service with context:', {
+        characterId: chatContext.characterId,
+        characterName: chatContext.characterName,
+        messageLength: message.length,
+        apiKeyPresent: !!process.env.OPENAI_API_KEY
+      });
+      
       const response = await aiChatService.generateCharacterResponse(
         chatContext,
         message,
         battleContext
       );
+      
+      console.log('✅ AI Service Response:', {
+        messageLength: response.message.length,
+        bondIncrease: response.bondIncrease,
+        isTemplateResponse: response.message.includes('template') || response.message.includes('fallback')
+      });
       
       // Add realistic typing delay
       setTimeout(() => {

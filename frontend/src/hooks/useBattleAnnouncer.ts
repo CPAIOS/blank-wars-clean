@@ -57,50 +57,59 @@ export function useBattleAnnouncer() {
 
   // Process announcement queue
   const processQueue = useCallback(async () => {
-    if (processingQueue.current || state.announcementQueue.length === 0) return;
+    setState(prevState => {
+      if (processingQueue.current || prevState.announcementQueue.length === 0) return prevState;
 
-    processingQueue.current = true;
-    const announcement = state.announcementQueue[0];
+      processingQueue.current = true;
+      const announcement = prevState.announcementQueue[0];
 
-    setState(prev => ({
-      ...prev,
-      announcementQueue: prev.announcementQueue.slice(1),
-      currentAnnouncement: announcement.text
-    }));
-
-    // Handle delay if specified
-    if (announcement.delay && announcement.delay > 0) {
-      currentTimeoutRef.current = setTimeout(async () => {
-        await speakAnnouncement(announcement);
-      }, announcement.delay);
-    } else {
-      await speakAnnouncement(announcement);
-    }
-
-    processingQueue.current = false;
-  }, [state.announcementQueue]);
-
-  const speakAnnouncement = async (announcement: AnnouncementConfig) => {
-    if (!state.isEnabled) {
-      setState(prev => ({ ...prev, currentAnnouncement: '' }));
-      return;
-    }
-
-    setState(prev => ({ ...prev, isAnnouncerSpeaking: true }));
-
-    await audioService.speakBattleAnnouncement(
-      announcement.text,
-      announcement.type,
-      undefined, // onStart
-      () => {
-        setState(prev => ({
-          ...prev,
-          isAnnouncerSpeaking: false,
-          currentAnnouncement: ''
-        }));
+      // Handle delay if specified
+      if (announcement.delay && announcement.delay > 0) {
+        currentTimeoutRef.current = setTimeout(async () => {
+          await speakAnnouncement(announcement);
+          processingQueue.current = false;
+        }, announcement.delay);
+      } else {
+        speakAnnouncement(announcement).then(() => {
+          processingQueue.current = false;
+        });
       }
-    );
-  };
+
+      return {
+        ...prevState,
+        announcementQueue: prevState.announcementQueue.slice(1),
+        currentAnnouncement: announcement.text
+      };
+    });
+  }, []);
+
+  const speakAnnouncement = useCallback(async (announcement: AnnouncementConfig) => {
+    return new Promise<void>((resolve) => {
+      setState(prevState => {
+        if (!prevState.isEnabled) {
+          resolve();
+          return { ...prevState, currentAnnouncement: '' };
+        }
+
+        // Start speaking
+        audioService.speakBattleAnnouncement(
+          announcement.text,
+          announcement.type,
+          undefined, // onStart
+          () => {
+            setState(prev => ({
+              ...prev,
+              isAnnouncerSpeaking: false,
+              currentAnnouncement: ''
+            }));
+            resolve();
+          }
+        );
+
+        return { ...prevState, isAnnouncerSpeaking: true };
+      });
+    });
+  }, []);
 
   // Process queue when it changes
   useEffect(() => {
