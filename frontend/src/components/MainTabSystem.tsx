@@ -9,18 +9,28 @@ import {
   Trophy, ChevronDown, ChevronRight, Activity, Shield
 } from 'lucide-react';
 
-// Dynamic imports for performance optimization
-import CharacterDatabase from './CharacterDatabase'; // Keep essential components regular
-const ImprovedBattleArena = lazy(() => import('./ImprovedBattleArena'));
+// Import stable components
+import CharacterDatabase from './CharacterDatabase';
+import SimpleChatDemo from './SimpleChatDemo'; // Use simple, stable chat
+
+// Lazy load non-critical components
 const TrainingGrounds = lazy(() => import('./TrainingGrounds'));
 const ProgressionDashboard = lazy(() => import('./ProgressionDashboard'));
 const Clubhouse = lazy(() => import('./Clubhouse'));
 const MerchStore = lazy(() => import('./MerchStore'));
-const ChatDemo = lazy(() => import('./ChatDemo'));
 const PackOpening = lazy(() => import('./PackOpening'));
 const EquipmentManager = lazy(() => import('./EquipmentManager'));
 const AbilityManager = lazy(() => import('./AbilityManager'));
 const AICoach = lazy(() => import('./AICoach'));
+
+// Temporarily disable problematic battle component
+const ImprovedBattleArena = () => (
+  <div className="p-8 text-center">
+    <h2 className="text-2xl font-bold mb-4 text-red-400">⚠️ Battle Arena Under Maintenance</h2>
+    <p className="text-gray-400">The battle system is being fixed due to technical issues.</p>
+    <p className="text-gray-400 mt-2">Meanwhile, enjoy chatting with legendary characters!</p>
+  </div>
+);
 const MembershipSelection = lazy(() => import('./MembershipSelection'));
 const TrainingFacilitySelector = lazy(() => import('./TrainingFacilitySelector'));
 const TeamBuilder = lazy(() => import('./TeamBuilder'));
@@ -403,7 +413,7 @@ export default function MainTabSystem() {
         { id: 'progression', label: 'Progression', icon: TrendingUp, component: ProgressionDashboardWrapper, description: 'Level up & skill trees' },
         { id: 'equipment', label: 'Equipment', icon: Crown, component: EquipmentManager, description: 'Weapons & armor' },
         { id: 'abilities', label: 'Abilities', icon: Sparkles, component: AbilityManager, description: 'Manage special powers' },
-        { id: 'chat', label: 'Chat', icon: MessageCircle, component: ChatDemo, description: 'Character conversations' },
+        { id: 'chat', label: 'Chat', icon: MessageCircle, component: SimpleChatDemo, description: 'Character conversations' },
       ]
     },
     {
