@@ -12,6 +12,7 @@ import {
 // Import stable components
 import CharacterDatabase from './CharacterDatabase';
 import ChatDemo from './ChatDemo'; // Use full-featured chat with stable patterns
+import SimpleBattleArena from './SimpleBattleArena'; // Use stable battle arena
 
 // Lazy load non-critical components
 const TrainingGrounds = lazy(() => import('./TrainingGrounds'));
@@ -23,12 +24,12 @@ const EquipmentManager = lazy(() => import('./EquipmentManager'));
 const AbilityManager = lazy(() => import('./AbilityManager'));
 const AICoach = lazy(() => import('./AICoach'));
 
-// Temporarily disable problematic battle component
+// Temporarily disable problematic battle component for comparison
 const ImprovedBattleArena = () => (
   <div className="p-8 text-center">
-    <h2 className="text-2xl font-bold mb-4 text-red-400">⚠️ Battle Arena Under Maintenance</h2>
-    <p className="text-gray-400">The battle system is being fixed due to technical issues.</p>
-    <p className="text-gray-400 mt-2">Meanwhile, enjoy chatting with legendary characters!</p>
+    <h2 className="text-2xl font-bold mb-4 text-red-400">⚠️ Complex Battle Arena Disabled</h2>
+    <p className="text-gray-400">The complex battle system has stability issues.</p>
+    <p className="text-gray-400 mt-2">Use the Simple Battle Arena in Team Battle Arena instead!</p>
   </div>
 );
 const MembershipSelection = lazy(() => import('./MembershipSelection'));
@@ -435,7 +436,7 @@ export default function MainTabSystem() {
       icon: Sword,
       color: 'red',
       subTabs: [
-        { id: 'team-arena', label: 'Team Battle Arena', icon: Sword, component: ImprovedBattleArena, description: 'The main 3v3 combat arena, where psychology and team chemistry impact physical battles.' },
+        { id: 'team-arena', label: 'Simple Battle Arena', icon: Sword, component: SimpleBattleArena, description: 'Stable battle system with core combat mechanics.' },
         { id: 'gameplan', label: 'Strategy Tracker', icon: Activity, component: GameplanTrackerWrapper, description: 'Monitor team adherence to strategy' },
         { id: 'teams', label: 'Teams', icon: Users, component: TeamBuilderWrapper, description: 'Build your squads' },
         { id: 'packs', label: 'Packs', icon: Package, component: PackOpening, description: 'Get new characters' },
