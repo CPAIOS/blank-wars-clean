@@ -62,6 +62,9 @@ import {
 } from '@/data/teamBattleSystem';
 import { AIJudge, RogueAction, CharacterResponseGenerator } from '@/data/aiJudge';
 import { CoachingEngine, CoachingSession } from '@/data/coachingSystem';
+import { BattleEngine } from '@/systems/battleEngine';
+import { PhysicalBattleEngine } from '@/systems/physicalBattleEngine';
+import type { BattleCharacter, ExecutedAction } from '@/data/battleFlow';
 
 // Legacy interface for backward compatibility
 interface Character {
@@ -1192,6 +1195,69 @@ export default function ImprovedBattleArena() {
     }, 4000);
   };
 
+  // Adapter function: Convert ImprovedBattleArena Character to BattleCharacter format
+  const convertToBattleCharacter = (character: Character, morale: number): BattleCharacter => {
+    return {
+      character: {
+        id: character.name.toLowerCase().replace(/\s+/g, '_'),
+        name: character.name,
+        archetype: character.personality || 'balanced',
+        level: character.level,
+        experience: character.xp,
+        baseStats: {
+          health: character.maxHp,
+          attack: character.atk,
+          defense: character.def,
+          speed: character.spd,
+          special: 50 // Default value
+        },
+        abilities: character.abilities.map(ability => ({
+          id: ability.name.toLowerCase().replace(/\s+/g, '_'),
+          name: ability.name,
+          type: ability.type === 'attack' ? 'offensive' : ability.type === 'defense' ? 'defensive' : 'support',
+          description: ability.description || `${ability.name} ability`,
+          damage_multiplier: ability.power / 100,
+          cooldown: ability.cooldown || 0,
+          mana_cost: 10 // Default mana cost for abilities
+        })),
+        equipment: character.items.map(item => ({
+          id: item.name.toLowerCase().replace(/\s+/g, '_'),
+          name: item.name,
+          type: 'weapon', // Default type
+          rarity: 'common', // Default rarity
+          stats: {
+            attack: 10, // Default weapon stats
+            defense: 0,
+            speed: 0
+          }
+        })),
+        personalityTraits: character.personality ? [character.personality] : [],
+        relationshipModifiers: {},
+        battleMemories: []
+      },
+      currentHealth: character.hp,
+      currentMana: 100, // Default mana
+      physicalDamageDealt: character.battleStats?.damageDealt || 0,
+      physicalDamageTaken: character.battleStats?.damageTaken || 0,
+      statusEffects: character.statusEffects.map(effect => ({
+        type: effect,
+        duration: 3,
+        intensity: 1,
+        source: 'unknown'
+      })),
+      mentalState: {
+        confidence: morale >= 75 ? 'high' : morale >= 50 ? 'moderate' : morale >= 25 ? 'low' : 'very_low',
+        stress: morale <= 25 ? 'high' : morale <= 50 ? 'moderate' : 'low',
+        focus: 'focused',
+        mentalHealth: morale >= 60 ? 'excellent' : morale >= 40 ? 'good' : morale >= 20 ? 'fair' : 'poor'
+      },
+      teamRelationships: {},
+      gameplanAdherence: character.trainingLevel / 100, // Convert 0-100 to 0-1
+      roundsActive: 1,
+      lastAction: null
+    };
+  };
+
   const executeAbility = (attacker: Character, defender: Character, ability: Ability, isAttacker1: boolean) => {
     let damage = 0;
     let description = '';
@@ -1199,15 +1265,38 @@ export default function ImprovedBattleArena() {
     let isCritical = false;
 
     if (ability.type === 'attack') {
-      const baseDamage = attacker.atk * (ability.power / 100);
-      const defense = defender.def * 0.5;
-      const variance = 0.85 + Math.random() * 0.3;
+      // Convert to BattleCharacter format for psychology-enhanced combat
+      const attackerMorale = isAttacker1 ? playerMorale : opponentMorale;
+      const defenderMorale = isAttacker1 ? opponentMorale : playerMorale;
       
-      // Check for critical hit (10% chance)
-      isCritical = Math.random() < 0.1;
-      let critMultiplier = isCritical ? 2 : 1;
+      const battleAttacker = convertToBattleCharacter(attacker, attackerMorale);
+      const battleDefender = convertToBattleCharacter(defender, defenderMorale);
       
-      damage = Math.max(1, Math.round((baseDamage - defense) * variance * critMultiplier));
+      // Create ExecutedAction for the PhysicalBattleEngine
+      const executedAction: ExecutedAction = {
+        type: 'ability',
+        abilityId: ability.name.toLowerCase().replace(/\s+/g, '_'),
+        narrativeDescription: `${attacker.name} uses ${ability.name}`
+      };
+      
+      // Use PhysicalBattleEngine for psychology-enhanced damage calculation
+      const baseDamage = PhysicalBattleEngine.calculateBaseDamage(battleAttacker, executedAction);
+      const weaponDamage = PhysicalBattleEngine.calculateWeaponDamage(battleAttacker, executedAction);
+      const strengthBonus = PhysicalBattleEngine.calculateStrengthBonus(battleAttacker);
+      const psychologyMod = PhysicalBattleEngine.calculatePsychologyModifier(battleAttacker);
+      const armorDefense = PhysicalBattleEngine.calculateArmorDefense(battleDefender);
+      
+      // Combine all damage components with psychology modifiers
+      const totalAttack = (baseDamage + weaponDamage + strengthBonus) * psychologyMod;
+      const finalDamage = Math.max(1, Math.round(totalAttack - armorDefense));
+      
+      // Check for critical hit (enhanced by psychology)
+      const critChance = battleAttacker.mentalState.confidence === 'high' ? 0.15 : 
+                        battleAttacker.mentalState.confidence === 'moderate' ? 0.1 : 0.05;
+      isCritical = Math.random() < critChance;
+      const critMultiplier = isCritical ? 2 : 1;
+      
+      damage = Math.round(finalDamage * critMultiplier);
       
       // Calculate new HP
       newDefenderHP = Math.max(0, defender.hp - damage);
@@ -1231,7 +1320,15 @@ export default function ImprovedBattleArena() {
         setPlayer1(prev => ({ ...prev, hp: newDefenderHP, battleStats: defenderStats }));
       }
       
-      description = `${attacker.name} uses ${ability.name} dealing ${damage} damage to ${defender.name}!${isCritical ? ' CRITICAL HIT!' : ''}`;
+      // Enhanced description with psychology effects
+      let psychologyDesc = '';
+      if (psychologyMod > 1.1) {
+        psychologyDesc = ' [High Confidence Boost!]';
+      } else if (psychologyMod < 0.9) {
+        psychologyDesc = ' [Affected by stress/low confidence]';
+      }
+      
+      description = `${attacker.name} uses ${ability.name} dealing ${damage} damage to ${defender.name}!${isCritical ? ' CRITICAL HIT!' : ''}${psychologyDesc}`;
     } else if (ability.type === 'defense') {
       description = `${attacker.name} uses ${ability.name} and gains defensive protection!`;
     } else {
