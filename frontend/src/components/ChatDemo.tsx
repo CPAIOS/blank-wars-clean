@@ -386,21 +386,27 @@ export default function ChatDemo() {
               )}
             </div>
 
-            {/* Input Area */}
-            <div className="p-4 border-t border-gray-700">
+            {/* Input Area - Always Visible */}
+            <div className="p-4 border-t border-gray-700 bg-gray-800">
               {/* Debug info */}
               <div className="text-xs text-gray-500 mb-2">
                 Socket: {socket?.connected ? '✅ Connected' : '❌ Disconnected'} | 
                 Typing: {isTyping ? '⏳ AI Responding...' : '✅ Ready'} | 
-                Messages: {messages.length}
+                Messages: {messages.length} |
+                Input: {inputMessage ? `"${inputMessage.substring(0,20)}..."` : 'Empty'}
               </div>
               
               <div className="flex gap-2">
                 <input
+                  key="chat-input" // Force re-render
                   type="text"
                   value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
+                  onChange={(e) => {
+                    console.log('Input changed:', e.target.value);
+                    setInputMessage(e.target.value);
+                  }}
                   onKeyPress={(e) => {
+                    console.log('Key pressed:', e.key, 'isTyping:', isTyping);
                     if (e.key === 'Enter' && !isTyping && inputMessage.trim()) {
                       sendMessage(inputMessage);
                     }
@@ -408,30 +414,63 @@ export default function ChatDemo() {
                   placeholder={isTyping ? 'AI is responding...' : `Message ${selectedCharacter.name}...`}
                   disabled={isTyping}
                   className="flex-1 bg-gray-700 border border-gray-600 rounded-full px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 disabled:opacity-50"
+                  autoComplete="off"
                 />
-                <motion.button
-                  onClick={() => sendMessage(inputMessage)}
+                <button
+                  onClick={() => {
+                    console.log('Send button clicked:', inputMessage);
+                    if (inputMessage.trim() && !isTyping) {
+                      sendMessage(inputMessage);
+                    }
+                  }}
                   disabled={!inputMessage.trim() || isTyping || !socket?.connected}
                   className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-gray-600 disabled:to-gray-500 text-white p-2 rounded-full transition-all"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                 >
                   <Send className="w-5 h-5" />
-                </motion.button>
+                </button>
                 
-                {/* Emergency reset button */}
-                {isTyping && (
-                  <motion.button
-                    onClick={() => {
-                      console.log('Manual reset triggered');
-                      setIsTyping(false);
-                    }}
-                    className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-full transition-all text-xs"
-                    title="Reset if stuck"
-                  >
-                    🔄
-                  </motion.button>
-                )}
+                {/* Always show emergency controls */}
+                <button
+                  onClick={() => {
+                    console.log('Force reset triggered - isTyping was:', isTyping);
+                    setIsTyping(false);
+                    setInputMessage('');
+                  }}
+                  className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-full transition-all text-xs"
+                  title="Reset chat state"
+                >
+                  🔄
+                </button>
+                
+                <button
+                  onClick={() => {
+                    console.log('Force refresh triggered');
+                    window.location.reload();
+                  }}
+                  className="bg-yellow-600 hover:bg-yellow-500 text-white p-2 rounded-full transition-all text-xs"
+                  title="Refresh page"
+                >
+                  ⚡
+                </button>
+              </div>
+              
+              {/* Force visible fallback input */}
+              <div className="mt-2 text-xs text-gray-600">
+                Emergency input: <input 
+                  type="text" 
+                  className="bg-gray-900 text-white p-1 rounded text-xs"
+                  placeholder="Backup input if main fails"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      const value = (e.target as HTMLInputElement).value;
+                      if (value.trim()) {
+                        setInputMessage(value);
+                        sendMessage(value);
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }
+                  }}
+                />
               </div>
             </div>
           </div>
