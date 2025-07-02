@@ -472,13 +472,16 @@ io.on('connection', (socket) => {
 
   // Chat message with dynamic AI responses
   socket.on('chat_message', async (data) => {
+    console.log('🎯 CHAT MESSAGE RECEIVED:', JSON.stringify(data, null, 2));
+    
     // Rate limit chat messages (max 60 per minute)
     if (!checkEventRateLimit('chat_message', 60)) {
+      console.log('❌ Chat rate limited');
       socket.emit('chat_error', { error: 'Rate limit exceeded. Please slow down your messages.' });
       return;
     }
 
-    console.log(`💬 Chat message from ${authenticatedUser?.username}:`, data.message);
+    console.log(`💬 Chat message from ${authenticatedUser?.username || 'anonymous'}:`, data.message);
     
     try {
       // Extract character data from request
