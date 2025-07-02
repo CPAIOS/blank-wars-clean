@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Send, MessageCircle, Heart, Star } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
 
 interface Message {
   id: number;
@@ -75,6 +76,52 @@ export default function ChatDemo() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  // Connect to WebSocket on mount
+  useEffect(() => {
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const newSocket = io(socketUrl, {
+      transports: ['websocket'],
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Connected to chat server');
+    });
+
+    newSocket.on('chat_response', (data: { message: string; character: string }) => {
+      const characterMessage: Message = {
+        id: Date.now(),
+        type: 'character',
+        content: data.message,
+        timestamp: new Date(),
+        bondIncrease: Math.random() > 0.7,
+      };
+      
+      setMessages(prev => [...prev, characterMessage]);
+      setIsTyping(false);
+    });
+
+    newSocket.on('chat_error', (error: { error: string }) => {
+      console.error('Chat error:', error);
+      // Fallback to template response
+      const fallbackResponse = TEMPLATE_RESPONSES.greeting[Math.floor(Math.random() * TEMPLATE_RESPONSES.greeting.length)];
+      const characterMessage: Message = {
+        id: Date.now(),
+        type: 'character',
+        content: fallbackResponse,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, characterMessage]);
+      setIsTyping(false);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.close();
+    };
+  }, []);
 
   const quickTestMessages = [
     "How are you feeling?",
@@ -85,7 +132,7 @@ export default function ChatDemo() {
   ];
 
   const sendMessage = (content: string) => {
-    if (!content.trim()) return;
+    if (!content.trim() || !socket) return;
 
     // Add player message
     const playerMessage: Message = {
@@ -99,28 +146,25 @@ export default function ChatDemo() {
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate AI response delay
-    setTimeout(() => {
-      const response = generateResponse(content);
-      const characterMessage: Message = {
-        id: Date.now() + 1,
-        type: 'character',
-        content: response.content,
-        timestamp: new Date(),
-        bondIncrease: response.bondIncrease,
-      };
-
-      setMessages(prev => [...prev, characterMessage]);
-      setIsTyping(false);
-
-      // Update bond level if applicable
-      if (response.bondIncrease) {
-        setSelectedCharacter(prev => ({
-          ...prev,
-          bondLevel: Math.min(10, prev.bondLevel + 1)
-        }));
-      }
-    }, 1000 + Math.random() * 2000);
+    // Send to AI backend via WebSocket
+    socket.emit('chat_message', {
+      message: content,
+      character: selectedCharacter.id,
+      characterData: {
+        name: selectedCharacter.name,
+        personality: {
+          traits: ['Brave', 'Honorable', 'Fierce'],
+          speechStyle: 'Epic and heroic, befitting a legendary warrior',
+          motivations: ['Glory', 'Honor', 'Victory'],
+          fears: ['Dishonor', 'Weakness', 'Betrayal']
+        },
+        bondLevel: selectedCharacter.bondLevel
+      },
+      previousMessages: messages.slice(-5).map(m => ({
+        role: m.type === 'player' ? 'user' : 'assistant',
+        content: m.content
+      }))
+    });
   };
 
   const generateResponse = (playerMessage: string): { content: string; bondIncrease: boolean } => {
