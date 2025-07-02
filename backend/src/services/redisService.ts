@@ -50,7 +50,6 @@ class RedisService implements CacheInterface {
         lazyConnect: true,
         connectTimeout: 3000, // Short timeout for faster fallback
         enableOfflineQueue: false, // Don't queue commands when disconnected
-        maxRetriesPerRequest: 1, // Ensure no hanging retries
       };
 
       console.log('🔄 Connecting to Redis...');

@@ -84,7 +84,8 @@ export class AIChatService {
       
       // Log the exact OpenAI error for debugging
       if (error && typeof error === 'object' && 'response' in error) {
-        console.error('🔍 OpenAI API Error Response:', error.response?.data || error.response);
+        const errorResponse = (error as any).response;
+        console.error('🔍 OpenAI API Error Response:', errorResponse?.data || errorResponse);
       }
       
       // Fallback to personality-based template response
