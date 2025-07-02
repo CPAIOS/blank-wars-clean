@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Send, MessageCircle, Heart, Star } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
@@ -76,72 +76,52 @@ export default function ChatDemo() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Connect to WebSocket on mount
+  // Initialize socket connection
   useEffect(() => {
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-    console.log('Connecting to WebSocket at:', socketUrl);
+    const socketUrl = 'https://blank-wars-demo-3.onrender.com';
+    console.log('🔌 Connecting to:', socketUrl);
     
-    const newSocket = io(socketUrl, {
+    socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      timeout: 20000,
     });
 
-    newSocket.on('connect', () => {
-      console.log('Connected to chat server');
+    socketRef.current.on('connect', () => {
+      console.log('✅ Socket connected');
     });
 
-    newSocket.on('connection_established', (data) => {
-      console.log('Server confirmed connection:', data);
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error.message);
-    });
-
-    newSocket.on('error', (error) => {
-      console.error('Socket error:', error);
-    });
-
-    newSocket.on('chat_response', (data: { message: string; character: string; bondIncrease?: boolean }) => {
-      console.log('Received chat response:', data);
+    socketRef.current.on('chat_response', (data: any) => {
+      console.log('📨 Received response:', data);
       
       const characterMessage: Message = {
         id: Date.now(),
         type: 'character',
-        content: data.message,
+        content: data.message || 'I must gather my thoughts...',
         timestamp: new Date(),
         bondIncrease: data.bondIncrease || Math.random() > 0.7,
       };
       
       setMessages(prev => [...prev, characterMessage]);
       setIsTyping(false);
-      console.log('Chat response processed, isTyping set to false');
     });
 
-    newSocket.on('chat_error', (error: { error: string }) => {
-      console.error('Chat error:', error);
-      // Fallback to template response
-      const fallbackResponse = TEMPLATE_RESPONSES.greeting[Math.floor(Math.random() * TEMPLATE_RESPONSES.greeting.length)];
-      const characterMessage: Message = {
-        id: Date.now(),
-        type: 'character',
-        content: fallbackResponse,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, characterMessage]);
+    socketRef.current.on('chat_error', (error: any) => {
+      console.error('❌ Chat error:', error);
       setIsTyping(false);
     });
 
-    setSocket(newSocket);
-
     return () => {
-      newSocket.close();
+      socketRef.current?.disconnect();
     };
   }, []);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const quickTestMessages = [
     "How are you feeling?",
@@ -152,14 +132,9 @@ export default function ChatDemo() {
   ];
 
   const sendMessage = (content: string) => {
-    if (!content.trim()) return;
-    
-    if (!socket) {
-      console.error('Socket not connected');
-      return;
-    }
+    if (!content.trim() || isTyping || !socketRef.current?.connected) return;
 
-    // Add player message
+    // Add player message immediately
     const playerMessage: Message = {
       id: Date.now(),
       type: 'player',
@@ -171,11 +146,10 @@ export default function ChatDemo() {
     setInputMessage('');
     setIsTyping(true);
 
-    console.log('Sending message to AI:', content);
-    console.log('Socket connected?', socket.connected);
+    console.log('📤 Sending message:', content);
 
-    // Send to AI backend via WebSocket
-    socket.emit('chat_message', {
+    // Send to backend
+    socketRef.current.emit('chat_message', {
       message: content,
       character: selectedCharacter.id,
       characterData: {
@@ -193,6 +167,14 @@ export default function ChatDemo() {
         content: m.content
       }))
     });
+
+    // Safety timeout
+    setTimeout(() => {
+      if (isTyping) {
+        console.log('⏰ Response timeout - resetting');
+        setIsTyping(false);
+      }
+    }, 15000);
   };
 
   const generateResponse = (playerMessage: string): { content: string; bondIncrease: boolean } => {
@@ -384,16 +366,17 @@ export default function ChatDemo() {
                   </div>
                 </motion.div>
               )}
+              
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area - Always Visible */}
             <div className="p-4 border-t border-gray-700 bg-gray-800">
               {/* Debug info */}
               <div className="text-xs text-gray-500 mb-2">
-                Socket: {socket?.connected ? '✅ Connected' : '❌ Disconnected'} | 
-                Typing: {isTyping ? '⏳ AI Responding...' : '✅ Ready'} | 
-                Messages: {messages.length} |
-                Input: {inputMessage ? `"${inputMessage.substring(0,20)}..."` : 'Empty'}
+                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} | 
+                {isTyping ? ' ⏳ AI Responding...' : ' ✅ Ready'} | 
+                Messages: {messages.length}
               </div>
               
               <div className="flex gap-2">
@@ -401,13 +384,10 @@ export default function ChatDemo() {
                   key="chat-input" // Force re-render
                   type="text"
                   value={inputMessage}
-                  onChange={(e) => {
-                    console.log('Input changed:', e.target.value);
-                    setInputMessage(e.target.value);
-                  }}
+                  onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={(e) => {
-                    console.log('Key pressed:', e.key, 'isTyping:', isTyping);
-                    if (e.key === 'Enter' && !isTyping && inputMessage.trim()) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
                       sendMessage(inputMessage);
                     }
                   }}
@@ -417,60 +397,12 @@ export default function ChatDemo() {
                   autoComplete="off"
                 />
                 <button
-                  onClick={() => {
-                    console.log('Send button clicked:', inputMessage);
-                    if (inputMessage.trim() && !isTyping) {
-                      sendMessage(inputMessage);
-                    }
-                  }}
-                  disabled={!inputMessage.trim() || isTyping || !socket?.connected}
+                  onClick={() => sendMessage(inputMessage)}
+                  disabled={!inputMessage.trim() || isTyping || !socketRef.current?.connected}
                   className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-gray-600 disabled:to-gray-500 text-white p-2 rounded-full transition-all"
                 >
                   <Send className="w-5 h-5" />
                 </button>
-                
-                {/* Always show emergency controls */}
-                <button
-                  onClick={() => {
-                    console.log('Force reset triggered - isTyping was:', isTyping);
-                    setIsTyping(false);
-                    setInputMessage('');
-                  }}
-                  className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-full transition-all text-xs"
-                  title="Reset chat state"
-                >
-                  🔄
-                </button>
-                
-                <button
-                  onClick={() => {
-                    console.log('Force refresh triggered');
-                    window.location.reload();
-                  }}
-                  className="bg-yellow-600 hover:bg-yellow-500 text-white p-2 rounded-full transition-all text-xs"
-                  title="Refresh page"
-                >
-                  ⚡
-                </button>
-              </div>
-              
-              {/* Force visible fallback input */}
-              <div className="mt-2 text-xs text-gray-600">
-                Emergency input: <input 
-                  type="text" 
-                  className="bg-gray-900 text-white p-1 rounded text-xs"
-                  placeholder="Backup input if main fails"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      const value = (e.target as HTMLInputElement).value;
-                      if (value.trim()) {
-                        setInputMessage(value);
-                        sendMessage(value);
-                        (e.target as HTMLInputElement).value = '';
-                      }
-                    }
-                  }}
-                />
               </div>
             </div>
           </div>

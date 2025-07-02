@@ -11,7 +11,7 @@ import {
 
 // Import stable components
 import CharacterDatabase from './CharacterDatabase';
-import SimpleChatDemo from './SimpleChatDemo'; // Use simple, stable chat
+import ChatDemo from './ChatDemo'; // Use full-featured chat with stable patterns
 
 // Lazy load non-critical components
 const TrainingGrounds = lazy(() => import('./TrainingGrounds'));
@@ -413,7 +413,7 @@ export default function MainTabSystem() {
         { id: 'progression', label: 'Progression', icon: TrendingUp, component: ProgressionDashboardWrapper, description: 'Level up & skill trees' },
         { id: 'equipment', label: 'Equipment', icon: Crown, component: EquipmentManager, description: 'Weapons & armor' },
         { id: 'abilities', label: 'Abilities', icon: Sparkles, component: AbilityManager, description: 'Manage special powers' },
-        { id: 'chat', label: 'Chat', icon: MessageCircle, component: SimpleChatDemo, description: 'Character conversations' },
+        { id: 'chat', label: 'Chat', icon: MessageCircle, component: ChatDemo, description: 'Character conversations' },
       ]
     },
     {
