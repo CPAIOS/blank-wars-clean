@@ -106,17 +106,20 @@ export default function ChatDemo() {
       console.error('Socket error:', error);
     });
 
-    newSocket.on('chat_response', (data: { message: string; character: string }) => {
+    newSocket.on('chat_response', (data: { message: string; character: string; bondIncrease?: boolean }) => {
+      console.log('Received chat response:', data);
+      
       const characterMessage: Message = {
         id: Date.now(),
         type: 'character',
         content: data.message,
         timestamp: new Date(),
-        bondIncrease: Math.random() > 0.7,
+        bondIncrease: data.bondIncrease || Math.random() > 0.7,
       };
       
       setMessages(prev => [...prev, characterMessage]);
       setIsTyping(false);
+      console.log('Chat response processed, isTyping set to false');
     });
 
     newSocket.on('chat_error', (error: { error: string }) => {
@@ -385,24 +388,50 @@ export default function ChatDemo() {
 
             {/* Input Area */}
             <div className="p-4 border-t border-gray-700">
+              {/* Debug info */}
+              <div className="text-xs text-gray-500 mb-2">
+                Socket: {socket?.connected ? '✅ Connected' : '❌ Disconnected'} | 
+                Typing: {isTyping ? '⏳ AI Responding...' : '✅ Ready'} | 
+                Messages: {messages.length}
+              </div>
+              
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage(inputMessage)}
-                  placeholder={`Message ${selectedCharacter.name}...`}
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded-full px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !isTyping && inputMessage.trim()) {
+                      sendMessage(inputMessage);
+                    }
+                  }}
+                  placeholder={isTyping ? 'AI is responding...' : `Message ${selectedCharacter.name}...`}
+                  disabled={isTyping}
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded-full px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 disabled:opacity-50"
                 />
                 <motion.button
                   onClick={() => sendMessage(inputMessage)}
-                  disabled={!inputMessage.trim() || isTyping}
+                  disabled={!inputMessage.trim() || isTyping || !socket?.connected}
                   className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-gray-600 disabled:to-gray-500 text-white p-2 rounded-full transition-all"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <Send className="w-5 h-5" />
                 </motion.button>
+                
+                {/* Emergency reset button */}
+                {isTyping && (
+                  <motion.button
+                    onClick={() => {
+                      console.log('Manual reset triggered');
+                      setIsTyping(false);
+                    }}
+                    className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-full transition-all text-xs"
+                    title="Reset if stuck"
+                  >
+                    🔄
+                  </motion.button>
+                )}
               </div>
             </div>
           </div>
