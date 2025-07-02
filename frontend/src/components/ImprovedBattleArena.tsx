@@ -640,29 +640,29 @@ export default function ImprovedBattleArena() {
       const capturedCurrentRound = currentRound; // Capture for closure
       safeSetTimeout(() => {
         if (capturedRoundResult.newDefenderHp <= 0) {
-        endBattle('player');
-      } else if (capturedCurrentRound >= 9) { // Max 9 rounds for demo
-        endBattle('draw');
-      } else {
-        setCurrentRound(prev => prev + 1);
-        // Switch fighters for next round  
-        const nextPlayerIndex = capturedCurrentRound % playerTeam.characters.length;
-        const nextOpponentIndex = capturedCurrentRound % opponentTeam.characters.length;
+          endBattle('player');
+        } else if (capturedCurrentRound >= 9) { // Max 9 rounds for demo
+          endBattle('draw');
+        } else {
+          setCurrentRound(prev => prev + 1);
+          // Switch fighters for next round  
+          const nextPlayerIndex = capturedCurrentRound % playerTeam.characters.length;
+          const nextOpponentIndex = capturedCurrentRound % opponentTeam.characters.length;
         
-        setBattleState(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            currentFighters: {
-              player: playerTeam.characters[nextPlayerIndex],
-              opponent: opponentTeam.characters[nextOpponentIndex]
-            }
-          };
-        });
-        
-        safeSetTimeout(() => startRoundCombat(), 2000);
-      }
-    }, 4000);
+          setBattleState(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              currentFighters: {
+                player: playerTeam.characters[nextPlayerIndex],
+                opponent: opponentTeam.characters[nextOpponentIndex]
+              }
+            };
+          });
+          
+          safeSetTimeout(() => startRoundCombat(), 2000);
+        }
+      }, 4000);
     }
   };
 
