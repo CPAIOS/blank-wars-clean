@@ -6,7 +6,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { BattleEventHandlers } from '@/services/battleWebSocket';
 
 export function useBattleWebSocket(handlers?: Partial<BattleEventHandlers>) {
-  const { tokens, isAuthenticated } = useAuth();
+  // Safely access auth context with error boundary
+  let authData;
+  try {
+    authData = useAuth();
+  } catch (error) {
+    console.warn('useBattleWebSocket: AuthContext not available, running in standalone mode');
+    authData = { tokens: null, isAuthenticated: false };
+  }
+  
+  const { tokens, isAuthenticated } = authData;
   const isConnected = useRef(false);
 
   useEffect(() => {

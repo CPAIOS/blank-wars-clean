@@ -41,14 +41,44 @@ class RedisService implements CacheInterface {
         retryDelayOnFailover: 100,
         maxRetriesPerRequest: 3,
         lazyConnect: true,
-        // Connection timeout
-        connectTimeout: 10000,
+        connectTimeout: 5000, // Shorter timeout for faster fallback
+        maxRetriesPerRequest: 1, // Fewer retries for faster fallback
+        enableOfflineQueue: false, // Don't queue commands when disconnected
       };
 
-      console.log('🔄 Connecting to Redis...');
+      // Only log connection attempt if REDIS_URL is explicitly set
+      if (process.env.REDIS_URL) {
+        console.log('🔄 Connecting to Redis...');
+      }
       
       this.redis = new Redis(redisUrl, redisOptions);
       this.subscriber = new Redis(redisUrl, redisOptions);
+
+      // Set up error handlers BEFORE connecting to suppress unhandled errors
+      this.redis.on('error', (error) => {
+        if (process.env.REDIS_URL) {
+          console.warn('⚠️ Redis error (falling back to in-memory cache):', error.message);
+        }
+        this.isConnected = false;
+      });
+
+      this.redis.on('close', () => {
+        if (this.isConnected && process.env.REDIS_URL) {
+          console.warn('⚠️ Redis connection closed');
+        }
+        this.isConnected = false;
+      });
+
+      this.redis.on('reconnecting', () => {
+        if (process.env.REDIS_URL) {
+          console.log('🔄 Redis reconnecting...');
+        }
+      });
+
+      this.subscriber.on('error', (error) => {
+        // Suppress subscriber errors
+        this.isConnected = false;
+      });
 
       // Connect both instances
       await Promise.all([
@@ -58,21 +88,6 @@ class RedisService implements CacheInterface {
 
       this.isConnected = true;
       console.log('✅ Redis connected successfully');
-
-      // Set up event handlers
-      this.redis.on('error', (error) => {
-        console.error('❌ Redis error:', error);
-        this.isConnected = false;
-      });
-
-      this.redis.on('close', () => {
-        console.warn('⚠️ Redis connection closed');
-        this.isConnected = false;
-      });
-
-      this.redis.on('reconnecting', () => {
-        console.log('🔄 Redis reconnecting...');
-      });
 
       // Set up subscriber message handling
       this.subscriber.on('message', (channel, message) => {
@@ -89,8 +104,9 @@ class RedisService implements CacheInterface {
       });
 
     } catch (error) {
-      console.error('❌ Failed to connect to Redis:', error);
-      // Fall back to in-memory cache if Redis is unavailable
+      if (process.env.REDIS_URL) {
+        console.warn('⚠️ Redis unavailable, using in-memory cache');
+      }
       this.isConnected = false;
     }
   }

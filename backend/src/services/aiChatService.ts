@@ -74,7 +74,19 @@ export class AIChatService {
         bondIncrease
       };
     } catch (error) {
-      console.error('AI Chat Service Error:', error);
+      console.error('🚨 AI Chat Service Error Details:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        apiKey: process.env.OPENAI_API_KEY ? 'Present' : 'MISSING',
+        characterId: context.characterId,
+        userMessage: userMessage.substring(0, 50) + '...'
+      });
+      
+      // Log the exact OpenAI error for debugging
+      if (error && typeof error === 'object' && 'response' in error) {
+        console.error('🔍 OpenAI API Error Response:', error.response?.data || error.response);
+      }
+      
       // Fallback to personality-based template response
       return this.getFallbackResponse(context, userMessage);
     }
