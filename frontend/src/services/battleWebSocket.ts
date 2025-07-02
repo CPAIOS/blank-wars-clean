@@ -176,6 +176,10 @@ class BattleWebSocketService {
     this.handlers = { ...this.handlers, ...handlers };
   }
 
+  public clearEventHandlers() {
+    this.handlers = {};
+  }
+
   public authenticate(token: string) {
     if (!this.socket) return;
     this.socket.emit('auth', { token });
@@ -289,6 +293,7 @@ export const battleWebSocket = {
   },
   // Proxy methods to maintain API compatibility
   setEventHandlers: (handlers: BattleEventHandlers) => getBattleWebSocket().setEventHandlers(handlers),
+  clearEventHandlers: () => getBattleWebSocket().clearEventHandlers(),
   authenticate: (token: string) => getBattleWebSocket().authenticate(token),
   authenticateWithToken: (accessToken: string | null) => getBattleWebSocket().authenticateWithToken(accessToken),
   findMatch: (characterId?: string, mode?: 'casual' | 'ranked') => getBattleWebSocket().findMatch(characterId, mode),

@@ -188,13 +188,31 @@ export class BattleManager extends EventEmitter {
     try {
       switch (event.type) {
         case 'battle_created':
-          // Another server created a battle, update our state if needed
+          // Another server created a battle, track it for coordination
+          console.log(`📊 Battle ${event.battleId} created on server ${event.serverId}`);
+          // Remove players from local queue if they exist
+          if (event.player1) {
+            this.battleQueue.delete(event.player1);
+          }
+          if (event.player2) {
+            this.battleQueue.delete(event.player2);
+          }
           break;
         case 'battle_ended':
-          // Another server ended a battle, clean up if needed
+          // Another server ended a battle, clean up any local references
+          console.log(`📊 Battle ${event.battleId} ended on server ${event.serverId}`);
+          if (event.battleId && this.activeBattles.has(event.battleId)) {
+            // Remove from local state if somehow we have a reference
+            this.activeBattles.delete(event.battleId);
+          }
           break;
         case 'player_disconnected':
           // Handle player disconnection across servers
+          console.log(`📊 Player ${event.userId} disconnected from server ${event.serverId}`);
+          // Remove from local queue if they exist
+          if (event.userId) {
+            this.battleQueue.delete(event.userId);
+          }
           break;
       }
     } catch (error) {
@@ -246,21 +264,49 @@ export class BattleManager extends EventEmitter {
         const maxRatingDiff = Math.min(200 + waitTime / 1000, 500);
         
         if (ratingDiff <= maxRatingDiff) {
-          // Found a match! Convert back to QueueEntry format
-          const opponent: QueueEntry = {
-            userId: player.id,
-            characterId: playerData.characterId,
-            character: playerData.character,
-            rating: playerData.rating,
-            joinedAt: playerData.joinedAt,
-            mode: playerData.mode
-          };
+          // Use distributed lock to prevent race conditions between servers
+          const lockKey = `match_lock:${[queueEntry.userId, player.id].sort().join(':')}`;
           
-          // Remove both players from queue
-          await this.removeFromDistributedQueue(queueEntry.userId, queueEntry.mode);
-          await this.removeFromDistributedQueue(opponent.userId, opponent.mode);
-          
-          return opponent;
+          try {
+            // Try to acquire lock with Redis SETNX
+            const lockValue = `${process.env.SERVER_ID || 'server'}:${Date.now()}`;
+            const lockAcquired = await cache.set(lockKey, lockValue, 'EX', 5, 'NX'); // 5 second expiry, only if not exists
+            
+            if (lockAcquired === 'OK') {
+              // Double-check both players are still in queue before proceeding
+              const queuePlayersCheck = await cache.getMatchmakingQueue(queueEntry.mode);
+              const player1StillInQueue = queuePlayersCheck.some(p => p.id === queueEntry.userId);
+              const player2StillInQueue = queuePlayersCheck.some(p => p.id === player.id);
+              
+              if (player1StillInQueue && player2StillInQueue) {
+                // Found a match! Convert back to QueueEntry format
+                const opponent: QueueEntry = {
+                  userId: player.id,
+                  characterId: playerData.characterId,
+                  character: playerData.character,
+                  rating: playerData.rating,
+                  joinedAt: playerData.joinedAt,
+                  mode: playerData.mode
+                };
+                
+                // Remove both players from queue atomically
+                await this.removeFromDistributedQueue(queueEntry.userId, queueEntry.mode);
+                await this.removeFromDistributedQueue(opponent.userId, opponent.mode);
+                
+                // Release lock before returning
+                await cache.del(lockKey);
+                
+                return opponent;
+              } else {
+                // One of the players was already matched, release lock and continue searching
+                await cache.del(lockKey);
+              }
+            }
+            // If lock not acquired, another server is processing this match, skip this player
+          } catch (lockError) {
+            console.error('Error with distributed lock:', lockError);
+            // Continue without lock as fallback
+          }
         }
       }
       
@@ -1095,6 +1141,19 @@ export class BattleManager extends EventEmitter {
     this.io.to(`battle:${battleState.id}`).emit('opponent_forfeited', {
       winner: winnerSide
     });
+    
+    // Publish global battle ended event for multi-server coordination
+    try {
+      await cache.publishBattleEvent('global', {
+        type: 'battle_ended',
+        battleId: battleState.id,
+        endReason: 'forfeit',
+        winner: winnerId,
+        serverId: process.env.SERVER_ID || 'default'
+      });
+    } catch (error) {
+      console.error('Failed to publish battle_ended event:', error);
+    }
     
     // Clean up
     this.activeBattles.delete(battleState.id);
