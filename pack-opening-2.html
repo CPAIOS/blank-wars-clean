@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blank Wars - Epic Pack Opening!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #0f0f1e 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Particle effects background */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: float-up 4s ease-out infinite;
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        /* Pack Selection */
+        .pack-selection {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+
+        .pack-option {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pack-option:hover {
+            transform: translateY(-10px);
+            border-color: #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .pack-option.selected {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.2);
+        }
+
+        .pack-image {
+            width: 150px;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pack-image.premium {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .pack-image.legendary {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            animation: shimmer 2s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+            100% { filter: brightness(1); }
+        }
+
+        .pack-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .pack-details {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .pack-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        /* Opening Scene */
+        .opening-scene {
+            display: none;
+            position: relative;
+            min-height: 600px;
+        }
+
+        .pack-3d {
+            width: 200px;
+            height: 280px;
+            margin: 0 auto 50px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+
+        .pack-3d.spinning {
+            animation: spin 1s ease-in-out;
+        }
+
+        @keyframes spin {
+            0% { transform: rotateY(0); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        .pack-3d.opening {
+            animation: pack-burst 0.8s ease-out forwards;
+        }
+
+        @keyframes pack-burst {
+            0% { transform: scale(1) rotateY(0); }
+            50% { transform: scale(1.2) rotateY(180deg); }
+            100% { transform: scale(0) rotateY(360deg); opacity: 0; }
+        }
+
+        .pack-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 72px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .open-button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .open-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.5);
+        }
+
+        /* Card Reveal */
+        .cards-container {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+            perspective: 1000px;
+        }
+
+        .card-reveal {
+            width: 200px;
+            height: 280px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s;
+            cursor: pointer;
+            margin: 0 auto;
+        }
+
+        .card-reveal.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            border: 3px solid #667eea;
+        }
+
+        .card-front {
+            transform: rotateY(180deg);
+            background: #1a1a2e;
+            border: 3px solid #444;
+            padding: 15px;
+        }
+
+        .card-front.common { border-color: #666; }
+        .card-front.uncommon { border-color: #4CAF50; }
+        .card-front.rare { 
+            border-color: #2196F3; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #1e3c72 100%);
+        }
+        .card-front.epic { 
+            border-color: #9C27B0; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #4a148c 100%);
+            animation: epic-glow 2s ease-in-out infinite;
+        }
+        .card-front.legendary { 
+            border-color: #FF9800; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #e65100 100%);
+            animation: legendary-glow 1s ease-in-out infinite;
+        }
+
+        @keyframes epic-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(156, 39, 176, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(156, 39, 176, 0.8); }
+        }
+
+        @keyframes legendary-glow {
+            0%, 100% { box-shadow: 0 0 30px rgba(255, 152, 0, 0.5); }
+            50% { box-shadow: 0 0 60px rgba(255, 152, 0, 1); }
+        }
+
+        .character-avatar {
+            font-size: 64px;
+            margin-bottom: 10px;
+        }
+
+        .character-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .character-title {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .character-stats {
+            font-size: 12px;
+            color: #ccc;
+            text-align: center;
+        }
+
+        .rarity-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        .rarity-label.common { background: #666; }
+        .rarity-label.uncommon { background: #4CAF50; }
+        .rarity-label.rare { background: #2196F3; }
+        .rarity-label.epic { background: #9C27B0; }
+        .rarity-label.legendary { background: #FF9800; }
+
+        /* New/Duplicate indicator */
+        .new-indicator {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #4CAF50;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        .duplicate-indicator {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* Results summary */
+        .results-summary {
+            display: none;
+            margin-top: 50px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .summary-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 30px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+        }
+
+        /* Confetti effect */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #4CAF50;
+            position: absolute;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <h1>✨ Pack Opening! ✨</h1>
+        
+        <!-- Pack Selection -->
+        <div class="pack-selection" id="pack-selection">
+            <div class="pack-option" onclick="selectPack('starter')">
+                <div class="pack-image">📦</div>
+                <div class="pack-name">Starter Pack</div>
+                <div class="pack-details">5 Cards • 1 Guaranteed Uncommon</div>
+                <div class="pack-price">$2.99</div>
+            </div>
+            
+            <div class="pack-option" onclick="selectPack('premium')">
+                <div class="pack-image premium">🎁</div>
+                <div class="pack-name">Premium Pack</div>
+                <div class="pack-details">8 Cards • 1 Guaranteed Rare</div>
+                <div class="pack-price">$5.99</div>
+            </div>
+            
+            <div class="pack-option" onclick="selectPack('legendary')">
+                <div class="pack-image legendary">👑</div>
+                <div class="pack-name">Legendary Pack</div>
+                <div class="pack-details">10 Cards • 1 Guaranteed Epic</div>
+                <div class="pack-price">$12.99</div>
+            </div>
+        </div>
+        
+        <!-- Opening Scene -->
+        <div class="opening-scene" id="opening-scene">
+            <div class="pack-3d" id="pack-3d" onclick="shakePack()">
+                <div class="pack-face">🎁</div>
+            </div>
+            <button class="open-button" onclick="openPack()">OPEN PACK!</button>
+        </div>
+        
+        <!-- Cards Container -->
+        <div class="cards-container" id="cards-container">
+            <!-- Cards will be dynamically added here -->
+        </div>
+        
+        <!-- Results Summary -->
+        <div class="results-summary" id="results-summary">
+            <h2>Pack Summary</h2>
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="total-cards">0</div>
+                    <div class="stat-label">Total Cards</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="new-cards">0</div>
+                    <div class="stat-label">New Cards</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="best-rarity">-</div>
+                    <div class="stat-label">Best Pull</div>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" onclick="viewCollection()">View Collection</button>
+                <button class="action-btn primary" onclick="openAnother()">Open Another Pack!</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample card data for demo
+        const SAMPLE_CARDS = {
+            starter: [
+                { id: 1, name: 'Gladiator Marcus', title: 'Arena Champion', rarity: 'common', avatar: '⚔️', isNew: true },
+                { id: 2, name: 'Salem', title: "The Witch's Cat", rarity: 'common', avatar: '🐈‍⬛', isNew: false },
+                { id: 3, name: 'Apprentice Lin', title: 'Kung Fu Student', rarity: 'common', avatar: '🥋', isNew: true },
+                { id: 4, name: 'Robin Hood', title: 'The Forest Outlaw', rarity: 'uncommon', avatar: '🏹', isNew: true },
+                { id: 5, name: 'Nostradamus', title: 'The Prophet', rarity: 'common', avatar: '🔮', isNew: false }
+            ],
+            premium: [
+                { id: 1, name: 'Tesla', title: 'The Lightning Master', rarity: 'rare', avatar: '⚡', isNew: true },
+                { id: 2, name: 'Blackbeard', title: 'Terror of the Seas', rarity: 'uncommon', avatar: '🏴‍☠️', isNew: true },
+                { id: 3, name: 'Joan of Arc', title: 'The Maid of Orleans', rarity: 'uncommon', avatar: '⚜️', isNew: false },
+                { id: 4, name: 'Sasquatch', title: 'The Forest Guardian', rarity: 'uncommon', avatar: '🦶', isNew: true },
+                { id: 5, name: 'Professor Cogsworth', title: 'Steam Inventor', rarity: 'common', avatar: '⚙️', isNew: false },
+                { id: 6, name: 'Bucky', title: 'The All-American', rarity: 'common', avatar: '🇺🇸', isNew: true },
+                { id: 7, name: 'Dracula', title: 'The Immortal Count', rarity: 'epic', avatar: '🧛', isNew: true },
+                { id: 8, name: 'Anansi', title: 'The Spider Trickster', rarity: 'uncommon', avatar: '🕷️', isNew: false }
+            ],
+            legendary: [
+                { id: 1, name: 'Sun Wukong', title: 'The Monkey King', rarity: 'legendary', avatar: '🐵', isNew: true },
+                { id: 2, name: 'Marie Curie', title: 'The Radiant Scientist', rarity: 'epic', avatar: '⚗️', isNew: true },
+                { id: 3, name: 'Cleopatra', title: 'The Last Pharaoh', rarity: 'rare', avatar: '👑', isNew: false },
+                { id: 4, name: 'Mulan', title: 'The Warrior Maiden', rarity: 'rare', avatar: '🗡️', isNew: true },
+                { id: 5, name: 'Fenrir', title: 'The World Ender', rarity: 'rare', avatar: '🐺', isNew: true },
+                { id: 6, name: 'Achilles', title: 'Hero of Troy', rarity: 'epic', avatar: '🛡️', isNew: false },
+                { id: 7, name: 'Robin Hood', title: 'The Forest Outlaw', rarity: 'uncommon', avatar: '🏹', isNew: false },
+                { id: 8, name: 'Salem', title: "The Witch's Cat", rarity: 'common', avatar: '🐈‍⬛', isNew: false },
+                { id: 9, name: 'Apprentice Lin', title: 'Kung Fu Student', rarity: 'common', avatar: '🥋', isNew: false },
+                { id: 10, name: 'Professor Cogsworth', title: 'Steam Inventor', rarity: 'common', avatar: '⚙️', isNew: false }
+            ]
+        };
+
+        let selectedPack = null;
+        let currentCards = [];
+        let packOpened = false;
+
+        // Initialize particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 4 + 's';
+                particle.style.animationDuration = (3 + Math.random() * 2) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Select pack
+        function selectPack(packType) {
+            selectedPack = packType;
+            document.querySelectorAll('.pack-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Show opening scene
+            setTimeout(() => {
+                document.getElementById('pack-selection').style.display = 'none';
+                document.getElementById('opening-scene').style.display = 'block';
+                
+                // Update pack appearance based on type
+                const pack3d = document.getElementById('pack-3d');
+                const packFace = pack3d.querySelector('.pack-face');
+                
+                if (packType === 'premium') {
+                    packFace.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+                    packFace.textContent = '🎁';
+                } else if (packType === 'legendary') {
+                    packFace.style.background = 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+                    packFace.textContent = '👑';
+                }
+            }, 300);
+        }
+
+        // Shake pack animation
+        function shakePack() {
+            if (packOpened) return;
+            
+            const pack = document.getElementById('pack-3d');
+            pack.classList.add('spinning');
+            setTimeout(() => {
+                pack.classList.remove('spinning');
+            }, 1000);
+        }
+
+        // Open pack
+        function openPack() {
+            if (packOpened) return;
+            packOpened = true;
+            
+            const pack = document.getElementById('pack-3d');
+            const openButton = document.querySelector('.open-button');
+            
+            // Hide button
+            openButton.style.display = 'none';
+            
+            // Pack burst animation
+            pack.classList.add('opening');
+            
+            // Create confetti
+            createConfetti();
+            
+            // Get cards for this pack
+            currentCards = SAMPLE_CARDS[selectedPack];
+            
+            // Show cards after animation
+            setTimeout(() => {
+                document.getElementById('opening-scene').style.display = 'none';
+                document.getElementById('cards-container').style.display = 'grid';
+                
+                // Create card elements
+                currentCards.forEach((card, index) => {
+                    createCardElement(card, index);
+                });
+                
+                // Show summary after all cards are revealed
+                setTimeout(() => {
+                    showSummary();
+                }, currentCards.length * 200 + 1000);
+            }, 800);
+        }
+
+        // Create card element
+        function createCardElement(card, index) {
+            const cardsContainer = document.getElementById('cards-container');
+            
+            const cardReveal = document.createElement('div');
+            cardReveal.className = 'card-reveal';
+            cardReveal.innerHTML = `
+                <div class="card-face card-back">
+                    <div style="font-size: 72px;">🎴</div>
+                    <div style="margin-top: 10px;">Click to reveal!</div>
+                </div>
+                <div class="card-face card-front ${card.rarity}">
+                    ${card.isNew ? '<div class="new-indicator">NEW!</div>' : ''}
+                    ${!card.isNew ? '<div class="duplicate-indicator">+50 Essence</div>' : ''}
+                    <div class="character-avatar">${card.avatar}</div>
+                    <div class="character-name">${card.name}</div>
+                    <div class="character-title">${card.title}</div>
+                    <div class="character-stats">
+                        ATK: ${60 + Math.floor(Math.random() * 40)} | 
+                        DEF: ${50 + Math.floor(Math.random() * 30)} | 
+                        SPD: ${60 + Math.floor(Math.random() * 40)}
+                    </div>
+                    <div class="rarity-label ${card.rarity}">${card.rarity}</div>
+                </div>
+            `;
+            
+            // Add click to flip
+            cardReveal.onclick = function() {
+                if (!this.classList.contains('flipped')) {
+                    this.classList.add('flipped');
+                    
+                    // Special effects for rare cards
+                    if (card.rarity === 'epic' || card.rarity === 'legendary') {
+                        createConfetti();
+                    }
+                }
+            };
+            
+            // Stagger the appearance
+            setTimeout(() => {
+                cardsContainer.appendChild(cardReveal);
+            }, index * 200);
+        }
+
+        // Create confetti effect
+        function createConfetti() {
+            const colors = ['#4CAF50', '#2196F3', '#9C27B0', '#FF9800', '#f44336'];
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                confetti.style.width = (5 + Math.random() * 10) + 'px';
+                confetti.style.height = confetti.style.width;
+                document.body.appendChild(confetti);
+                
+                setTimeout(() => confetti.remove(), 3000);
+            }
+        }
+
+        // Show summary
+        function showSummary() {
+            const summary = document.getElementById('results-summary');
+            summary.style.display = 'block';
+            
+            // Calculate stats
+            const totalCards = currentCards.length;
+            const newCards = currentCards.filter(card => card.isNew).length;
+            const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+            let bestRarity = 'common';
+            
+            currentCards.forEach(card => {
+                if (rarities.indexOf(card.rarity) > rarities.indexOf(bestRarity)) {
+                    bestRarity = card.rarity;
+                }
+            });
+            
+            // Update summary
+            document.getElementById('total-cards').textContent = totalCards;
+            document.getElementById('new-cards').textContent = newCards;
+            document.getElementById('best-rarity').textContent = bestRarity.toUpperCase();
+            
+            // Smooth scroll to summary
+            summary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // View collection
+        function viewCollection() {
+            window.location.href = '/collection';
+        }
+        
+        // Open another pack
+        function openAnother() {
+            // Reset state
+            packOpened = false;
+            currentCards = [];
+            
+            // Clear UI
+            document.getElementById('pack-selection').style.display = 'flex';
+            document.getElementById('opening-scene').style.display = 'none';
+            document.getElementById('cards-container').style.display = 'none';
+            document.getElementById('cards-container').innerHTML = '';
+            document.getElementById('results-summary').style.display = 'none';
+            
+            // Reset pack 3d
+            const pack3d = document.getElementById('pack-3d');
+            pack3d.classList.remove('opening');
+            document.querySelector('.open-button').style.display = 'block';
+        }
+        
+        // Initialize on load
+        createParticles();
+            

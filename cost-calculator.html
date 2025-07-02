@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blank Wars - Cost Calculator & Revenue Projector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 36px;
+        }
+
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .input-group input[type="number"],
+        .input-group input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .input-group input[type="range"] {
+            padding: 5px;
+        }
+
+        .range-value {
+            text-align: right;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .result-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .result-label {
+            color: #aaa;
+        }
+
+        .result-value {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .positive {
+            color: #4CAF50;
+        }
+
+        .negative {
+            color: #f44336;
+        }
+
+        .warning {
+            color: #ff9800;
+        }
+
+        .profit-indicator {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .profit-positive {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
+            color: #4CAF50;
+        }
+
+        .profit-negative {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #f44336;
+            color: #f44336;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .chart-bar {
+            position: absolute;
+            bottom: 0;
+            width: 40px;
+            background: #4CAF50;
+            transition: all 0.3s ease;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .chart-label {
+            position: absolute;
+            bottom: -25px;
+            font-size: 12px;
+            width: 40px;
+            text-align: center;
+        }
+
+        .insights {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .insights h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+        }
+
+        .insight-item {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .insight-item:before {
+            content: "💡";
+            position: absolute;
+            left: 0;
+        }
+
+        .scenario-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .scenario-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .scenario-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 14px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Blank Wars Economics Calculator</h1>
+        
+        <div class="scenario-buttons">
+            <button class="scenario-btn" onclick="loadScenario('conservative')">Conservative Launch</button>
+            <button class="scenario-btn" onclick="loadScenario('realistic')">Realistic Growth</button>
+            <button class="scenario-btn" onclick="loadScenario('optimistic')">Optimistic Success</button>
+            <button class="scenario-btn" onclick="loadScenario('viral')">Viral Hit!</button>
+        </div>
+
+        <div class="calculator-grid">
+            <!-- User Metrics -->
+            <div class="card">
+                <h2>👥 User Metrics</h2>
+                <div class="input-group">
+                    <label>Total Users</label>
+                    <input type="number" id="total-users" value="10000" onchange="calculate()">
+                </div>
+                <div class="input-group">
+                    <label>Daily Active Users (DAU) %</label>
+                    <input type="range" id="dau-percent" min="10" max="50" value="30" onchange="calculate()">
+                    <div class="range-value"><span id="dau-percent-value">30</span>%</div>
+                </div>
+                <div class="input-group">
+                    <label>Free → Paid Conversion %</label>
+                    <input type="range" id="conversion-rate" min="1" max="20" value="5" step="0.5" onchange="calculate()">
+                    <div class="range-value"><span id="conversion-rate-value">5</span>%</div>
+                </div>
+                <div class="input-group">
+                    <label>Premium Users ($4.99/month) %</label>
+                    <input type="range" id="premium-percent" min="50" max="100" value="80" onchange="calculate()">
+                    <div class="range-value"><span id="premium-percent-value">80</span>%</div>
+                </div>
+            </div>
+
+            <!-- Chat Behavior -->
+            <div class="card">
+                <h2>💬 Chat Behavior</h2>
+                <div class="input-group">
+                    <label>Avg Messages per User per Day</label>
+                    <input type="range" id="messages-per-day" min="5" max="50" value="15" onchange="calculate()">
+                    <div class="range-value"><span id="messages-per-day-value">15</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Template Response Rate %</label>
+                    <input type="range" id="template-rate" min="50" max="90" value="75" onchange="calculate()">
+                    <div class="range-value"><span id="template-rate-value">75</span>%</div>
+                </div>
+                <div class="input-group">
+                    <label>Cache Hit Rate %</label>
+                    <input type="range" id="cache-rate" min="0" max="30" value="15" onchange="calculate()">
+                    <div class="range-value"><span id="cache-rate-value">15</span>%</div>
+                </div>
+                <div class="input-group">
+                    <label>AI Model</label>
+                    <select id="ai-model" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 8px;" onchange="calculate()">
+                        <option value="gpt35">GPT-3.5 Turbo ($0.0006/call)</option>
+                        <option value="gpt4">GPT-4 Turbo ($0.024/call)</option>
+                        <option value="claude">Claude Sonnet ($0.012/call)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Other Revenue -->
+            <div class="card">
+                <h2>🎁 Additional Revenue</h2>
+                <div class="input-group">
+                    <label>Card Pack Buyers %</label>
+                    <input type="range" id="pack-buyers" min="0" max="20" value="10" step="0.5" onchange="calculate()">
+                    <div class="range-value"><span id="pack-buyers-value">10</span>%</div>
+                </div>
+                <div class="input-group">
+                    <label>Avg Packs per Buyer/Month</label>
+                    <input type="range" id="packs-per-buyer" min="1" max="10" value="3" step="0.5" onchange="calculate()">
+                    <div class="range-value"><span id="packs-per-buyer-value">3</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Battle Pass Buyers %</label>
+                    <input type="range" id="battle-pass" min="0" max="30" value="15" onchange="calculate()">
+                    <div class="range-value"><span id="battle-pass-value">15</span>%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="card">
+            <h2>📊 Financial Projections (Monthly)</h2>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value positive">$<span id="total-revenue">0</span></div>
+                    <div class="metric-label">Total Revenue</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value negative">$<span id="total-costs">0</span></div>
+                    <div class="metric-label">Total Costs</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="net-profit-metric">$<span id="net-profit">0</span></div>
+                    <div class="metric-label">Net Profit</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value warning"><span id="margin">0</span>%</div>
+                    <div class="metric-label">Profit Margin</div>
+                </div>
+            </div>
+
+            <div class="result-box" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 15px;">Revenue Breakdown</h3>
+                <div class="result-row">
+                    <span class="result-label">Premium Subscriptions</span>
+                    <span class="result-value positive">$<span id="subscription-revenue">0</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Card Pack Sales</span>
+                    <span class="result-value positive">$<span id="pack-revenue">0</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Battle Pass Sales</span>
+                    <span class="result-value positive">$<span id="battle-pass-revenue">0</span></span>
+                </div>
+            </div>
+
+            <div class="result-box">
+                <h3 style="margin-bottom: 15px;">Cost Breakdown</h3>
+                <div class="result-row">
+                    <span class="result-label">AI API Costs</span>
+                    <span class="result-value negative">$<span id="ai-costs">0</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Infrastructure (estimated)</span>
+                    <span class="result-value negative">$<span id="infra-costs">0</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Payment Processing (2.9%)</span>
+                    <span class="result-value negative">$<span id="payment-costs">0</span></span>
+                </div>
+            </div>
+
+            <div class="profit-indicator" id="profit-indicator">
+                Net Profit: $<span id="profit-indicator-value">0</span>/month
+            </div>
+        </div>
+
+        <!-- AI Usage Details -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>🤖 AI Usage Analysis</h2>
+            <div class="result-box">
+                <div class="result-row">
+                    <span class="result-label">Total Messages/Month</span>
+                    <span class="result-value"><span id="total-messages">0</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Template Responses</span>
+                    <span class="result-value positive"><span id="template-messages">0</span> (Free)</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Cached Responses</span>
+                    <span class="result-value positive"><span id="cached-messages">0</span> (Free)</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">AI API Calls</span>
+                    <span class="result-value warning"><span id="ai-calls">0</span></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Cost per Active User</span>
+                    <span class="result-value">$<span id="cost-per-user">0</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights -->
+        <div class="insights">
+            <h3>💡 Insights & Recommendations</h3>
+            <div id="insights-content">
+                <!-- Insights will be populated here -->
+            </div>
+        </div>
+
+        <!-- Growth Projection -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>📈 12-Month Growth Projection</h2>
+            <div class="chart-container" id="growth-chart">
+                <!-- Chart will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Costs per call (rough estimates)
+        const API_COSTS = {
+            gpt35: 0.0006,
+            gpt4: 0.024,
+            claude: 0.012
+        };
+
+        // Calculate all metrics
+        function calculate() {
+            // Get input values
+            const totalUsers = parseInt(document.getElementById('total-users').value);
+            const dauPercent = parseInt(document.getElementById('dau-percent').value) / 100;
+            const conversionRate = parseFloat(document.getElementById('conversion-rate').value) / 100;
+            const premiumPercent = parseInt(document.getElementById('premium-percent').value) / 100;
+            const messagesPerDay = parseInt(document.getElementById('messages-per-day').value);
+            const templateRate = parseInt(document.getElementById('template-rate').value) / 100;
+            const cacheRate = parseInt(document.getElementById('cache-rate').value) / 100;
+            const aiModel = document.getElementById('ai-model').value;
+            const packBuyers = parseInt(document.getElementById('pack-buyers').value) / 100;
+            const packsPerBuyer = parseFloat(document.getElementById('packs-per-buyer').value);
+            const battlePassBuyers = parseInt(document.getElementById('battle-pass').value) / 100;
+
+            // Update display values
+            document.getElementById('dau-percent-value').textContent = dauPercent * 100;
+            document.getElementById('conversion-rate-value').textContent = (conversionRate * 100).toFixed(1);
+            document.getElementById('premium-percent-value').textContent = premiumPercent * 100;
+            document.getElementById('messages-per-day-value').textContent = messagesPerDay;
+            document.getElementById('template-rate-value').textContent = templateRate * 100;
+            document.getElementById('cache-rate-value').textContent = cacheRate * 100;
+            document.getElementById('pack-buyers-value').textContent = packBuyers * 100;
+            document.getElementById('packs-per-buyer-value').textContent = packsPerBuyer;
+            document.getElementById('battle-pass-value').textContent = battlePassBuyers * 100;
+
+            // Calculate user numbers
+            const dailyActiveUsers = totalUsers * dauPercent;
+            const payingUsers = totalUsers * conversionRate;
+            const premiumUsers = payingUsers * premiumPercent;
+            const legendaryUsers = payingUsers * (1 - premiumPercent);
+
+            // Calculate revenue
+            const subscriptionRevenue = (premiumUsers * 4.99) + (legendaryUsers * 14.99);
+            const packRevenue = totalUsers * packBuyers * packsPerBuyer * 5.99;
+            const battlePassRevenue = totalUsers * battlePassBuyers * 9.99 / 3; // Quarterly
+            const totalRevenue = subscriptionRevenue + packRevenue + battlePassRevenue;
+
+            // Calculate message volumes
+            const totalMessagesPerMonth = dailyActiveUsers * messagesPerDay * 30;
+            const templateMessages = totalMessagesPerMonth * templateRate;
+            const cachedMessages = totalMessagesPerMonth * (1 - templateRate) * cacheRate;
+            const aiMessages = totalMessagesPerMonth * (1 - templateRate) * (1 - cacheRate);
+
+            // Calculate costs
+            const aiCostPerCall = API_COSTS[aiModel];
+            const aiCosts = aiMessages * aiCostPerCall;
+            const infraCosts = Math.max(100, totalUsers * 0.02); // $0.02 per user minimum $100
+            const paymentCosts = totalRevenue * 0.029; // Stripe fees
+            const totalCosts = aiCosts + infraCosts + paymentCosts;
+
+            // Calculate profit
+            const netProfit = totalRevenue - totalCosts;
+            const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
+
+            // Update UI
+            document.getElementById('total-revenue').textContent = totalRevenue.toFixed(0);
+            document.getElementById('total-costs').textContent = totalCosts.toFixed(0);
+            document.getElementById('net-profit').textContent = netProfit.toFixed(0);
+            document.getElementById('margin').textContent = profitMargin.toFixed(1);
+
+            document.getElementById('subscription-revenue').textContent = subscriptionRevenue.toFixed(0);
+            document.getElementById('pack-revenue').textContent = packRevenue.toFixed(0);
+            document.getElementById('battle-pass-revenue').textContent = battlePassRevenue.toFixed(0);
+
+            document.getElementById('ai-costs').textContent = aiCosts.toFixed(0);
+            document.getElementById('infra-costs').textContent = infraCosts.toFixed(0);
+            document.getElementById('payment-costs').textContent = paymentCosts.toFixed(0);
+
+            document.getElementById('total-messages').textContent = totalMessagesPerMonth.toLocaleString();
+            document.getElementById('template-messages').textContent = templateMessages.toLocaleString();
+            document.getElementById('cached-messages').textContent = cachedMessages.toLocaleString();
+            document.getElementById('ai-calls').textContent = aiMessages.toLocaleString();
+            document.getElementById('cost-per-user').textContent = (totalCosts / dailyActiveUsers).toFixed(3);
+
+            // Update profit indicator
+            const profitIndicator = document.getElementById('profit-indicator');
+            const profitValue = document.getElementById('profit-indicator-value');
+            const netProfitMetric = document.getElementById('net-profit-metric');
+            
+            profitValue.textContent = netProfit.toFixed(0);
+            if (netProfit > 0) {
+                profitIndicator.className = 'profit-indicator profit-positive';
+                netProfitMetric.className = 'metric-value positive';
+            } else {
+                profitIndicator.className = 'profit-indicator profit-negative';
+                netProfitMetric.className = 'metric-value negative';
+            }
+
+            // Generate insights
+            generateInsights(totalUsers, conversionRate, netProfit, aiCosts, totalRevenue);
+
+            // Update growth chart
+            updateGrowthChart(totalUsers, netProfit);
+        }
+
+        // Generate insights
+        function generateInsights(users, conversion, profit, aiCosts, revenue) {
+            const insights = [];
+
+            if (profit > 0) {
+                insights.push(`✅ Profitable at ${users.toLocaleString()} users! Scale up marketing.`);
+            } else {
+                const breakEvenUsers = Math.ceil(users * (revenue / (revenue - profit)));
+                insights.push(`⚠️ Need ${breakEvenUsers.toLocaleString()} users to break even.`);
+            }
+
+            if (conversion < 0.03) {
+                insights.push(`📈 Conversion rate is low. Focus on demonstrating value of premium features.`);
+            } else if (conversion > 0.1) {
+                insights.push(`🌟 Excellent conversion rate! Your value proposition is strong.`);
+            }
+
+            const aiCostPercent = (aiCosts / revenue) * 100;
+            if (aiCostPercent > 20) {
+                insights.push(`💰 AI costs are ${aiCostPercent.toFixed(1)}% of revenue. Consider increasing template usage.`);
+            } else {
+                insights.push(`✅ AI costs are only ${aiCostPercent.toFixed(1)}% of revenue. Well optimized!`);
+            }
+
+            if (users < 10000) {
+                insights.push(`🚀 Focus on user acquisition. Each new user is valuable.`);
+            } else if (users > 100000) {
+                insights.push(`📊 At scale! Consider enterprise features or international expansion.`);
+            }
+
+            const insightsContent = document.getElementById('insights-content');
+            insightsContent.innerHTML = insights.map(insight => 
+                `<div class="insight-item">${insight}</div>`
+            ).join('');
+        }
+
+        // Update growth chart
+        function updateGrowthChart(startUsers, monthlyProfit) {
+            const chartContainer = document.getElementById('growth-chart');
+            chartContainer.innerHTML = '';
+
+            const months = 12;
+            const growthRate = 1.2; // 20% monthly growth
+            let maxValue = 0;
+
+            // Calculate values
+            const values = [];
+            for (let i = 0; i < months; i++) {
+                const users = startUsers * Math.pow(growthRate, i);
+                const profit = monthlyProfit * Math.pow(growthRate, i);
+                values.push(profit);
+                maxValue = Math.max(maxValue, profit);
+            }
+
+            // Render bars
+            values.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.left = `${index * 80 + 20}px`;
+                bar.style.height = `${(value / maxValue) * 250}px`;
+                bar.style.background = value > 0 ? '#4CAF50' : '#f44336';
+
+                const label = document.createElement('div');
+                label.className = 'chart-label';
+                label.style.left = `${index * 80 + 20}px`;
+                label.textContent = `M${index + 1}`;
+
+                chartContainer.appendChild(bar);
+                chartContainer.appendChild(label);
+
+                // Add value on hover
+                bar.title = `Month ${index + 1}: $${value.toFixed(0)}`;
+            });
+        }
+
+        // Load scenarios
+        function loadScenario(scenario) {
+            const scenarios = {
+                conservative: {
+                    'total-users': 5000,
+                    'dau-percent': 20,
+                    'conversion-rate': 3,
+                    'messages-per-day': 10,
+                    'template-rate': 80,
+                    'pack-buyers': 5
+                },
+                realistic: {
+                    'total-users': 25000,
+                    'dau-percent': 30,
+                    'conversion-rate': 5,
+                    'messages-per-day': 15,
+                    'template-rate': 75,
+                    'pack-buyers': 10
+                },
+                optimistic: {
+                    'total-users': 100000,
+                    'dau-percent': 35,
+                    'conversion-rate': 8,
+                    'messages-per-day': 20,
+                    'template-rate': 70,
+                    'pack-buyers': 15
+                },
+                viral: {
+                    'total-users': 500000,
+                    'dau-percent': 40,
+                    'conversion-rate': 10,
+                    'messages-per-day': 25,
+                    'template-rate': 75,
+                    'pack-buyers': 20
+                }
+            };
+
+            const values = scenarios[scenario];
+            for (const [id, value] of Object.entries(values)) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.value = value;
+                }
+            }
+
+            calculate();
+        }
+
+        // Initialize
+        calculate();
+    </script>
+</body>
+</html>

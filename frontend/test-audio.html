@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WiseSage Wars Audio Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+        }
+        button { 
+            margin: 10px; 
+            padding: 15px 25px; 
+            font-size: 16px; 
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button:hover { background: #2563eb; }
+        .category { 
+            margin: 20px 0; 
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .category h3 { color: #60a5fa; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>🎵 WiseSage Wars Audio System Test</h1>
+    
+    <div class="category">
+        <h3>⚔️ Combat Sound Effects</h3>
+        <button onclick="testSound('sword_slash')">Sword Slash</button>
+        <button onclick="testSound('magic_cast')">Magic Cast</button>
+        <button onclick="testSound('critical_hit')">Critical Hit</button>
+        <button onclick="testSound('block')">Block</button>
+    </div>
+    
+    <div class="category">
+        <h3>🖱️ UI Sound Effects</h3>
+        <button onclick="testSound('button_click')">Button Click</button>
+        <button onclick="testSound('notification')">Notification</button>
+        <button onclick="testSound('character_select')">Character Select</button>
+    </div>
+    
+    <div class="category">
+        <h3>🏆 Game Events</h3>
+        <button onclick="testSound('victory')">Victory</button>
+        <button onclick="testSound('defeat')">Defeat</button>
+        <button onclick="testSound('level_up')">Level Up</button>
+    </div>
+    
+    <div class="category">
+        <h3>🎵 Background Music</h3>
+        <button onclick="testMusic('battle_theme')">Start Battle Music</button>
+        <button onclick="stopMusic()">Stop Music</button>
+    </div>
+    
+    <div id="status" style="margin-top: 20px; padding: 10px; background: #333; border-radius: 4px;">
+        Click any button to test audio effects. <br>
+        <small>Note: Some browsers require user interaction before audio can play.</small>
+    </div>
+
+    <script>
+        // Simple audio context test (mimics the audio service)
+        let audioContext = null;
+        let backgroundSource = null;
+        
+        function initAudio() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    updateStatus('Audio context initialized successfully!');
+                } catch (error) {
+                    updateStatus('Error: Web Audio API not supported - ' + error.message);
+                    return false;
+                }
+            }
+            
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            return true;
+        }
+        
+        function testSound(soundName) {
+            updateStatus(`Testing: ${soundName}`);
+            
+            if (!initAudio()) return;
+            
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                // Configure sound based on type (simplified version of the actual service)
+                switch(soundName) {
+                    case 'sword_slash':
+                        oscillator.type = 'sawtooth';
+                        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.2);
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                        break;
+                        
+                    case 'magic_cast':
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(1320, audioContext.currentTime + 0.3);
+                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                        break;
+                        
+                    case 'critical_hit':
+                        oscillator.type = 'square';
+                        oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                        break;
+                        
+                    case 'button_click':
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                        break;
+                        
+                    case 'victory':
+                        // Play victory fanfare (first note only for simplicity)
+                        oscillator.type = 'triangle';
+                        oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                        break;
+                        
+                    default:
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                }
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+                
+                updateStatus(`✅ Played: ${soundName}`);
+                
+            } catch (error) {
+                updateStatus(`❌ Error playing ${soundName}: ${error.message}`);
+            }
+        }
+        
+        function testMusic(trackName) {
+            updateStatus(`Starting background music: ${trackName}`);
+            
+            if (!initAudio()) return;
+            
+            stopMusic(); // Stop any existing music
+            
+            try {
+                backgroundSource = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                backgroundSource.type = 'sine';
+                backgroundSource.frequency.setValueAtTime(220, audioContext.currentTime);
+                
+                gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+                
+                backgroundSource.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                backgroundSource.start(audioContext.currentTime);
+                
+                updateStatus(`🎵 Playing: ${trackName} (ambient tone)`);
+                
+            } catch (error) {
+                updateStatus(`❌ Error playing music: ${error.message}`);
+            }
+        }
+        
+        function stopMusic() {
+            if (backgroundSource) {
+                try {
+                    backgroundSource.stop();
+                } catch (error) {
+                    // Ignore errors when stopping
+                }
+                backgroundSource = null;
+                updateStatus('🔇 Background music stopped');
+            }
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = 
+                message + '<br><small>Web Audio API Status: ' + 
+                (audioContext ? audioContext.state : 'Not initialized') + '</small>';
+        }
+    </script>
+</body>
+</html>

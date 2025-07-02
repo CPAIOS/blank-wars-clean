@@ -1,0 +1,56 @@
+import { Request, Response, NextFunction } from 'express';
+import { doubleCsrf } from 'csrf-csrf';
+
+// Configure CSRF protection
+const { invalidCsrfTokenError, generateToken, doubleCsrfProtection } = doubleCsrf({
+  getSecret: () => process.env.CSRF_SECRET || 'csrf-secret-change-in-production',
+  cookieName: '__Host-blankwars.x-csrf-token',
+  cookieOptions: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+  },
+  getSessionIdentifier: (req: Request) => req.ip,
+  getCsrfTokenFromRequest: (req: Request) => {
+    // Check multiple locations for the CSRF token
+    return req.headers['x-csrf-token'] as string || 
+           req.body?._csrf || 
+           req.query?._csrf as string;
+  },
+});
+
+// Middleware to generate and attach CSRF token
+export const csrfMiddleware = doubleCsrfProtection;
+
+// Endpoint to get CSRF token
+export const getCsrfToken = (req: Request, res: Response) => {
+  try {
+    const csrfToken = generateToken(res, req);
+    res.json({ csrfToken });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to generate CSRF token' });
+  }
+};
+
+// Skip CSRF for certain routes (e.g., public endpoints)
+export const skipCsrf = (paths: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (paths.some(path => req.path.startsWith(path))) {
+      return next();
+    }
+    return csrfMiddleware(req, res, next);
+  };
+};
+
+// Error handler for CSRF failures
+export const csrfErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err === invalidCsrfTokenError || err.code === 'EBADCSRFTOKEN' || err.message?.includes('CSRF')) {
+    res.status(403).json({
+      error: 'Invalid CSRF token',
+      message: 'Your request was rejected due to invalid security token. Please refresh and try again.'
+    });
+  } else {
+    next(err);
+  }
+};

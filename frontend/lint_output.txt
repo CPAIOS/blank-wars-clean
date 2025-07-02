@@ -1,0 +1,745 @@
+
+> frontend@0.1.0 lint
+> next lint
+
+
+./src/components/CampaignProgression.tsx
+5:45  Error: 'Heart' is defined but never used.  @typescript-eslint/no-unused-vars
+6:31  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+6:38  Error: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+7:9  Error: 'Play' is defined but never used.  @typescript-eslint/no-unused-vars
+7:15  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+7:20  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+7:28  Error: 'Sword' is defined but never used.  @typescript-eslint/no-unused-vars
+7:35  Error: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+7:40  Error: 'Award' is defined but never used.  @typescript-eslint/no-unused-vars
+9:38  Error: 'CampaignChapter' is defined but never used.  @typescript-eslint/no-unused-vars
+9:55  Error: 'CharacterUnlock' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CardCollection.tsx
+7:18  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+47:9  Error: 'filtered' is never reassigned. Use 'const' instead.  prefer-const
+
+./src/components/CardPackOpening.tsx
+3:27  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CharacterCardWithEquipment.tsx
+9:3  Error: 'Heart' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Error: 'Brain' is defined but never used.  @typescript-eslint/no-unused-vars
+11:3  Error: 'Users' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Error: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+22:3  Error: 'getEquipmentCompatibility' is defined but never used.  @typescript-eslint/no-unused-vars
+145:16  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+146:11  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/CharacterCollection.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Error: 'Sword' is defined but never used.  @typescript-eslint/no-unused-vars
+22:3  Error: 'Lock' is defined but never used.  @typescript-eslint/no-unused-vars
+23:3  Error: 'Unlock' is defined but never used.  @typescript-eslint/no-unused-vars
+24:3  Error: 'Info' is defined but never used.  @typescript-eslint/no-unused-vars
+25:3  Error: 'ArrowUpDown' is defined but never used.  @typescript-eslint/no-unused-vars
+113:9  Error: 'getRarityColor' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CharacterDatabase.tsx
+23:3  Error: 'Brain' is defined but never used.  @typescript-eslint/no-unused-vars
+32:3  Error: 'characterTemplates' is defined but never used.  @typescript-eslint/no-unused-vars
+33:3  Error: 'createCharacter' is defined but never used.  @typescript-eslint/no-unused-vars
+35:3  Error: 'getCharactersByArchetype' is defined but never used.  @typescript-eslint/no-unused-vars
+36:3  Error: 'getCharactersByRarity' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CharacterLevelManager.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Error: 'Crown' is defined but never used.  @typescript-eslint/no-unused-vars
+17:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'Coins' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Gem' is defined but never used.  @typescript-eslint/no-unused-vars
+24:3  Error: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+36:3  Error: 'getRequiredXPForLevel' is defined but never used.  @typescript-eslint/no-unused-vars
+38:3  Error: 'experienceBonuses' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CharacterProgression.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+7:3  Error: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Error: 'Target' is defined but never used.  @typescript-eslint/no-unused-vars
+11:3  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+13:3  Error: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'Sparkles' is defined but never used.  @typescript-eslint/no-unused-vars
+28:3  Error: 'ProgressionTierInfo' is defined but never used.  @typescript-eslint/no-unused-vars
+29:3  Error: 'LevelData' is defined but never used.  @typescript-eslint/no-unused-vars
+30:3  Error: 'MilestoneReward' is defined but never used.  @typescript-eslint/no-unused-vars
+40:43  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+50:3  Error: 'onLevelUp' is defined but never used.  @typescript-eslint/no-unused-vars
+52:25  Error: 'setSelectedLevel' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+53:10  Error: 'showLevelDetails' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+53:28  Error: 'setShowLevelDetails' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+57:9  Error: 'selectedLevelData' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CharacterSelector.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+4:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+8:3  Error: 'Crown' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'Sword' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Error: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+21:3  Error: 'Play' is defined but never used.  @typescript-eslint/no-unused-vars
+146:9  Error: 'getRarityColor' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+226:58  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/ChatDemo.tsx
+5:16  Error: 'MessageCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/Clubhouse.tsx
+15:3  Error: 'Share2' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'Pin' is defined but never used.  @typescript-eslint/no-unused-vars
+17:3  Error: 'Search' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Send' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Error: 'ThumbsUp' is defined but never used.  @typescript-eslint/no-unused-vars
+21:3  Error: 'Crown' is defined but never used.  @typescript-eslint/no-unused-vars
+22:3  Error: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+23:3  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+24:3  Error: 'Flame' is defined but never used.  @typescript-eslint/no-unused-vars
+25:3  Error: 'Target' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Error: 'Award' is defined but never used.  @typescript-eslint/no-unused-vars
+28:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+30:3  Error: 'Plus' is defined but never used.  @typescript-eslint/no-unused-vars
+31:3  Error: 'X' is defined but never used.  @typescript-eslint/no-unused-vars
+32:3  Error: 'Flag' is defined but never used.  @typescript-eslint/no-unused-vars
+33:3  Error: 'Settings' is defined but never used.  @typescript-eslint/no-unused-vars
+69:18  Error: 'setEvents' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+93:21  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+111:39  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/CoachingInterface.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+4:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+6:40  Error: 'Heart' is defined but never used.  @typescript-eslint/no-unused-vars
+7:3  Error: 'Users' is defined but never used.  @typescript-eslint/no-unused-vars
+7:18  Error: 'CheckCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+7:40  Error: 'Pause' is defined but never used.  @typescript-eslint/no-unused-vars
+7:47  Error: 'Play' is defined but never used.  @typescript-eslint/no-unused-vars
+8:3  Error: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+8:15  Error: 'TrendingDown' is defined but never used.  @typescript-eslint/no-unused-vars
+8:39  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+11:27  Error: 'CoachingTimeout' is defined but never used.  @typescript-eslint/no-unused-vars
+11:44  Error: 'TimeoutAction' is defined but never used.  @typescript-eslint/no-unused-vars
+406:43  Error: 'idx' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CombatDemo.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+4:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+5:25  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+5:37  Error: 'MessageCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+5:52  Error: 'Sparkles' is defined but never used.  @typescript-eslint/no-unused-vars
+5:62  Error: 'Package' is defined but never used.  @typescript-eslint/no-unused-vars
+60:11  Error: 'ChatOption' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CombatSkillProgression.tsx
+15:3  Error: 'Target' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+17:3  Error: 'Flame' is defined but never used.  @typescript-eslint/no-unused-vars
+21:3  Error: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+22:3  Error: 'Info' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Error: 'SkillGain' is defined but never used.  @typescript-eslint/no-unused-vars
+40:3  Error: 'characterId' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CommunityBoard.tsx
+12:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'Hash' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Error: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+27:3  Error: 'getMessagesByType' is defined but never used.  @typescript-eslint/no-unused-vars
+28:3  Error: 'searchMessages' is defined but never used.  @typescript-eslint/no-unused-vars
+43:3  Error: 'currentUserId' is defined but never used.  @typescript-eslint/no-unused-vars
+44:3  Error: 'currentUserName' is defined but never used.  @typescript-eslint/no-unused-vars
+45:3  Error: 'currentUserAvatar' is defined but never used.  @typescript-eslint/no-unused-vars
+46:3  Error: 'currentUserLevel' is defined but never used.  @typescript-eslint/no-unused-vars
+313:57  Error: 'index' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CompletePsychologyBattleSystem.tsx
+4:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+6:27  Error: 'Settings' is defined but never used.  @typescript-eslint/no-unused-vars
+7:26  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+7:33  Error: 'AlertTriangle' is defined but never used.  @typescript-eslint/no-unused-vars
+7:48  Error: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+7:53  Error: 'EyeOff' is defined but never used.  @typescript-eslint/no-unused-vars
+58:10  Error: 'preHuddle' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+59:10  Error: 'currentRound' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+61:10  Error: 'postAnalysis' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+68:10  Error: 'showCoaching' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+73:10  Error: 'teamDynamicsHistory' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+107:9  Error: 'handleGameplanAdherenceAlert' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+141:9  Error: 'proceedToCombat' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+187:9  Error: 'endBattle' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/CraftingInterface.tsx
+4:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+12:3  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+13:3  Error: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+51:9  Error: 'filtered' is never reassigned. Use 'const' instead.  prefer-const
+94:11  Error: 'station' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+191:37  Error: 'index' is defined but never used.  @typescript-eslint/no-unused-vars
+191:55  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+270:68  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/CraftingProgressionDemo.tsx
+8:3  Error: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+9:3  Error: 'Target' is defined but never used.  @typescript-eslint/no-unused-vars
+12:3  Error: 'Play' is defined but never used.  @typescript-eslint/no-unused-vars
+56:40  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/EquipmentDetailsModal.tsx
+12:3  Error: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/EquipmentInventory.tsx
+4:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+7:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+11:3  Error: 'Sword' is defined but never used.  @typescript-eslint/no-unused-vars
+12:3  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+13:3  Error: 'Crown' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Error: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Error: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'SortAsc' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/EquipmentManager.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+9:3  Error: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+11:3  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+12:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Error: 'ArrowUpDown' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Error: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Unlock' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Error: 'Info' is defined but never used.  @typescript-eslint/no-unused-vars
+30:3  Error: 'getEquipmentBySlot' is defined but never used.  @typescript-eslint/no-unused-vars
+31:3  Error: 'getEquipmentByRarity' is defined but never used.  @typescript-eslint/no-unused-vars
+32:3  Error: 'getEquipmentByArchetype' is defined but never used.  @typescript-eslint/no-unused-vars
+56:3  Error: 'inventory' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+65:28  Error: 'setShowEquippedOnly' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/EquipmentProgressionTracker.tsx
+15:3  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+25:10  Error: 'getCharacterSpecificWeapons' is defined but never used.  @typescript-eslint/no-unused-vars
+36:3  Error: 'onUpgradeEquipment' is defined but never used.  @typescript-eslint/no-unused-vars
+128:35  Error: 'index' is defined but never used.  @typescript-eslint/no-unused-vars
+178:69  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+268:53  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/EquipmentShowcaseDemo.tsx
+16:3  Error: 'initializeCharacterWithStartingEquipment' is defined but never used.  @typescript-eslint/no-unused-vars
+35:39  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/GameplanTracker.tsx
+7:3  Error: 'Brain' is defined but never used.  @typescript-eslint/no-unused-vars
+7:10  Error: 'Heart' is defined but never used.  @typescript-eslint/no-unused-vars
+7:17  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+7:22  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+7:30  Error: 'Target' is defined but never used.  @typescript-eslint/no-unused-vars
+8:40  Error: 'Settings' is defined but never used.  @typescript-eslint/no-unused-vars
+11:27  Error: 'MentalState' is defined but never used.  @typescript-eslint/no-unused-vars
+11:40  Error: 'GameplanAdherenceCheck' is defined but never used.  @typescript-eslint/no-unused-vars
+116:3  Error: 'character' is defined but never used.  @typescript-eslint/no-unused-vars
+286:25  Error: 'setAlertSettings' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/GraffitiWall.tsx
+9:3  Error: 'Undo' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Error: 'Redo' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'Download' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+23:3  Error: 'Award' is defined but never used.  @typescript-eslint/no-unused-vars
+25:3  Error: 'Crown' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+27:3  Error: 'Users' is defined but never used.  @typescript-eslint/no-unused-vars
+32:3  Error: 'GraffitiCanvas' is defined but never used.  @typescript-eslint/no-unused-vars
+33:3  Error: 'GraffitiLayer' is defined but never used.  @typescript-eslint/no-unused-vars
+34:3  Error: 'GraffitiStroke' is defined but never used.  @typescript-eslint/no-unused-vars
+43:28  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+48:3  Error: 'currentUserId' is defined but never used.  @typescript-eslint/no-unused-vars
+49:3  Error: 'currentUserName' is defined but never used.  @typescript-eslint/no-unused-vars
+50:3  Error: 'currentUserLevel' is defined but never used.  @typescript-eslint/no-unused-vars
+67:42  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+155:37  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/ImprovedBattleArena.tsx
+8:8  Error: 'TradingCard' is defined but never used.  @typescript-eslint/no-unused-vars
+27:14  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+47:10  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+47:18  Error: 'Sword' is defined but never used.  @typescript-eslint/no-unused-vars
+47:25  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+47:52  Error: 'Sparkles' is defined but never used.  @typescript-eslint/no-unused-vars
+47:130  Error: 'Users' is defined but never used.  @typescript-eslint/no-unused-vars
+58:3  Error: 'checkGameplanAdherence' is defined but never used.  @typescript-eslint/no-unused-vars
+59:3  Error: 'getMentalHealthLevel' is defined but never used.  @typescript-eslint/no-unused-vars
+129:24  Error: 'setOpponentTeam' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+133:26  Error: 'setOpponentMorale' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+144:10  Error: 'activeCoachingSession' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+149:10  Error: 'currentRogueAction' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+150:10  Error: 'judgeRuling' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+150:50  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+165:5  Error: 'clearQueue' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+180:5  Error: 'clearError' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+190:10  Error: 'characterResponse' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+207:54  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+300:6  Warning: React Hook useEffect has a missing dependency: 'handleTimerExpired'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+452:9  Error: 'allStrategiesSelected' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+502:9  Error: 'delay' is never reassigned. Use 'const' instead.  prefer-const
+751:9  Error: 'startBattle' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+779:9  Error: 'fetchBattleCries' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+821:14  Error: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+898:14  Error: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+910:11  Error: 'obedienceBonus' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+998:14  Error: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+1118:11  Error: 'critMultiplier' is never reassigned. Use 'const' instead.  prefer-const
+1880:50  Error: 'index' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/InventoryManager.tsx
+3:20  Error: 'useRef' is defined but never used.  @typescript-eslint/no-unused-vars
+9:3  Error: 'Sparkles' is defined but never used.  @typescript-eslint/no-unused-vars
+11:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'ArrowUpDown' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Error: 'Minus' is defined but never used.  @typescript-eslint/no-unused-vars
+23:3  Error: 'Check' is defined but never used.  @typescript-eslint/no-unused-vars
+24:3  Error: 'AlertTriangle' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+28:3  Error: 'Settings' is defined but never used.  @typescript-eslint/no-unused-vars
+30:3  Error: 'Download' is defined but never used.  @typescript-eslint/no-unused-vars
+31:3  Error: 'Upload' is defined but never used.  @typescript-eslint/no-unused-vars
+32:3  Error: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+33:3  Error: 'ChevronUp' is defined but never used.  @typescript-eslint/no-unused-vars
+34:3  Error: 'RotateCcw' is defined but never used.  @typescript-eslint/no-unused-vars
+35:3  Error: 'Info' is defined but never used.  @typescript-eslint/no-unused-vars
+42:3  Error: 'addItemToInventory' is defined but never used.  @typescript-eslint/no-unused-vars
+76:22  Error: 'id' is defined but never used.  @typescript-eslint/no-unused-vars
+77:23  Error: 'equipment' is defined but never used.  @typescript-eslint/no-unused-vars
+77:45  Error: 'character' is defined but never used.  @typescript-eslint/no-unused-vars
+77:56  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+514:81  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+528:83  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+541:53  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/ItemManager.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+12:3  Error: 'Plus' is defined but never used.  @typescript-eslint/no-unused-vars
+13:3  Error: 'Minus' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+17:3  Error: 'ArrowUpDown' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Sparkles' is defined but never used.  @typescript-eslint/no-unused-vars
+22:3  Error: 'Info' is defined but never used.  @typescript-eslint/no-unused-vars
+32:3  Error: 'getItemsByType' is defined but never used.  @typescript-eslint/no-unused-vars
+33:3  Error: 'getItemsByRarity' is defined but never used.  @typescript-eslint/no-unused-vars
+65:23  Error: 'setUseQuantity' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+115:9  Error: 'getTypeIcon' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+252:58  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/Leaderboards.tsx
+4:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Error: 'ChevronUp' is defined but never used.  @typescript-eslint/no-unused-vars
+21:3  Error: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+23:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+24:3  Error: 'Search' is defined but never used.  @typescript-eslint/no-unused-vars
+25:3  Error: 'Calendar' is defined but never used.  @typescript-eslint/no-unused-vars
+29:3  Error: 'LeaderboardEntry' is defined but never used.  @typescript-eslint/no-unused-vars
+40:10  Error: 'showUserRank' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+40:24  Error: 'setShowUserRank' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+100:56  Error: 'change' is defined but never used.  @typescript-eslint/no-unused-vars
+131:63  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+144:53  Error: '_' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/MainTabSystem.tsx
+9:48  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+33:8  Error: 'CoachingInterface' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/MembershipSelection.tsx
+8:3  Error: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+9:3  Error: 'Crown' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Error: 'Sparkles' is defined but never used.  @typescript-eslint/no-unused-vars
+11:3  Error: 'Lock' is defined but never used.  @typescript-eslint/no-unused-vars
+12:3  Error: 'Unlock' is defined but never used.  @typescript-eslint/no-unused-vars
+13:3  Error: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/MerchStore.tsx
+10:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Error: 'Heart' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Error: 'Tag' is defined but never used.  @typescript-eslint/no-unused-vars
+21:3  Error: 'Gift' is defined but never used.  @typescript-eslint/no-unused-vars
+22:3  Error: 'Percent' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Error: 'Badge' is defined but never used.  @typescript-eslint/no-unused-vars
+33:3  Error: 'AlertCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+34:3  Error: 'Truck' is defined but never used.  @typescript-eslint/no-unused-vars
+35:3  Error: 'Download' is defined but never used.  @typescript-eslint/no-unused-vars
+40:3  Error: 'ProductType' is defined but never used.  @typescript-eslint/no-unused-vars
+46:3  Error: 'getNewProducts' is defined but never used.  @typescript-eslint/no-unused-vars
+47:3  Error: 'getOnSaleProducts' is defined but never used.  @typescript-eslint/no-unused-vars
+48:3  Error: 'getLimitedProducts' is defined but never used.  @typescript-eslint/no-unused-vars
+65:3  Error: 'currentUserId' is defined but never used.  @typescript-eslint/no-unused-vars
+242:65  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+249:49  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/PackOpening.tsx
+5:19  Error: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+5:25  Error: 'Sparkles' is defined but never used.  @typescript-eslint/no-unused-vars
+5:46  Error: 'ShoppingCart' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/ProgressionDashboard.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+17:3  Error: 'Crown' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'Flame' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+20:3  Error: 'Calendar' is defined but never used.  @typescript-eslint/no-unused-vars
+22:3  Error: 'ArrowUp' is defined but never used.  @typescript-eslint/no-unused-vars
+23:3  Error: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+24:3  Error: 'Sparkles' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Error: 'Gem' is defined but never used.  @typescript-eslint/no-unused-vars
+28:3  Error: 'Minus' is defined but never used.  @typescript-eslint/no-unused-vars
+31:3  Error: 'Lock' is defined but never used.  @typescript-eslint/no-unused-vars
+32:3  Error: 'Unlock' is defined but never used.  @typescript-eslint/no-unused-vars
+35:10  Error: 'CharacterSkills' is defined but never used.  @typescript-eslint/no-unused-vars
+36:10  Error: 'CharacterExperience' is defined but never used.  @typescript-eslint/no-unused-vars
+244:55  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/PsychologyTutorial.tsx
+2:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+5:10  Error: 'Heart' is defined but never used.  @typescript-eslint/no-unused-vars
+5:17  Error: 'Users' is defined but never used.  @typescript-eslint/no-unused-vars
+6:32  Error: 'Pause' is defined but never used.  @typescript-eslint/no-unused-vars
+7:18  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+7:35  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+7:40  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/RelationshipDisplay.tsx
+6:25  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+8:16  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+12:10  Error: 'Character' is defined but never used.  @typescript-eslint/no-unused-vars
+313:3  Error: 'showDetailed' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+371:56  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/SkillInteractionManager.tsx
+9:3  Error: 'Target' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Error: 'Sparkles' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Error: 'Brain' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Error: 'Heart' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+17:3  Error: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Check' is defined but never used.  @typescript-eslint/no-unused-vars
+21:3  Error: 'Info' is defined but never used.  @typescript-eslint/no-unused-vars
+24:3  Error: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+29:3  Error: 'ActiveInteraction' is defined but never used.  @typescript-eslint/no-unused-vars
+165:53  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+181:64  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/SkillTree.tsx
+14:3  Error: 'Sword' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/StoryArcViewer.tsx
+3:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+5:3  Error: 'Book' is defined but never used.  @typescript-eslint/no-unused-vars
+5:15  Error: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+6:3  Error: 'Heart' is defined but never used.  @typescript-eslint/no-unused-vars
+9:37  Error: 'StoryScene' is defined but never used.  @typescript-eslint/no-unused-vars
+17:10  Error: 'isPlaying' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+18:10  Error: 'autoAdvanceTimer' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:6  Warning: React Hook useEffect has a missing dependency: 'handleAutoAdvance'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/TeamBuilder.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+7:3  Error: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+10:3  Error: 'Sword' is defined but never used.  @typescript-eslint/no-unused-vars
+11:3  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Error: 'ArrowLeft' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Info' is defined but never used.  @typescript-eslint/no-unused-vars
+21:3  Error: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Error: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+31:3  Error: 'TeamPosition' is defined but never used.  @typescript-eslint/no-unused-vars
+33:3  Error: 'TeamSynergy' is defined but never used.  @typescript-eslint/no-unused-vars
+38:3  Error: 'getFormationRecommendations' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/TrainingFacilitySelector.tsx
+7:3  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+8:3  Error: 'Users' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/TrainingGrounds.tsx
+4:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Error: 'RotateCcw' is defined but never used.  @typescript-eslint/no-unused-vars
+17:3  Error: 'Coins' is defined but never used.  @typescript-eslint/no-unused-vars
+39:21  Error: 'EquipmentSlot' is defined but never used.  @typescript-eslint/no-unused-vars
+39:36  Error: 'calculateEquipmentStats' is defined but never used.  @typescript-eslint/no-unused-vars
+40:10  Error: 'Item' is defined but never used.  @typescript-eslint/no-unused-vars
+75:9  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+126:21  Error: 'setInventory' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+131:30  Error: 'setDailyEnergyRefills' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+585:6  Warning: React Hook useEffect has missing dependencies: 'completeTraining' and 'currentActivity?.duration'. Either include them or remove the dependency array. You can also replace multiple useState variables with useReducer if 'setTrainingProgress' needs the current value of 'currentActivity.duration'.  react-hooks/exhaustive-deps
+
+./src/components/TrainingInterface.tsx
+6:9  Error: 'Pause' is defined but never used.  @typescript-eslint/no-unused-vars
+6:16  Error: 'CheckCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+6:29  Error: 'AlertTriangle' is defined but never used.  @typescript-eslint/no-unused-vars
+8:3  Error: 'MessageCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+8:23  Error: 'Settings' is defined but never used.  @typescript-eslint/no-unused-vars
+8:33  Error: 'RotateCcw' is defined but never used.  @typescript-eslint/no-unused-vars
+8:44  Error: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/TrainingProgressComponent.tsx
+5:19  Error: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/UserProfile.tsx
+3:20  Error: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+4:10  Error: 'motion' is defined but never used.  @typescript-eslint/no-unused-vars
+4:18  Error: 'AnimatePresence' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Error: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'Award' is defined but never used.  @typescript-eslint/no-unused-vars
+18:3  Error: 'CreditCard' is defined but never used.  @typescript-eslint/no-unused-vars
+19:3  Error: 'Shield' is defined but never used.  @typescript-eslint/no-unused-vars
+21:3  Error: 'Palette' is defined but never used.  @typescript-eslint/no-unused-vars
+22:3  Error: 'Globe' is defined but never used.  @typescript-eslint/no-unused-vars
+23:3  Error: 'Eye' is defined but never used.  @typescript-eslint/no-unused-vars
+24:3  Error: 'EyeOff' is defined but never used.  @typescript-eslint/no-unused-vars
+26:3  Error: 'X' is defined but never used.  @typescript-eslint/no-unused-vars
+35:3  Error: 'Achievement' is defined but never used.  @typescript-eslint/no-unused-vars
+218:49  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+474:63  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+490:59  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/equipmentVisualIndex.ts
+51:33  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+52:28  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+53:25  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+54:28  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+58:19  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+59:18  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+63:22  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+
+./src/data/aiCoaching.ts
+157:11  Error: 'highValueTargets' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+193:75  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+247:42  Error: 'character' is defined but never used.  @typescript-eslint/no-unused-vars
+247:64  Error: 'analysis' is defined but never used.  @typescript-eslint/no-unused-vars
+247:74  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+276:73  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/data/aiJudge.ts
+4:25  Error: 'RoundResult' is defined but never used.  @typescript-eslint/no-unused-vars
+4:38  Error: 'CharacterAbility' is defined but never used.  @typescript-eslint/no-unused-vars
+147:5  Error: 'teamMorale' is defined but never used.  @typescript-eslint/no-unused-vars
+163:5  Error: 'teamMorale' is defined but never used.  @typescript-eslint/no-unused-vars
+181:5  Error: 'opponent' is defined but never used.  @typescript-eslint/no-unused-vars
+182:5  Error: 'teamMorale' is defined but never used.  @typescript-eslint/no-unused-vars
+212:5  Error: 'opponent' is defined but never used.  @typescript-eslint/no-unused-vars
+213:5  Error: 'teamMorale' is defined but never used.  @typescript-eslint/no-unused-vars
+229:5  Error: 'opponent' is defined but never used.  @typescript-eslint/no-unused-vars
+230:5  Error: 'teamMorale' is defined but never used.  @typescript-eslint/no-unused-vars
+249:5  Error: 'opponent' is defined but never used.  @typescript-eslint/no-unused-vars
+250:5  Error: 'teamMorale' is defined but never used.  @typescript-eslint/no-unused-vars
+269:5  Error: 'teamMorale' is defined but never used.  @typescript-eslint/no-unused-vars
+325:5  Error: 'action' is defined but never used.  @typescript-eslint/no-unused-vars
+326:5  Error: 'coachResponse' is defined but never used.  @typescript-eslint/no-unused-vars
+329:11  Error: 'personality' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/data/characterInitialization.ts
+5:10  Error: 'getCharacterSpecificWeapons' is defined but never used.  @typescript-eslint/no-unused-vars
+66:12  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+67:11  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+68:15  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/data/clubhouse.ts
+43:9  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+114:35  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/data/coachingSystem.ts
+4:31  Error: 'checkObedience' is defined but never used.  @typescript-eslint/no-unused-vars
+329:5  Error: 'mood' is defined but never used.  @typescript-eslint/no-unused-vars
+347:5  Error: 'character' is defined but never used.  @typescript-eslint/no-unused-vars
+348:5  Error: 'effectiveness' is defined but never used.  @typescript-eslint/no-unused-vars
+349:5  Error: 'mood' is defined but never used.  @typescript-eslint/no-unused-vars
+364:35  Error: 'characterId' is defined but never used.  @typescript-eslint/no-unused-vars
+468:5  Error: 'activityType' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/data/combatRewards.ts
+52:9  Error: 'baseXP' is never reassigned. Use 'const' instead.  prefer-const
+118:5  Error: 'opponentLevel' is defined but never used.  @typescript-eslint/no-unused-vars
+157:20  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/data/combatSkillProgression.ts
+245:9  Error: 'multiplier' is never reassigned. Use 'const' instead.  prefer-const
+354:9  Error: 'multiplier' is never reassigned. Use 'const' instead.  prefer-const
+468:5  Error: 'currentSkills' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/data/craftingSystem.ts
+5:10  Error: 'Item' is defined but never used.  @typescript-eslint/no-unused-vars
+570:99  Error: 'playerCrafting' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/data/equipmentBattleIntegration.ts
+160:5  Error: 'defender' is defined but never used.  @typescript-eslint/no-unused-vars
+229:11  Error: 'weaponEffect' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+237:18  Error: 'ctx' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/data/equipmentIntegrationTest.ts
+6:3  Error: 'advanceCharacterLevel' is defined but never used.  @typescript-eslint/no-unused-vars
+8:3  Error: 'getRecommendedEquipmentForCharacter' is defined but never used.  @typescript-eslint/no-unused-vars
+13:3  Error: 'simulateEquipmentChange' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Error: 'createEquippedCharacter' is defined but never used.  @typescript-eslint/no-unused-vars
+23:14  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+24:15  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+28:18  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+29:15  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+127:26  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+157:22  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/data/equipmentProgression.ts
+289:5  Error: 'playerProgress' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/data/inventory.ts
+416:58  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+428:78  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/data/legendaryAbilities.ts
+1124:69  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+1133:78  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/data/teamBuilding.ts
+644:9  Error: 'avgLevel' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/data/userAccount.ts
+523:11  Error: 'oldProgress' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/hooks/useBattleAnnouncer.ts
+81:6  Warning: React Hook useCallback has a missing dependency: 'speakAnnouncement'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/hooks/useBattleWebSocket.ts
+3:27  Error: 'BattleCharacter' is defined but never used.  @typescript-eslint/no-unused-vars
+24:36  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+25:35  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+26:33  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+27:34  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+28:36  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+40:74  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+41:72  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+42:68  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+43:70  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+44:74  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+68:29  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+72:28  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+76:26  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+80:29  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+87:32  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+151:55  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+155:54  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+159:52  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+163:53  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+167:55  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/services/audioService.ts
+718:16  Error: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/services/battleWebSocket.ts
+50:32  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+51:30  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+52:28  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+53:26  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+54:29  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+106:43  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+116:43  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+121:42  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+126:40  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+131:43  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+136:46  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+141:44  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+146:43  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/systems/battleEngine.ts
+125:64  Error: 'team' is defined but never used.  @typescript-eslint/no-unused-vars
+162:75  Error: 'coachingData' is defined but never used.  @typescript-eslint/no-unused-vars
+253:5  Error: 'round' is defined but never used.  @typescript-eslint/no-unused-vars
+489:102  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+525:71  Error: 'gameplanAdherenceCheck' is defined but never used.  @typescript-eslint/no-unused-vars
+556:71  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+701:40  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+701:66  Error: 'round' is defined but never used.  @typescript-eslint/no-unused-vars
+719:42  Error: 'round' is defined but never used.  @typescript-eslint/no-unused-vars
+719:62  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+723:58  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+919:40  Error: 'issues' is defined but never used.  @typescript-eslint/no-unused-vars
+920:54  Error: 'issues' is defined but never used.  @typescript-eslint/no-unused-vars
+1023:47  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+1024:43  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/systems/coachingSystem.ts
+145:5  Error: 'action' is defined but never used.  @typescript-eslint/no-unused-vars
+291:5  Error: 'action' is defined but never used.  @typescript-eslint/no-unused-vars
+473:63  Error: 'approach' is defined but never used.  @typescript-eslint/no-unused-vars
+478:77  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+527:36  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+543:42  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+547:42  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+551:44  Error: 'character' is defined but never used.  @typescript-eslint/no-unused-vars
+551:72  Error: 'result' is defined but never used.  @typescript-eslint/no-unused-vars
+555:49  Error: 'character' is defined but never used.  @typescript-eslint/no-unused-vars
+569:34  Error: 'char1' is defined but never used.  @typescript-eslint/no-unused-vars
+569:58  Error: 'char2' is defined but never used.  @typescript-eslint/no-unused-vars
+569:82  Error: 'conflict' is defined but never used.  @typescript-eslint/no-unused-vars
+569:149  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+573:37  Error: 'char1' is defined but never used.  @typescript-eslint/no-unused-vars
+573:61  Error: 'char2' is defined but never used.  @typescript-eslint/no-unused-vars
+573:85  Error: 'change' is defined but never used.  @typescript-eslint/no-unused-vars
+577:41  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+588:43  Error: 'analysis' is defined but never used.  @typescript-eslint/no-unused-vars
+588:202  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+598:38  Error: 'strategy' is defined but never used.  @typescript-eslint/no-unused-vars
+598:177  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+602:42  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+602:68  Error: 'strategy' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/systems/physicalBattleEngine.ts
+9:3  Error: 'RogueAction' is defined but never used.  @typescript-eslint/no-unused-vars
+14:3  Error: 'PreBattleHuddle' is defined but never used.  @typescript-eslint/no-unused-vars
+15:3  Error: 'CoachingTimeout' is defined but never used.  @typescript-eslint/no-unused-vars
+16:3  Error: 'PostBattleAnalysis' is defined but never used.  @typescript-eslint/no-unused-vars
+132:59  Error: 'action' is defined but never used.  @typescript-eslint/no-unused-vars
+294:52  Error: 'psychologyModifier' is defined but never used.  @typescript-eslint/no-unused-vars
+360:68  Error: 'plannedAction' is defined but never used.  @typescript-eslint/no-unused-vars
+458:5  Error: 'round' is defined but never used.  @typescript-eslint/no-unused-vars
+604:45  Error: 'action' is defined but never used.  @typescript-eslint/no-unused-vars
+604:67  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+631:5  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/systems/postBattleAnalysis.ts
+183:13  Error: 'performance' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+197:13  Error: 'stressImpact' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+305:5  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+701:11  Error: 'char2Actions' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+848:45  Error: 'char' is defined but never used.  @typescript-eslint/no-unused-vars
+848:68  Error: 'memory' is defined but never used.  @typescript-eslint/no-unused-vars
+1212:46  Error: 'trauma' is defined but never used.  @typescript-eslint/no-unused-vars
+1212:67  Error: 'char' is defined but never used.  @typescript-eslint/no-unused-vars
+1213:61  Error: 'char' is defined but never used.  @typescript-eslint/no-unused-vars
+1248:70  Error: 'char' is defined but never used.  @typescript-eslint/no-unused-vars
+1288:64  Error: 'char' is defined but never used.  @typescript-eslint/no-unused-vars
+1319:76  Error: 'char' is defined but never used.  @typescript-eslint/no-unused-vars
+1484:40  Error: 'oldChemistry' is defined but never used.  @typescript-eslint/no-unused-vars
+1484:62  Error: 'newChemistry' is defined but never used.  @typescript-eslint/no-unused-vars
+1484:84  Error: 'changes' is defined but never used.  @typescript-eslint/no-unused-vars
+1485:46  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+1486:40  Error: 'battleState' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/systems/progressionIntegration.ts
+4:32  Error: 'CombatStats' is defined but never used.  @typescript-eslint/no-unused-vars
+6:10  Error: 'TrainingActivity' is defined but never used.  @typescript-eslint/no-unused-vars
+6:28  Error: 'TrainingEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+6:44  Error: 'TrainingResult' is defined but never used.  @typescript-eslint/no-unused-vars
+6:60  Error: 'CharacterTrainingState' is defined but never used.  @typescript-eslint/no-unused-vars
+84:5  Error: 'character' is defined but never used.  @typescript-eslint/no-unused-vars
+209:5  Error: 'character' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/systems/trainingSystem.ts
+7:10  Error: 'Character' is defined but never used.  @typescript-eslint/no-unused-vars
+343:11  Error: 'character' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+553:39  Error: 'characterId' is defined but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

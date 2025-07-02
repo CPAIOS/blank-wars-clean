@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blank Wars - Combat Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 1200px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .battle-arena {
+            display: grid;
+            grid-template-columns: 1fr 200px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .character-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .character-card.active {
+            border-color: #4CAF50;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+        }
+
+        .character-card.damaged {
+            animation: shake 0.5s;
+            border-color: #f44336;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .character-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .character-stats {
+            display: grid;
+            gap: 10px;
+        }
+
+        .stat-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 20px;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            border-radius: 8px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .health-fill {
+            background: linear-gradient(90deg, #f44336, #e53935);
+        }
+
+        .vs-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .round-counter {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+
+        .combat-log {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            height: 200px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+            padding-left: 10px;
+        }
+
+        .log-entry.damage {
+            border-left-color: #f44336;
+        }
+
+        .log-entry.special {
+            border-left-color: #2196F3;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.chat-btn {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+        }
+
+        .strategy-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .strategy-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .strategy-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid transparent;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .strategy-btn:hover {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .strategy-btn.selected {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .character-avatar {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .damage-number {
+            position: absolute;
+            color: #f44336;
+            font-size: 36px;
+            font-weight: bold;
+            animation: float-up 1s ease-out forwards;
+            pointer-events: none;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .victory-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .victory-content {
+            text-align: center;
+            animation: zoom-in 0.5s ease-out;
+        }
+
+        @keyframes zoom-in {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .victory-text {
+            font-size: 72px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .chat-preview {
+            background: rgba(33, 150, 243, 0.1);
+            border: 2px solid #2196F3;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-style: italic;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 style="text-align: center; margin-bottom: 30px; font-size: 42px;">⚔️ BLANK WARS ⚔️</h1>
+        
+        <div class="battle-arena">
+            <div class="character-card" id="player1">
+                <div class="character-avatar">⚔️</div>
+                <div class="character-name">Achilles</div>
+                <div class="character-stats">
+                    <div class="stat-bar">
+                        <div class="stat-fill health-fill" id="p1-health" style="width: 100%">
+                            HP: 100/100
+                        </div>
+                    </div>
+                    <div>ATK: 85 | DEF: 70 | SPD: 95</div>
+                    <div style="margin-top: 10px; font-size: 14px;">Level 5 Epic Warrior</div>
+                </div>
+            </div>
+            
+            <div class="vs-indicator">
+                VS
+                <div class="round-counter" id="round-display">Round 1</div>
+            </div>
+            
+            <div class="character-card" id="player2">
+                <div class="character-avatar">🧙</div>
+                <div class="character-name">Merlin</div>
+                <div class="character-stats">
+                    <div class="stat-bar">
+                        <div class="stat-fill health-fill" id="p2-health" style="width: 100%">
+                            HP: 80/80
+                        </div>
+                    </div>
+                    <div>ATK: 95 | DEF: 50 | SPD: 75</div>
+                    <div style="margin-top: 10px; font-size: 14px;">Level 6 Legendary Wizard</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="strategy-panel" id="strategy-panel">
+            <h3>Choose Your Strategy:</h3>
+            <div class="strategy-options">
+                <button class="strategy-btn" onclick="selectStrategy('aggressive')">
+                    ⚔️ Aggressive<br><small>+20% ATK, -10% DEF</small>
+                </button>
+                <button class="strategy-btn" onclick="selectStrategy('defensive')">
+                    🛡️ Defensive<br><small>+20% DEF, -10% ATK</small>
+                </button>
+                <button class="strategy-btn" onclick="selectStrategy('balanced')">
+                    ⚖️ Balanced<br><small>No modifiers</small>
+                </button>
+            </div>
+        </div>
+
+        <div class="combat-log" id="combat-log">
+            <div class="log-entry">⚔️ Battle Start! Achilles vs Merlin</div>
+            <div class="log-entry">Choose your strategy and begin the battle!</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="battle-btn" onclick="startBattle()">Start Battle</button>
+            <button class="btn chat-btn" id="chat-btn" onclick="startChat()" style="display: none;">Chat with Achilles</button>
+        </div>
+
+        <div class="chat-preview" id="chat-preview" style="display: none;">
+            <!-- Chat preview will appear here -->
+        </div>
+    </div>
+
+    <div class="victory-screen" id="victory-screen">
+        <div class="victory-content">
+            <div class="victory-text" id="victory-text">VICTORY!</div>
+            <button class="btn" onclick="resetBattle()">Battle Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            round: 1,
+            phase: 'strategy', // strategy, combat, chat
+            combatActive: false,
+            selectedStrategy: null,
+            player1: {
+                name: 'Achilles',
+                maxHp: 100,
+                hp: 100,
+                atk: 85,
+                def: 70,
+                spd: 95,
+                abilities: ['Spear Thrust', 'Shield Bash', 'Rage of Achilles', 'Invulnerable Stance']
+            },
+            player2: {
+                name: 'Merlin',
+                maxHp: 80,
+                hp: 80,
+                atk: 95,
+                def: 50,
+                spd: 75,
+                abilities: ['Fireball', 'Ice Shield', 'Lightning Bolt', 'Time Warp']
+            }
+        };
+
+        // Combat System
+        function selectStrategy(strategy) {
+            gameState.selectedStrategy = strategy;
+            document.querySelectorAll('.strategy-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            document.getElementById('battle-btn').disabled = false;
+            addLog(`📋 Strategy selected: ${strategy.charAt(0).toUpperCase() + strategy.slice(1)}`, 'special');
+        }
+
+        function startBattle() {
+            if (!gameState.selectedStrategy) {
+                alert('Please select a strategy first!');
+                return;
+            }
+
+            gameState.combatActive = true;
+            document.getElementById('battle-btn').disabled = true;
+            document.getElementById('strategy-panel').style.opacity = '0.5';
+            
+            // Apply strategy modifiers
+            let p1Modifiers = getStrategyModifiers(gameState.selectedStrategy);
+            
+            addLog(`⚔️ Round ${gameState.round} begins!`);
+            
+            // Simulate combat round
+            executeCombatRound(p1Modifiers);
+        }
+
+        function getStrategyModifiers(strategy) {
+            switch(strategy) {
+                case 'aggressive':
+                    return { atkMod: 1.2, defMod: 0.9 };
+                case 'defensive':
+                    return { atkMod: 0.9, defMod: 1.2 };
+                default:
+                    return { atkMod: 1.0, defMod: 1.0 };
+            }
+        }
+
+        function executeCombatRound(p1Mods) {
+            let p1 = gameState.player1;
+            let p2 = gameState.player2;
+            
+            // Determine turn order based on speed
+            let first = p1.spd >= p2.spd ? 'p1' : 'p2';
+            let second = first === 'p1' ? 'p2' : 'p1';
+            
+            // Execute turns
+            setTimeout(() => {
+                if (first === 'p1') {
+                    executeAttack(p1, p2, p1Mods.atkMod, 'player1', 'player2');
+                } else {
+                    executeAttack(p2, p1, 1.0, 'player2', 'player1');
+                }
+            }, 500);
+            
+            setTimeout(() => {
+                if (gameState.player1.hp > 0 && gameState.player2.hp > 0) {
+                    if (second === 'p1') {
+                        executeAttack(p1, p2, p1Mods.atkMod, 'player1', 'player2');
+                    } else {
+                        executeAttack(p2, p1, 1.0, 'player2', 'player1');
+                    }
+                }
+            }, 1500);
+            
+            // Check battle end or continue
+            setTimeout(() => {
+                checkBattleEnd();
+            }, 2500);
+        }
+
+        function executeAttack(attacker, defender, atkMod, attackerId, defenderId) {
+            // Calculate damage
+            let baseDamage = attacker.atk * atkMod;
+            let defense = defender.def;
+            let variance = 0.8 + Math.random() * 0.4; // 80% to 120%
+            let damage = Math.round((baseDamage - defense * 0.5) * variance);
+            damage = Math.max(5, damage); // Minimum damage
+            
+            // Critical hit chance
+            if (Math.random() < 0.15) {
+                damage *= 2;
+                addLog(`💥 CRITICAL HIT!`, 'special');
+            }
+            
+            // Apply damage
+            defender.hp = Math.max(0, defender.hp - damage);
+            
+            // Update UI
+            updateHealthBar(defenderId === 'player1' ? 'p1' : 'p2', defender);
+            showDamage(defenderId, damage);
+            animateDamage(defenderId);
+            
+            // Choose random ability
+            let ability = attacker.abilities[Math.floor(Math.random() * attacker.abilities.length)];
+            
+            addLog(`⚔️ ${attacker.name} uses ${ability} for ${damage} damage!`, 'damage');
+        }
+
+        function updateHealthBar(player, stats) {
+            let healthBar = document.getElementById(`${player}-health`);
+            let percentage = (stats.hp / stats.maxHp) * 100;
+            healthBar.style.width = percentage + '%';
+            healthBar.textContent = `HP: ${stats.hp}/${stats.maxHp}`;
+        }
+
+        function showDamage(targetId, damage) {
+            let card = document.getElementById(targetId);
+            let dmgElement = document.createElement('div');
+            dmgElement.className = 'damage-number';
+            dmgElement.textContent = `-${damage}`;
+            dmgElement.style.left = '50%';
+            dmgElement.style.top = '50%';
+            card.appendChild(dmgElement);
+            
+            setTimeout(() => dmgElement.remove(), 1000);
+        }
+
+        function animateDamage(targetId) {
+            let card = document.getElementById(targetId);
+            card.classList.add('damaged');
+            setTimeout(() => card.classList.remove('damaged'), 500);
+        }
+
+        function checkBattleEnd() {
+            if (gameState.player1.hp <= 0 || gameState.player2.hp <= 0) {
+                // Battle ends
+                let winner = gameState.player1.hp > 0 ? gameState.player1.name : gameState.player2.name;
+                showVictory(winner);
+            } else if (gameState.round >= 3) {
+                // After 3 rounds, determine winner by remaining HP
+                let winner = gameState.player1.hp > gameState.player2.hp ? gameState.player1.name : gameState.player2.name;
+                showVictory(winner);
+            } else {
+                // Continue to chat phase
+                gameState.round++;
+                document.getElementById('round-display').textContent = `Round ${gameState.round}`;
+                enterChatPhase();
+            }
+        }
+
+        function enterChatPhase() {
+            gameState.phase = 'chat';
+            document.getElementById('battle-btn').style.display = 'none';
+            document.getElementById('chat-btn').style.display = 'inline-block';
+            addLog(`💬 Chat break! Talk to your warrior...`, 'special');
+            
+            // Simulate character initiating chat
+            setTimeout(() => {
+                showChatPreview();
+            }, 1000);
+        }
+
+        function showChatPreview() {
+            let chatPreview = document.getElementById('chat-preview');
+            chatPreview.style.display = 'block';
+            
+            let messages = [
+                "That wizard's magic stings! But I've faced worse at Troy.",
+                "Their defenses are weak - I can exploit that next round!",
+                "Ha! Is that the best they can do? My shield has weathered stronger storms.",
+                "I feel the rage building... shall I unleash it next round?"
+            ];
+            
+            let message = messages[Math.floor(Math.random() * messages.length)];
+            chatPreview.innerHTML = `<strong>Achilles:</strong> "${message}"<br><br><em>Click 'Chat with Achilles' to respond and build your bond!</em>`;
+        }
+
+        function startChat() {
+            // In full version, this opens chat interface
+            addLog("🎭 [Chat system would open here - building bond with Achilles]", 'special');
+            
+            // For demo, continue after delay
+            setTimeout(() => {
+                document.getElementById('chat-btn').style.display = 'none';
+                document.getElementById('battle-btn').style.display = 'inline-block';
+                document.getElementById('battle-btn').disabled = false;
+                document.getElementById('battle-btn').textContent = `Start Round ${gameState.round}`;
+                document.getElementById('strategy-panel').style.opacity = '1';
+                document.getElementById('chat-preview').style.display = 'none';
+                gameState.selectedStrategy = null;
+                document.querySelectorAll('.strategy-btn').forEach(btn => btn.classList.remove('selected'));
+                addLog("💪 Achilles feels inspired by your words! (+5% to next attack)", 'special');
+            }, 2000);
+        }
+
+        function showVictory(winner) {
+            let victoryScreen = document.getElementById('victory-screen');
+            let victoryText = document.getElementById('victory-text');
+            
+            if (winner === gameState.player1.name) {
+                victoryText.textContent = 'VICTORY!';
+                addLog(`🏆 ${winner} wins the battle!`, 'special');
+            } else {
+                victoryText.textContent = 'DEFEAT!';
+                addLog(`💀 ${winner} wins the battle!`, 'damage');
+            }
+            
+            victoryScreen.style.display = 'flex';
+        }
+
+        function resetBattle() {
+            // Reset game state
+            gameState.round = 1;
+            gameState.phase = 'strategy';
+            gameState.combatActive = false;
+            gameState.selectedStrategy = null;
+            gameState.player1.hp = gameState.player1.maxHp;
+            gameState.player2.hp = gameState.player2.maxHp;
+            
+            // Reset UI
+            updateHealthBar('p1', gameState.player1);
+            updateHealthBar('p2', gameState.player2);
+            document.getElementById('round-display').textContent = 'Round 1';
+            document.getElementById('victory-screen').style.display = 'none';
+            document.getElementById('battle-btn').style.display = 'inline-block';
+            document.getElementById('battle-btn').textContent = 'Start Battle';
+            document.getElementById('battle-btn').disabled = true;
+            document.getElementById('chat-btn').style.display = 'none';
+            document.getElementById('strategy-panel').style.opacity = '1';
+            document.getElementById('chat-preview').style.display = 'none';
+            document.querySelectorAll('.strategy-btn').forEach(btn => btn.classList.remove('selected'));
+            
+            // Clear log
+            document.getElementById('combat-log').innerHTML = `
+                <div class="log-entry">⚔️ Battle Start! Achilles vs Merlin</div>
+                <div class="log-entry">Choose your strategy and begin the battle!</div>
+            `;
+        }
+
+        function addLog(message, type = '') {
+            let log = document.getElementById('combat-log');
+            let entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = message;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // AI Referee System (simplified for demo)
+        function aiRefereeDecision(action1, action2) {
+            // In full version, this would handle creative actions
+            // For now, returns standard combat resolution
+            return {
+                valid: true,
+                outcome: 'standard_combat',
+                narrative: null
+            };
+        }
+    </script>
+</body>
+</html>
