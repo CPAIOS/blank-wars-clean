@@ -12,7 +12,6 @@ import {
 // Import stable components
 import CharacterDatabase from './CharacterDatabase';
 import ChatDemo from './ChatDemo'; // Use full-featured chat with stable patterns
-import SimpleBattleArena from './SimpleBattleArena'; // Use stable battle arena
 
 // Lazy load non-critical components
 const TrainingGrounds = lazy(() => import('./TrainingGrounds'));
