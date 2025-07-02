@@ -81,12 +81,21 @@ export default function ChatDemo() {
   // Connect to WebSocket on mount
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    console.log('Connecting to WebSocket at:', socketUrl);
+    
     const newSocket = io(socketUrl, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     newSocket.on('connect', () => {
       console.log('Connected to chat server');
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error);
     });
 
     newSocket.on('chat_response', (data: { message: string; character: string }) => {
@@ -132,7 +141,12 @@ export default function ChatDemo() {
   ];
 
   const sendMessage = (content: string) => {
-    if (!content.trim() || !socket) return;
+    if (!content.trim()) return;
+    
+    if (!socket) {
+      console.error('Socket not connected');
+      return;
+    }
 
     // Add player message
     const playerMessage: Message = {
@@ -145,6 +159,8 @@ export default function ChatDemo() {
     setMessages(prev => [...prev, playerMessage]);
     setInputMessage('');
     setIsTyping(true);
+
+    console.log('Sending message to AI:', content);
 
     // Send to AI backend via WebSocket
     socket.emit('chat_message', {
