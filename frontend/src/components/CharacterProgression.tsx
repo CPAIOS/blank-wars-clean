@@ -29,7 +29,7 @@ interface CharacterProgressionProps {
   currentLevel: number;
   currentXP: number;
   totalXP?: number;
-  onLevelUp?: (newLevel: number, rewards: any) => void;
+  onLevelUp?: (newLevel: number, rewards: unknown) => void;
 }
 
 export default function CharacterProgression({

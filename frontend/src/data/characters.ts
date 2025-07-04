@@ -9,7 +9,7 @@ import { Item } from './items';
 
 export type CharacterArchetype = 
   | 'warrior' | 'mage' | 'assassin' | 'tank' | 'support' 
-  | 'beast' | 'trickster' | 'mystic' | 'elementalist' | 'berserker';
+  | 'beast' | 'trickster' | 'mystic' | 'elementalist' | 'berserker' | 'scholar';
 
 export type CharacterRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 

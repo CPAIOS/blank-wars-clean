@@ -35,7 +35,7 @@ export interface CampaignChapter {
   completed: boolean;
 }
 
-export interface PlayerProgress {
+export interface CoachingProgress {
   currentChapter: number;
   unlockedCharacters: string[];
   completedChapters: string[];
@@ -217,9 +217,9 @@ export const characterUnlocks: CharacterUnlock[] = [
 ];
 
 export class CampaignProgressionManager {
-  private progress: PlayerProgress;
+  private progress: CoachingProgress;
 
-  constructor(savedProgress?: Partial<PlayerProgress>) {
+  constructor(savedProgress?: Partial<CoachingProgress>) {
     this.progress = {
       currentChapter: 1,
       unlockedCharacters: ['robin_hood'],
@@ -360,7 +360,7 @@ export class CampaignProgressionManager {
   }
 
   // Update progress
-  updateProgress(update: Partial<PlayerProgress>): void {
+  updateProgress(update: Partial<CoachingProgress>): void {
     this.progress = { ...this.progress, ...update };
   }
 
@@ -384,7 +384,7 @@ export class CampaignProgressionManager {
   }
 
   // Get progress data
-  getProgress(): PlayerProgress {
+  getProgress(): CoachingProgress {
     return { ...this.progress };
   }
 

@@ -72,7 +72,7 @@ class BattleWebSocketService {
   }
 
   private connect() {
-    const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
     
     this.socket = io(serverUrl, {
       transports: ['websocket'],
@@ -136,6 +136,11 @@ class BattleWebSocketService {
       this.handlers.onBattleEnd?.(result);
     });
 
+    this.socket.on('chat_response', (response: any) => {
+      console.log('💬 Chat response received:', response);
+      this.handlers.onChatMessage?.(response);
+    });
+
     this.socket.on('chat_message', (message: any) => {
       console.log('💬 Chat message:', message);
       this.handlers.onChatMessage?.(message);
@@ -182,7 +187,7 @@ class BattleWebSocketService {
 
   public authenticate(token: string) {
     if (!this.socket) return;
-    this.socket.emit('auth', { token });
+    this.socket.emit('auth', token);
   }
 
   // Authenticate with JWT token from auth context
@@ -198,7 +203,7 @@ class BattleWebSocketService {
     }
 
     console.log('🔐 Authenticating WebSocket with JWT token');
-    this.socket.emit('auth', { token: accessToken });
+    this.socket.emit('auth', accessToken);
   }
 
   public findMatch(characterId?: string, mode: 'casual' | 'ranked' = 'casual') {
@@ -231,23 +236,13 @@ class BattleWebSocketService {
     this.socket.emit('select_strategy', { strategy });
   }
 
-  public sendChatMessage(message: string, characterData?: any) {
+  public sendChatMessage(data: any) {
     if (!this.socket || !this.authenticated) {
       this.handlers.onError?.('Not connected or authenticated');
       return;
     }
     // Use the correct event name and include character data
-    this.socket.emit('chat_message', { 
-      message,
-      character: characterData?.id || 'unknown',
-      characterData: characterData ? {
-        name: characterData.name,
-        personality: characterData.personality,
-        historicalPeriod: characterData.historicalPeriod,
-        mythology: characterData.mythology,
-        bondLevel: characterData.bondLevel
-      } : undefined
-    });
+    this.socket.emit('chat_message', data);
   }
 
   public disconnect() {

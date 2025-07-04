@@ -125,7 +125,7 @@ export const teamFormations: TeamFormation[] = [
         role: 'support',
         position: { x: 80, y: 60 },
         requirements: {
-          archetype: ['mage', 'scholar', 'leader']
+          archetype: ['mage', 'mystic', 'support']
         },
         bonuses: [
           { stat: 'def', value: 15, description: 'Protective aura' },
@@ -192,7 +192,7 @@ export const teamFormations: TeamFormation[] = [
         role: 'leader',
         position: { x: 50, y: 70 },
         requirements: {
-          archetype: ['leader', 'warrior']
+          archetype: ['mystic', 'warrior']
         },
         bonuses: [
           { stat: 'atk', value: 15, description: 'Battle coordination' },
@@ -220,7 +220,7 @@ export const teamFormations: TeamFormation[] = [
         role: 'defender',
         position: { x: 50, y: 20 },
         requirements: {
-          archetype: ['warrior', 'leader'],
+          archetype: ['warrior', 'mystic'],
           minLevel: 15
         },
         bonuses: [
@@ -260,7 +260,7 @@ export const teamFormations: TeamFormation[] = [
         role: 'leader',
         position: { x: 50, y: 70 },
         requirements: {
-          archetype: ['leader', 'scholar']
+          archetype: ['mystic', 'mage']
         },
         bonuses: [
           { stat: 'def', value: 20, description: 'Strategic positioning' },
@@ -343,9 +343,8 @@ export const teamFormations: TeamFormation[] = [
         role: 'leader',
         position: { x: 50, y: 30 },
         requirements: {
-          archetype: ['mage', 'scholar'],
-          minLevel: 20,
-          abilities: ['arcane_mastery', 'elemental_bolt']
+          archetype: ['mage', 'mystic'],
+          minLevel: 20
         },
         bonuses: [
           { stat: 'energy', value: 40, description: 'Arcane mastery' },
@@ -371,7 +370,7 @@ export const teamFormations: TeamFormation[] = [
         role: 'support',
         position: { x: 80, y: 70 },
         requirements: {
-          archetype: ['scholar', 'mage', 'leader']
+          archetype: ['mystic', 'mage', 'support']
         },
         bonuses: [
           { stat: 'energy', value: 30, description: 'Mystical knowledge' },
@@ -450,8 +449,8 @@ export const teamSynergies: TeamSynergy[] = [
     icon: '🎯',
     requirements: {
       archetypes: [
-        { archetype: 'leader', count: 1 },
-        { archetype: 'scholar', count: 1 }
+        { archetype: 'mystic', count: 1 },
+        { archetype: 'mage', count: 1 }
       ]
     },
     effects: [

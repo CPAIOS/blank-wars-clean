@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, MessageCircle, Heart, Star } from 'lucide-react';
+import { Send, Heart, Star, User } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import { createDemoCharacterCollection, Character } from '../data/characters';
 
 interface Message {
   id: number;
@@ -13,22 +14,22 @@ interface Message {
   bondIncrease?: boolean;
 }
 
-interface Character {
-  id: string;
-  name: string;
-  title: string;
-  avatar: string;
-  archetype: string;
-  bondLevel: number;
-  isSelected: boolean;
+interface EnhancedCharacter extends Character {
+  baseName: string;
+  displayBondLevel: number;
 }
 
-const SAMPLE_CHARACTERS: Character[] = [
-  { id: '1', name: 'Achilles', title: 'Hero of Troy', avatar: '⚔️', archetype: 'warrior', bondLevel: 3, isSelected: true },
-  { id: '2', name: 'Merlin', title: 'The Eternal Wizard', avatar: '🧙', archetype: 'scholar', bondLevel: 2, isSelected: false },
-  { id: '3', name: 'Cleopatra', title: 'Last Pharaoh', avatar: '👑', archetype: 'leader', bondLevel: 1, isSelected: false },
-  { id: '4', name: 'Robin Hood', title: 'Forest Outlaw', avatar: '🏹', archetype: 'trickster', bondLevel: 4, isSelected: false },
-];
+// Create enhanced character collection with all 17 characters
+const createAvailableCharacters = (): EnhancedCharacter[] => {
+  return createDemoCharacterCollection().map(char => {
+    const baseName = char.id.split('_')[0];
+    return {
+      ...char,
+      baseName,
+      displayBondLevel: char.bondLevel || Math.floor(Math.random() * 5) + 1
+    };
+  });
+};
 
 const TEMPLATE_RESPONSES = {
   greeting: [
@@ -59,7 +60,9 @@ const TEMPLATE_RESPONSES = {
 };
 
 export default function ChatDemo() {
-  const [selectedCharacter, setSelectedCharacter] = useState<Character>(SAMPLE_CHARACTERS[0]);
+  const [availableCharacters] = useState<EnhancedCharacter[]>(createAvailableCharacters());
+  const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState('achilles');
+  const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -76,13 +79,14 @@ export default function ChatDemo() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [connected, setConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize socket connection
   useEffect(() => {
-    const socketUrl = 'https://blank-wars-demo-3.onrender.com';
-    console.log('🔌 Connecting to:', socketUrl);
+    const socketUrl = 'http://localhost:3006';
+    console.log('🔌 [FIXED] Connecting to local backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -90,10 +94,16 @@ export default function ChatDemo() {
     });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ Socket connected');
+      console.log('✅ ChatDemo Socket connected to backend!');
+      setConnected(true);
     });
 
-    socketRef.current.on('chat_response', (data: any) => {
+    socketRef.current.on('disconnect', () => {
+      console.log('❌ ChatDemo Socket disconnected');
+      setConnected(false);
+    });
+
+    socketRef.current.on('chat_response', (data: { character: string; message: string; bondIncrease?: boolean }) => {
       console.log('📨 Received response:', data);
       
       const characterMessage: Message = {
@@ -108,7 +118,7 @@ export default function ChatDemo() {
       setIsTyping(false);
     });
 
-    socketRef.current.on('chat_error', (error: any) => {
+    socketRef.current.on('chat_error', (error: { message: string }) => {
       console.error('❌ Chat error:', error);
       setIsTyping(false);
     });
@@ -132,7 +142,10 @@ export default function ChatDemo() {
   ];
 
   const sendMessage = (content: string) => {
-    if (!content.trim() || isTyping || !socketRef.current?.connected) return;
+    if (!content.trim() || isTyping || !connected || !socketRef.current) {
+      console.log('❌ Cannot send message:', { content: content.trim(), isTyping, connected, socket: !!socketRef.current });
+      return;
+    }
 
     // Add player message immediately
     const playerMessage: Message = {
@@ -148,19 +161,29 @@ export default function ChatDemo() {
 
     console.log('📤 Sending message:', content);
 
-    // Send to backend
+    // Send to backend with full character data
     socketRef.current.emit('chat_message', {
       message: content,
-      character: selectedCharacter.id,
+      character: selectedCharacter.baseName,
       characterData: {
         name: selectedCharacter.name,
         personality: {
-          traits: ['Brave', 'Honorable', 'Fierce'],
-          speechStyle: 'Epic and heroic, befitting a legendary warrior',
-          motivations: ['Glory', 'Honor', 'Victory'],
-          fears: ['Dishonor', 'Weakness', 'Betrayal']
+          traits: selectedCharacter.personality.traits,
+          speechStyle: selectedCharacter.personality.speechStyle,
+          motivations: selectedCharacter.personality.motivations,
+          fears: selectedCharacter.personality.fears,
+          interests: selectedCharacter.personality.traits.includes('Scholar') ? ['Books', 'Knowledge', 'Ancient texts'] : 
+                   selectedCharacter.personality.traits.includes('Warrior') ? ['Battle', 'Honor', 'Training'] :
+                   selectedCharacter.personality.traits.includes('Mystic') ? ['Magic', 'Mysteries', 'Prophecy'] : 
+                   ['Adventure', 'Discovery', 'Stories'],
+          quirks: selectedCharacter.personality.traits.includes('Eccentric') ? ['Peculiar habits', 'Unusual interests'] :
+                 selectedCharacter.personality.traits.includes('Analytical') ? ['Logical thinking', 'Detail-oriented'] :
+                 selectedCharacter.personality.traits.includes('Charismatic') ? ['Natural leadership', 'Inspiring presence'] :
+                 ['Unique mannerisms', 'Personal style']
         },
-        bondLevel: selectedCharacter.bondLevel
+        historicalPeriod: selectedCharacter.historicalPeriod,
+        mythology: selectedCharacter.mythology,
+        bondLevel: selectedCharacter.displayBondLevel
       },
       previousMessages: messages.slice(-5).map(m => ({
         role: m.type === 'player' ? 'user' : 'assistant',
@@ -206,32 +229,46 @@ export default function ChatDemo() {
     return { content, bondIncrease };
   };
 
-  const selectCharacter = (character: Character) => {
-    setSelectedCharacter(character);
-    setMessages([
-      {
-        id: Date.now(),
-        type: 'system',
-        content: `Chat session started with ${character.name}`,
-        timestamp: new Date(),
-      },
-      {
-        id: Date.now() + 1,
-        type: 'character',
-        content: getCharacterIntro(character),
-        timestamp: new Date(),
-      }
-    ]);
-  };
+  // Update messages when character changes
+  useEffect(() => {
+    if (selectedCharacter) {
+      setMessages([
+        {
+          id: Date.now(),
+          type: 'system',
+          content: `Chat session started with ${selectedCharacter.name}`,
+          timestamp: new Date(),
+        },
+        {
+          id: Date.now() + 1,
+          type: 'character',
+          content: getCharacterIntro(selectedCharacter),
+          timestamp: new Date(),
+        }
+      ]);
+    }
+  }, [selectedCharacter?.id]);
 
-  const getCharacterIntro = (character: Character): string => {
-    const intros = {
+  const getCharacterIntro = (character: EnhancedCharacter): string => {
+    const intros: Record<string, string> = {
       'Achilles': 'Greetings, noble warrior! I sense great potential in you. Ready to forge our legend together?',
       'Merlin': 'Ah, a new seeker of wisdom approaches. Time flows strangely around you... most intriguing.',
-      'Cleopatra': 'Welcome to my presence, traveler. Few are granted audience with the Last Pharaoh.',
+      'Cleopatra VII': 'Welcome to my presence, traveler. Few are granted audience with the Last Pharaoh.',
       'Robin Hood': 'Well met, friend! Care to hear tales of Sherwood Forest and fighting for justice?',
+      'Sherlock Holmes': 'Fascinating... You have the look of someone with an interesting problem to solve.',
+      'Count Dracula': 'Welcome to my domain, mortal. Few dare to seek audience with the night itself.',
+      'Joan of Arc': 'Blessings upon you, friend. I sense a righteous spirit within you.',
+      'Frankenstein\'s Monster': 'Another soul approaches... Do you judge me by my appearance, or my actions?',
+      'Sun Wukong': 'Hah! Another challenger approaches the Monkey King! Are you here to test your skills?',
+      'Sammy "The Slugger" Sullivan': 'Hey there, champ! Ready to talk some baseball and life lessons?',
+      'Billy the Kid': 'Well howdy there, partner. Name\'s Billy. What brings you to these parts?',
+      'Genghis Khan': 'You dare approach the Great Khan? Speak your purpose, and make it worthwhile.',
+      'Nikola Tesla': 'Ah, another curious mind! The future is electric, my friend. Shall we discuss it?',
+      'Zyx (Alien Grey)': 'Greetings, human. Your species continues to fascinate our research. Tell me about yourself.',
+      'Cyborg Unit X-7': 'Human detected. Initiating social protocol. How may I assist you today?',
+      'Agent X': 'Civilian contact established. This conversation never happened. What do you need to know?'
     };
-    return intros[character.name as keyof typeof intros] || 'Greetings, traveler.';
+    return intros[character.name] || `Greetings, I am ${character.name}. ${character.description.split('.')[0]}.`;
   };
 
   return (
@@ -242,29 +279,30 @@ export default function ChatDemo() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-4 h-[600px]">
-          {/* Character Selection Sidebar */}
-          <div className="bg-gray-800/50 p-4 border-r border-gray-700">
-            <h3 className="text-lg font-bold mb-4 text-white">Characters</h3>
-            <div className="space-y-3">
-              {SAMPLE_CHARACTERS.map((character) => (
-                <motion.div
+        <div className="grid grid-cols-1 lg:grid-cols-4 h-[700px]">
+          {/* Character Selection Sidebar - Consistent with other tabs */}
+          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Characters
+            </h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {availableCharacters.map((character) => (
+                <button
                   key={character.id}
-                  onClick={() => selectCharacter(character)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all ${
-                    selectedCharacter.id === character.id 
-                      ? 'bg-purple-600/30 border-2 border-purple-500' 
-                      : 'bg-gray-700/50 border-2 border-transparent hover:border-gray-600'
+                  onClick={() => setGlobalSelectedCharacterId(character.baseName)}
+                  className={`w-full p-3 rounded-lg border transition-all text-left ${
+                    globalSelectedCharacterId === character.baseName
+                      ? 'border-blue-500 bg-blue-500/20 text-white'
+                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
                   }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-2xl">{character.avatar}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-white text-sm truncate">{character.name}</div>
+                      <div className="font-semibold text-sm truncate">{character.name}</div>
                       <div className="text-xs text-gray-400 truncate">{character.title}</div>
-                      <div className="text-xs text-purple-400 capitalize">{character.archetype}</div>
+                      <div className="text-xs text-blue-400 capitalize">{character.archetype}</div>
                     </div>
                   </div>
                   
@@ -272,16 +310,16 @@ export default function ChatDemo() {
                   <div className="mt-2">
                     <div className="flex items-center gap-1 text-xs text-gray-400">
                       <Heart className="w-3 h-3" />
-                      Bond Level {character.bondLevel}/10
+                      Bond Level {character.displayBondLevel}/10
                     </div>
                     <div className="bg-gray-600 rounded-full h-1 mt-1">
                       <div 
                         className="bg-gradient-to-r from-pink-500 to-red-500 rounded-full h-1 transition-all"
-                        style={{ width: `${(character.bondLevel / 10) * 100}%` }}
+                        style={{ width: `${(character.displayBondLevel / 10) * 100}%` }}
                       />
                     </div>
                   </div>
-                </motion.div>
+                </button>
               ))}
             </div>
           </div>
@@ -298,7 +336,7 @@ export default function ChatDemo() {
                 </div>
                 <div className="ml-auto flex items-center gap-2">
                   <Heart className="w-4 h-4 text-pink-400" />
-                  <span className="text-sm text-gray-300">Bond: {selectedCharacter.bondLevel}/10</span>
+                  <span className="text-sm text-gray-300">Bond: {selectedCharacter.displayBondLevel}/10</span>
                 </div>
               </div>
             </div>

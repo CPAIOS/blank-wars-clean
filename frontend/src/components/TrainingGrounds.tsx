@@ -20,25 +20,14 @@ import {
   BookOpen,
   Sparkles,
   Crown,
-  Building,
-  Sword,
-  Package,
-  Flame
+  Building
 } from 'lucide-react';
 import SkillTree from './SkillTree';
 import MembershipSelection from './MembershipSelection';
 import TrainingFacilitySelector from './TrainingFacilitySelector';
-import CharacterProgression from './CharacterProgression';
-import EquipmentManager from './EquipmentManager';
-import ItemManager from './ItemManager';
-import AbilityManager from './AbilityManager';
-import AICoachComponent from './AICoach';
 import { coreSkills, archetypeSkills, signatureSkills } from '@/data/skills';
 import { memberships, MembershipTier, getTrainingMultipliers, getDailyLimits, FacilityType } from '@/data/memberships';
 import { getBaseStatsForLevel, getLevelData } from '@/data/characterProgression';
-import { Equipment, EquipmentSlot, calculateEquipmentStats } from '@/data/equipment';
-import { Item, InventoryItem } from '@/data/items';
-import { AbilityProgress, getAbilitiesForCharacter, gainAbilityExperience } from '@/data/abilities';
 
 interface Character {
   id: string;
@@ -117,16 +106,11 @@ export default function TrainingGrounds() {
   const [currentActivity, setCurrentActivity] = useState<TrainingActivity | null>(null);
   const [trainingProgress, setTrainingProgress] = useState(0);
   const [trainingTimeLeft, setTrainingTimeLeft] = useState(0);
-  const [activeTab, setActiveTab] = useState<'training' | 'skills' | 'facilities' | 'equipment' | 'progression' | 'membership' | 'items' | 'abilities' | 'coach'>('training');
+  const [activeTab, setActiveTab] = useState<'training' | 'skills' | 'facilities' | 'membership'>('training');
   const [trainingPoints, setTrainingPoints] = useState(10); // Mock training points
   const [learnedSkills, setLearnedSkills] = useState<string[]>(['power_strike']); // Mock learned skills
   const [membershipTier, setMembershipTier] = useState<MembershipTier>('free');
   const [selectedFacility, setSelectedFacility] = useState<FacilityType>('community');
-  const [equippedItems, setEquippedItems] = useState<{weapon?: Equipment; armor?: Equipment; accessory?: Equipment}>({});
-  const [inventory, setInventory] = useState<Equipment[]>([]);
-  const [gold, setGold] = useState(1500); // Mock gold amount
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]); // Mock item inventory
-  const [abilityProgress, setAbilityProgress] = useState<AbilityProgress[]>([]); // Ability progression
   const [dailyTrainingSessions, setDailyTrainingSessions] = useState(0);
   const [dailyEnergyRefills, setDailyEnergyRefills] = useState(0);
 
@@ -740,28 +724,6 @@ export default function TrainingGrounds() {
             <span>Facilities</span>
           </button>
           <button
-            onClick={() => setActiveTab('equipment')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'equipment'
-                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Sword className="w-5 h-5" />
-            <span>Equipment</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('progression')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'progression'
-                ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <TrendingUp className="w-5 h-5" />
-            <span>Progression</span>
-          </button>
-          <button
             onClick={() => setActiveTab('membership')}
             className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
               activeTab === 'membership'
@@ -776,49 +738,6 @@ export default function TrainingGrounds() {
                 {memberships[membershipTier].icon}
               </span>
             )}
-          </button>
-          <button
-            onClick={() => setActiveTab('items')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'items'
-                ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Package className="w-5 h-5" />
-            <span>Items</span>
-            {inventoryItems.length > 0 && (
-              <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
-                {inventoryItems.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('abilities')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'abilities'
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Flame className="w-5 h-5" />
-            <span>Abilities</span>
-            {getAbilitiesForCharacter(selectedCharacter.id).length > 0 && (
-              <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
-                {getAbilitiesForCharacter(selectedCharacter.id).length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('coach')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'coach'
-                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Brain className="w-5 h-5" />
-            <span>AI Coach</span>
           </button>
         </div>
       </div>
@@ -1102,303 +1021,6 @@ export default function TrainingGrounds() {
             selectedFacility={selectedFacility}
             onSelectFacility={setSelectedFacility}
             onUpgradeMembership={() => setActiveTab('membership')}
-          />
-        </div>
-      ) : activeTab === 'equipment' ? (
-        /* Equipment Tab */
-        <div className="max-w-full">
-          <EquipmentManager
-            characterName={selectedCharacter.name}
-            characterLevel={selectedCharacter.level}
-            characterArchetype={selectedCharacter.archetype}
-            equippedItems={equippedItems}
-            inventory={inventory}
-            onEquip={(equipment) => {
-              setEquippedItems(prev => ({
-                ...prev,
-                [equipment.slot]: equipment
-              }));
-            }}
-            onUnequip={(slot) => {
-              setEquippedItems(prev => {
-                const updated = { ...prev };
-                delete updated[slot];
-                return updated;
-              });
-            }}
-          />
-        </div>
-      ) : activeTab === 'progression' ? (
-        /* Progression Tab */
-        <div className="max-w-full">
-          <CharacterProgression
-            characterName={selectedCharacter.name}
-            characterAvatar={selectedCharacter.avatar}
-            archetype={selectedCharacter.archetype}
-            currentLevel={selectedCharacter.level}
-            currentXP={selectedCharacter.xp}
-            totalXP={25000} // Mock total XP - would be calculated from level progression
-            onLevelUp={(newLevel, rewards) => {
-              // Handle level up logic
-              console.log(`Level up to ${newLevel}!`, rewards);
-            }}
-          />
-        </div>
-      ) : activeTab === 'items' ? (
-        /* Items Tab */
-        <div className="max-w-full">
-          <ItemManager
-            characterLevel={selectedCharacter.level}
-            inventory={inventoryItems}
-            gold={gold}
-            context="training"
-            onUseItem={(item, quantity = 1) => {
-              // Handle item usage
-              console.log(`Using ${quantity}x ${item.name}`);
-              
-              // Apply item effects
-              item.effects.forEach(effect => {
-                switch (effect.type) {
-                  case 'heal':
-                    setSelectedCharacter(prev => ({
-                      ...prev,
-                      hp: Math.min(prev.maxHp, prev.hp + effect.value)
-                    }));
-                    break;
-                  case 'energy_restore':
-                    setSelectedCharacter(prev => ({
-                      ...prev,
-                      energy: Math.min(prev.maxEnergy, prev.energy + effect.value)
-                    }));
-                    break;
-                  case 'xp_boost':
-                    if (effect.value > 100) {
-                      // Flat XP gain
-                      setSelectedCharacter(prev => ({
-                        ...prev,
-                        xp: prev.xp + effect.value
-                      }));
-                    }
-                    break;
-                  case 'special':
-                    if (item.id === 'master_scroll') {
-                      // Grant training points
-                      setTrainingPoints(prev => prev + effect.value);
-                    }
-                    break;
-                }
-              });
-              
-              // Remove consumable items from inventory
-              if (item.consumeOnUse) {
-                setInventoryItems(prev => {
-                  const itemIndex = prev.findIndex(inv => inv.item.id === item.id);
-                  if (itemIndex === -1) return prev;
-                  
-                  const newInventory = [...prev];
-                  if (newInventory[itemIndex].quantity > quantity) {
-                    newInventory[itemIndex] = {
-                      ...newInventory[itemIndex],
-                      quantity: newInventory[itemIndex].quantity - quantity
-                    };
-                  } else {
-                    newInventory.splice(itemIndex, 1);
-                  }
-                  return newInventory;
-                });
-              }
-            }}
-            onBuyItem={(item, quantity) => {
-              const totalCost = item.price * quantity;
-              if (gold >= totalCost) {
-                setGold(prev => prev - totalCost);
-                
-                // Add to inventory
-                setInventoryItems(prev => {
-                  const existingIndex = prev.findIndex(inv => inv.item.id === item.id);
-                  if (existingIndex >= 0) {
-                    const newInventory = [...prev];
-                    newInventory[existingIndex] = {
-                      ...newInventory[existingIndex],
-                      quantity: newInventory[existingIndex].quantity + quantity
-                    };
-                    return newInventory;
-                  } else {
-                    return [...prev, { item, quantity }];
-                  }
-                });
-                
-                console.log(`Bought ${quantity}x ${item.name} for ${totalCost} gold`);
-              }
-            }}
-            onCraftItem={(recipe) => {
-              console.log(`Crafting ${recipe.result}`);
-              // Handle crafting logic here
-            }}
-          />
-        </div>
-      ) : activeTab === 'abilities' ? (
-        /* Abilities Tab */
-        <div className="max-w-full">
-          <AbilityManager
-            characterId={selectedCharacter.id}
-            characterName={selectedCharacter.name}
-            characterLevel={selectedCharacter.level}
-            characterStats={{
-              atk: selectedCharacter.atk,
-              def: selectedCharacter.def,
-              spd: selectedCharacter.spd,
-              energy: selectedCharacter.energy,
-              maxEnergy: selectedCharacter.maxEnergy,
-              hp: selectedCharacter.hp,
-              maxHp: selectedCharacter.maxHp
-            }}
-            abilityProgress={abilityProgress}
-            cooldowns={{}} // No cooldowns in training mode
-            context="training"
-            onUpgradeAbility={(abilityId) => {
-              // Handle ability upgrade with training points
-              const cost = 5; // Base cost for upgrade
-              if (trainingPoints >= cost) {
-                setTrainingPoints(prev => prev - cost);
-                
-                // Gain ability experience
-                setAbilityProgress(prev => {
-                  const existing = prev.find(p => p.abilityId === abilityId);
-                  const experienceGained = 100; // Base experience for upgrade
-                  
-                  if (existing) {
-                    const result = gainAbilityExperience(existing, experienceGained);
-                    return prev.map(p => p.abilityId === abilityId ? result.newProgress : p);
-                  } else {
-                    // Create new progress entry
-                    const newProgress = {
-                      abilityId,
-                      currentRank: 1,
-                      experience: experienceGained,
-                      experienceToNext: 300
-                    };
-                    return [...prev, newProgress];
-                  }
-                });
-                
-                console.log(`Upgraded ability ${abilityId} for ${cost} training points`);
-              } else {
-                console.log('Not enough training points to upgrade ability');
-              }
-            }}
-          />
-        </div>
-      ) : activeTab === 'coach' ? (
-        /* AI Coach Tab */
-        <div className="max-w-full">
-          <AICoachComponent
-            character={{
-              id: selectedCharacter.id,
-              name: selectedCharacter.name,
-              avatar: selectedCharacter.avatar,
-              archetype: selectedCharacter.archetype,
-              level: selectedCharacter.level,
-              baseStats: {
-                strength: selectedCharacter.atk,
-                agility: selectedCharacter.spd,
-                intelligence: Math.floor((selectedCharacter.atk + selectedCharacter.def + selectedCharacter.spd) / 3),
-                vitality: selectedCharacter.def,
-                wisdom: Math.floor(selectedCharacter.level * 2),
-                charisma: Math.floor(selectedCharacter.level * 1.5)
-              },
-              combatStats: {
-                health: selectedCharacter.hp,
-                maxHealth: selectedCharacter.maxHp,
-                mana: 100,
-                maxMana: 100,
-                attack: selectedCharacter.atk,
-                defense: selectedCharacter.def,
-                magicAttack: Math.floor(selectedCharacter.atk * 0.8),
-                magicDefense: Math.floor(selectedCharacter.def * 0.9),
-                speed: selectedCharacter.spd,
-                criticalChance: 15,
-                criticalDamage: 150,
-                accuracy: 85,
-                evasion: Math.floor(selectedCharacter.spd * 0.3)
-              },
-              skills: {
-                characterId: selectedCharacter.id,
-                coreSkills: {
-                  combat: { level: Math.floor(selectedCharacter.level * 0.8), experience: 0, maxLevel: 100 },
-                  survival: { level: Math.floor(selectedCharacter.level * 0.6), experience: 0, maxLevel: 100 },
-                  mental: { level: Math.floor(selectedCharacter.level * 0.7), experience: 0, maxLevel: 100 },
-                  social: { level: Math.floor(selectedCharacter.level * 0.5), experience: 0, maxLevel: 100 },
-                  spiritual: { level: Math.floor(selectedCharacter.level * 0.4), experience: 0, maxLevel: 100 }
-                },
-                signatureSkills: {},
-                archetypeSkills: {},
-                passiveAbilities: [],
-                activeAbilities: [],
-                unlockedNodes: [],
-                skillPoints: trainingPoints,
-                lastUpdated: new Date()
-              },
-              personality: {
-                traits: ['Determined', 'Focused', 'Ambitious'],
-                speechStyle: 'Direct and motivational',
-                motivations: ['Self-improvement', 'Mastery'],
-                fears: ['Stagnation'],
-                relationships: []
-              },
-              progressionTree: { branches: [] },
-              equippedItems: {},
-              inventory: [],
-              unlockedContent: [],
-              achievements: [],
-              trainingLevel: 75,
-              bondLevel: 60,
-              fatigue: selectedCharacter.energy < 50 ? 60 : 30,
-              battleAI: {
-                aggression: 70,
-                defensiveness: 50,
-                riskTaking: 60,
-                adaptability: 65,
-                preferredStrategies: ['balanced_approach']
-              },
-              customization: {
-                battleQuotes: ['Let\'s train harder!', 'Every session counts!']
-              },
-              rarity: 'common' as const,
-              description: 'A dedicated warrior focused on continuous improvement',
-              historicalPeriod: 'Modern Era',
-              mythology: 'Contemporary',
-              experience: {
-                characterId: selectedCharacter.id,
-                currentLevel: selectedCharacter.level,
-                currentXP: selectedCharacter.xp,
-                totalXP: selectedCharacter.xp,
-                xpToNextLevel: selectedCharacter.xpToNext,
-                statPoints: 0,
-                skillPoints: trainingPoints,
-                milestoneRewards: [],
-                levelHistory: [],
-                lastUpdated: new Date()
-              },
-              abilities: {
-                characterId: selectedCharacter.id,
-                equipped: { slot1: null, slot2: null, slot3: null, slot4: null },
-                available: [],
-                cooldowns: {},
-                lastUpdated: new Date()
-              },
-              statPoints: 0,
-              title: 'Training Warrior'
-            }}
-            onApplyTip={(tip) => {
-              console.log(`Applied coaching tip: ${tip.title}`);
-              // Here you could implement the actual tip effects
-              // For example, automatically start recommended training, adjust focus, etc.
-            }}
-            onUpdateFocus={(focus) => {
-              console.log(`Updated training focus to: ${focus}`);
-              // Could adjust available training activities based on focus
-            }}
           />
         </div>
       ) : (

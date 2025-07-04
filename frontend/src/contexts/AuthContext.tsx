@@ -16,6 +16,23 @@ export interface UserProfile {
   created_at: string;
 }
 
+// Coach progression system
+export const getCoachTitle = (level: number, wins: number): string => {
+  if (level >= 50 && wins >= 500) return 'Grandmaster Coach';
+  if (level >= 40 && wins >= 300) return 'Master Coach';
+  if (level >= 30 && wins >= 200) return 'Expert Coach';
+  if (level >= 20 && wins >= 100) return 'Veteran Coach';
+  if (level >= 15 && wins >= 50) return 'Senior Coach';
+  if (level >= 10 && wins >= 25) return 'Advanced Coach';
+  if (level >= 5 && wins >= 10) return 'Junior Coach';
+  return 'Rookie Coach';
+};
+
+export const getCoachDisplayName = (user: UserProfile): string => {
+  const title = getCoachTitle(user.level, user.total_wins);
+  return `${title} Lv.${user.level}`;
+};
+
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -58,25 +75,27 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Demo user for development
-const DEMO_USER: UserProfile = {
-  id: 'demo-user',
-  username: 'Demo Player',
-  email: 'demo@example.com',
-  subscription_tier: 'premium',
-  level: 25,
-  experience: 12500,
-  total_battles: 150,
-  total_wins: 95,
-  rating: 1850,
-  created_at: new Date().toISOString()
-};
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  // Initialize with demo user immediately - no loading state
-  const [user, setUser] = useState<UserProfile | null>(DEMO_USER);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [tokens, setTokens] = useState<AuthTokens | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      try {
+        const profile = await authService.getProfile();
+        setUser(profile);
+      } catch (error) {
+        console.log('No valid session found');
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    initializeAuth();
+  }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     try {
@@ -144,7 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(prev => prev ? { ...prev, ...profileData } : null);
   }, []);
 
-  const isAuthenticated = !!user; // Simplified for development
+  const isAuthenticated = !!user && !isLoading;
 
   const value: AuthContextType = {
     user,

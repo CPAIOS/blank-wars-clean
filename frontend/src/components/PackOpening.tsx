@@ -1,17 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Star, Sparkles, RotateCcw, ShoppingCart } from 'lucide-react';
+import { paymentAPI } from '../services/apiClient';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface Card {
-  id: number;
+  id: string; // Changed to string for character ID
   name: string;
   title: string;
-  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic'; // Added mythic
   avatar: string;
   isNew: boolean;
-  stats: {
+  serialNumber?: string; // Added serialNumber
+  stats?: {
     attack: number;
     defense: number;
     speed: number;
@@ -58,37 +61,7 @@ const PACK_TYPES: PackType[] = [
   }
 ];
 
-const SAMPLE_CARDS = {
-  starter: [
-    { id: 1, name: 'Gladiator Marcus', title: 'Arena Champion', rarity: 'common', avatar: '⚔️', isNew: true, stats: { attack: 65, defense: 55, speed: 70 } },
-    { id: 2, name: 'Salem', title: "The Witch&apos;s Cat", rarity: 'common', avatar: '🐈‍⬛', isNew: false, stats: { attack: 45, defense: 40, speed: 85 } },
-    { id: 3, name: 'Apprentice Lin', title: 'Kung Fu Student', rarity: 'common', avatar: '🥋', isNew: true, stats: { attack: 60, defense: 50, speed: 80 } },
-    { id: 4, name: 'Robin Hood', title: 'The Forest Outlaw', rarity: 'uncommon', avatar: '🏹', isNew: true, stats: { attack: 75, defense: 60, speed: 90 } },
-    { id: 5, name: 'Nostradamus', title: 'The Prophet', rarity: 'common', avatar: '🔮', isNew: false, stats: { attack: 50, defense: 45, speed: 65 } }
-  ],
-  premium: [
-    { id: 1, name: 'Tesla', title: 'The Lightning Master', rarity: 'rare', avatar: '⚡', isNew: true, stats: { attack: 85, defense: 65, speed: 85 } },
-    { id: 2, name: 'Blackbeard', title: 'Terror of the Seas', rarity: 'uncommon', avatar: '🏴‍☠️', isNew: true, stats: { attack: 80, defense: 70, speed: 60 } },
-    { id: 3, name: 'Joan of Arc', title: 'The Maid of Orleans', rarity: 'uncommon', avatar: '⚜️', isNew: false, stats: { attack: 75, defense: 85, speed: 70 } },
-    { id: 4, name: 'Sasquatch', title: 'The Forest Guardian', rarity: 'uncommon', avatar: '🦶', isNew: true, stats: { attack: 85, defense: 90, speed: 40 } },
-    { id: 5, name: 'Professor Cogsworth', title: 'Steam Inventor', rarity: 'common', avatar: '⚙️', isNew: false, stats: { attack: 55, defense: 60, speed: 55 } },
-    { id: 6, name: 'Bucky', title: 'The All-American', rarity: 'common', avatar: '🇺🇸', isNew: true, stats: { attack: 70, defense: 75, speed: 65 } },
-    { id: 7, name: 'Dracula', title: 'The Immortal Count', rarity: 'epic', avatar: '🧛', isNew: true, stats: { attack: 95, defense: 70, speed: 85 } },
-    { id: 8, name: 'Anansi', title: 'The Spider Trickster', rarity: 'uncommon', avatar: '🕷️', isNew: false, stats: { attack: 70, defense: 55, speed: 95 } }
-  ],
-  legendary: [
-    { id: 1, name: 'Sun Wukong', title: 'The Monkey King', rarity: 'legendary', avatar: '🐵', isNew: true, stats: { attack: 100, defense: 85, speed: 100 } },
-    { id: 2, name: 'Marie Curie', title: 'The Radiant Scientist', rarity: 'epic', avatar: '⚗️', isNew: true, stats: { attack: 90, defense: 80, speed: 75 } },
-    { id: 3, name: 'Cleopatra', title: 'The Last Pharaoh', rarity: 'rare', avatar: '👑', isNew: false, stats: { attack: 80, defense: 85, speed: 80 } },
-    { id: 4, name: 'Mulan', title: 'The Warrior Maiden', rarity: 'rare', avatar: '🗡️', isNew: true, stats: { attack: 85, defense: 80, speed: 85 } },
-    { id: 5, name: 'Fenrir', title: 'The World Ender', rarity: 'rare', avatar: '🐺', isNew: true, stats: { attack: 95, defense: 75, speed: 90 } },
-    { id: 6, name: 'Achilles', title: 'Hero of Troy', rarity: 'epic', avatar: '🛡️', isNew: false, stats: { attack: 95, defense: 80, speed: 95 } },
-    { id: 7, name: 'Robin Hood', title: 'The Forest Outlaw', rarity: 'uncommon', avatar: '🏹', isNew: false, stats: { attack: 75, defense: 60, speed: 90 } },
-    { id: 8, name: 'Salem', title: "The Witch&apos;s Cat", rarity: 'common', avatar: '🐈‍⬛', isNew: false, stats: { attack: 45, defense: 40, speed: 85 } },
-    { id: 9, name: 'Apprentice Lin', title: 'Kung Fu Student', rarity: 'common', avatar: '🥋', isNew: false, stats: { attack: 60, defense: 50, speed: 80 } },
-    { id: 10, name: 'Professor Cogsworth', title: 'Steam Inventor', rarity: 'common', avatar: '⚙️', isNew: false, stats: { attack: 55, defense: 60, speed: 55 } }
-  ]
-} as const;
+
 
 const getRarityColor = (rarity: Card['rarity']) => {
   const colors = {
@@ -113,34 +86,80 @@ const getRarityGlow = (rarity: Card['rarity']) => {
 };
 
 export default function PackOpening() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedPack, setSelectedPack] = useState<PackType | null>(null);
   const [phase, setPhase] = useState<'selection' | 'opening' | 'revealing' | 'summary'>('selection');
   const [cards, setCards] = useState<Card[]>([]);
-  const [revealedCards, setRevealedCards] = useState<number[]>([]);
+  const [revealedCards, setRevealedCards] = useState<string[]>([]); // Changed to string for serialNumber
   const [packAnimating, setPackAnimating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const selectPack = (pack: PackType) => {
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+    if (sessionId) {
+      // In a real app, you'd verify the session server-side
+      // For this demo, we'll just assume success and move to opening phase
+      setPhase('opening');
+      // You might want to fetch the pack details based on the session ID here
+      // For now, we'll rely on the user selecting a pack again or having it in state
+      router.replace('/pack-opening', undefined, { shallow: true }); // Clean URL
+    }
+  }, [searchParams, router]);
+
+  const selectPack = async (pack: PackType) => {
     setSelectedPack(pack);
     setPhase('opening');
+
+    try {
+      const response = await paymentAPI.purchasePack(pack.id, 1); // Assuming quantity 1
+      if (response.url) {
+        router.push(response.url); // Redirect to Stripe Checkout
+      } else {
+        setError('Failed to get Stripe checkout URL.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to initiate purchase.');
+    }
   };
 
-  const openPack = () => {
+  const openPack = async () => {
     if (!selectedPack) return;
     
     setPackAnimating(true);
-    const packCards = SAMPLE_CARDS[selectedPack.id as keyof typeof SAMPLE_CARDS];
-    setCards(Array.isArray(packCards) ? packCards as Card[] : []);
-    
-    setTimeout(() => {
-      setPhase('revealing');
+    setError(null);
+
+    try {
+      // In a real scenario, the backend would return the actual cards minted
+      // For now, we simulate it by calling redeem for each card in the pack
+      // This part needs to be updated once the backend returns the minted cards directly
+      const mintedCards = await paymentAPI.redeemCard(selectedPack.id); // This is incorrect, needs actual serial numbers
+      
+      // Placeholder for actual minted cards from backend
+      const simulatedMintedCards: Card[] = [
+        { id: 'char_001', name: 'Achilles', title: 'Hero', rarity: 'legendary', avatar: '⚔️', isNew: true, serialNumber: 'abc123def456' },
+        { id: 'char_002', name: 'Merlin', title: 'Wizard', rarity: 'mythic', avatar: '🔮', isNew: true, serialNumber: 'ghi789jkl012' },
+        { id: 'char_003', name: 'Fenrir', title: 'Wolf', rarity: 'legendary', avatar: '🐺', isNew: true, serialNumber: 'mno345pqr678' },
+        { id: 'char_004', name: 'Cleopatra', title: 'Pharaoh', rarity: 'epic', avatar: '👑', isNew: true, serialNumber: 'stu901vwx234' },
+        { id: 'char_005', name: 'Holmes', title: 'Detective', rarity: 'rare', avatar: '🕵️', isNew: true, serialNumber: 'yza567bcd890' },
+      ];
+
+      setCards(simulatedMintedCards);
+      
+      setTimeout(() => {
+        setPhase('revealing');
+        setPackAnimating(false);
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to open pack.');
       setPackAnimating(false);
-    }, 2000);
+    }
   };
 
-  const revealCard = (index: number) => {
-    if (revealedCards.includes(index)) return;
+  const revealCard = (serialNumber: string) => {
+    if (revealedCards.includes(serialNumber)) return;
     
-    setRevealedCards(prev => [...prev, index]);
+    setRevealedCards(prev => [...prev, serialNumber]);
     
     // If all cards revealed, show summary
     if (revealedCards.length + 1 === cards.length) {
@@ -154,6 +173,7 @@ export default function PackOpening() {
     setCards([]);
     setRevealedCards([]);
     setPackAnimating(false);
+    setError(null);
   };
 
   const openAnotherPack = () => {
@@ -161,13 +181,14 @@ export default function PackOpening() {
     setCards([]);
     setRevealedCards([]);
     setPackAnimating(false);
+    setError(null);
   };
 
   const calculateStats = () => {
     const totalCards = cards.length;
     const newCards = cards.filter(card => card.isNew).length;
-    const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
-    let bestRarity = 'common';
+    const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+    let bestRarity: Card['rarity'] = 'common';
     
     cards.forEach(card => {
       if (rarities.indexOf(card.rarity) > rarities.indexOf(bestRarity)) {
@@ -180,6 +201,7 @@ export default function PackOpening() {
 
   return (
     <div className="max-w-6xl mx-auto">
+      {error && <div className="text-red-500 text-center mb-4">Error: {error}</div>}
       <AnimatePresence mode="wait">
         {/* Pack Selection */}
         {phase === 'selection' && (
@@ -269,7 +291,7 @@ export default function PackOpening() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {cards.map((card, index) => (
                 <motion.div
-                  key={card.id}
+                  key={card.serialNumber || card.id} // Use serialNumber as key
                   initial={{ opacity: 0, y: 50, rotateY: 0 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.2 }}
@@ -278,9 +300,9 @@ export default function PackOpening() {
                   <motion.div
                     className={`w-full h-64 rounded-lg cursor-pointer transition-all ${getRarityColor(card.rarity)} ${getRarityGlow(card.rarity)}`}
                     style={{ transformStyle: 'preserve-3d' }}
-                    animate={{ rotateY: revealedCards.includes(index) ? 180 : 0 }}
+                    animate={{ rotateY: revealedCards.includes(card.serialNumber || '') ? 180 : 0 }}
                     transition={{ duration: 0.8 }}
-                    onClick={() => revealCard(index)}
+                    onClick={() => revealCard(card.serialNumber || '')}
                   >
                     {/* Card Back */}
                     <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border-2 border-purple-500 flex items-center justify-center backface-hidden">
@@ -305,11 +327,13 @@ export default function PackOpening() {
                       <div className="text-sm font-bold text-white text-center mb-1">{card.name}</div>
                       <div className="text-xs text-gray-300 text-center mb-3">{card.title}</div>
                       
-                      <div className="text-xs text-gray-300 space-y-1 flex-1">
-                        <div>ATK: {card.stats.attack}</div>
-                        <div>DEF: {card.stats.defense}</div>
-                        <div>SPD: {card.stats.speed}</div>
-                      </div>
+                      {card.stats && (
+                        <div className="text-xs text-gray-300 space-y-1 flex-1">
+                          <div>ATK: {card.stats.attack}</div>
+                          <div>DEF: {card.stats.defense}</div>
+                          <div>SPD: {card.stats.speed}</div>
+                        </div>
+                      )}
                       
                       <div className={`text-xs font-bold uppercase text-center py-1 px-2 rounded ${card.rarity === 'legendary' ? 'bg-yellow-600' : card.rarity === 'epic' ? 'bg-purple-600' : card.rarity === 'rare' ? 'bg-blue-600' : card.rarity === 'uncommon' ? 'bg-green-600' : 'bg-gray-600'}`}>
                         {card.rarity}

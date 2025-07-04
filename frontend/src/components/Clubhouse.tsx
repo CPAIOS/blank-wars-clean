@@ -12,25 +12,11 @@ import {
   TrendingUp,
   Heart,
   MessageCircle,
-  Share2,
-  Pin,
-  Search,
-  Filter,
-  Send,
-  ThumbsUp,
-  Crown,
-  Star,
-  Zap,
-  Flame,
-  Target,
   Award,
-  Eye,
   Clock,
   Hash,
   Plus,
-  X,
-  Flag,
-  Settings
+  X
 } from 'lucide-react';
 import CommunityBoard from './CommunityBoard';
 import GraffitiWall from './GraffitiWall';

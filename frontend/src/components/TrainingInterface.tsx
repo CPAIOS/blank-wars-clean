@@ -3,9 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain, Heart, Users, Target, Clock, Star, Award,
-  Play, Pause, CheckCircle, AlertTriangle, TrendingUp,
+  Play, TrendingUp,
   TrendingDown, Activity, Zap, Shield, Book, Crown,
-  MessageCircle, Eye, Settings, RotateCcw, ArrowRight
+  Eye, RotateCcw, ArrowRight
 } from 'lucide-react';
 import { 
   TrainingSystemManager, 

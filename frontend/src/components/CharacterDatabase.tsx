@@ -400,7 +400,7 @@ function OverviewTab({ character }: { character: Character }) {
             <div>
               <span className="text-gray-400">Traits:</span>
               <div className="flex flex-wrap gap-2 mt-1">
-                {character.personality.traits.map((trait, index) => (
+                {character.personality.traits.map((trait) => (
                   <span key={trait} className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-sm">
                     {trait}
                   </span>
@@ -414,7 +414,7 @@ function OverviewTab({ character }: { character: Character }) {
             <div>
               <span className="text-gray-400">Motivations:</span>
               <div className="flex flex-wrap gap-2 mt-1">
-                {character.personality.motivations.map((motivation, index) => (
+                {character.personality.motivations.map((motivation) => (
                   <span key={motivation} className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-sm">
                     {motivation}
                   </span>
@@ -450,7 +450,7 @@ function OverviewTab({ character }: { character: Character }) {
       <div>
         <h3 className="text-xl font-bold text-white mb-3">Battle Quotes</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {character.customization.battleQuotes.map((quote, index) => (
+          {character.customization.battleQuotes.map((quote) => (
             <div key={quote} className="p-3 bg-gray-800/50 rounded-lg border border-gray-600">
               <p className="text-gray-300 italic">&quot;{quote}&quot;</p>
             </div>
@@ -542,7 +542,7 @@ function AbilitiesTab({ character }: { character: Character }) {
       <div>
         <h3 className="text-xl font-bold text-white mb-4">Progression Tree Branches</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {character.progressionTree.branches.map((branch, index) => (
+          {character.progressionTree.branches.map((branch) => (
             <div key={branch.name} className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
               <h4 className="text-lg font-semibold text-white mb-2">{branch.name}</h4>
               <p className="text-gray-300 text-sm mb-3">{branch.description}</p>
@@ -589,7 +589,7 @@ function ProgressionTab({ character }: { character: Character }) {
       <div>
         <h3 className="text-xl font-bold text-white mb-4">Unlocked Content</h3>
         <div className="flex flex-wrap gap-2">
-          {character.unlockedContent.map((content, index) => (
+          {character.unlockedContent.map((content) => (
             <span key={content} className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
               {content.replace('_', ' ')}
             </span>
@@ -601,7 +601,7 @@ function ProgressionTab({ character }: { character: Character }) {
         <h3 className="text-xl font-bold text-white mb-4">Achievements</h3>
         {character.achievements.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {character.achievements.map((achievement, index) => (
+            {character.achievements.map((achievement) => (
               <span key={achievement} className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm">
                 {achievement}
               </span>

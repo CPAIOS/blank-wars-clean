@@ -1,23 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sword, 
   Shield, 
   Gem, 
-  Star, 
   TrendingUp, 
-  Zap,
-  Filter,
   Search,
-  ArrowUpDown,
-  Eye,
   X,
   CheckCircle,
-  Lock,
-  Unlock,
-  Info
+  Lock
 } from 'lucide-react';
 import { 
   Equipment, 
@@ -27,8 +20,6 @@ import {
   rarityConfig,
   canEquip,
   calculateEquipmentStats,
-  getEquipmentBySlot,
-  getEquipmentByRarity,
   getEquipmentByArchetype
 } from '@/data/equipment';
 
