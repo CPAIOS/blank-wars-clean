@@ -1,6 +1,8 @@
 // Team Battle System - Revolutionary Character Management
 // Implements the psychological stat system and team dynamics
 
+import { getAllCharacters, type Character } from './characters';
+
 export interface TraditionalStats {
   strength: number; // Physical damage output (0-100)
   vitality: number; // HP and damage resistance (0-100)
@@ -40,6 +42,11 @@ export interface TeamCharacter {
   
   // Psychological Stats (Revolutionary)
   psychStats: PsychologicalStats;
+
+  // In-battle temporary stats (from coaching boosts)
+  // These are applied during battle and reset when a new battle starts
+  // Coaching sessions add to these stats for the duration of the battle
+  temporaryStats: TraditionalStats;
   
   // Character Personality
   personalityTraits: string[];
@@ -88,6 +95,8 @@ export interface Team {
   characters: TeamCharacter[];
   
   // Team Dynamics
+  coachingPoints: number; // Points to spend on coaching actions
+  consecutiveLosses: number; // Track losses for coaching points degradation (0-3)
   teamChemistry: number; // 0-100, affects all battles
   teamCulture: 'military' | 'family' | 'divas' | 'chaos' | 'brotherhood';
   
@@ -188,6 +197,16 @@ export function getMoraleModifier(morale: number): number {
   return 0.7; // -30% stats
 }
 
+// Team Chemistry Modifier - Revolutionary team synergy system!
+export function getTeamChemistryModifier(chemistry: number): number {
+  if (chemistry >= 90) return 1.25; // +25% damage - Perfect synergy
+  if (chemistry >= 75) return 1.15; // +15% damage - Great teamwork
+  if (chemistry >= 60) return 1.05; // +5% damage - Good coordination
+  if (chemistry >= 40) return 0.95; // -5% damage - Some friction
+  if (chemistry >= 25) return 0.85; // -15% damage - Poor teamwork
+  return 0.75; // -25% damage - Team dysfunction
+}
+
 // Team Chemistry Calculation
 export function calculateTeamChemistry(characters: TeamCharacter[]): number {
   if (characters.length === 0) return 0;
@@ -262,6 +281,39 @@ export function checkObedience(
   };
 }
 
+// Coaching Points Progression System
+export function updateCoachingPointsAfterBattle(team: Team, isWin: boolean): Team {
+  if (isWin) {
+    // Win: Reset to 3 points and clear consecutive losses
+    return {
+      ...team,
+      coachingPoints: 3,
+      consecutiveLosses: 0,
+      wins: team.wins + 1,
+      battlesPlayed: team.battlesPlayed + 1
+    };
+  } else {
+    // Loss: Increment consecutive losses and reduce coaching points
+    const newConsecutiveLosses = team.consecutiveLosses + 1;
+    let newCoachingPoints: number;
+    
+    switch (newConsecutiveLosses) {
+      case 1: newCoachingPoints = 2; break; // 3→2
+      case 2: newCoachingPoints = 1; break; // 2→1  
+      case 3: newCoachingPoints = 0; break; // 1→0
+      default: newCoachingPoints = 0; break; // Stay at 0
+    }
+    
+    return {
+      ...team,
+      coachingPoints: newCoachingPoints,
+      consecutiveLosses: newConsecutiveLosses,
+      losses: team.losses + 1,
+      battlesPlayed: team.battlesPlayed + 1
+    };
+  }
+}
+
 // Create demo teams for testing
 export function createDemoPlayerTeam(): Team {
   const sherlock: TeamCharacter = {
@@ -292,6 +344,7 @@ export function createDemoPlayerTeam(): Team {
       mentalHealth: 75, // Generally stable
       communication: 60 // Clear but condescending
     },
+    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
     personalityTraits: ['Brilliant', 'Arrogant', 'Observant', 'Impatient'],
     speakingStyle: 'formal',
     decisionMaking: 'logical',
@@ -343,6 +396,7 @@ export function createDemoPlayerTeam(): Team {
       mentalHealth: 60, // Centuries of isolation
       communication: 80 // Commanding presence
     },
+    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
     personalityTraits: ['Ancient', 'Commanding', 'Ruthless', 'Aristocratic'],
     speakingStyle: 'archaic',
     decisionMaking: 'calculated',
@@ -382,6 +436,7 @@ export function createDemoPlayerTeam(): Team {
       mentalHealth: 85, // Strong faith
       communication: 95 // Inspiring speaker
     },
+    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
     personalityTraits: ['Devout', 'Inspiring', 'Brave', 'Righteous'],
     speakingStyle: 'formal',
     decisionMaking: 'emotional',
@@ -398,6 +453,8 @@ export function createDemoPlayerTeam(): Team {
     name: 'Legendary Squad',
     coachName: 'Demo Coach',
     characters: [sherlock, dracula, joan],
+    coachingPoints: 3, // Starting coaching points (3 points to distribute among team)
+    consecutiveLosses: 0, // Track losses for coaching degradation
     teamChemistry: 45, // Will be calculated
     teamCulture: 'divas', // High ego characters
     averageLevel: 16.3,
@@ -416,60 +473,88 @@ export function createDemoPlayerTeam(): Team {
 }
 
 export function createDemoOpponentTeam(): Team {
-  // Simpler opponent team for demo
-  const viking: TeamCharacter = {
-    id: 'viking_001',
-    name: 'Erik the Red',
-    avatar: '🪓',
-    archetype: 'warrior',
-    rarity: 'epic',
-    level: 14,
-    experience: 2000,
-    experienceToNext: 700,
-    traditionalStats: {
-      strength: 90,
-      vitality: 85,
-      speed: 60,
-      dexterity: 70,
-      stamina: 95,
-      intelligence: 50,
-      charisma: 60,
-      spirit: 75
-    },
-    currentHp: 340,
-    maxHp: 340,
-    psychStats: {
-      training: 70,
-      teamPlayer: 80,
-      ego: 60,
-      mentalHealth: 80,
-      communication: 70
-    },
-    personalityTraits: ['Fierce', 'Loyal', 'Honor-bound', 'Aggressive'],
-    speakingStyle: 'gruff',
-    decisionMaking: 'emotional',
-    conflictResponse: 'aggressive',
-    statusEffects: [],
-    injuries: [],
-    restDaysNeeded: 0,
-    abilities: [],
-    specialPowers: []
-  };
-  
-  // Add two more characters...
-  return {
-    id: 'demo_opponent_001',
-    name: 'Nordic Raiders',
+  const allAvailableCharacters = getAllCharacters();
+  const opponentCharacters: TeamCharacter[] = [];
+
+  // Randomly select 3 unique characters
+  while (opponentCharacters.length < 3) {
+    const randomIndex = Math.floor(Math.random() * allAvailableCharacters.length);
+    const selectedCharacterTemplate = allAvailableCharacters[randomIndex];
+
+    // Convert the Character from characters.ts to TeamCharacter
+    const newOpponent: TeamCharacter = {
+      id: selectedCharacterTemplate.id,
+      name: selectedCharacterTemplate.name,
+      avatar: selectedCharacterTemplate.avatar,
+      archetype: selectedCharacterTemplate.archetype,
+      rarity: selectedCharacterTemplate.rarity,
+      level: selectedCharacterTemplate.level,
+      experience: selectedCharacterTemplate.experience.currentXP,
+      experienceToNext: selectedCharacterTemplate.experience.xpToNextLevel,
+      traditionalStats: {
+        strength: selectedCharacterTemplate.baseStats.strength,
+        vitality: selectedCharacterTemplate.baseStats.vitality,
+        speed: selectedCharacterTemplate.baseStats.agility, // Agility maps to speed
+        dexterity: selectedCharacterTemplate.baseStats.agility, // Dexterity maps to agility
+        stamina: selectedCharacterTemplate.baseStats.vitality, // Stamina maps to vitality
+        intelligence: selectedCharacterTemplate.baseStats.intelligence,
+        charisma: selectedCharacterTemplate.baseStats.charisma,
+        spirit: selectedCharacterTemplate.baseStats.wisdom, // Spirit maps to wisdom
+      },
+      currentHp: Math.floor((selectedCharacterTemplate.combatStats.health * selectedCharacterTemplate.level) / 10),
+      maxHp: Math.floor((selectedCharacterTemplate.combatStats.maxHealth * selectedCharacterTemplate.level) / 10),
+      psychStats: {
+        training: selectedCharacterTemplate.trainingLevel,
+        teamPlayer: 50, // Default for AI opponents
+        ego: 50, // Default for AI opponents
+        mentalHealth: 70, // Default for AI opponents
+        communication: 50, // Default for AI opponents
+      },
+      temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
+      personalityTraits: selectedCharacterTemplate.personality.traits,
+      speakingStyle: selectedCharacterTemplate.personality.speechStyle,
+      decisionMaking: 'calculated', // Default for AI opponents
+      conflictResponse: 'aggressive', // Default for AI opponents
+      statusEffects: [],
+      injuries: [],
+      restDaysNeeded: 0,
+      abilities: selectedCharacterTemplate.abilities.available.map(ability => ({
+        id: ability.id,
+        name: ability.name,
+        type: ability.type === 'active' ? 'attack' : ability.type === 'passive' ? 'support' : 'special', // Map to TeamCharacterAbilityType
+        power: 50, // Default power
+        cooldown: 1, // Default cooldown
+        currentCooldown: 0, // Default currentCooldown
+        description: ability.description,
+        icon: '✨', // Generic icon
+        mentalHealthRequired: 0, // Default mentalHealthRequired
+      })),
+      specialPowers: [], // Character interface doesn't have specialPowers in the template, using empty array
+    };
+
+    // Ensure uniqueness
+    if (!opponentCharacters.some(char => char.id === newOpponent.id)) {
+      opponentCharacters.push(newOpponent);
+    }
+  }
+
+  const team: Team = {
+    id: `opponent_team_${Date.now()}`,
+    name: 'Rival Squad',
     coachName: 'AI Coach',
-    characters: [viking], // Simplified for now
-    teamChemistry: 75,
+    characters: opponentCharacters,
+    coachingPoints: 3, // AI team also has coaching points (3 points to distribute among team)
+    consecutiveLosses: 0, // Track losses for coaching degradation
+    teamChemistry: calculateTeamChemistry(opponentCharacters),
     teamCulture: 'military',
-    averageLevel: 14,
-    totalPower: 750,
-    psychologyScore: 80,
-    wins: 8,
-    losses: 7,
-    battlesPlayed: 15,
-    lastBattleDate: new Date()
+    averageLevel: opponentCharacters.reduce((sum, char) => sum + char.level, 0) / opponentCharacters.length,
+    totalPower: opponentCharacters.reduce((sum, char) => sum + char.traditionalStats.strength + char.traditionalStats.vitality, 0), // Simplified power calculation
+    psychologyScore: opponentCharacters.reduce((sum, char) => sum + char.psychStats.mentalHealth, 0) / opponentCharacters.length,
+    wins: Math.floor(Math.random() * 10),
+    losses: Math.floor(Math.random() * 10),
+    battlesPlayed: Math.floor(Math.random() * 20),
+    lastBattleDate: new Date(),
   };
+
+  return team;
 }

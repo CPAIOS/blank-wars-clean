@@ -1,13 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { 
   Users, 
   Star, 
-  Crown, 
   Heart,
-  Filter,
   Search,
   ArrowLeft,
   ArrowRight,
@@ -15,15 +13,13 @@ import {
   X,
   Zap,
   Shield,
-  Sword,
-  TrendingUp,
-  Eye,
-  Play
+  TrendingUp
 } from 'lucide-react';
 import { 
   OwnedCharacter,
   characterRarityConfig
 } from '@/data/userAccount';
+import { formatCharacterName } from '@/utils/characterUtils';
 
 interface CharacterSelectorProps {
   characters: OwnedCharacter[];
@@ -223,7 +219,7 @@ export default function CharacterSelector({
           {/* Sort */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as 'level' | 'recent' | 'rarity' | 'favorite')}
             className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
           >
             <option value="level">Highest Level</option>
@@ -268,7 +264,7 @@ export default function CharacterSelector({
                     <div>
                       <div className="flex items-center gap-2">
                         <span className={`font-bold ${rarityConfig.textColor}`}>
-                          {character.nickname || character.characterName}
+                          {character.nickname || formatCharacterName(character.characterName)}
                         </span>
                         <span className="text-sm">{rarityConfig.icon}</span>
                         {character.isFavorite && <Heart className="w-4 h-4 text-red-400 fill-current" />}
@@ -426,7 +422,7 @@ export default function CharacterSelector({
               >
                 <span className="text-lg">{getArchetypeIcon(character.archetype)}</span>
                 <span className="text-white font-semibold">
-                  {character.nickname || character.characterName}
+                  {character.nickname || formatCharacterName(character.characterName)}
                 </span>
                 <span className="text-yellow-400 text-sm">L{character.level}</span>
                 <button

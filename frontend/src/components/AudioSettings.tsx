@@ -31,18 +31,18 @@ export default function AudioSettingsComponent({
   const [testText] = useState("Welcome to the arena! This is a test of the battle announcer voice.");
   const [isTestPlaying, setIsTestPlaying] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      initializeAudio();
-    }
-  }, [isOpen, initializeAudio]);
-
   const initializeAudio = useCallback(async () => {
     await audioService.waitForInitialization();
     const voices = audioService.getAvailableVoices();
     setAvailableVoices(voices);
     setSelectedVoice(settings.preferredVoice);
   }, [settings.preferredVoice]);
+
+  useEffect(() => {
+    if (isOpen) {
+      initializeAudio();
+    }
+  }, [isOpen, initializeAudio]);
 
   const updateSetting = <K extends keyof AudioSettings>(
     key: K,

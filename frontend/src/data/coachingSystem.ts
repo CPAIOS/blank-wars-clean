@@ -53,12 +53,44 @@ export interface TeamBuildingActivity {
 export class CoachingEngine {
   
   // One-on-one coaching session
+  // COACHING POINTS SYSTEM:
+  // - Each coaching session costs 1 point
+  // - Teams start with 3 points (distribute among 3 characters)
+  // - Win: Reset to 3 points | Loss progression: 3→2→1→0, reset to 3 on any win
+  // - Strategic decisions: spread coaching or focus on key characters
   static conductIndividualCoaching(
     character: TeamCharacter,
-    coachName: string,
+    team: Team,
     focus: 'performance' | 'mental_health' | 'team_relations' | 'strategy',
     coachingSkill: number = 75 // Coach's skill level
   ): CoachingSession {
+    const coachingCost = 1; // Each coaching session costs 1 point
+
+    if (team.coachingPoints < coachingCost) {
+      return {
+        id: `coaching_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        characterId: character.id,
+        coachName: team.coachName,
+        sessionType: 'individual',
+        startTime: new Date(),
+        duration: 0,
+        topics: [focus],
+        characterMood: 'neutral',
+        outcome: {
+          mentalHealthChange: 0,
+          trainingChange: 0,
+          teamPlayerChange: 0,
+          egoChange: 0,
+          communicationChange: 0,
+          characterResponse: "I'm ready for my coaching, coach.",
+          coachNotes: "Not enough coaching points to conduct the session.",
+          relationshipChange: 0,
+        },
+      };
+    }
+
+    // Deduct points
+    team.coachingPoints -= coachingCost;
     
     const characterMood = this.determineCharacterMood(character);
     const sessionEffectiveness = this.calculateSessionEffectiveness(character, characterMood, coachingSkill);
@@ -85,7 +117,7 @@ export class CoachingEngine {
     return {
       id: `coaching_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       characterId: character.id,
-      coachName,
+      coachName: team.coachName,
       sessionType: 'individual',
       startTime: new Date(),
       duration: 30,
@@ -246,7 +278,15 @@ export class CoachingEngine {
     mood: CoachingSession['characterMood']
   ): CoachingOutcome {
     
-    const trainingGain = Math.floor((effectiveness / 100) * 10);
+    // Apply temporary stat boosts directly to the character's temporaryStats
+    const strengthGain = Math.floor((effectiveness / 100) * 5); // Example: up to 5 strength
+    const dexterityGain = Math.floor((effectiveness / 100) * 5); // Example: up to 5 dexterity
+    const speedGain = Math.floor((effectiveness / 100) * 3); // Example: up to 3 speed
+
+    character.temporaryStats.strength += strengthGain;
+    character.temporaryStats.dexterity += dexterityGain;
+    character.temporaryStats.speed += speedGain;
+    
     const mentalHealthChange = mood === 'desperate' ? 5 : 0;
     
     const responses = {
@@ -258,12 +298,12 @@ export class CoachingEngine {
     
     return {
       mentalHealthChange,
-      trainingChange: trainingGain,
+      trainingChange: 0, // No direct training change from this coaching type
       teamPlayerChange: 0,
       egoChange: character.psychStats.ego > 80 ? -2 : 0,
       communicationChange: 1,
       characterResponse: responses[mood],
-      coachNotes: `Worked on combat techniques and strategy execution. ${character.name} showed ${mood} attitude.`,
+      coachNotes: `Worked on combat techniques and strategy execution. ${character.name} showed ${mood} attitude. Applied temporary boosts: Str +${strengthGain}, Dex +${dexterityGain}, Spd +${speedGain}.`,
       relationshipChange: effectiveness > 70 ? 2 : -1
     };
   }
@@ -275,7 +315,12 @@ export class CoachingEngine {
   ): CoachingOutcome {
     
     const mentalHealthGain = Math.floor((effectiveness / 100) * 15);
-    
+    const vitalityGain = Math.floor((effectiveness / 100) * 4); // Example: temporary HP boost
+    const spiritGain = Math.floor((effectiveness / 100) * 3); // Example: temporary spirit boost
+
+    character.temporaryStats.vitality += vitalityGain;
+    character.temporaryStats.spirit += spiritGain;
+
     const responses = {
       'receptive': `Thank you for listening, coach. It helps to talk about these things.`,
       'resistant': `I don't need therapy! But... maybe it's good to vent sometimes.`,
@@ -290,7 +335,7 @@ export class CoachingEngine {
       egoChange: mood === 'resistant' ? -5 : 0,
       communicationChange: 3,
       characterResponse: responses[mood],
-      coachNotes: `Focused on mental wellness and emotional support. Progress made on psychological barriers.`,
+      coachNotes: `Focused on mental wellness and emotional support. Progress made on psychological barriers. Applied temporary boosts: Vit +${vitalityGain}, Spirit +${spiritGain}.`,
       relationshipChange: effectiveness > 60 ? 5 : 1
     };
   }
@@ -303,7 +348,10 @@ export class CoachingEngine {
     
     const teamPlayerGain = Math.floor((effectiveness / 100) * 8);
     const communicationGain = Math.floor((effectiveness / 100) * 6);
-    
+    const charismaGain = Math.floor((effectiveness / 100) * 5); // Example: temporary charisma boost
+
+    character.temporaryStats.charisma += charismaGain;
+
     const responses = {
       'receptive': `You're right, working together makes us all stronger.`,
       'resistant': `Fine, I'll try to be more... collaborative. But I work best alone.`,
@@ -318,7 +366,7 @@ export class CoachingEngine {
       egoChange: -3,
       communicationChange: communicationGain,
       characterResponse: responses[mood],
-      coachNotes: `Discussed team dynamics and cooperation strategies. Emphasized shared goals.`,
+      coachNotes: `Discussed team dynamics and cooperation strategies. Emphasized shared goals. Applied temporary boosts: Charisma +${charismaGain}.`,
       relationshipChange: 3
     };
   }
@@ -329,16 +377,20 @@ export class CoachingEngine {
     mood: CoachingSession['characterMood']
   ): CoachingOutcome {
     
-    const trainingGain = Math.floor((effectiveness / 100) * 12);
-    
+    const intelligenceGain = Math.floor((effectiveness / 100) * 6); // Example: temporary intelligence boost
+    const staminaGain = Math.floor((effectiveness / 100) * 4); // Example: temporary stamina boost
+
+    character.temporaryStats.intelligence += intelligenceGain;
+    character.temporaryStats.stamina += staminaGain;
+
     return {
       mentalHealthChange: 1,
-      trainingChange: trainingGain,
+      trainingChange: 0,
       teamPlayerChange: 1,
       egoChange: 0,
       communicationChange: 2,
       characterResponse: `I understand the tactical considerations better now.`,
-      coachNotes: `Reviewed battle strategies and decision-making frameworks.`,
+      coachNotes: `Reviewed battle strategies and decision-making frameworks. Applied temporary boosts: Int +${intelligenceGain}, Stamina +${staminaGain}.`,
       relationshipChange: 2
     };
   }
@@ -349,6 +401,17 @@ export class CoachingEngine {
     mood: CoachingSession['characterMood']
   ): CoachingOutcome {
     
+    const allStatGain = Math.floor((effectiveness / 100) * 2); // Small boost to all stats
+
+    character.temporaryStats.strength += allStatGain;
+    character.temporaryStats.vitality += allStatGain;
+    character.temporaryStats.speed += allStatGain;
+    character.temporaryStats.dexterity += allStatGain;
+    character.temporaryStats.stamina += allStatGain;
+    character.temporaryStats.intelligence += allStatGain;
+    character.temporaryStats.charisma += allStatGain;
+    character.temporaryStats.spirit += allStatGain;
+
     return {
       mentalHealthChange: 3,
       trainingChange: 2,
@@ -356,7 +419,7 @@ export class CoachingEngine {
       egoChange: -1,
       communicationChange: 2,
       characterResponse: `Thanks for the chat, coach. It's good to have someone in your corner.`,
-      coachNotes: `General check-in and motivation session.`,
+      coachNotes: `General check-in and motivation session. Applied small temporary boosts to all stats.`,
       relationshipChange: 1
     };
   }

@@ -9,22 +9,17 @@ import {
   Share2,
   Pin,
   Search,
-  Filter,
   Send,
   ThumbsUp,
   Flag,
   Plus,
   X,
-  Hash,
-  Clock,
-  Star,
   Crown
 } from 'lucide-react';
 import { 
   CommunityMessage,
   MessageType,
   formatTimeAgo,
-  getMessagesByType,
   searchMessages
 } from '@/data/clubhouse';
 

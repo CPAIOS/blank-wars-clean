@@ -17,7 +17,7 @@ class APIClient {
   private onTokenExpired: (() => void) | null = null;
 
   constructor(baseURL?: string) {
-    this.baseURL = baseURL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    this.baseURL = baseURL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
   }
 
   // Set auth token getter (will be called by AuthContext)
@@ -150,4 +150,13 @@ export const battleAPI = {
   
   getUserBattles: () =>
     apiClient.get('/api/user/battles', true),
+};
+
+// Payment and Card API methods
+export const paymentAPI = {
+  purchasePack: (packType: string, quantity: number) =>
+    apiClient.post('/api/packs/purchase', { packType, quantity }, true),
+
+  redeemCard: (serialNumber: string) =>
+    apiClient.post('/api/cards/redeem', { serialNumber }, true),
 };

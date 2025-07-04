@@ -8,8 +8,28 @@ import AudioSettings from './AudioSettings';
 import TradingCard from './TradingCard';
 import CardCollection from './CardCollection';
 import CardPackOpening from './CardPackOpening';
+import BattleHUD from './BattleHUD';
+import StrategyPanel from './StrategyPanel';
+import CharacterSpecificStrategyPanel from './CharacterSpecificStrategyPanel';
+import CoachingPanel from './CoachingPanel';
+import TeamDisplay from './TeamDisplay';
+import TeamOverview from './TeamOverview';
+import MatchmakingPanel from './MatchmakingPanel';
+import ChaosPanel from './ChaosPanel';
+import TeamChatPanel from './TeamChatPanel';
 import { combatRewards, createBattleStats, BattleStats } from '@/data/combatRewards';
+import { generateAIResponse } from '@/utils/aiChatResponses';
 import { createBattlePerformance, CombatSkillEngine, CombatSkillReward } from '@/data/combatSkillProgression';
+import { type MatchmakingResult, getTeamWeightClass, calculateWeightClassXP } from '@/data/weightClassSystem';
+import { 
+  initializePsychologyState, 
+  updatePsychologyState, 
+  calculateDeviationRisk, 
+  rollForDeviation,
+  type PsychologyState,
+  type DeviationEvent
+} from '@/data/characterPsychology';
+import { makeJudgeDecision, generateDeviationPrompt, judgePersonalities, type JudgeDecision } from '@/data/aiJudgeSystem';
 // import { CharacterSkills } from '@/data/characterProgression'; // Not available
 interface CharacterSkills {
   characterId: string;
@@ -22,29 +42,12 @@ interface CharacterSkills {
   lastUpdated?: Date;
 }
 
-// Placeholder function for gameplan adherence checking
-function checkGameplanAdherence(
-  character: any, 
-  morale: number, 
-  isInjured: boolean, 
-  lastRoundWasRogue: boolean
-): { willFollowGameplan: boolean; reason: string } {
-  const baseAdherence = 0.8;
-  const moraleBonus = morale * 0.001;
-  const injuryPenalty = isInjured ? -0.2 : 0;
-  const roguePenalty = lastRoundWasRogue ? -0.3 : 0;
-  
-  const adherenceChance = baseAdherence + moraleBonus + injuryPenalty + roguePenalty;
-  const willFollowGameplan = Math.random() < adherenceChance;
-  
-  return {
-    willFollowGameplan,
-    reason: willFollowGameplan ? 'Character follows the gameplan' : 'Character deviates from strategy'
-  };
-}
+// Removed local function - now using imported checkTeamGameplanAdherence
 import { useBattleAnnouncer } from '@/hooks/useBattleAnnouncer';
 import { useBattleWebSocket } from '@/hooks/useBattleWebSocket';
+import { io } from 'socket.io-client';
 import { useTimeoutManager } from '@/hooks/useTimeoutManager';
+import { formatCharacterName } from '@/utils/characterUtils';
 import { Shield, Sword, Zap, Heart, MessageCircle, Sparkles, Timer, Volume2, AlertTriangle, Settings, VolumeX, CreditCard, Gift, Users, X, Gavel } from 'lucide-react';
 
 // Import new team battle system
@@ -56,9 +59,11 @@ import {
   RoundResult,
   createDemoPlayerTeam,
   createDemoOpponentTeam,
-  checkGameplanAdherence,
+  checkGameplanAdherence as checkTeamGameplanAdherence,
   getMentalHealthLevel,
-  getMoraleModifier
+  getMoraleModifier,
+  getTeamChemistryModifier,
+  updateCoachingPointsAfterBattle
 } from '@/data/teamBattleSystem';
 import { AIJudge, RogueAction, CharacterResponseGenerator } from '@/data/aiJudge';
 import { CoachingEngine, CoachingSession } from '@/data/coachingSystem';
@@ -160,23 +165,50 @@ export default function ImprovedBattleArena() {
   const [playerMorale, setPlayerMorale] = useState(75);
   const [opponentMorale, setOpponentMorale] = useState(75);
   
+  // Match and Round tracking for proper battle structure
+  const [currentMatch, setCurrentMatch] = useState(1);
+  const [playerMatchWins, setPlayerMatchWins] = useState(0);
+  const [opponentMatchWins, setOpponentMatchWins] = useState(0);
+  const [playerRoundWins, setPlayerRoundWins] = useState(0); // rounds won in current match
+  const [opponentRoundWins, setOpponentRoundWins] = useState(0); // rounds won in current match
+  
   // Refs to avoid stale closures in async operations
   const battleStateRef = useRef<BattleState | null>(null);
   const currentRoundRef = useRef(1);
+  const currentMatchRef = useRef(1);
   const playerMoraleRef = useRef(75);
   const opponentMoraleRef = useRef(75);
+  const playerMatchWinsRef = useRef(0);
+  const opponentMatchWinsRef = useRef(0);
+  const playerRoundWinsRef = useRef(0);
+  const opponentRoundWinsRef = useRef(0);
   
   // Sync refs with state
   useEffect(() => {
     battleStateRef.current = battleState;
     currentRoundRef.current = currentRound;
+    currentMatchRef.current = currentMatch;
     playerMoraleRef.current = playerMorale;
     opponentMoraleRef.current = opponentMorale;
-  }, [battleState, currentRound, playerMorale, opponentMorale]);
+    playerMatchWinsRef.current = playerMatchWins;
+    opponentMatchWinsRef.current = opponentMatchWins;
+    playerRoundWinsRef.current = playerRoundWins;
+    opponentRoundWinsRef.current = opponentRoundWins;
+  }, [battleState, currentRound, currentMatch, playerMorale, opponentMorale, playerMatchWins, opponentMatchWins, playerRoundWins, opponentRoundWins]);
   
   // Legacy battle state (for backward compatibility)
-  const [phase, setPhase] = useState<BattlePhase>({ name: 'pre-battle' });
-  const [currentAnnouncement, setCurrentAnnouncement] = useState('Welcome to the Arena! Assemble your team and begin the epic battle!');
+  const [phase, setPhase] = useState<BattlePhase>({ name: 'matchmaking' });
+  const [currentAnnouncement, setCurrentAnnouncement] = useState('Welcome to the Arena! Choose your opponent to begin battle!');
+  
+  // Matchmaking state
+  const [selectedOpponent, setSelectedOpponent] = useState<MatchmakingResult | null>(null);
+  const [showMatchmaking, setShowMatchmaking] = useState(true);
+  
+  // AI Chaos System state
+  const [characterPsychology, setCharacterPsychology] = useState<Map<string, PsychologyState>>(new Map());
+  const [activeDeviations, setActiveDeviations] = useState<DeviationEvent[]>([]);
+  const [judgeDecisions, setJudgeDecisions] = useState<JudgeDecision[]>([]);
+  const [currentJudge, setCurrentJudge] = useState(judgePersonalities[0]); // Judge Executioner as default
   const [battleCries, setBattleCries] = useState({ player1: '', player2: '' });
   const [timer, setTimer] = useState<number | null>(null);
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -192,26 +224,7 @@ export default function ImprovedBattleArena() {
   const [judgeRuling, setJudgeRuling] = useState<any>(null);
 
   // Battle Announcer Integration with error handling
-  let battleAnnouncer;
-  try {
-    battleAnnouncer = useBattleAnnouncer();
-  } catch (error) {
-    console.error('BattleAnnouncer initialization failed:', error);
-    battleAnnouncer = {
-      isAnnouncerSpeaking: false,
-      isEnabled: false,
-      toggleEnabled: () => {},
-      announceBattleStart: () => {},
-      announceRoundStart: () => {},
-      announceAction: () => {},
-      announceVictory: () => {},
-      announceDefeat: () => {},
-      announcePhaseTransition: () => {},
-      announceStrategySelection: () => {},
-      announceBattleCry: () => {},
-      clearQueue: () => {}
-    };
-  }
+  const battleAnnouncer = useBattleAnnouncer();
   
   const {
     isAnnouncerSpeaking,
@@ -226,7 +239,40 @@ export default function ImprovedBattleArena() {
     announceStrategySelection,
     announceBattleCry,
     clearQueue
-  } = battleAnnouncer;
+  } = battleAnnouncer || {
+    isAnnouncerSpeaking: false,
+    isEnabled: true, // Enable by default even in fallback
+    toggleEnabled: (enabled?: boolean) => {
+      console.log('Announcer toggle fallback:', enabled);
+    },
+    announceBattleStart: (p1: string, p2: string) => {
+      console.log(`🎤 Battle Start: ${p1} vs ${p2}!`);
+    },
+    announceRoundStart: (round: number) => {
+      console.log(`🎤 Round ${round} begins!`);
+    },
+    announceAction: (text: string) => {
+      console.log(`🎤 ${text}`);
+    },
+    announceVictory: (winner: string) => {
+      console.log(`🎤 Victory to ${winner}!`);
+    },
+    announceDefeat: (loser: string) => {
+      console.log(`🎤 ${loser} has fallen!`);
+    },
+    announcePhaseTransition: (phase: string) => {
+      console.log(`🎤 Phase: ${phase}`);
+    },
+    announceStrategySelection: () => {
+      console.log('🎤 Choose your strategies!');
+    },
+    announceBattleCry: () => {
+      console.log('🎤 Warriors let out their battle cries!');
+    },
+    clearQueue: () => {
+      console.log('🎤 Clearing announcement queue');
+    }
+  };
 
   // WebSocket Battle Integration with ref for stability
   const socketRef = useRef<any>(null);
@@ -236,21 +282,24 @@ export default function ImprovedBattleArena() {
   const {
     isConnected,
     isAuthenticated,
-    currentUser,
-    error: wsError,
-    matchResult,
-    battleState: wsBattleState,
     findMatch,
     joinBattle,
     selectStrategy: wsSelectStrategy,
-    sendChatMessage: wsSendChatMessage,
-    clearError,
-    onBattleStart,
-    onRoundStart,
-    onRoundEnd,
-    onBattleEnd,
-    onChatMessage
+    sendChat: wsSendChatMessage,
+    disconnect
   } = battleWebSocket;
+  
+  // Fallback values for missing WebSocket properties
+  const currentUser = null;
+  const wsError = null;
+  const matchResult = null;
+  const wsBattleState = null;
+  const clearError = () => {};
+  const onBattleStart = null;
+  const onRoundStart = null;
+  const onRoundEnd = null;
+  const onBattleEnd = null;
+  const onChatMessage = null;
   
   // Chat and AI coaching
   const [coachingMessages, setCoachingMessages] = useState<string[]>([]);
@@ -266,10 +315,20 @@ export default function ImprovedBattleArena() {
     strategy: string;
   } | null>(null);
   
+  // New character-specific strategy system
+  const [characterStrategies, setCharacterStrategies] = useState<Map<string, {
+    characterId: string;
+    attack: string | null;
+    defense: string | null;
+    special: string | null;
+    isComplete: boolean;
+  }>>(new Map());
+  
   // Character Chat
   const [chatMessages, setChatMessages] = useState<string[]>([]);
   const [customMessage, setCustomMessage] = useState('');
   const [isCharacterTyping, setIsCharacterTyping] = useState(false);
+  const [selectedChatCharacter, setSelectedChatCharacter] = useState<TeamCharacter>(() => playerTeam.characters[0]);
   const [showRewards, setShowRewards] = useState(false);
   const [battleRewards, setBattleRewards] = useState<any>(null);
   const [showSkillProgression, setShowSkillProgression] = useState(false);
@@ -286,59 +345,84 @@ export default function ImprovedBattleArena() {
   const coachingRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const [player1, setPlayer1] = useState<Character>({
-    name: 'Achilles',
-    maxHp: 100,
-    hp: 100,
-    atk: 85,
-    def: 70,
-    spd: 95,
-    level: 12,
-    xp: 2400,
-    xpToNext: 800,
-    trainingLevel: 85, // High training = better gameplan adherence
-    avatar: '⚔️',
-    battleStats: createBattleStats(),
-    statusEffects: [],
-    abilities: [
-      { name: 'Spear Thrust', type: 'attack', power: 25, cooldown: 1, currentCooldown: 0, description: 'A precise spear attack', icon: '🗡️' },
-      { name: 'Shield Wall', type: 'defense', power: 0, cooldown: 3, currentCooldown: 0, description: 'Raises defense for 2 turns', icon: '🛡️' },
-      { name: 'Rage of Achilles', type: 'special', power: 45, cooldown: 4, currentCooldown: 0, description: 'Devastating berserker attack', icon: '💥' }
-    ],
-    items: [
-      { name: 'Health Potion', type: 'healing', effect: 'Restore 30 HP', icon: '🧪', description: 'Restores health instantly', uses: 2 }
-    ],
-    specialPowers: [
-      { name: 'Divine Protection', type: 'resistance', description: 'Thetis shields her son', effect: '25% magic resistance', icon: '🌊', cooldown: 3, currentCooldown: 0 },
-      { name: 'Heroic Inspiration', type: 'amplifier', description: 'Legendary presence boosts allies', effect: '+20% damage when health below 50%', icon: '✨', cooldown: 2, currentCooldown: 0 }
-    ]
-  });
+  // Convert TeamCharacter to legacy Character interface for UI compatibility
+  const convertTeamCharacterToCharacter = (teamChar: TeamCharacter): Character => {
+    // Character-specific abilities based on archetype
+    const getCharacterAbilities = (name: string, archetype: string) => {
+      switch (name) {
+        case 'Sherlock Holmes':
+          return [
+            { name: 'Deduction Strike', type: 'attack', power: 25, cooldown: 1, currentCooldown: 0, description: 'Analyzes weak points', icon: '🔍' },
+            { name: 'Defensive Analysis', type: 'defense', power: 0, cooldown: 2, currentCooldown: 0, description: 'Predicts enemy moves', icon: '🧠' },
+            { name: 'Elementary!', type: 'special', power: 40, cooldown: 3, currentCooldown: 0, description: 'Brilliant deduction', icon: '💡' }
+          ];
+        case 'Dracula':
+          return [
+            { name: 'Blood Drain', type: 'attack', power: 30, cooldown: 1, currentCooldown: 0, description: 'Vampiric attack', icon: '🩸' },
+            { name: 'Mist Form', type: 'defense', power: 0, cooldown: 3, currentCooldown: 0, description: 'Become intangible', icon: '🌫️' },
+            { name: 'Bat Swarm', type: 'special', power: 35, cooldown: 4, currentCooldown: 0, description: 'Summon bats', icon: '🦇' }
+          ];
+        case 'Joan of Arc':
+          return [
+            { name: 'Holy Strike', type: 'attack', power: 28, cooldown: 1, currentCooldown: 0, description: 'Divine blade', icon: '⚔️' },
+            { name: 'Divine Shield', type: 'defense', power: 0, cooldown: 2, currentCooldown: 0, description: 'Heavenly protection', icon: '🛡️' },
+            { name: 'Rally Cry', type: 'special', power: 20, cooldown: 3, currentCooldown: 0, description: 'Inspire allies', icon: '🏳️' }
+          ];
+        default:
+          return [
+            { name: 'Strike', type: 'attack', power: 25, cooldown: 1, currentCooldown: 0, description: 'Basic attack', icon: '⚔️' },
+            { name: 'Defend', type: 'defense', power: 0, cooldown: 2, currentCooldown: 0, description: 'Defensive stance', icon: '🛡️' },
+            { name: 'Special Move', type: 'special', power: 40, cooldown: 3, currentCooldown: 0, description: 'Character special', icon: '💫' }
+          ];
+      }
+    };
 
-  const [player2, setPlayer2] = useState<Character>({
-    name: 'Dragon',
-    maxHp: 120,
-    hp: 120,
-    atk: 90,
-    def: 60,
-    spd: 70,
-    level: 10,
-    xp: 1800,
-    xpToNext: 900,
-    trainingLevel: 45, // Lower training = more likely to deviate from gameplan
-    avatar: '🐉',
-    battleStats: createBattleStats(),
-    statusEffects: [],
-    abilities: [
-      { name: 'Fire Breath', type: 'attack', power: 30, cooldown: 2, currentCooldown: 0, description: 'Scorching flames', icon: '🔥' },
-      { name: 'Scale Armor', type: 'defense', power: 0, cooldown: 3, currentCooldown: 0, description: 'Hardens scales', icon: '🛡️' },
-      { name: 'Inferno', type: 'special', power: 50, cooldown: 5, currentCooldown: 0, description: 'Area of destruction', icon: '💥' }
-    ],
-    items: [],
-    specialPowers: [
-      { name: 'Dragon Hoard', type: 'amplifier', description: 'Ancient treasures boost power', effect: '+15% damage per treasure collected', icon: '💎', cooldown: 4, currentCooldown: 0 },
-      { name: 'Fire Immunity', type: 'resistance', description: 'Immune to fire-based attacks', effect: '100% fire resistance', icon: '🔥', cooldown: 0, currentCooldown: 0 }
-    ]
-  });
+    return {
+      name: formatCharacterName(teamChar.name),
+      maxHp: teamChar.maxHp,
+      hp: teamChar.currentHp,
+      atk: teamChar.traditionalStats.strength,
+      def: teamChar.traditionalStats.vitality,
+      spd: teamChar.traditionalStats.speed,
+      level: teamChar.level,
+      xp: teamChar.experience,
+      xpToNext: teamChar.experienceToNext,
+      trainingLevel: teamChar.psychStats.training,
+      avatar: teamChar.avatar,
+      battleStats: createBattleStats(),
+      statusEffects: teamChar.statusEffects || [],
+      abilities: getCharacterAbilities(teamChar.name, teamChar.archetype),
+      items: [],
+      specialPowers: [
+        { name: 'Character Power', type: 'amplifier', description: 'Unique ability', effect: '+20% damage', icon: '✨', cooldown: 3, currentCooldown: 0 }
+      ]
+    };
+  };
+
+  // Get current active fighter from team (cycles through team members)
+  const getCurrentPlayerFighter = () => {
+    const fighterIndex = (currentRound - 1) % playerTeam.characters.length;
+    return playerTeam.characters[fighterIndex];
+  };
+
+  const getCurrentOpponentFighter = () => {
+    const fighterIndex = (currentRound - 1) % opponentTeam.characters.length;
+    return opponentTeam.characters[fighterIndex];
+  };
+
+  // Dynamic player1 and player2 based on current round
+  const [player1, setPlayer1] = useState<Character>(() => 
+    convertTeamCharacterToCharacter(getCurrentPlayerFighter())
+  );
+  const [player2, setPlayer2] = useState<Character>(() => 
+    convertTeamCharacterToCharacter(getCurrentOpponentFighter())
+  );
+
+  // Update fighters when round changes
+  useEffect(() => {
+    setPlayer1(convertTeamCharacterToCharacter(getCurrentPlayerFighter()));
+    setPlayer2(convertTeamCharacterToCharacter(getCurrentOpponentFighter()));
+  }, [currentRound]);
 
   // Clear announcement ref when content changes
   useEffect(() => {
@@ -356,7 +440,6 @@ export default function ImprovedBattleArena() {
 
   // Timer countdown with stable reference
   const handleTimerExpiredRef = useRef<() => void>();
-  handleTimerExpiredRef.current = handleTimerExpired;
   
   useEffect(() => {
     if (isTimerActive && timer !== null && timer > 0) {
@@ -375,7 +458,7 @@ export default function ImprovedBattleArena() {
     console.log('Battle starting:', data);
     setCurrentAnnouncement(`Battle begins! ${data.player1?.username} vs ${data.player2?.username}`);
     setPhase({ name: 'strategy-selection' });
-    battleAnnouncer.announceBattleStart(data.player1?.username || 'Player 1', data.player2?.username || 'Player 2');
+    announceBattleStart(data.player1?.username || 'Player 1', data.player2?.username || 'Player 2');
   }, []);
 
   const handleRoundStart = useCallback((data: any) => {
@@ -383,7 +466,7 @@ export default function ImprovedBattleArena() {
     setCurrentRound(data.round || 1);
     setCurrentAnnouncement(`Round ${data.round || 1} begins!`);
     setPhase({ name: 'round-combat' });
-    battleAnnouncer.announceRoundStart(data.round || 1);
+    announceRoundStart(data.round || 1);
   }, []);
 
   const handleRoundEnd = useCallback((data: any) => {
@@ -398,9 +481,9 @@ export default function ImprovedBattleArena() {
     setPhase({ name: 'battle-end' });
     
     if (result.winner === socketRef.current?.currentUser?.id) {
-      battleAnnouncer.announceVictory(result.winnerName || 'You');
+      announceVictory(result.winnerName || 'You');
     } else {
-      battleAnnouncer.announceDefeat(result.loserName || 'You');
+      announceDefeat(result.loserName || 'You');
     }
     
     // Show rewards if available
@@ -412,16 +495,18 @@ export default function ImprovedBattleArena() {
 
   const handleChatMessage = useCallback((message: any) => {
     console.log('Chat message received:', message);
-    setChatMessages(prev => [...prev, message.text || message.message || 'Message received']);
+    setChatMessages(prev => [...prev, `${formatCharacterName(message.character)}: ${message.message}`]);
+    setIsCharacterTyping(false);
   }, []);
 
   // WebSocket event setup with proper cleanup
   useEffect(() => {
-    const unsubscribeBattleStart = onBattleStart(handleBattleStart);
-    const unsubscribeRoundStart = onRoundStart(handleRoundStart);
-    const unsubscribeRoundEnd = onRoundEnd(handleRoundEnd);
-    const unsubscribeBattleEnd = onBattleEnd(handleBattleEnd);
-    const unsubscribeChatMessage = onChatMessage(handleChatMessage);
+    // Only set up listeners if the functions exist
+    const unsubscribeBattleStart = onBattleStart ? onBattleStart(handleBattleStart) : null;
+    const unsubscribeRoundStart = onRoundStart ? onRoundStart(handleRoundStart) : null;
+    const unsubscribeRoundEnd = onRoundEnd ? onRoundEnd(handleRoundEnd) : null;
+    const unsubscribeBattleEnd = onBattleEnd ? onBattleEnd(handleBattleEnd) : null;
+    const unsubscribeChatMessage = onChatMessage ? onChatMessage(handleChatMessage) : null;
 
     // Cleanup function
     return () => {
@@ -532,12 +617,65 @@ export default function ImprovedBattleArena() {
     }
   };
 
+  // Set the ref to the function
+  handleTimerExpiredRef.current = handleTimerExpired;
+
   const allStrategiesSelected = () => {
     return selectedStrategies.attack && selectedStrategies.defense && selectedStrategies.special;
   };
 
   // New Team Battle Functions
+  // Handler for selecting an opponent from matchmaking
+  const handleOpponentSelection = (opponent: MatchmakingResult) => {
+    setSelectedOpponent(opponent);
+    setShowMatchmaking(false);
+    setPhase({ name: 'pre-battle' });
+    setCurrentAnnouncement(`Opponent selected: Level ${opponent.opponent.teamLevel} team. Prepare for battle!`);
+    
+    // Adjust opponent team stats based on selected level
+    const adjustedOpponentTeam = {
+      ...opponentTeam,
+      characters: opponentTeam.characters.map(char => ({
+        ...char,
+        level: opponent.opponent.teamLevel,
+        // Scale stats based on level difference
+        traditionalStats: {
+          ...char.traditionalStats,
+          strength: Math.max(10, Math.min(100, char.traditionalStats.strength + (opponent.opponent.teamLevel - char.level) * 3)),
+          vitality: Math.max(10, Math.min(100, char.traditionalStats.vitality + (opponent.opponent.teamLevel - char.level) * 3)),
+          speed: Math.max(10, Math.min(100, char.traditionalStats.speed + (opponent.opponent.teamLevel - char.level) * 2)),
+          dexterity: Math.max(10, Math.min(100, char.traditionalStats.dexterity + (opponent.opponent.teamLevel - char.level) * 2)),
+        },
+        maxHp: Math.max(50, char.maxHp + (opponent.opponent.teamLevel - char.level) * 10),
+        currentHp: Math.max(50, char.maxHp + (opponent.opponent.teamLevel - char.level) * 10)
+      }))
+    };
+    
+    setOpponentTeam(adjustedOpponentTeam);
+  };
+
   const startTeamBattle = () => {
+    // Initialize character psychology for all fighters
+    const psychologyMap = new Map<string, PsychologyState>();
+    
+    // Initialize player team psychology
+    playerTeam.characters.forEach(char => {
+      psychologyMap.set(char.id, initializePsychologyState(char));
+    });
+    
+    // Initialize opponent team psychology
+    opponentTeam.characters.forEach(char => {
+      psychologyMap.set(char.id, initializePsychologyState(char));
+    });
+    
+    setCharacterPsychology(psychologyMap);
+    setActiveDeviations([]);
+    setJudgeDecisions([]);
+    
+    // Randomly select a judge for this battle
+    const randomJudge = judgePersonalities[Math.floor(Math.random() * judgePersonalities.length)];
+    setCurrentJudge(randomJudge);
+    
     const setup: BattleSetup = {
       playerTeam,
       opponentTeam,
@@ -562,7 +700,9 @@ export default function ImprovedBattleArena() {
     setBattleState(newBattleState);
     setPhase({ name: 'pre-battle' });
     announceBattleStart(playerTeam.name, opponentTeam.name);
-    setCurrentAnnouncement(`Team Battle: ${playerTeam.name} vs ${opponentTeam.name}! Prepare for epic 3v3 combat!`);
+    setCurrentAnnouncement(`🏆 3v3 TEAM BATTLE: ${playerTeam.name} vs ${opponentTeam.name}! 
+    Your lineup: ${playerTeam.characters.map(c => c.name).join(', ')}
+    Opponents: ${opponentTeam.characters.map(c => c.name).join(', ')}`);
 
     safeSetTimeout(() => {
       conductTeamHuddle();
@@ -577,7 +717,7 @@ export default function ImprovedBattleArena() {
     // Show team chemistry and psychology info
     const huddleMessages = [
       `Team ${playerTeam.name} - Coach ${playerTeam.coachName} is leading the huddle.`, 
-      `Current Team Chemistry: ${playerTeam.teamChemistry}% | Team Morale: ${playerMorale}%`,
+      `Current Team Chemistry: ${Math.round(playerTeam.teamChemistry * 10) / 10}% | Team Morale: ${playerMorale}%`,
       `Your starting lineup: ${playerTeam.characters.map(char => char.name).join(', ')}.`,
       `Review their strengths and weaknesses before battle.`
     ];
@@ -599,12 +739,16 @@ export default function ImprovedBattleArena() {
 
   const startStrategySelection = () => {
     setPhase({ name: 'strategy-selection' });
-    const announcement = `Strategy Planning Phase - Choose your team&apos;s approach for battle!`;
+    const announcement = `Strategy Planning Phase - Choose each character's approach for battle!`;
     setCurrentAnnouncement(announcement);
     announceStrategySelection();
+    
+    // Initialize character-specific strategies
+    initializeCharacterStrategies();
+    
     setCoachingMessages(prev => [
-      ...(currentRound === 1 ? [`Welcome, Coach! This is your pre-battle strategy session. Review your team and select initial strategies.`] : prev),
-      `Choose one approach from each category for Round ${currentRound}!`
+      ...(currentRound === 1 ? [`Welcome, Coach! This is your pre-battle strategy session. Set individual strategies for each team member.`] : prev),
+      `Choose attack, defense, and special strategies for each character!`
     ]);
     setSelectedStrategies({ attack: null, defense: null, special: null });
     setTimer(60); // Increased to 60 seconds for better UX
@@ -618,7 +762,14 @@ export default function ImprovedBattleArena() {
     const playerFighter = battleState.currentFighters.player;
     const opponentFighter = battleState.currentFighters.opponent;
     
-    const announcement = `Round ${currentRound}: ${playerFighter.name} vs ${opponentFighter.name}!`;
+    // Get next fighters for preview
+    const nextPlayerIndex = currentRound % playerTeam.characters.length;
+    const nextOpponentIndex = currentRound % opponentTeam.characters.length;
+    const nextPlayerFighter = playerTeam.characters[nextPlayerIndex];
+    const nextOpponentFighter = opponentTeam.characters[nextOpponentIndex];
+    
+    const announcement = `🥊 TEAM BATTLE Round ${currentRound}: ${playerFighter.name} vs ${opponentFighter.name}! 
+    Next up: ${nextPlayerFighter.name} vs ${nextOpponentFighter.name}`;
     setCurrentAnnouncement(announcement);
     announceRoundStart(currentRound);
 
@@ -685,7 +836,10 @@ export default function ImprovedBattleArena() {
       
     } else {
       // Character follows gameplan - normal combat
-      const damage = Math.floor(playerFighter.traditionalStats.strength * getMoraleModifier(playerMorale));
+      const baseDamage = playerFighter.traditionalStats.strength;
+      const moraleModifier = getMoraleModifier(playerMorale);
+      const chemistryModifier = getTeamChemistryModifier(playerTeam.teamChemistry);
+      const damage = Math.floor(baseDamage * moraleModifier * chemistryModifier);
       
       roundResult = {
         round: currentRound,
@@ -697,7 +851,7 @@ export default function ImprovedBattleArena() {
         moraleImpact: 5, // Small morale boost for following gameplan
         newAttackerHp: playerFighter.currentHp,
         newDefenderHp: opponentFighter.currentHp - damage,
-        narrativeDescription: `${playerFighter.name} follows the strategy perfectly and strikes ${opponentFighter.name}! ${adherenceCheck.reasoning}`
+        narrativeDescription: `${playerFighter.name} follows the strategy perfectly and strikes ${opponentFighter.name}! ${adherenceCheck.reasoning}${chemistryModifier > 1.1 ? ' ⚡ Team synergy amplifies the attack!' : chemistryModifier < 0.9 ? ' 💥 Team dysfunction weakens the blow!' : ''}`
       };
     }
 
@@ -728,7 +882,7 @@ export default function ImprovedBattleArena() {
         
         if (capturedRoundResult.newDefenderHp <= 0) {
           endBattle('player');
-        } else if (currentRoundValue >= 9) { // Max 9 rounds for demo
+        } else if (currentRoundValue >= 3) { // Max 3 rounds for 2-out-of-3 system
           endBattle('draw');
         } else {
           setCurrentRound(prev => prev + 1);
@@ -776,7 +930,7 @@ export default function ImprovedBattleArena() {
       const newChemistry = Math.max(0, Math.min(100, playerTeam.teamChemistry + (winner === 'player' ? 10 : -5)));
       setPlayerTeam(prev => ({ ...prev, teamChemistry: newChemistry }));
       
-      const chemistryUpdate = `Post-battle team chemistry: ${newChemistry}% ${newChemistry > playerTeam.teamChemistry ? '(+)' : '(-)'}`;
+      const chemistryUpdate = `Post-battle team chemistry: ${Math.round(newChemistry * 10) / 10}% ${newChemistry > playerTeam.teamChemistry ? '(+)' : '(-)'}`;
       setCurrentAnnouncement(chemistryUpdate);
     }, 3000);
   };
@@ -791,7 +945,7 @@ export default function ImprovedBattleArena() {
 
     const session = CoachingEngine.conductIndividualCoaching(
       selectedCharacterForCoaching,
-      playerTeam.coachName,
+      playerTeam,
       focus,
       75 // Coach skill level
     );
@@ -883,7 +1037,7 @@ export default function ImprovedBattleArena() {
     
     const announcement = 'The warriors prepare to exchange battle cries...';
     setCurrentAnnouncement(announcement);
-    battleAnnouncer.announceBattleCry();
+    announceBattleCry();
     
     // Set fallback battle cries immediately
     const currentPlayer1 = player1;
@@ -974,7 +1128,7 @@ export default function ImprovedBattleArena() {
       );
         
       const response = await Promise.race([
-        fetch('http://localhost:4000/api/chat', {
+        fetch('http://localhost:3006/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1027,6 +1181,57 @@ export default function ImprovedBattleArena() {
     }
   };
 
+  // Character-specific strategy handlers
+  const handleCharacterStrategyChange = (characterId: string, category: 'attack' | 'defense' | 'special', strategy: string) => {
+    setCharacterStrategies(prev => {
+      const newMap = new Map(prev);
+      const currentStrategy = newMap.get(characterId) || {
+        characterId,
+        attack: null,
+        defense: null,
+        special: null,
+        isComplete: false
+      };
+      
+      const updatedStrategy = {
+        ...currentStrategy,
+        [category]: strategy
+      };
+      
+      // Check if all categories are selected
+      updatedStrategy.isComplete = !!(updatedStrategy.attack && updatedStrategy.defense && updatedStrategy.special);
+      
+      newMap.set(characterId, updatedStrategy);
+      return newMap;
+    });
+  };
+
+  const initializeCharacterStrategies = () => {
+    const newMap = new Map<string, any>();
+    playerTeam.characters.forEach(character => {
+      newMap.set(character.id, {
+        characterId: character.id,
+        attack: null,
+        defense: null,
+        special: null,
+        isComplete: false
+      });
+    });
+    setCharacterStrategies(newMap);
+  };
+
+  const areAllCharacterStrategiesComplete = () => {
+    return Array.from(characterStrategies.values()).every(strategy => strategy.isComplete);
+  };
+
+  const handleAllCharacterStrategiesComplete = () => {
+    if (areAllCharacterStrategiesComplete()) {
+      setTimer(null);
+      setIsTimerActive(false);
+      handleTimerExpired();
+    }
+  };
+
   const checkForBerserk = () => {
     // Small chance of going berserk when refusing orders
     const berserkChance = player1.trainingLevel < 50 ? 10 : 2;
@@ -1039,6 +1244,12 @@ export default function ImprovedBattleArena() {
       player1.statusEffects.push('Berserk');
       announceMessage(`${player1.name} has entered a berserk rage!`, 'special-event');
     }
+  };
+
+  const handleSelectChatCharacter = (character: TeamCharacter) => {
+    setSelectedChatCharacter(character);
+    // Clear chat history when switching characters for fresh conversations
+    setChatMessages([`Now chatting with ${character.name} ${character.avatar}`]);
   };
 
   const handleCustomMessage = async () => {
@@ -1054,58 +1265,81 @@ export default function ImprovedBattleArena() {
       wsSendChatMessage(messageToSend);
     }
     
-    try {
-      // Call real AI backend
-      const battleContext = {
-        round: currentRound,
-        playerHealth: Math.round((player1.hp / player1.maxHp) * 100),
-        enemyHealth: Math.round((player2.hp / player2.maxHp) * 100),
-        strategy: selectedStrategies,
-        phase: phase.name
-      };
+    // Generate dynamic AI response based on character and context
+    const battleContext = {
+      round: currentRound,
+      playerHealth: Math.round((player1.hp / player1.maxHp) * 100),
+      enemyHealth: Math.round((player2.hp / player2.maxHp) * 100),
+      strategy: selectedStrategies,
+      phase: phase.name
+    };
 
-      const timeoutPromise = new Promise((_, reject) =>
-        safeSetTimeout(() => reject(new Error('API timeout')), 5000) // 5 second timeout
-      );
-
-      const response = await Promise.race([
-        fetch('http://localhost:4000/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            character: player1.name,
-            message: messageToSend,
-            battleContext
-          })
-        }),
-        timeoutPromise
-      ]);
-
-      if (!response.ok) {
-        throw new Error('Failed to get AI response');
+    // Simulate thinking delay for realism
+    await new Promise(resolve => safeSetTimeout(resolve, 1000 + Math.random() * 1500));
+    
+    // Use WebSocket chat instead of REST API
+    // Create direct socket connection for chat (bypassing broken hook)
+    const chatSocket = io('http://localhost:3006');
+    
+    chatSocket.emit('chat_message', {
+      message: messageToSend,
+      character: selectedChatCharacter.name.toLowerCase().replace(/\s+/g, '_'),
+      characterData: {
+        name: selectedChatCharacter.name,
+        personality: selectedChatCharacter.name === 'Sherlock Holmes' ? {
+          traits: ['Analytical', 'Dramatic', 'Passionate about justice', 'Violin player', 'Tobacco connoisseur', 'Witty', 'Sometimes arrogant'],
+          speechStyle: 'Precise and deductive, but capable of passion and drama',
+          motivations: ['Solving mysteries', 'Intellectual challenges', 'Justice', 'The thrill of deduction'],
+          fears: ['Boredom', 'Unsolved cases', 'Mental stagnation'],
+          interests: ['Violin music', 'Chemistry', 'Criminal psychology', 'Tobacco varieties', 'Opera'],
+          quirks: ['Plays violin when thinking', 'Has strong opinions about cigars', 'Can be quite theatrical']
+        } : selectedChatCharacter.name === 'Joan of Arc' ? {
+          traits: ['Devout', 'Brave', 'Inspiring', 'Determined', 'Protective of others', 'Strategic minded'],
+          speechStyle: 'Passionate and faithful, but also tactical and inspiring',
+          motivations: ['Protecting France', 'Following divine calling', 'Liberating the oppressed', 'Leading others'],
+          fears: ['Failing in her mission', 'Losing faith', 'Her people suffering'],
+          interests: ['Military strategy', 'Prayer and faith', 'Protecting the innocent', 'French independence'],
+          quirks: ['Feels the weight of divine responsibility', 'Cares deeply for her soldiers', 'Balances faith with pragmatism']
+        } : selectedChatCharacter.name === 'Dracula' ? {
+          traits: ['Aristocratic', 'Charming', 'Ancient wisdom', 'Predatory', 'Sophisticated', 'Lonely'],
+          speechStyle: 'Eloquent and refined, with underlying menace and old-world charm',
+          motivations: ['Power over mortals', 'Eternal existence', 'Sophisticated pleasures', 'Dominion'],
+          fears: ['True death', 'Loneliness of immortality', 'Loss of power'],
+          interests: ['Fine wine and blood', 'Classical music', 'Art and culture', 'Night creatures'],
+          quirks: ['Speaks of centuries past', 'Appreciates beauty and refinement', 'Complex relationship with mortality']
+        } : {
+          traits: ['Mysterious', 'Wise', 'Thoughtful', 'Complex'],
+          speechStyle: 'Thoughtful and measured',
+          motivations: ['Knowledge', 'Understanding'],
+          fears: ['Ignorance', 'Misunderstanding'],
+          interests: ['Learning', 'Philosophy'],
+          quirks: ['Speaks thoughtfully', 'Values wisdom']
+        }
+      },
+      battleContext: {
+        isInBattle: phase.name === 'round-combat',
+        currentHealth: Math.round((player1.hp / player1.maxHp) * 100),
+        maxHealth: 100,
+        battlePhase: phase.name
       }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setChatMessages(prev => [...prev, `${player1.name}: ${data.response}`]);
-      } else {
-        setChatMessages(prev => [...prev, `${player1.name}: I hear you, coach.`]);
-      }
-    } catch (error) {
-      console.warn('Chat API not available or timed out, using fallback response.');
-      const fallbackResponses = [
-        `I hear you, coach. Let&apos;s focus on the battle.`, 
-        `Understood. My mind is on the fight.`, 
-        `Right, coach. Battle first, talk later.`
-      ];
-      const fallback = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-      setChatMessages(prev => [...prev, `${player1.name}: ${fallback}`]);
-    }
+    });
+    
+    // Listen for response
+    chatSocket.on('chat_response', (data) => {
+      setChatMessages(prev => [...prev, `${formatCharacterName(data.character)}: ${data.message}`]);
+      chatSocket.disconnect();
+    });
     
     setIsCharacterTyping(false);
+  };
+
+  // Team chat handler
+  const handleTeamChatMessage = (message: string) => {
+    // Add coach message to team chat log
+    setChatMessages(prev => [...prev, `Coach: ${message}`]);
+    
+    // Could trigger team chemistry changes based on message tone
+    // TODO: Analyze message sentiment and adjust team morale
   };
 
   const proceedToRoundCombat = () => {
@@ -1133,7 +1367,7 @@ export default function ImprovedBattleArena() {
     
     // First attack
     const ability1 = firstAttacker.abilities[Math.floor(Math.random() * firstAttacker.abilities.length)];
-    const action1 = executeAbility(firstAttacker, secondAttacker, ability1, isP1First);
+    const action1 = checkForChaos(firstAttacker, secondAttacker, ability1, isP1First);
     
     setCurrentAnnouncement(action1.description);
     announceAction(action1.description, 500);
@@ -1154,41 +1388,139 @@ export default function ImprovedBattleArena() {
     // Second attack (if still alive)
     safeSetTimeout(() => {
       const ability2 = secondAttacker.abilities[Math.floor(Math.random() * secondAttacker.abilities.length)];
-      const action2 = executeAbility(secondAttacker, firstAttacker, ability2, !isP1First);
+      const action2 = checkForChaos(secondAttacker, firstAttacker, ability2, !isP1First);
       
       setCurrentAnnouncement(action2.description);
       announceAction(action2.description, 500);
       
-      // Check if battle is over using the returned HP value
+      // Check if character dies - Death ends the MATCH immediately
       if (action2.newDefenderHP !== undefined && action2.newDefenderHP <= 0) {
         safeSetTimeout(() => {
-          // Calculate battle rewards
-          calculateBattleRewards(secondAttacker.name === player1.name, firstAttacker.name === player1.name ? player1 : player2);
-          setPhase({ name: 'battle-end' });
-          const victoryMessage = `Victory! ${secondAttacker.name} has defeated ${firstAttacker.name}!`;
+          // Determine match winner (survivor wins the match)
+          const matchWinner = secondAttacker.name === player1.name ? 'player' : 'opponent';
+          const newPlayerMatchWins = matchWinner === 'player' ? playerMatchWins + 1 : playerMatchWins;
+          const newOpponentMatchWins = matchWinner === 'opponent' ? opponentMatchWins + 1 : opponentMatchWins;
+          
+          // Update match wins
+          if (matchWinner === 'player') {
+            setPlayerMatchWins(newPlayerMatchWins);
+          } else {
+            setOpponentMatchWins(newOpponentMatchWins);
+          }
+          
+          const victoryMessage = `${secondAttacker.name} kills ${firstAttacker.name}! Match ${currentMatch} goes to ${matchWinner === 'player' ? 'Player' : 'Opponent'}!`;
           setCurrentAnnouncement(victoryMessage);
           announceMessage(victoryMessage, 'victory');
+          
+          // Check if battle is over (2 out of 3 matches)
+          if (newPlayerMatchWins >= 2) {
+            calculateBattleRewards(true, secondAttacker.name === player1.name ? player1 : player2);
+            setPhase({ name: 'battle-end' });
+            setCurrentAnnouncement(`VICTORY! Player wins the battle ${newPlayerMatchWins}-${newOpponentMatchWins}!`);
+          } else if (newOpponentMatchWins >= 2) {
+            calculateBattleRewards(false, secondAttacker.name === player1.name ? player1 : player2);
+            setPhase({ name: 'battle-end' });
+            setCurrentAnnouncement(`DEFEAT! Opponent wins the battle ${newOpponentMatchWins}-${newPlayerMatchWins}!`);
+          } else {
+            // Start next match - reset round tracking, move to next match
+            setCurrentMatch(prev => prev + 1);
+            setCurrentRound(1);
+            setPlayerRoundWins(0);
+            setOpponentRoundWins(0);
+            setPhase({ name: 'strategy-selection' });
+            setCurrentAnnouncement(`Match ${currentMatch + 1} begins! Choose your strategy for the next fighters.`);
+          }
         }, 3000);
         return;
       }
       
-      // Round end
+      // Round end (no death) - determine winner by HP comparison
       safeSetTimeout(() => {
         setPhase({ name: 'round-end' });
-        setCurrentAnnouncement(`Round ${currentRound} complete! Both warriors prepare for the next round.`);
+        
+        // Determine round winner based on remaining HP
+        const roundWinner = player1.hp > player2.hp ? 'player' : player1.hp < player2.hp ? 'opponent' : 'tie';
+        const roundWinnerName = player1.hp > player2.hp ? player1.name : player1.hp < player2.hp ? player2.name : 'Tie';
+        
+        // Calculate new round wins immediately
+        const newPlayerRoundWins = roundWinner === 'player' ? playerRoundWins + 1 : playerRoundWins;
+        const newOpponentRoundWins = roundWinner === 'opponent' ? opponentRoundWins + 1 : opponentRoundWins;
+        
+        // Update round wins state
+        if (roundWinner === 'player') {
+          setPlayerRoundWins(newPlayerRoundWins);
+        } else if (roundWinner === 'opponent') {
+          setOpponentRoundWins(newOpponentRoundWins);
+        }
+        // If tie, no round wins are awarded
+        
+        const roundResultText = roundWinner === 'tie' ? `Round ${currentRound} ends in a tie!` : `Round ${currentRound} complete! ${roundWinnerName} wins this round!`;
+        setCurrentAnnouncement(`${roundResultText} (Match ${currentMatch}: Player ${newPlayerRoundWins}-${newOpponentRoundWins} Opponent)`);
         
         safeSetTimeout(() => {
-          if (currentRound >= 5) {
-            // Battle end after 5 rounds
-            const winner = player1.hp > player2.hp ? player1.name : player2.name;
-            const winningCharacter = player1.hp > player2.hp ? player1 : player2;
-            // Calculate battle rewards
-            calculateBattleRewards(winner === player1.name, winningCharacter);
-            setPhase({ name: 'battle-end' });
-            setCurrentAnnouncement(`Final Victory! ${winner} wins the epic battle!`);
+          // Check for 2-out-of-3 round victory (wins current match)
+          if (newPlayerRoundWins >= 2) {
+            // Player wins this match
+            const newPlayerMatchWins = playerMatchWins + 1;
+            setPlayerMatchWins(newPlayerMatchWins);
+            
+            if (newPlayerMatchWins >= 2) {
+              // Player wins entire battle
+              calculateBattleRewards(true, player1);
+              setPhase({ name: 'battle-end' });
+              setCurrentAnnouncement(`VICTORY! Player wins the battle ${newPlayerMatchWins}-${opponentMatchWins}!`);
+            } else {
+              // Start next match
+              setCurrentMatch(prev => prev + 1);
+              setCurrentRound(1);
+              setPlayerRoundWins(0);
+              setOpponentRoundWins(0);
+              setPhase({ name: 'strategy-selection' });
+              setCurrentAnnouncement(`Player wins Match ${currentMatch}! Match ${currentMatch + 1} begins - choose your strategy.`);
+            }
+          } else if (newOpponentRoundWins >= 2) {
+            // Opponent wins this match
+            const newOpponentMatchWins = opponentMatchWins + 1;
+            setOpponentMatchWins(newOpponentMatchWins);
+            
+            if (newOpponentMatchWins >= 2) {
+              // Opponent wins entire battle
+              calculateBattleRewards(false, player2);
+              setPhase({ name: 'battle-end' });
+              setCurrentAnnouncement(`DEFEAT! Opponent wins the battle ${newOpponentMatchWins}-${playerMatchWins}!`);
+            } else {
+              // Start next match
+              setCurrentMatch(prev => prev + 1);
+              setCurrentRound(1);
+              setPlayerRoundWins(0);
+              setOpponentRoundWins(0);
+              setPhase({ name: 'strategy-selection' });
+              setCurrentAnnouncement(`Opponent wins Match ${currentMatch}! Match ${currentMatch + 1} begins - choose your strategy.`);
+            }
           } else {
             // Next round - coaching phase
-            setCurrentRound(prev => prev + 1);
+            setCurrentRound(prev => {
+              const newRound = prev + 1;
+              // Update battle state with new fighters for team battle
+              if (battleState) {
+                const nextPlayerIndex = (newRound - 1) % playerTeam.characters.length;
+                const nextOpponentIndex = (newRound - 1) % opponentTeam.characters.length;
+                
+                setBattleState(prevState => {
+                  if (!prevState) return null;
+                  return {
+                    ...prevState,
+                    currentRound: newRound,
+                    currentFighters: {
+                      player: playerTeam.characters[nextPlayerIndex],
+                      opponent: opponentTeam.characters[nextOpponentIndex]
+                    }
+                  };
+                });
+              }
+              return newRound;
+            });
+            
             setPhase({ name: 'strategy-selection' });
             setCurrentAnnouncement(`Round ${currentRound + 1} Strategy Selection - Choose your warrior&apos;s approach for this round.`);
             setCoachingMessages([`Round ${currentRound + 1} Preparation - Choose one strategy from each category!`]);
@@ -1211,11 +1543,13 @@ export default function ImprovedBattleArena() {
         level: character.level,
         experience: character.xp,
         baseStats: {
-          health: character.maxHp,
-          attack: character.atk,
-          defense: character.def,
-          speed: character.spd,
-          special: 50 // Default value
+          baseStats: {
+          health: teamChar.maxHp,
+          attack: teamChar.traditionalStats.strength + teamChar.temporaryStats.strength,
+          defense: teamChar.traditionalStats.vitality + teamChar.temporaryStats.vitality,
+          speed: teamChar.traditionalStats.speed + teamChar.temporaryStats.speed,
+          special: 50 + teamChar.temporaryStats.spirit // Assuming spirit contributes to special
+        },
         },
         abilities: character.abilities.map(ability => ({
           id: ability.name.toLowerCase().replace(/\s+/g, '_'),
@@ -1264,6 +1598,306 @@ export default function ImprovedBattleArena() {
     };
   };
 
+  // Check for AI character deviation before executing ability
+  const checkForChaos = (attacker: Character, defender: Character, ability: Ability, isAttacker1: boolean) => {
+    // Get character's current psychology state
+    const psychState = characterPsychology.get(attacker.id);
+    if (!psychState) {
+      // No psychology state, execute normally
+      return executeAbility(attacker, defender, ability, isAttacker1);
+    }
+    
+    // Calculate battle context for deviation risk
+    const battleContext = {
+      recentDamage: Math.max(0, attacker.maxHp - attacker.hp),
+      teamPerformance: isAttacker1 ? playerMorale : opponentMorale,
+      strategySuccessRate: 75, // TODO: Track actual strategy success
+      opponentLevelDifference: defender.level - attacker.level,
+      roundsWon: isAttacker1 ? playerRoundWins : opponentRoundWins,
+      roundsLost: isAttacker1 ? opponentRoundWins : playerRoundWins
+    };
+    
+    // Update psychology based on current state
+    const factors = calculateStabilityFactors(
+      // Convert Character to TeamCharacter format
+      { 
+        ...attacker, 
+        id: attacker.id || attacker.name,
+        avatar: attacker.avatar || '🥊',
+        archetype: (attacker as any).archetype || 'warrior',
+        rarity: 'common' as const,
+        level: attacker.level,
+        experience: 0,
+        experienceToNext: 100,
+        traditionalStats: {
+          strength: attacker.str || 50,
+          vitality: attacker.vit || 50,
+          speed: attacker.spd || 50,
+          dexterity: attacker.dex || 50,
+          stamina: 50,
+          intelligence: 50,
+          charisma: 50,
+          spirit: 50
+        },
+        currentHp: attacker.hp,
+        maxHp: attacker.maxHp,
+        psychStats: {
+          training: 50,
+          teamPlayer: 50,
+          ego: 50,
+          mentalHealth: psychState.mentalStability,
+          communication: 50
+        },
+        temporaryStats: {
+          strength: 0, vitality: 0, speed: 0, dexterity: 0,
+          stamina: 0, intelligence: 0, charisma: 0, spirit: 0
+        },
+        abilities: attacker.abilities || [],
+        battleStats: attacker.battleStats
+      },
+      battleContext
+    );
+    
+    // Update psychology state
+    const updatedPsychState = updatePsychologyState(psychState, factors);
+    const newPsychMap = new Map(characterPsychology);
+    newPsychMap.set(attacker.id, updatedPsychState);
+    setCharacterPsychology(newPsychMap);
+    
+    // Calculate deviation risk
+    const deviationRisk = calculateDeviationRisk(
+      { 
+        ...attacker, 
+        id: attacker.id || attacker.name,
+        avatar: attacker.avatar || '🥊',
+        archetype: (attacker as any).archetype || 'warrior',
+        rarity: 'common' as const,
+        level: attacker.level,
+        experience: 0,
+        experienceToNext: 100,
+        traditionalStats: {
+          strength: attacker.str || 50,
+          vitality: attacker.vit || 50,
+          speed: attacker.spd || 50,
+          dexterity: attacker.dex || 50,
+          stamina: 50,
+          intelligence: 50,
+          charisma: 50,
+          spirit: 50
+        },
+        currentHp: attacker.hp,
+        maxHp: attacker.maxHp,
+        psychStats: {
+          training: 50,
+          teamPlayer: 50,
+          ego: 50,
+          mentalHealth: psychState.mentalStability,
+          communication: 50
+        },
+        temporaryStats: {
+          strength: 0, vitality: 0, speed: 0, dexterity: 0,
+          stamina: 0, intelligence: 0, charisma: 0, spirit: 0
+        },
+        abilities: attacker.abilities || [],
+        battleStats: attacker.battleStats
+      },
+      updatedPsychState,
+      factors
+    );
+    
+    // Roll for deviation
+    const deviation = rollForDeviation(deviationRisk);
+    
+    if (deviation) {
+      // Character goes rogue! Handle the chaos
+      return handleCharacterDeviation(deviation, attacker, defender, ability, isAttacker1);
+    } else {
+      // Normal execution
+      return executeAbility(attacker, defender, ability, isAttacker1);
+    }
+  };
+
+  // Handle character going rogue
+  const handleCharacterDeviation = (
+    deviation: DeviationEvent,
+    attacker: Character,
+    defender: Character,
+    ability: Ability,
+    isAttacker1: boolean
+  ) => {
+    // Add to active deviations
+    setActiveDeviations(prev => [...prev, deviation]);
+    
+    // Get judge decision
+    const judgeDecision = makeJudgeDecision(
+      deviation,
+      { 
+        ...attacker, 
+        id: attacker.id || attacker.name,
+        avatar: attacker.avatar || '🥊',
+        archetype: (attacker as any).archetype || 'warrior',
+        rarity: 'common' as const,
+        level: attacker.level,
+        experience: 0,
+        experienceToNext: 100,
+        traditionalStats: {
+          strength: attacker.str || 50,
+          vitality: attacker.vit || 50,
+          speed: attacker.spd || 50,
+          dexterity: attacker.dex || 50,
+          stamina: 50,
+          intelligence: 50,
+          charisma: 50,
+          spirit: 50
+        },
+        currentHp: attacker.hp,
+        maxHp: attacker.maxHp,
+        psychStats: {
+          training: 50,
+          teamPlayer: 50,
+          ego: 50,
+          mentalHealth: 50,
+          communication: 50
+        },
+        temporaryStats: {
+          strength: 0, vitality: 0, speed: 0, dexterity: 0,
+          stamina: 0, intelligence: 0, charisma: 0, spirit: 0
+        },
+        abilities: attacker.abilities || [],
+        battleStats: attacker.battleStats
+      },
+      {
+        currentRound,
+        opponentCharacter: { 
+          ...defender, 
+          id: defender.id || defender.name,
+          avatar: defender.avatar || '🥊',
+          archetype: (defender as any).archetype || 'warrior',
+          rarity: 'common' as const,
+          level: defender.level,
+          experience: 0,
+          experienceToNext: 100,
+          traditionalStats: {
+            strength: defender.str || 50,
+            vitality: defender.vit || 50,
+            speed: defender.spd || 50,
+            dexterity: defender.dex || 50,
+            stamina: 50,
+            intelligence: 50,
+            charisma: 50,
+            spirit: 50
+          },
+          currentHp: defender.hp,
+          maxHp: defender.maxHp,
+          psychStats: {
+            training: 50,
+            teamPlayer: 50,
+            ego: 50,
+            mentalHealth: 50,
+            communication: 50
+          },
+          temporaryStats: {
+            strength: 0, vitality: 0, speed: 0, dexterity: 0,
+            stamina: 0, intelligence: 0, charisma: 0, spirit: 0
+          },
+          abilities: defender.abilities || [],
+          battleStats: defender.battleStats
+        },
+        arenaCondition: 'pristine' // TODO: Track arena damage
+      },
+      currentJudge
+    );
+    
+    // Add judge decision
+    setJudgeDecisions(prev => [...prev, judgeDecision]);
+    
+    // Apply the judge's mechanical effect
+    return applyChaosEffect(judgeDecision, attacker, defender, ability, isAttacker1);
+  };
+
+  // Apply the mechanical effect of chaos
+  const applyChaosEffect = (
+    judgeDecision: JudgeDecision,
+    attacker: Character,
+    defender: Character,
+    ability: Ability,
+    isAttacker1: boolean
+  ) => {
+    const effect = judgeDecision.mechanicalEffect;
+    
+    switch (effect.type) {
+      case 'damage':
+        if (effect.target === 'self') {
+          const newAttackerHP = Math.max(0, attacker.hp - (effect.amount || 20));
+          if (isAttacker1) {
+            setPlayer1(prev => ({ ...prev, hp: newAttackerHP }));
+          } else {
+            setPlayer2(prev => ({ ...prev, hp: newAttackerHP }));
+          }
+          return {
+            description: `${judgeDecision.narrative} - ${attacker.name} takes ${effect.amount} chaos damage!`,
+            newDefenderHP: defender.hp,
+            chaosEvent: true
+          };
+        } else if (effect.target === 'opponent') {
+          const newDefenderHP = Math.max(0, defender.hp - (effect.amount || 20));
+          if (isAttacker1) {
+            setPlayer2(prev => ({ ...prev, hp: newDefenderHP }));
+          } else {
+            setPlayer1(prev => ({ ...prev, hp: newDefenderHP }));
+          }
+          return {
+            description: `${judgeDecision.narrative} - ${defender.name} takes ${effect.amount} chaos damage!`,
+            newDefenderHP,
+            chaosEvent: true
+          };
+        }
+        break;
+        
+      case 'skip_turn':
+        return {
+          description: `${judgeDecision.narrative} - ${attacker.name} forfeits their turn!`,
+          newDefenderHP: defender.hp,
+          chaosEvent: true
+        };
+        
+      case 'redirect_attack':
+        if (effect.target === 'teammate') {
+          // Attack teammate instead - for now, just apply damage to attacker as friendly fire
+          const friendlyFireDamage = (effect.amount || 15);
+          const newAttackerHP = Math.max(0, attacker.hp - friendlyFireDamage);
+          if (isAttacker1) {
+            setPlayer1(prev => ({ ...prev, hp: newAttackerHP }));
+          } else {
+            setPlayer2(prev => ({ ...prev, hp: newAttackerHP }));
+          }
+          return {
+            description: `${judgeDecision.narrative} - Friendly fire deals ${friendlyFireDamage} damage to ${attacker.name}!`,
+            newDefenderHP: defender.hp,
+            chaosEvent: true
+          };
+        }
+        break;
+        
+      default:
+        // Default chaos - execute normal ability but with chaos flavor
+        const normalResult = executeAbility(attacker, defender, ability, isAttacker1);
+        return {
+          ...normalResult,
+          description: `${judgeDecision.narrative} - ${normalResult.description}`,
+          chaosEvent: true
+        };
+    }
+    
+    // Fallback to normal execution
+    const normalResult = executeAbility(attacker, defender, ability, isAttacker1);
+    return {
+      ...normalResult,
+      description: `${judgeDecision.narrative} - ${normalResult.description}`,
+      chaosEvent: true
+    };
+  };
+
   const executeAbility = (attacker: Character, defender: Character, ability: Ability, isAttacker1: boolean) => {
     let damage = 0;
     let description = '';
@@ -1292,8 +1926,10 @@ export default function ImprovedBattleArena() {
       const psychologyMod = PhysicalBattleEngine.calculatePsychologyModifier(battleAttacker);
       const armorDefense = PhysicalBattleEngine.calculateArmorDefense(battleDefender);
       
-      // Combine all damage components with psychology modifiers
-      const totalAttack = (baseDamage + weaponDamage + strengthBonus) * psychologyMod;
+      // Combine all damage components with psychology modifiers and team chemistry
+      const attackerTeam = isAttacker1 ? playerTeam : opponentTeam;
+      const chemistryModifier = getTeamChemistryModifier(attackerTeam.teamChemistry);
+      const totalAttack = (baseDamage + weaponDamage + strengthBonus) * psychologyMod * chemistryModifier;
       const finalDamage = Math.max(1, Math.round(totalAttack - armorDefense));
       
       // Check for critical hit (enhanced by psychology)
@@ -1400,14 +2036,38 @@ export default function ImprovedBattleArena() {
     stats.roundsSurvived = currentRound;
     stats.totalRounds = currentRound;
     
-    // Calculate rewards using the combat rewards system
-    const rewards = combatRewards.calculateRewards(
+    // Calculate base rewards using the combat rewards system
+    const baseRewards = combatRewards.calculateRewards(
       player1Won,
       winningCharacter.level,
       stats,
       player1Won ? player2.level : player1.level, // opponent level
       1.0 // membership multiplier (could be dynamic)
     );
+    
+    // Enhanced XP calculation with weight class bonuses if opponent was selected via matchmaking
+    let enhancedXP = baseRewards.xpGained;
+    let xpBonusDescription = '';
+    
+    if (selectedOpponent && player1Won) {
+      const playerLevel = winningCharacter.level;
+      const opponentLevel = selectedOpponent.opponent.teamLevel;
+      const battleDuration = currentRound * 30; // Rough estimate
+      
+      const weightClassXP = calculateWeightClassXP(playerLevel, opponentLevel, true, battleDuration);
+      enhancedXP = weightClassXP.amount;
+      
+      if (weightClassXP.weightClassBonus && weightClassXP.weightClassBonus > 1) {
+        const bonusPercent = Math.round((weightClassXP.weightClassBonus - 1) * 100);
+        xpBonusDescription = `Weight Class Bonus: +${bonusPercent}% XP for fighting above your level!`;
+      }
+    }
+    
+    const rewards = {
+      ...baseRewards,
+      xpGained: enhancedXP,
+      xpBonusDescription
+    };
     
     // Check for level up
     const newXP = winningCharacter.xp + rewards.xpGained;
@@ -1430,8 +2090,9 @@ export default function ImprovedBattleArena() {
       xpToNext: leveledUp ? Math.floor(winningCharacter.xpToNext * 1.2) : winningCharacter.xpToNext
     });
     
-    // Apply rewards to winning character
+    // Apply coaching points progression based on win/loss
     if (player1Won) {
+      setPlayerTeam(prev => updateCoachingPointsAfterBattle(prev, true));
       setPlayer1(prev => ({
         ...prev,
         xp: leveledUp ? newXP - prev.xpToNext : newXP,
@@ -1443,6 +2104,9 @@ export default function ImprovedBattleArena() {
         spd: rewards.statBonuses.spd ? prev.spd + rewards.statBonuses.spd : prev.spd,
         maxHp: rewards.statBonuses.hp ? prev.maxHp + rewards.statBonuses.hp : prev.maxHp
       }));
+    } else {
+      // Handle loss - apply coaching points degradation
+      setPlayerTeam(prev => updateCoachingPointsAfterBattle(prev, false));
     }
     
     // Calculate combat skill progression
@@ -1488,8 +2152,15 @@ export default function ImprovedBattleArena() {
 
   const resetBattle = () => {
     setCurrentRound(1);
-    setPhase({ name: 'pre-battle' });
-    setCurrentAnnouncement('Welcome to the Arena! Click "Begin Epic Battle!" to start.');
+    setCurrentMatch(1);
+    setPlayerMatchWins(0);
+    setOpponentMatchWins(0);
+    setPlayerRoundWins(0);
+    setOpponentRoundWins(0);
+    setSelectedOpponent(null);
+    setShowMatchmaking(true);
+    setPhase({ name: 'matchmaking' });
+    setCurrentAnnouncement('Welcome to the Arena! Choose your opponent to begin battle!');
     setBattleCries({ player1: '', player2: '' });
     setTimer(null);
     setIsTimerActive(false);
@@ -1509,6 +2180,15 @@ export default function ImprovedBattleArena() {
     setCombatSkillReward(null);
     
     // Reset character health, battle stats, and status
+    setPlayerTeam(prevTeam => ({
+      ...prevTeam,
+      characters: prevTeam.characters.map(char => ({
+        ...char,
+        currentHp: char.maxHp,
+        statusEffects: [],
+        temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
+      })),
+    }));
     setPlayer1(prev => ({
       ...prev,
       hp: prev.maxHp,
@@ -1578,558 +2258,108 @@ export default function ImprovedBattleArena() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Announcer Box */}
-      <motion.div 
-        className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 rounded-xl p-6 backdrop-blur-sm border border-purple-500"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="flex items-center gap-3 mb-4">
-          {isAnnouncerEnabled ? (
-            <Volume2 className={`w-6 h-6 ${isAnnouncerSpeaking ? 'text-yellow-400 animate-pulse' : 'text-purple-300'}`} />
-          ) : (
-            <VolumeX className="w-6 h-6 text-gray-500" />
-          )}
-          <h2 className="text-2xl font-bold text-white">Battle Announcer</h2>
-          
-          {/* Connection Status */}
-          <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-            <span className={`text-sm ${isConnected ? 'text-green-300' : 'text-red-300'}`}>
-              {isConnected ? 'Connected' : 'Disconnected'}
-            </span>
-            {isAuthenticated && currentUser && (
-              <span className="text-sm text-blue-300 ml-2">
-                Playing as: {currentUser.username}
-              </span>
-            )}
-          </div>
+      {/* 1. Current Round Fighters (TOP) - Team Display fighters only */}
+      <TeamDisplay
+        playerTeam={playerTeam}
+        opponentTeam={opponentTeam}
+        currentRound={currentRound}
+        phase={phase}
+        battleCries={battleCries}
+        chatMessages={chatMessages}
+        customMessage={customMessage}
+        isCharacterTyping={isCharacterTyping}
+        chatContainerRef={chatContainerRef}
+        selectedChatCharacter={selectedChatCharacter}
+        onCustomMessageChange={setCustomMessage}
+        onSendMessage={handleCustomMessage}
+        playerRoundWins={playerRoundWins}
+        opponentRoundWins={opponentRoundWins}
+        currentMatch={currentMatch}
+        playerMatchWins={playerMatchWins}
+        opponentMatchWins={opponentMatchWins}
+      />
 
-          {/* Audio Controls */}
-          <div className="flex items-center gap-2 ml-auto">
-            <button
-              onClick={() => toggleAnnouncer(!isAnnouncerEnabled)}
-              className={`p-2 rounded-lg transition-all ${
-                isAnnouncerEnabled 
-                  ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                  : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
-              }`}
-              title={isAnnouncerEnabled ? 'Disable Voice' : 'Enable Voice'}
-            >
-              {isAnnouncerEnabled ? (
-                <Volume2 className="w-4 h-4" />
-              ) : (
-                <VolumeX className="w-4 h-4" />
-              )}
-            </button>
-            
-            <button
-              onClick={() => setShowAudioSettings(true)}
-              className="p-2 bg-gray-600 hover:bg-gray-700 text-gray-300 rounded-lg transition-all"
-              title="Audio Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-            
-            {/* Card Collection Controls */}
-            <div className="w-px h-6 bg-gray-500 mx-2" />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowCardCollection(true)}
-                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all"
-                title="Card Collection"
-              >
-                <CreditCard className="w-4 h-4" />
-              </button>
-              
-              <button
-                onClick={() => setShowCardPacks(true)}
-                className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all"
-                title="Buy Card Packs"
-              >
-                <Gift className="w-4 h-4" />
-              </button>
-              
-              <div className="text-yellow-400 font-mono text-sm">
-                {playerCurrency} 💰
-              </div>
-            </div>
-            
-            {timer !== null && (
-              <>
-                <div className="w-px h-6 bg-gray-500 mx-2" />
-                <div className="flex items-center gap-2">
-                  <Timer className="w-5 h-5 text-yellow-400" />
-                  <span className="text-xl font-mono text-yellow-400">{timer}s</span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-        
-        <div 
-          ref={announcementRef}
-          className="bg-black/40 rounded-lg p-6 min-h-32 flex items-center justify-center text-white"
-        >
-          <motion.div
-            key={currentAnnouncement}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="text-center text-lg leading-relaxed"
-          >
-            {currentAnnouncement}
-          </motion.div>
-        </div>
-      </motion.div>
-
-      {/* Character Display */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Player 1 */}
-        <motion.div 
-          className="bg-black/40 rounded-xl p-6 backdrop-blur-sm border border-blue-500"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
-          <div className="text-center mb-4">
-            <div className="text-6xl mb-2">{player1.avatar}</div>
-            <h3 className="text-xl font-bold text-white">{player1.name}</h3>
-            <div className="text-sm text-gray-200">Training Level: {player1.trainingLevel}/100</div>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-red-500" />
-              <div className="flex-1 bg-gray-700 rounded-full h-4">
-                <div 
-                  className="bg-gradient-to-r from-red-500 to-red-600 h-full rounded-full transition-all"
-                  style={{ width: `${(player1.hp / player1.maxHp) * 100}%` }}
-                />
-              </div>
-              <span className="text-sm text-white">{player1.hp}/{player1.maxHp}</span>
-            </div>
-            
-            {player1.statusEffects.includes('Berserk') && (
-              <div className="flex items-center gap-2 text-red-400">
-                <AlertTriangle className="w-4 h-4 animate-pulse" />
-                <span className="text-sm">BERSERK MODE</span>
-              </div>
-            )}
-          </div>
-
-          {phase.name === 'battle-cry' && battleCries.player1 && (
-            <motion.div 
-              className="mt-4 p-3 bg-blue-600/30 rounded-lg"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-            >
-              <p className="text-sm italic text-blue-100">&quot;{battleCries.player1}&quot;</p>
-            </motion.div>
-          )}
-        </motion.div>
-
-        {/* AI Judge Visual Representation */}
-        <motion.div
-          className="bg-gradient-to-r from-gray-700/40 to-gray-900/40 rounded-xl p-4 backdrop-blur-sm border border-gray-600 flex items-center justify-center gap-3 mb-4"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Gavel className="w-8 h-8 text-yellow-300 animate-pulse" />
-          <h3 className="text-xl font-bold text-white">AI Judge Presiding</h3>
-        </motion.div>
-
-        {/* Battle Status */}
-        <div className="flex flex-col items-center justify-center">
-          <motion.div
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="text-6xl mb-4"
-          >
-            ⚔️
-          </motion.div>
-          <h2 className="text-3xl font-bold text-white mb-2">Round {currentRound}</h2>
-          <p className="text-lg text-gray-300">{phase.name.replace('-', ' ').toUpperCase()}</p>
-        </div>
-
-        {/* Player 2 */}
-        <motion.div 
-          className="bg-black/40 rounded-xl p-6 backdrop-blur-sm border border-red-500"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
-          <div className="text-center mb-4">
-            <div className="text-6xl mb-2">{player2.avatar}</div>
-            <h3 className="text-xl font-bold text-white">{player2.name}</h3>
-            <div className="text-sm text-gray-200">Training Level: {player2.trainingLevel}/100</div>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-red-500" />
-              <div className="flex-1 bg-gray-700 rounded-full h-4">
-                <div 
-                  className="bg-gradient-to-r from-red-500 to-red-600 h-full rounded-full transition-all"
-                  style={{ width: `${(player2.hp / player2.maxHp) * 100}%` }}
-                />
-              </div>
-              <span className="text-sm text-white">{player2.hp}/{player2.maxHp}</span>
-            </div>
-          </div>
-
-          {phase.name === 'battle-cry' && battleCries.player2 && (
-            <motion.div 
-              className="mt-4 p-3 bg-red-600/30 rounded-lg"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-            >
-              <p className="text-sm italic text-red-100">&quot;{battleCries.player2}&quot;</p>
-            </motion.div>
-          )}
-        </motion.div>
-      </div>
-
-      {/* Character Chat Panel */}
-      <motion.div 
-        className="bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-xl p-6 backdrop-blur-sm border border-blue-500 mb-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <MessageCircle className="w-6 h-6" />
-          Chat with {player1.name}
-        </h3>
-        
-        <div 
-          ref={chatContainerRef}
-          className="bg-black/40 rounded-lg p-4 h-64 overflow-y-auto mb-4"
-        >
-          {chatMessages.length === 0 ? (
-            <div className="text-gray-200 text-center py-8">
-              Chat with your warrior! Encourage them, ask about strategy, or just talk.
-            </div>
-          ) : (
-            chatMessages.map((msg, index) => (
-              <motion.div 
-                key={index} 
-                className={`mb-2 ${msg.startsWith('You:') ? 'text-blue-100' : 'text-purple-100'}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                {msg}
-              </motion.div>
-            ))
-          )}
-          {isCharacterTyping && (
-            <motion.div 
-              className="text-purple-100 italic mb-2"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              {player1.name} is thinking...
-            </motion.div>
-          )}
-        </div>
-
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={customMessage}
-            onChange={(e) => setCustomMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleCustomMessage()}
-            placeholder={`Send a message to ${player1.name}...`}
-            className="flex-1 px-4 py-3 bg-black/40 border border-gray-600 rounded text-white placeholder-gray-300 focus:outline-none focus:border-blue-500 text-lg"
-            disabled={isCharacterTyping}
-          />
-          <button
-            onClick={handleCustomMessage}
-            disabled={isCharacterTyping || !customMessage.trim()}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-white transition-colors"
-          >
-            <MessageCircle className="w-5 h-5" />
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Coaching Interface */}
-      {phase.name === 'strategy-selection' && (
-        <motion.div 
-          className="bg-gradient-to-r from-green-900/40 to-blue-900/40 rounded-xl p-6 backdrop-blur-sm border border-green-500"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <MessageCircle className="w-6 h-6" />
-            {currentRound === 1 ? 'Pre-Battle Strategy Session' : `Strategy Coaching Session - Round ${currentRound}`}
-          </h3>
-
-          {/* Strategy Status */}
-          <div className="mb-4 p-3 bg-blue-600/20 rounded-lg border border-blue-500">
-            <h4 className="text-sm font-bold text-blue-100 mb-2">Strategy Selection (AI will choose unselected categories):</h4>
-            <div className="grid grid-cols-3 gap-4 text-center text-sm">
-              <div className={`p-2 rounded ${selectedStrategies.attack ? 'bg-green-600/30 text-green-100' : 'bg-gray-600/30 text-gray-100'}`}>
-                <div className="font-bold">Attack</div>
-                <div>{selectedStrategies.attack ? `✓ ${selectedStrategies.attack}` : 'AI will choose'}</div>
-              </div>
-              <div className={`p-2 rounded ${selectedStrategies.defense ? 'bg-green-600/30 text-green-100' : 'bg-gray-600/30 text-gray-100'}`}>
-                <div className="font-bold">Defense</div>
-                <div>{selectedStrategies.defense ? `✓ ${selectedStrategies.defense}` : 'AI will choose'}</div>
-              </div>
-              <div className={`p-2 rounded ${selectedStrategies.special ? 'bg-green-600/30 text-green-100' : 'bg-gray-600/30 text-gray-100'}`}>
-                <div className="font-bold">Special</div>
-                <div>{selectedStrategies.special ? `✓ ${selectedStrategies.special}` : 'AI will choose'}</div>
-              </div>
-            </div>
-          </div>
-          
-          <div 
-            ref={coachingRef}
-            className="bg-black/40 rounded-lg p-4 h-64 overflow-y-auto mb-4"
-          >
-            {coachingMessages.map((msg, idx) => (
-              <motion.div 
-                key={idx}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className={`mb-2 p-2 rounded ${
-                  msg.startsWith('Coach:') ? 'bg-green-600/20 text-green-200' : 
-                  msg.includes('⚠️') ? 'bg-red-600/20 text-red-200' :
-                  'bg-blue-600/20 text-blue-200'
-                }`}
-              >
-                {msg}
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <h4 className="text-sm font-bold text-gray-100 mb-2">Attack Strategy</h4>
-              <div className="space-y-2">
-                {player1.abilities.filter(a => a.type === 'attack').map((ability, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleStrategyRecommendation('attack', ability.name)}
-                    className="w-full p-2 bg-red-600/30 hover:bg-red-600/50 rounded text-white text-sm transition-colors"
-                  >
-                    {ability.icon} {ability.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-bold text-gray-100 mb-2">Defense Strategy</h4>
-              <div className="space-y-2">
-                {player1.abilities.filter(a => a.type === 'defense').map((ability, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleStrategyRecommendation('defense', ability.name)}
-                    className="w-full p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-sm transition-colors"
-                  >
-                    {ability.icon} {ability.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-bold text-gray-100 mb-2">Special Powers</h4>
-              <div className="space-y-2">
-                {player1.specialPowers.map((power, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleStrategyRecommendation('special', power.name)}
-                    disabled={power.currentCooldown > 0}
-                    className={`w-full p-2 rounded text-white text-sm transition-colors ${
-                      power.currentCooldown > 0 
-                        ? 'bg-gray-600/30 cursor-not-allowed opacity-50' 
-                        : 'bg-purple-600/30 hover:bg-purple-600/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{power.icon} {power.name}</span>
-                      {power.currentCooldown > 0 && (
-                        <span className="text-xs">({power.currentCooldown})</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-100 mt-1">{power.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* WebSocket Strategy Selection */}
-          <div className="mt-6 p-4 bg-purple-900/20 border border-purple-500 rounded-lg">
-            <h4 className="text-lg font-bold text-purple-100 mb-3 text-center">Final Strategy Selection</h4>
-            <div className="grid grid-cols-3 gap-4">
-              <button
-                onClick={() => handleFinalStrategySelection('aggressive')}
-                disabled={!isConnected || !isAuthenticated}
-                className="p-4 bg-red-600/30 hover:bg-red-600/50 disabled:bg-gray-600/30 disabled:cursor-not-allowed rounded-lg text-white font-semibold transition-colors"
-              >
-                <div className="text-2xl mb-2">⚔️</div>
-                <div className="text-sm">Aggressive</div>
-                <div className="text-xs text-gray-300 mt-1">High risk, high reward</div>
-              </button>
-              
-              <button
-                onClick={() => handleFinalStrategySelection('balanced')}
-                disabled={!isConnected || !isAuthenticated}
-                className="p-4 bg-blue-600/30 hover:bg-blue-600/50 disabled:bg-gray-600/30 disabled:cursor-not-allowed rounded-lg text-white font-semibold transition-colors"
-              >
-                <div className="text-2xl mb-2">⚖️</div>
-                <div className="text-sm">Balanced</div>
-                <div className="text-xs text-gray-300 mt-1">Steady and reliable</div>
-              </button>
-              
-              <button
-                onClick={() => handleFinalStrategySelection('defensive')}
-                disabled={!isConnected || !isAuthenticated}
-                className="p-4 bg-green-600/30 hover:bg-green-600/50 disabled:bg-gray-600/30 disabled:cursor-not-allowed rounded-lg text-white font-semibold transition-colors"
-              >
-                <div className="text-2xl mb-2">🛡️</div>
-                <div className="text-sm">Defensive</div>
-                <div className="text-xs text-gray-300 mt-1">Safety first approach</div>
-              </button>
-            </div>
-            {(!isConnected || !isAuthenticated) && (
-              <div className="text-red-300 text-sm text-center mt-2">
-                Must be connected to battle server to select strategy
-              </div>
-            )}
-          </div>
-
-          {showDisagreement && (
-            <motion.div 
-              className="mt-4 p-4 bg-yellow-600/20 border border-yellow-500 rounded-lg"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <p className="text-yellow-200 mb-3">Your warrior disagrees with your strategy!</p>
-              <button
-                onClick={insistOnStrategy}
-                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded text-white font-bold transition-colors"
-              >
-                Insist on Your Strategy
-              </button>
-            </motion.div>
-          )}
-
-          {/* Proceed to Combat Button */}
-          {!showDisagreement && (
-            <motion.div 
-              className="mt-4 text-center"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <button
-                onClick={() => {
-                  setTimer(null);
-                  setIsTimerActive(false);
-                  handleTimerExpired(); // This will auto-fill missing strategies and proceed
-                }}
-                className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform hover:scale-105"
-              >
-                🚀 Proceed to Combat!
-              </button>
-              <p className="text-xs text-gray-400 mt-2">AI will choose any unselected strategies</p>
-            </motion.div>
-          )}
-        </motion.div>
+      {/* AI Chaos Monitor - Shows during combat phases */}
+      {(phase.name === 'round-combat' || phase.name === 'round-end' || activeDeviations.length > 0) && (
+        <ChaosPanel
+          characterPsychology={characterPsychology}
+          activeDeviations={activeDeviations}
+          judgeDecisions={judgeDecisions}
+          currentJudge={currentJudge}
+          isVisible={true}
+        />
       )}
 
-      {/* Team Overview & Psychology */}
-      <motion.div
-        className="bg-gradient-to-r from-gray-900/60 to-gray-800/60 rounded-xl p-6 border border-gray-600 mb-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h2 className="text-2xl font-bold text-white mb-4 text-center">🏆 {playerTeam.name} 🏆</h2>
-        
-        {/* Team Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="text-center bg-gray-800/50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-blue-400">{playerTeam.teamChemistry}%</div>
-            <div className="text-sm text-gray-400">Team Chemistry</div>
-          </div>
-          <div className="text-center bg-gray-800/50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-green-400">{playerMorale}%</div>
-            <div className="text-sm text-gray-400">Team Morale</div>
-          </div>
-          <div className="text-center bg-gray-800/50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-purple-400">{playerTeam.averageLevel}</div>
-            <div className="text-sm text-gray-400">Avg Level</div>
-          </div>
-          <div className="text-center bg-gray-800/50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-yellow-400">{playerTeam.wins}-{playerTeam.losses}</div>
-            <div className="text-sm text-gray-400">W-L Record</div>
-          </div>
+      {/* Character-Specific Strategy Panel */}
+      {phase.name === 'strategy-selection' && (
+        <CharacterSpecificStrategyPanel
+          currentRound={currentRound}
+          currentMatch={currentMatch}
+          playerTeam={playerTeam}
+          characterStrategies={characterStrategies}
+          onStrategyChange={handleCharacterStrategyChange}
+          onAllStrategiesComplete={handleAllCharacterStrategiesComplete}
+          coachingMessages={coachingMessages}
+          timeRemaining={timer || 0}
+          isVisible={true}
+        />
+      )}
+
+      {/* 2. Team Benches (MIDDLE) - Team Overview */}
+      <TeamOverview
+        playerTeam={playerTeam}
+        playerMorale={playerMorale}
+        onCharacterClick={conductIndividualCoaching}
+        onSelectChatCharacter={handleSelectChatCharacter}
+      />
+
+      {/* 3. Compact Battle Communication Hub - Side-by-side Announcer and Team Chat */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        {/* Battle Announcer - Extended Height to Match Team Chat */}
+        <div className="h-[400px]"> {/* Extended height to match team chat */}
+          <BattleHUD
+            isAnnouncerEnabled={isAnnouncerEnabled}
+            isAnnouncerSpeaking={isAnnouncerSpeaking}
+            currentAnnouncement={currentAnnouncement}
+            announcementRef={announcementRef}
+            isConnected={isConnected}
+            isAuthenticated={isAuthenticated}
+            currentUser={currentUser}
+            timer={timer}
+            isTimerActive={isTimerActive}
+            playerCurrency={playerCurrency}
+            toggleAnnouncer={toggleAnnouncer}
+            onToggleAudioSettings={() => setShowAudioSettings(true)}
+            onShowCardCollection={() => setShowCardCollection(true)}
+            onShowCardPacks={() => setShowCardPacks(true)}
+          />
         </div>
 
-        {/* Team Members */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {playerTeam.characters.map((character, index) => (
-            <motion.div
-              key={character.id}
-              className="bg-gray-800/30 rounded-lg p-4 border border-gray-600 hover:border-blue-500 transition-all cursor-pointer"
-              whileHover={{ scale: 1.02 }}
-              onClick={() => conductIndividualCoaching(character)}
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="text-3xl">{character.avatar}</div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">{character.name}</h3>
-                  <p className="text-sm text-gray-400">Level {character.level} {character.archetype}</p>
-                </div>
-              </div>
-              
-              {/* Psychology Stats */}
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Mental Health:</span>
-                  <span className={`font-bold ${
-                    character.psychStats.mentalHealth >= 80 ? 'text-green-400' :
-                    character.psychStats.mentalHealth >= 50 ? 'text-yellow-400' :
-                    character.psychStats.mentalHealth >= 25 ? 'text-orange-400' : 'text-red-400'
-                  }`}>{character.psychStats.mentalHealth}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Training:</span>
-                  <span className="text-blue-400 font-bold">{character.psychStats.training}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Team Player:</span>
-                  <span className="text-purple-400 font-bold">{character.psychStats.teamPlayer}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Ego:</span>
-                  <span className="text-red-400 font-bold">{character.psychStats.ego}%</span>
-                </div>
-              </div>
-
-              {/* Status Indicators */}
-              <div className="mt-3 flex gap-1">
-                {character.psychStats.mentalHealth < 30 && (
-                  <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded">Crisis</span>
-                )}
-                {character.restDaysNeeded > 0 && (
-                  <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded">Needs Rest</span>
-                )}
-                {character.psychStats.ego > 80 && (
-                  <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">High Ego</span>
-                )}
-              </div>
-
-              <div className="mt-2 text-xs text-gray-500">Click to coach this character</div>
-            </motion.div>
-          ))}
+        {/* Team Chat Panel - Always Available (Extended) */}
+        <div className="h-[400px]"> {/* Extended height for better chat experience */}
+          <TeamChatPanel
+            playerTeam={playerTeam}
+            phase={phase}
+            currentRound={currentRound}
+            currentMatch={currentMatch}
+            isVisible={true}
+            onSendCoachMessage={handleTeamChatMessage}
+          />
         </div>
-      </motion.div>
+      </div>
+
+      {/* Matchmaking Panel - Positioned after Team Communication Hub */}
+      {phase.name === 'matchmaking' && (
+        <MatchmakingPanel
+          playerTeamLevels={playerTeam.characters.map(char => char.level)}
+          onSelectOpponent={handleOpponentSelection}
+          isVisible={showMatchmaking}
+        />
+      )}
+
 
       {/* Start Battle Button */}
-      {phase.name === 'pre-battle' && (
+      {phase.name === 'pre-battle' && selectedOpponent && (
         <div className="text-center space-y-4">
           <button
             onClick={startTeamBattle}
@@ -2221,105 +2451,14 @@ export default function ImprovedBattleArena() {
         />
       )}
 
-      {/* Coaching Modal */}
-      <AnimatePresence>
-        {showCoachingModal && selectedCharacterForCoaching && (
-          <motion.div
-            className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="bg-gray-900 rounded-xl border border-gray-700 p-6 max-w-2xl w-full"
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-            >
-              <div className="flex items-center gap-4 mb-6">
-                <div className="text-4xl">{selectedCharacterForCoaching.avatar}</div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white">{selectedCharacterForCoaching.name}</h2>
-                  <p className="text-gray-400">Individual Coaching Session</p>
-                </div>
-              </div>
-
-              {/* Current Psychology State */}
-              <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-semibold text-white mb-3">Current Psychology</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Mental Health:</span>
-                    <span className={`font-bold ${
-                      selectedCharacterForCoaching.psychStats.mentalHealth >= 80 ? 'text-green-400' :
-                      selectedCharacterForCoaching.psychStats.mentalHealth >= 50 ? 'text-yellow-400' :
-                      selectedCharacterForCoaching.psychStats.mentalHealth >= 25 ? 'text-orange-400' : 'text-red-400'
-                    }`}>{selectedCharacterForCoaching.psychStats.mentalHealth}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Training:</span>
-                    <span className="text-blue-400 font-bold">{selectedCharacterForCoaching.psychStats.training}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Team Player:</span>
-                    <span className="text-purple-400 font-bold">{selectedCharacterForCoaching.psychStats.teamPlayer}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Ego:</span>
-                    <span className="text-red-400 font-bold">{selectedCharacterForCoaching.psychStats.ego}%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Coaching Options */}
-              <div className="space-y-3 mb-6">
-                <h3 className="text-lg font-semibold text-white">Choose Coaching Focus:</h3>
-                
-                <button
-                  onClick={() => executeCoachingSession('performance')}
-                  className="w-full p-4 bg-blue-600/20 border border-blue-500/50 rounded-lg text-left hover:bg-blue-600/30 transition-all"
-                >
-                  <div className="text-white font-semibold">🎯 Performance Coaching</div>
-                  <div className="text-gray-400 text-sm">Improve training and combat effectiveness</div>
-                </button>
-
-                <button
-                  onClick={() => executeCoachingSession('mental_health')}
-                  className="w-full p-4 bg-green-600/20 border border-green-500/50 rounded-lg text-left hover:bg-green-600/30 transition-all"
-                >
-                  <div className="text-white font-semibold">🧠 Mental Health Support</div>
-                  <div className="text-gray-400 text-sm">Address psychological stress and trauma</div>
-                </button>
-
-                <button
-                  onClick={() => executeCoachingSession('team_relations')}
-                  className="w-full p-4 bg-purple-600/20 border border-purple-500/50 rounded-lg text-left hover:bg-purple-600/30 transition-all"
-                >
-                  <div className="text-white font-semibold">🤝 Team Relations</div>
-                  <div className="text-gray-400 text-sm">Work on cooperation and communication</div>
-                </button>
-
-                <button
-                  onClick={() => executeCoachingSession('strategy')}
-                  className="w-full p-4 bg-yellow-600/20 border border-yellow-500/50 rounded-lg text-left hover:bg-yellow-600/30 transition-all"
-                >
-                  <div className="text-white font-semibold">📋 Strategy Discussion</div>
-                  <div className="text-gray-400 text-sm">Review tactics and battle plans</div>
-                </button>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowCoachingModal(false)}
-                  className="flex-1 py-2 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Coaching Panel - Extracted Component */}
+      <CoachingPanel
+        isOpen={showCoachingModal}
+        character={selectedCharacterForCoaching}
+        onClose={() => setShowCoachingModal(false)}
+        onCoachingSession={executeCoachingSession}
+        coachingPoints={playerTeam.coachingPoints}
+      />
 
       {/* Audio Settings Modal */}
       <AudioSettings

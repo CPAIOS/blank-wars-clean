@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, LogIn, User } from 'lucide-react';
+import { Sparkles, LogIn, User, HelpCircle } from 'lucide-react';
 import MainTabSystem from '@/components/MainTabSystem';
 import NewUserOnboarding from '@/components/NewUserOnboarding';
 import AuthModal from '@/components/AuthModal';
-import { useAuth } from '@/contexts/AuthContext';
+import TutorialSystem from '@/components/TutorialSystem';
+import { useAuth, getCoachDisplayName } from '@/contexts/AuthContext';
 
 export default function HomePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [forceRender, setForceRender] = useState(false);
   const { user, isAuthenticated, isLoading, logout } = useAuth();
 
@@ -70,11 +72,20 @@ export default function HomePage() {
           
           {/* Authentication UI */}
           <div className="flex items-center space-x-4">
+            {/* Help Button */}
+            <button
+              onClick={() => setShowTutorial(true)}
+              className="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-700/50"
+              title="Help & Tutorials"
+            >
+              <HelpCircle className="w-6 h-6" />
+            </button>
+            
             {isAuthenticated && user ? (
               <div className="flex items-center space-x-3">
                 <div className="text-right">
-                  <p className="text-white font-semibold">{user.username}</p>
-                  <p className="text-sm text-gray-400">Level {user.level}</p>
+                  <p className="text-white font-semibold">{getCoachDisplayName(user)}</p>
+                  <p className="text-sm text-gray-400">{user.total_wins}W/{user.total_battles - user.total_wins}L • {user.rating} Rating</p>
                 </div>
                 <div className="bg-blue-600/20 rounded-full p-2">
                   <User className="w-6 h-6 text-blue-400" />
@@ -104,7 +115,7 @@ export default function HomePage() {
           </p>
           {isAuthenticated && user && (
             <p className="text-blue-400 font-semibold">
-              Welcome back, {user.username}! Ready for your next battle?
+              Welcome back, {getCoachDisplayName(user)}! Ready for your next battle?
             </p>
           )}
         </div>
@@ -134,6 +145,12 @@ export default function HomePage() {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+      />
+
+      {/* Tutorial System */}
+      <TutorialSystem
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
       />
     </div>
   );

@@ -27,7 +27,7 @@ export default function SimpleChatDemo() {
 
   // Initialize socket connection
   useEffect(() => {
-    const socketUrl = 'https://blank-wars-demo-3.onrender.com';
+    const socketUrl = 'http://localhost:3006';
     console.log('🔌 Connecting to:', socketUrl);
     
     socketRef.current = io(socketUrl, {

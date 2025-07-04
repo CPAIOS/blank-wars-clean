@@ -192,8 +192,14 @@ export default function TeamBuilder({
       mage: '🔮',
       trickster: '🎭',
       leader: '👑',
+      mystic: '🔮',
       scholar: '📚',
-      beast: '🐺'
+      beast: '🐺',
+      tank: '🛡️',
+      support: '💙',
+      assassin: '🗡️',
+      elementalist: '⚡',
+      berserker: '💥'
     };
     return icons[archetype.toLowerCase() as keyof typeof icons] || '⭐';
   };
@@ -352,7 +358,7 @@ export default function TeamBuilder({
                           <>
                             <div className="text-2xl">{getArchetypeIcon(assignedCharacter.archetype)}</div>
                             <div className="text-xs text-white font-semibold truncate w-full px-1">
-                              {assignedCharacter.nickname || assignedCharacter.characterName}
+                              {assignedCharacter.nickname || assignedCharacter.characterData?.name || assignedCharacter.characterName || 'Unknown'}
                             </div>
                             {assignedMember?.isLeader && (
                               <Crown className="w-3 h-3 text-yellow-400 absolute -top-1 -right-1" />
@@ -543,9 +549,13 @@ export default function TeamBuilder({
                   <option value="warrior">⚔️ Warrior</option>
                   <option value="mage">🔮 Mage</option>
                   <option value="trickster">🎭 Trickster</option>
-                  <option value="leader">👑 Leader</option>
+                  <option value="mystic">🔮 Mystic</option>
                   <option value="scholar">📚 Scholar</option>
                   <option value="beast">🐺 Beast</option>
+                  <option value="tank">🛡️ Tank</option>
+                  <option value="support">💙 Support</option>
+                  <option value="assassin">🗡️ Assassin</option>
+                  <option value="elementalist">⚡ Elementalist</option>
                 </select>
               </div>
             </div>
@@ -589,7 +599,7 @@ export default function TeamBuilder({
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${rarityConfig.textColor}`}>
-                              {character.nickname || character.characterName}
+                              {character.nickname || character.characterData?.name || character.characterName || 'Unknown'}
                             </span>
                             <span className="text-sm">{rarityConfig.icon}</span>
                             {character.isFavorite && (
@@ -600,7 +610,7 @@ export default function TeamBuilder({
                             {character.archetype} • Level {character.level}
                           </div>
                           <div className="text-xs text-green-400">
-                            {character.wins}W/{character.losses}L
+                            {character.wins || 0}W/{character.losses || 0}L
                           </div>
                         </div>
                         {selectedPosition && canFill && (

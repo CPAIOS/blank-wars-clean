@@ -6,8 +6,6 @@ import {
   Palette,
   Brush,
   Eraser,
-  Undo,
-  Redo,
   Save,
   X,
   Plus,

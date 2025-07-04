@@ -6,27 +6,32 @@ import {
   Users, Dumbbell, Sword, Home, ShoppingBag,
   Database, TrendingUp, Package, MessageCircle, 
   Sparkles, Crown, Building, Target, Brain,
-  Trophy, ChevronDown, ChevronRight, Activity, Shield
+  Trophy, ChevronDown, ChevronRight, Activity, Shield,
+  BookOpen, Star, User, Eye, EyeOff
 } from 'lucide-react';
 
+import CoachProgressionPage from '@/app/coach/page';
+
 // Import stable components
-import CharacterDatabase from './CharacterDatabase';
+import TeamHeadquarters from './TeamHeadquarters';
 import ChatDemo from './ChatDemo'; // Use full-featured chat with stable patterns
 
-// Lazy load non-critical components
-const TrainingGrounds = lazy(() => import('./TrainingGrounds'));
-const ProgressionDashboard = lazy(() => import('./ProgressionDashboard'));
-const Clubhouse = lazy(() => import('./Clubhouse'));
-const MerchStore = lazy(() => import('./MerchStore'));
-const PackOpening = lazy(() => import('./PackOpening'));
-const EquipmentManager = lazy(() => import('./EquipmentManager'));
-const AbilityManager = lazy(() => import('./AbilityManager'));
-const AICoach = lazy(() => import('./AICoach'));
+// Import components directly to fix crashes
+import TrainingGrounds from './TrainingGrounds';
+import ProgressionDashboard from './ProgressionDashboard';
+import Clubhouse from './Clubhouse';
+import MerchStore from './MerchStore';
+import PackOpening from './PackOpening';
+import EquipmentManager from './EquipmentManager';
+import AbilityManager from './AbilityManager';
+import MembershipSelection from './MembershipSelection';
+import TrainingFacilitySelector from './TrainingFacilitySelector';
+import SkillTree from './SkillTree';
+import AICoach from './AICoach';
+import { createDemoCharacterCollection } from '@/data/characters';
 
-// Import the fixed ImprovedBattleArena with all functionality
+// Lazy load non-critical components
 const ImprovedBattleArena = lazy(() => import('./ImprovedBattleArena'));
-const MembershipSelection = lazy(() => import('./MembershipSelection'));
-const TrainingFacilitySelector = lazy(() => import('./TrainingFacilitySelector'));
 const TeamBuilder = lazy(() => import('./TeamBuilder'));
 
 // Placeholder components for debugging
@@ -39,7 +44,6 @@ const PlaceholderComponent = () => (
 
 // Keep essential types as regular imports
 import { OwnedCharacter, TeamComposition } from '@/data/userAccount';
-import { createDemoCharacterCollection } from '@/data/characters';
 
 // Loading component for Suspense fallback
 const ComponentLoader = ({ name }: { name: string }) => (
@@ -73,10 +77,11 @@ interface MainTab {
 
 export default function MainTabSystem() {
   const [activeMainTab, setActiveMainTab] = useState('characters');
-  const [activeSubTab, setActiveSubTab] = useState('database');
+  const [activeSubTab, setActiveSubTab] = useState('headquarters');
   const [isMainTabExpanded, setIsMainTabExpanded] = useState(true);
+  const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState('achilles');
 
-  // Demo character data for progression dashboard
+  // Demo character data with enhanced training integration
   const demoCharacter = {
     id: 'demo_achilles',
     name: 'Achilles',
@@ -85,12 +90,19 @@ export default function MainTabSystem() {
     archetype: 'warrior' as const,
     rarity: 'legendary' as const,
     level: 18,
+    // Enhanced with training bonuses
+    trainingBonuses: {
+      strength: 8,
+      defense: 5,
+      speed: 6,
+      special: 4
+    },
     baseStats: {
-      strength: 85,
-      agility: 72,
-      intelligence: 58,
-      vitality: 80,
-      wisdom: 45,
+      strength: 85 + 8, // Base + training bonus
+      agility: 72 + 6,
+      intelligence: 58 + 4,
+      vitality: 80 + 5,
+      wisdom: 45 + 4,
       charisma: 65
     },
     combatStats: {
@@ -98,16 +110,21 @@ export default function MainTabSystem() {
       maxHealth: 1200,
       mana: 300,
       maxMana: 300,
-      attack: 185,
-      defense: 120,
-      magicAttack: 50,
-      magicDefense: 80,
-      speed: 140,
+      attack: 185 + 8, // Enhanced by training
+      defense: 120 + 5,
+      magicAttack: 50 + 4,
+      magicDefense: 80 + 5,
+      speed: 140 + 6,
       criticalChance: 25,
       criticalDamage: 200,
       accuracy: 90,
       evasion: 20
     },
+    // Training-enhanced progression data
+    energy: 85,
+    maxEnergy: 100,
+    trainingLevel: 75,
+    trainingPoints: 12, // Available training points for skill learning
     statPoints: 3,
     experience: {
       characterId: 'demo_achilles',
@@ -181,24 +198,464 @@ export default function MainTabSystem() {
   };
 
   // Component wrappers
-  const ProgressionDashboardWrapper = () => (
-    <ProgressionDashboard
-      character={demoCharacter}
-      onAllocateSkillPoint={(skill) => console.log(`Allocated skill point to ${skill}`)}
-      onAllocateStatPoint={(stat) => console.log(`Allocated stat point to ${stat}`)}
-      onViewDetails={(section) => console.log(`Viewing details for ${section}`)}
-    />
+  const ProgressionDashboardWrapper = () => {
+    // Get the real 17 characters from the game
+    const availableCharacters = createDemoCharacterCollection().map(char => {
+      // Extract base name from the random ID
+      const baseName = char.id.split('_')[0];
+      return {
+        ...char,
+        baseName,
+        trainingBonuses: {
+          strength: Math.floor(char.level / 3),
+          defense: Math.floor(char.level / 4),
+          speed: Math.floor(char.level / 3.5),
+          special: Math.floor(char.level / 2.5)
+        }
+      };
+    });
+    
+    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    console.log('Progression - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
+    
+    return (
+    <div className="flex gap-6">
+      {/* Character Sidebar */}
+      <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <User className="w-5 h-5" />
+          Characters
+        </h3>
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {availableCharacters.map((character) => (
+            <button
+              key={character.id}
+              onClick={() => {
+                console.log('Progression - Clicking character:', character.name, character.baseName);
+                setGlobalSelectedCharacterId(character.baseName);
+              }}
+              className={`w-full p-3 rounded-lg border transition-all text-left ${
+                globalSelectedCharacterId === character.baseName
+                  ? 'border-green-500 bg-green-500/20 text-white'
+                  : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">{character.avatar}</div>
+                <div>
+                  <div className="font-semibold">{character.name}</div>
+                  <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 space-y-6">
+        {/* Selected Character Header */}
+        <div className="bg-gray-800/50 rounded-xl p-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-3">
+            <div className="text-3xl">{selectedCharacter.avatar}</div>
+            <div>
+              <div>{selectedCharacter.name}</div>
+              <div className="text-sm text-gray-400">Level {selectedCharacter.level} {selectedCharacter.archetype}</div>
+            </div>
+          </h2>
+        </div>
+
+        {/* Training Enhancement Banner */}
+        <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-xl p-4 border border-orange-500/30">
+          <div className="flex items-center gap-2 mb-2">
+            <Dumbbell className="w-5 h-5 text-orange-400" />
+            <span className="text-orange-300 font-semibold">Training Enhanced Stats for {selectedCharacter.name}</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div className="text-center">
+              <div className="text-red-400 font-bold">+{selectedCharacter.trainingBonuses.strength}</div>
+              <div className="text-gray-400">Strength</div>
+            </div>
+            <div className="text-center">
+              <div className="text-blue-400 font-bold">+{selectedCharacter.trainingBonuses.defense}</div>
+              <div className="text-gray-400">Defense</div>
+            </div>
+            <div className="text-center">
+              <div className="text-green-400 font-bold">+{selectedCharacter.trainingBonuses.speed}</div>
+              <div className="text-gray-400">Speed</div>
+            </div>
+            <div className="text-center">
+              <div className="text-purple-400 font-bold">+{selectedCharacter.trainingBonuses.special}</div>
+              <div className="text-gray-400">Special</div>
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-orange-200">
+            Training Points Available: {selectedCharacter.trainingPoints || (selectedCharacter.level * 2)} • Training Level: {selectedCharacter.trainingLevel || 75}%
+          </div>
+        </div>
+        
+        <ProgressionDashboard
+          character={selectedCharacter}
+          onAllocateSkillPoint={(skill) => console.log(`${selectedCharacter.name} allocated skill point to ${skill}`)}
+          onAllocateStatPoint={(stat) => console.log(`${selectedCharacter.name} allocated stat point to ${stat}`)}
+          onViewDetails={(section) => console.log(`${selectedCharacter.name} viewing details for ${section}`)}
+        />
+        
+        {/* Integrated Skill Tree */}
+        <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-xl p-4 border border-purple-500/30">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-5 h-5 text-purple-400" />
+            <span className="text-purple-300 font-semibold">Skill Tree Progression for {selectedCharacter.name}</span>
+          </div>
+          <SkillTree
+            characterId={selectedCharacter.id}
+            characterLevel={selectedCharacter.level}
+            characterArchetype={selectedCharacter.archetype}
+            availablePoints={selectedCharacter.trainingPoints || (selectedCharacter.level * 2)}
+            onSkillUnlock={(skillId) => console.log(`${selectedCharacter.name} unlocked skill: ${skillId}`)}
+          />
+        </div>
+      </div>
+    </div>
+    );
+  };
+
+  const EquipmentManagerWrapper = () => {
+    const [characterEquipment, setCharacterEquipment] = useState<Record<string, any>>({});
+    
+    // Get the real 17 characters from the game
+    const availableCharacters = createDemoCharacterCollection().map(char => {
+      // Extract base name from the random ID (e.g., "achilles" from "achilles_1751593197366_8ivu34rgc")
+      const baseName = char.id.split('_')[0];
+      return {
+        ...char,
+        baseName,
+        trainingBonuses: {
+          strength: Math.floor(char.level / 3),
+          defense: Math.floor(char.level / 4),
+          speed: Math.floor(char.level / 3.5),
+          special: Math.floor(char.level / 2.5)
+        }
+      };
+    });
+    
+    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    console.log('Equipment - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
+    
+    // Handle equipment changes
+    const handleEquip = (equipment: any) => {
+      setCharacterEquipment(prev => ({
+        ...prev,
+        [globalSelectedCharacterId]: {
+          ...prev[globalSelectedCharacterId],
+          [equipment.slot]: equipment
+        }
+      }));
+    };
+    
+    const handleUnequip = (slot: string) => {
+      setCharacterEquipment(prev => ({
+        ...prev,
+        [globalSelectedCharacterId]: {
+          ...prev[globalSelectedCharacterId],
+          [slot]: undefined
+        }
+      }));
+    };
+    
+    return (
+    <div className="flex gap-6">
+      {/* Character Sidebar */}
+      <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <User className="w-5 h-5" />
+          Characters
+        </h3>
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {availableCharacters.map((character) => (
+            <button
+              key={character.id}
+              onClick={() => {
+                console.log('Clicking character:', character.name, character.baseName);
+                setGlobalSelectedCharacterId(character.baseName);
+              }}
+              className={`w-full p-3 rounded-lg border transition-all text-left cursor-pointer ${
+                globalSelectedCharacterId === character.baseName
+                  ? 'border-blue-500 bg-blue-500/20 text-white'
+                  : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
+              }`}
+              style={{ pointerEvents: 'auto', zIndex: 10 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">{character.avatar}</div>
+                <div>
+                  <div className="font-semibold">{character.name}</div>
+                  <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 space-y-6">
+        {/* Selected Character Header */}
+        <div className="bg-gray-800/50 rounded-xl p-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-3">
+            <div className="text-3xl">{selectedCharacter.avatar}</div>
+            <div>
+              <div>{selectedCharacter.name}</div>
+              <div className="text-sm text-gray-400">Level {selectedCharacter.level} {selectedCharacter.archetype}</div>
+            </div>
+          </h2>
+        </div>
+
+        {/* Training Equipment Synergy Display */}
+        <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl p-4 border border-blue-500/30">
+        <div className="flex items-center gap-2 mb-3">
+          <Crown className="w-5 h-5 text-blue-400" />
+          <span className="text-blue-300 font-semibold">Training-Enhanced Equipment Effectiveness for {selectedCharacter.name}</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="bg-gray-800/50 rounded-lg p-3">
+            <div className="text-red-300 font-semibold">⚔️ Weapon Mastery</div>
+            <div className="text-gray-400">Training Bonus: +{selectedCharacter.trainingBonuses.strength}</div>
+            <div className="text-red-200">Enhanced weapon damage scaling</div>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3">
+            <div className="text-blue-300 font-semibold">🛡️ Armor Proficiency</div>
+            <div className="text-gray-400">Training Bonus: +{selectedCharacter.trainingBonuses.defense}</div>
+            <div className="text-blue-200">Improved defense effectiveness</div>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3">
+            <div className="text-green-300 font-semibold">💨 Agility Training</div>
+            <div className="text-gray-400">Training Bonus: +{selectedCharacter.trainingBonuses.speed}</div>
+            <div className="text-green-200">Faster attack speed with all weapons</div>
+          </div>
+        </div>
+        <div className="mt-3 text-xs text-blue-200">
+          💡 {selectedCharacter.name}'s equipment stats are enhanced by training bonuses
+        </div>
+      </div>
+      
+      <EquipmentManager
+        characterName={selectedCharacter.name}
+        characterLevel={selectedCharacter.level}
+        characterArchetype={selectedCharacter.archetype}
+        equippedItems={selectedCharacter.equippedItems || characterEquipment[globalSelectedCharacterId] || {}}
+        inventory={selectedCharacter.inventory || []}
+        onEquip={handleEquip}
+        onUnequip={handleUnequip}
+      />
+      </div>
+    </div>
+    );
+  };
+
+  const AbilityManagerWrapper = () => {
+    const [characterAbilities, setCharacterAbilities] = useState<Record<string, any>>({});
+    
+    // Get the real 17 characters from the game
+    const availableCharacters = createDemoCharacterCollection().map(char => {
+      // Extract base name from the random ID
+      const baseName = char.id.split('_')[0];
+      return {
+        ...char,
+        baseName,
+        trainingBonuses: {
+          strength: Math.floor(char.level / 3),
+          defense: Math.floor(char.level / 4),
+          speed: Math.floor(char.level / 3.5),
+          special: Math.floor(char.level / 2.5)
+        }
+      };
+    });
+    
+    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const currentTrainingPoints = characterAbilities[globalSelectedCharacterId]?.trainingPoints || (selectedCharacter.level * 2);
+    
+    return (
+    <div className="flex gap-6">
+      {/* Character Sidebar */}
+      <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <User className="w-5 h-5" />
+          Characters
+        </h3>
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {availableCharacters.map((character) => (
+            <button
+              key={character.id}
+              onClick={() => {
+                console.log('Abilities - Clicking character:', character.name, character.baseName);
+                setGlobalSelectedCharacterId(character.baseName);
+              }}
+              className={`w-full p-3 rounded-lg border transition-all text-left ${
+                globalSelectedCharacterId === character.baseName
+                  ? 'border-purple-500 bg-purple-500/20 text-white'
+                  : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">{character.avatar}</div>
+                <div>
+                  <div className="font-semibold">{character.name}</div>
+                  <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 space-y-6">
+        {/* Selected Character Header */}
+        <div className="bg-gray-800/50 rounded-xl p-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-3">
+            <div className="text-3xl">{selectedCharacter.avatar}</div>
+            <div>
+              <div>{selectedCharacter.name}</div>
+              <div className="text-sm text-gray-400">Level {selectedCharacter.level} {selectedCharacter.archetype}</div>
+            </div>
+          </h2>
+        </div>
+
+        {/* Training Points & Skill Learning */}
+      <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-4 border border-purple-500/30">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles className="w-5 h-5 text-purple-400" />
+          <span className="text-purple-300 font-semibold">Training-Unlocked Abilities for {selectedCharacter.name}</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="bg-gray-800/50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="w-4 h-4 text-yellow-400" />
+              <span className="text-white font-semibold">Training Points</span>
+            </div>
+            <div className="text-2xl font-bold text-yellow-400">{currentTrainingPoints}</div>
+            <div className="text-gray-400">Available for ability upgrades</div>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-green-400" />
+              <span className="text-white font-semibold">Special Bonus</span>
+            </div>
+            <div className="text-lg font-bold text-green-400">+{selectedCharacter.trainingBonuses.special}</div>
+            <div className="text-gray-400">Enhanced ability effectiveness</div>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+          <div className="bg-green-900/30 rounded p-2 text-green-200">
+            ✨ Combat Training Unlocked: Enhanced weapon abilities
+          </div>
+          <div className="bg-blue-900/30 rounded p-2 text-blue-200">
+            🎯 Precision Training: +15% critical chance on abilities
+          </div>
+          <div className="bg-purple-900/30 rounded p-2 text-purple-200">
+            🔥 Advanced Techniques: Signature abilities available
+          </div>
+        </div>
+      </div>
+      
+      <AbilityManager
+        characterId={selectedCharacter.id}
+        characterName={selectedCharacter.name}
+        characterLevel={selectedCharacter.level}
+        characterStats={{
+          atk: selectedCharacter.combatStats?.attack || 100,
+          def: selectedCharacter.combatStats?.defense || 80,
+          spd: selectedCharacter.combatStats?.speed || 90,
+          energy: selectedCharacter.energy || 50,
+          maxEnergy: selectedCharacter.maxEnergy || 100,
+          hp: selectedCharacter.combatStats?.health || 200,
+          maxHp: selectedCharacter.combatStats?.maxHealth || 200
+        }}
+        abilityProgress={[]}
+        cooldowns={{}}
+        onUseAbility={(ability) => console.log(`${selectedCharacter.name} used ability: ${ability.name}`)}
+        onUpgradeAbility={(abilityId) => console.log(`${selectedCharacter.name} upgraded ability: ${abilityId}`)}
+        context="overview"
+      />
+      </div>
+    </div>
+    );
+  };
+
+  const PersonalTrainerWrapper = () => (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-green-900/30 to-blue-900/30 rounded-xl p-6 border border-green-500/30">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="w-6 h-6 text-green-400" />
+          <span className="text-green-300 font-semibold text-xl">Personal Trainer</span>
+        </div>
+        <p className="text-green-100 mb-4">
+          Your dedicated AI trainer provides personalized recommendations based on your characters' progress and training goals.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="bg-green-900/40 rounded-lg p-3">
+            <div className="text-green-300 font-semibold">🎯 Training Recommendations</div>
+            <div className="text-green-100">Optimized training plans for each character</div>
+          </div>
+          <div className="bg-blue-900/40 rounded-lg p-3">
+            <div className="text-blue-300 font-semibold">📊 Progress Analysis</div>
+            <div className="text-blue-100">Track efficiency and suggest improvements</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-gray-800/50 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Today's Training Recommendations</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg">
+            <div className="text-2xl">⚔️</div>
+            <div>
+              <div className="text-white font-semibold">Achilles - Strength Focus</div>
+              <div className="text-gray-400 text-sm">Recommended: Elite Combat Training (60% efficiency boost)</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg">
+            <div className="text-2xl">🔮</div>
+            <div>
+              <div className="text-white font-semibold">Character Recovery</div>
+              <div className="text-gray-400 text-sm">2 characters need energy recovery before next session</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg">
+            <div className="text-2xl">⭐</div>
+            <div>
+              <div className="text-white font-semibold">Skill Unlock Available</div>
+              <div className="text-gray-400 text-sm">You have 12 training points ready to spend</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 
-  const ClubhouseWrapper = () => (
-    <Clubhouse
-      currentUserId="demo_user_001"
-      currentUserName="DemoWarrior"
-      currentUserAvatar="⚔️"
-      currentUserLevel={25}
-      currentUserGuild="DEMO"
-    />
-  );
+  const ClubhouseWrapper = () => {
+    try {
+      return (
+        <Clubhouse
+          currentUserId="demo_user_001"
+          currentUserName="DemoWarrior"
+          currentUserAvatar="⚔️"
+          currentUserLevel={25}
+          currentUserGuild="DEMO"
+        />
+      );
+    } catch (error) {
+      console.error('Clubhouse component error:', error);
+      return (
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold mb-4 text-red-400">Social Tab Error</h2>
+          <p className="text-gray-400">The social features are temporarily unavailable.</p>
+          <p className="text-sm text-gray-500 mt-2">Error: {error?.message || 'Unknown error'}</p>
+        </div>
+      );
+    }
+  };
 
   const MerchStoreWrapper = () => (
     <MerchStore
@@ -403,10 +860,10 @@ export default function MainTabSystem() {
       icon: Users,
       color: 'blue',
       subTabs: [
-        { id: 'database', label: 'Database', icon: Database, component: CharacterDatabase, description: 'Browse all characters' },
-        { id: 'progression', label: 'Progression', icon: TrendingUp, component: ProgressionDashboardWrapper, description: 'Level up & skill trees' },
-        { id: 'equipment', label: 'Equipment', icon: Crown, component: EquipmentManager, description: 'Weapons & armor' },
-        { id: 'abilities', label: 'Abilities', icon: Sparkles, component: AbilityManager, description: 'Manage special powers' },
+        { id: 'headquarters', label: 'Headquarters', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space' },
+        { id: 'progression', label: 'Progression', icon: TrendingUp, component: ProgressionDashboardWrapper, description: 'Level up, stats, & skill trees' },
+        { id: 'equipment', label: 'Equipment', icon: Crown, component: EquipmentManagerWrapper, description: 'Weapons & armor with training bonuses' },
+        { id: 'abilities', label: 'Abilities', icon: Sparkles, component: AbilityManagerWrapper, description: 'Manage powers & training points' },
         { id: 'chat', label: 'Chat', icon: MessageCircle, component: ChatDemo, description: 'Character conversations' },
       ]
     },
@@ -420,7 +877,7 @@ export default function MainTabSystem() {
         { id: 'progress', label: 'Progress', icon: Trophy, component: TrainingProgressComponent, description: 'Training limits & daily progress' },
         { id: 'facilities', label: 'Facilities', icon: Building, component: TrainingFacilitySelector, description: 'Choose training locations' },
         { id: 'membership', label: 'Membership', icon: Crown, component: MembershipSelection, description: 'Training tier subscriptions' },
-        { id: 'coach', label: 'AI Coach', icon: Brain, component: AICoach, description: 'Training recommendations' },
+        { id: 'trainer', label: 'Personal Trainer', icon: Brain, component: PersonalTrainerWrapper, description: 'Training recommendations & guidance' },
       ]
     },
     {
@@ -451,6 +908,15 @@ export default function MainTabSystem() {
       color: 'yellow',
       subTabs: [
         { id: 'merch', label: 'Merch Store', icon: ShoppingBag, component: MerchStoreWrapper, description: 'Purchase items' },
+      ]
+    },
+    {
+      id: 'coach',
+      label: 'Coach',
+      icon: User,
+      color: 'purple',
+      subTabs: [
+        { id: 'profile', label: 'Profile', icon: User, component: CoachProgressionPage, description: 'View your coach profile and progression' },
       ]
     }
   ];

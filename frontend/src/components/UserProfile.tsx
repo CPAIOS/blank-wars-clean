@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -25,7 +26,8 @@ import {
   Check,
   X,
   Edit,
-  Save
+  Save,
+  Image as ImageIcon // Renamed to avoid conflict with HTML ImageElement
 } from 'lucide-react';
 import { 
   UserProfile as IUserProfile, 
@@ -54,8 +56,10 @@ export default function UserProfile({
   const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'achievements' | 'subscription' | 'settings'>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState({
-    username: userProfile.username,
-    title: userProfile.title
+    displayName: userProfile.displayName || userProfile.username, // Use displayName if available
+    title: userProfile.title || '',
+    avatarUrl: userProfile.avatarUrl || '',
+    bio: userProfile.bio || '',
   });
   const [localPreferences, setLocalPreferences] = useState(userProfile.preferences);
 
@@ -64,7 +68,12 @@ export default function UserProfile({
   const xpProgress = userProfile.totalXP - getXPRequiredForLevel(playerLevel);
 
   const handleSaveProfile = () => {
-    onUpdateProfile?.(editedProfile);
+    onUpdateProfile?.({
+      displayName: editedProfile.displayName,
+      title: editedProfile.title,
+      avatarUrl: editedProfile.avatarUrl,
+      bio: editedProfile.bio,
+    });
     setIsEditing(false);
   };
 
@@ -98,103 +107,133 @@ export default function UserProfile({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 p-4 bg-gray-900 text-white min-h-screen font-sans">
       {/* Header */}
-      <div className="bg-gray-900/50 rounded-xl border border-gray-700 p-6">
-        <div className="flex items-center gap-6">
+      <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6 shadow-lg">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           {/* Avatar */}
-          <div className="relative">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-4xl">
-              {userProfile.avatar}
-            </div>
-            <div className={`absolute -bottom-2 -right-2 px-2 py-1 rounded-full text-xs font-bold ${getSubscriptionColor(userProfile.subscriptionTier)} bg-gray-800 border border-gray-600`}>
+          <div className="relative group">
+            {editedProfile.avatarUrl ? (
+              <img src={editedProfile.avatarUrl} alt="User Avatar" className="w-24 h-24 rounded-full object-cover border-4 border-blue-500 shadow-lg" />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-5xl font-bold text-white border-4 border-blue-500 shadow-lg">
+                {userProfile.username.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-bold ${getSubscriptionColor(userProfile.subscriptionTier)} bg-gray-800 border border-gray-600 shadow-md`}>
               {subscriptionTiers[userProfile.subscriptionTier].icon}
             </div>
+            {isEditing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <ImageIcon className="w-8 h-8 text-white" />
+              </div>
+            )}
           </div>
 
           {/* Profile Info */}
-          <div className="flex-1">
+          <div className="flex-1 text-center md:text-left">
             {isEditing ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <input
                   type="text"
-                  value={editedProfile.username}
-                  onChange={(e) => setEditedProfile(prev => ({ ...prev, username: e.target.value }))}
-                  className="text-2xl font-bold bg-gray-800 border border-gray-600 rounded px-3 py-1 text-white focus:outline-none focus:border-blue-500"
+                  value={editedProfile.displayName}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev, displayName: e.target.value }))}
+                  className="text-3xl font-bold bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 w-full"
+                  placeholder="Display Name"
                 />
                 <input
                   type="text"
                   value={editedProfile.title}
                   onChange={(e) => setEditedProfile(prev => ({ ...prev, title: e.target.value }))}
-                  className="text-purple-400 bg-gray-800 border border-gray-600 rounded px-3 py-1 focus:outline-none focus:border-blue-500"
+                  className="text-lg text-purple-400 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 w-full"
                   placeholder="Title (optional)"
+                />
+                <input
+                  type="text"
+                  value={editedProfile.avatarUrl}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev, avatarUrl: e.target.value }))}
+                  className="text-sm bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 w-full"
+                  placeholder="Avatar URL (e.g., https://example.com/avatar.png)"
+                />
+                <textarea
+                  value={editedProfile.bio}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev, bio: e.target.value }))}
+                  className="text-sm bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 w-full h-24 resize-none"
+                  placeholder="Tell us about yourself..."
                 />
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-white">{userProfile.username}</h1>
+                <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
+                  <h1 className="text-4xl font-bold text-white">{userProfile.displayName || userProfile.username}</h1>
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="p-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-full transition-colors shadow-md"
+                    title="Edit Profile"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Edit className="w-5 h-5" />
                   </button>
                 </div>
                 {userProfile.title && (
-                  <p className="text-purple-400 font-semibold">{userProfile.title}</p>
+                  <p className="text-xl text-purple-400 font-semibold mb-3">{userProfile.title}</p>
+                )}
+                {userProfile.bio && (
+                  <p className="text-gray-300 mb-3 leading-relaxed">{userProfile.bio}</p>
                 )}
               </>
             )}
             
-            <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 mt-4 text-sm text-gray-400">
+              <span className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-blue-400" />
                 Joined {formatDate(userProfile.joinDate)}
               </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
+              <span className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-green-400" />
                 {formatPlayTime(userProfile.stats.totalPlayTime)} played
               </span>
-              <span className={`flex items-center gap-1 ${getSubscriptionColor(userProfile.subscriptionTier)}`}>
-                <Crown className="w-4 h-4" />
+              <span className={`flex items-center gap-2 ${getSubscriptionColor(userProfile.subscriptionTier)}`}>
+                <Crown className="w-5 h-5" />
                 {subscriptionTiers[userProfile.subscriptionTier].displayName}
               </span>
             </div>
 
             {/* Player Level & XP */}
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-yellow-400 font-semibold">Player Level {playerLevel}</span>
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-yellow-400 font-semibold text-lg">Player Level {playerLevel}</span>
                 <span className="text-sm text-gray-400">{xpProgress}/{xpRequiredForNext - getXPRequiredForLevel(playerLevel)} XP</span>
               </div>
-              <div className="bg-gray-700 rounded-full h-3 overflow-hidden">
+              <div className="bg-gray-700 rounded-full h-4 overflow-hidden shadow-inner">
                 <div
-                  className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 transition-all"
+                  className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 transition-all duration-500"
                   style={{ width: `${(xpProgress / (xpRequiredForNext - getXPRequiredForLevel(playerLevel))) * 100}%` }}
                 />
               </div>
             </div>
 
             {isEditing && (
-              <div className="flex gap-2 mt-3">
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   onClick={handleSaveProfile}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-1"
+                  className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-6 py-3 rounded-lg text-lg font-semibold transition-colors shadow-md flex items-center justify-center gap-2"
                 >
-                  <Save className="w-4 h-4" />
-                  Save
+                  <Save className="w-6 h-6" />
+                  Save Profile
                 </button>
                 <button
                   onClick={() => {
                     setIsEditing(false);
                     setEditedProfile({
-                      username: userProfile.username,
-                      title: userProfile.title
+                      displayName: userProfile.displayName || userProfile.username,
+                      title: userProfile.title || '',
+                      avatarUrl: userProfile.avatarUrl || '',
+                      bio: userProfile.bio || '',
                     });
                   }}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg text-lg font-semibold transition-colors shadow-md flex items-center justify-center gap-2"
                 >
+                  <X className="w-6 h-6" />
                   Cancel
                 </button>
               </div>
@@ -204,8 +243,8 @@ export default function UserProfile({
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex justify-center">
-        <div className="bg-gray-800/50 rounded-xl p-1 flex gap-1">
+      <div className="flex justify-center mt-8 mb-6">
+        <div className="bg-gray-800/50 rounded-xl p-1 flex gap-2 shadow-xl">
           {[
             { id: 'overview', label: 'Overview', icon: User },
             { id: 'stats', label: 'Statistics', icon: TrendingUp },
@@ -216,13 +255,13 @@ export default function UserProfile({
             <button
               key={id}
               onClick={() => setActiveTab(id as any)}
-              className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
+              className={`px-6 py-3 rounded-lg transition-all duration-300 flex items-center gap-2 text-lg ${
                 activeTab === id
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105'
                   : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
               }`}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-6 h-6" />
               <span>{label}</span>
             </button>
           ))}
@@ -230,51 +269,51 @@ export default function UserProfile({
       </div>
 
       {/* Tab Content */}
-      <div className="bg-gray-900/50 rounded-xl border border-gray-700 p-6">
+      <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-8 shadow-xl">
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white mb-4">Account Overview</h2>
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-white mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">Account Overview</h2>
             
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{userProfile.charactersOwned.length}</div>
-                <div className="text-gray-400">Characters</div>
+              <div className="bg-gray-700/70 rounded-lg p-6 text-center shadow-md border border-gray-600">
+                <Users className="w-10 h-10 text-blue-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-white">{userProfile.charactersOwned.length}</div>
+                <div className="text-gray-400 text-lg">Characters</div>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{userProfile.stats.battlesWon}</div>
-                <div className="text-gray-400">Battles Won</div>
+              <div className="bg-gray-700/70 rounded-lg p-6 text-center shadow-md border border-gray-600">
+                <Trophy className="w-10 h-10 text-yellow-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-white">{userProfile.stats.battlesWon}</div>
+                <div className="text-gray-400 text-lg">Battles Won</div>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                <Star className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{userProfile.stats.highestCharacterLevel}</div>
-                <div className="text-gray-400">Highest Level</div>
+              <div className="bg-gray-700/70 rounded-lg p-6 text-center shadow-md border border-gray-600">
+                <Star className="w-10 h-10 text-purple-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-white">{userProfile.stats.highestCharacterLevel}</div>
+                <div className="text-gray-400 text-lg">Highest Level</div>
               </div>
             </div>
 
             {/* Recent Activity */}
             <div>
-              <h3 className="text-xl font-semibold text-white mb-3">Recent Activity</h3>
-              <div className="space-y-2 text-gray-300">
-                <p>Last active: {formatDate(userProfile.lastActive)}</p>
-                <p>Current win streak: {userProfile.stats.winStreak} battles</p>
-                <p>Daily play streak: {userProfile.stats.dailyPlayStreak} days</p>
+              <h3 className="text-2xl font-semibold text-white mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-teal-500">Recent Activity</h3>
+              <div className="space-y-3 text-gray-300 text-lg bg-gray-700/70 p-6 rounded-lg shadow-md border border-gray-600">
+                <p className="flex items-center gap-2"><Calendar className="w-5 h-5 text-gray-400" /> Last active: {formatDate(userProfile.lastActive)}</p>
+                <p className="flex items-center gap-2"><TrendingUp className="w-5 h-5 text-green-400" /> Current win streak: {userProfile.stats.winStreak} battles</p>
+                <p className="flex items-center gap-2"><Clock className="w-5 h-5 text-blue-400" /> Daily play streak: {userProfile.stats.dailyPlayStreak} days</p>
               </div>
             </div>
           </div>
         )}
 
         {activeTab === 'stats' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white mb-4">Battle Statistics</h2>
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-white mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">Battle Statistics</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Battle Stats */}
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-white mb-3">Battle Record</h3>
-                <div className="space-y-2">
+              <div className="bg-gray-700/70 rounded-lg p-6 shadow-md border border-gray-600">
+                <h3 className="text-2xl font-semibold text-white mb-4 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">Battle Record</h3>
+                <div className="space-y-3 text-lg">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Total Battles:</span>
                     <span className="text-white font-semibold">{userProfile.stats.totalBattles}</span>
@@ -299,9 +338,9 @@ export default function UserProfile({
               </div>
 
               {/* Training Stats */}
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-white mb-3">Training Progress</h3>
-                <div className="space-y-2">
+              <div className="bg-gray-700/70 rounded-lg p-6 shadow-md border border-gray-600">
+                <h3 className="text-2xl font-semibold text-white mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-teal-500">Training Progress</h3>
+                <div className="space-y-3 text-lg">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Sessions:</span>
                     <span className="text-white font-semibold">{userProfile.stats.trainingSessionsCompleted}</span>
@@ -325,39 +364,39 @@ export default function UserProfile({
         )}
 
         {activeTab === 'achievements' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white mb-4">Achievements</h2>
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-white mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">Achievements</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userProfile.achievements.map((achievement) => (
                 <div
                   key={achievement.id}
-                  className={`border rounded-lg p-4 ${
+                  className={`border rounded-lg p-6 shadow-md ${
                     achievement.isCompleted
                       ? 'border-yellow-500 bg-yellow-500/10'
                       : 'border-gray-600 bg-gray-800/50'
                   }`}
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl">{achievement.icon}</span>
+                  <div className="flex items-center gap-4 mb-3">
+                    <span className="text-4xl">{achievement.icon}</span>
                     <div>
-                      <h3 className={`font-semibold ${achievement.isCompleted ? 'text-yellow-400' : 'text-white'}`}>
+                      <h3 className={`font-semibold text-xl ${achievement.isCompleted ? 'text-yellow-400' : 'text-white'}`}>
                         {achievement.name}
                       </h3>
                       <p className="text-sm text-gray-400 capitalize">{achievement.category}</p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-300 mb-3">{achievement.description}</p>
+                  <p className="text-base text-gray-300 mb-4">{achievement.description}</p>
                   
                   {!achievement.isCompleted && (
-                    <div className="mb-2">
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <div className="mb-3">
+                      <div className="flex justify-between text-sm text-gray-400 mb-1">
                         <span>Progress</span>
                         <span>{achievement.progress}/{achievement.maxProgress}</span>
                       </div>
-                      <div className="bg-gray-700 rounded-full h-2">
+                      <div className="bg-gray-700 rounded-full h-3 shadow-inner">
                         <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
+                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
                           style={{ width: `${(achievement.progress / achievement.maxProgress) * 100}%` }}
                         />
                       </div>
@@ -365,8 +404,8 @@ export default function UserProfile({
                   )}
                   
                   {achievement.isCompleted && achievement.completedDate && (
-                    <p className="text-xs text-green-400">
-                      Completed {formatDate(achievement.completedDate)}
+                    <p className="text-sm text-green-400 flex items-center gap-2">
+                      <Check className="w-4 h-4" /> Completed {formatDate(achievement.completedDate)}
                     </p>
                   )}
                 </div>
@@ -376,37 +415,37 @@ export default function UserProfile({
         )}
 
         {activeTab === 'subscription' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white mb-4">Subscription Management</h2>
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-white mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">Subscription Management</h2>
             
             {/* Current Subscription */}
-            <div className="bg-gray-800/50 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
+            <div className="bg-gray-700/70 rounded-lg p-8 shadow-md border border-gray-600">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-xl font-semibold text-white">Current Plan</h3>
-                  <p className={`text-lg font-bold ${getSubscriptionColor(userProfile.subscriptionTier)}`}>
+                  <h3 className="text-2xl font-semibold text-white">Current Plan</h3>
+                  <p className={`text-xl font-bold ${getSubscriptionColor(userProfile.subscriptionTier)}`}>
                     {subscriptionTiers[userProfile.subscriptionTier].displayName}
                   </p>
                 </div>
-                <div className="text-4xl">
+                <div className="text-5xl">
                   {subscriptionTiers[userProfile.subscriptionTier].icon}
                 </div>
               </div>
               
               {userProfile.subscriptionExpiry && (
-                <p className="text-gray-400 mb-4">
+                <p className="text-gray-400 text-lg mb-6">
                   {userProfile.subscriptionTier === 'free' 
                     ? 'Free account - no expiry' 
                     : `Expires: ${formatDate(userProfile.subscriptionExpiry)}`}
                 </p>
               )}
 
-              <div className="mb-4">
-                <h4 className="text-white font-semibold mb-2">Current Benefits:</h4>
-                <ul className="space-y-1">
+              <div className="mb-6">
+                <h4 className="text-xl font-semibold text-white mb-3">Current Benefits:</h4>
+                <ul className="space-y-2">
                   {subscriptionTiers[userProfile.subscriptionTier].benefits.map((benefit, index) => (
-                    <li key={index} className="text-gray-300 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-400" />
+                    <li key={index} className="text-gray-300 text-lg flex items-center gap-3">
+                      <Check className="w-5 h-5 text-green-400" />
                       {benefit}
                     </li>
                   ))}
@@ -417,27 +456,27 @@ export default function UserProfile({
             {/* Upgrade Options */}
             {userProfile.subscriptionTier !== 'legendary' && (
               <div>
-                <h3 className="text-xl font-semibold text-white mb-4">Upgrade Options</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <h3 className="text-2xl font-semibold text-white mb-5 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Upgrade Options</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {Object.entries(subscriptionTiers)
                     .filter(([tier]) => subscriptionTiers[tier as SubscriptionTier].priority > subscriptionTiers[userProfile.subscriptionTier].priority)
                     .map(([tier, config]) => (
-                      <div key={tier} className="border border-gray-600 rounded-lg p-4">
-                        <div className="text-center mb-4">
-                          <div className="text-3xl mb-2">{config.icon}</div>
-                          <h4 className={`text-lg font-bold ${config.color}`}>{config.displayName}</h4>
-                          <p className="text-2xl font-bold text-white">${config.price}/month</p>
+                      <div key={tier} className="border border-gray-600 rounded-lg p-6 shadow-md bg-gray-800/50">
+                        <div className="text-center mb-5">
+                          <div className="text-4xl mb-3">{config.icon}</div>
+                          <h4 className={`text-2xl font-bold ${config.color}`}>{config.displayName}</h4>
+                          <p className="text-3xl font-bold text-white">${config.price}/month</p>
                         </div>
                         
-                        <ul className="space-y-1 mb-4">
+                        <ul className="space-y-2 mb-6">
                           {config.benefits.slice(0, 3).map((benefit, index) => (
-                            <li key={index} className="text-sm text-gray-300 flex items-center gap-2">
-                              <Check className="w-3 h-3 text-green-400" />
+                            <li key={index} className="text-base text-gray-300 flex items-center gap-2">
+                              <Check className="w-4 h-4 text-green-400" />
                               {benefit}
                             </li>
                           ))}
                           {config.benefits.length > 3 && (
-                            <li className="text-sm text-gray-400">
+                            <li className="text-base text-gray-400">
                               +{config.benefits.length - 3} more benefits...
                             </li>
                           )}
@@ -445,7 +484,7 @@ export default function UserProfile({
                         
                         <button
                           onClick={() => onUpgradeSubscription?.(tier as SubscriptionTier)}
-                          className={`w-full py-2 rounded-lg font-semibold transition-colors bg-gradient-to-r ${config.color.replace('text-', 'from-').replace('-400', '-500')} to-purple-500 text-white hover:opacity-90`}
+                          className={`w-full py-3 rounded-lg font-semibold text-lg transition-colors shadow-md bg-gradient-to-r ${config.color.replace('text-', 'from-').replace('-400', '-500')} to-purple-500 text-white hover:opacity-90 transform hover:scale-105`}
                         >
                           Upgrade Now
                         </button>
@@ -458,22 +497,23 @@ export default function UserProfile({
         )}
 
         {activeTab === 'settings' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white mb-4">Account Settings</h2>
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-white mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">Account Settings</h2>
             
             {/* Game Preferences */}
-            <div className="bg-gray-800/50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Game Preferences</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gray-700/70 rounded-lg p-8 shadow-md border border-gray-600">
+              <h3 className="text-2xl font-semibold text-white mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-teal-500">Game Preferences</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <label className="block text-gray-300 mb-2">Battle Animation Speed</label>
+                  <label htmlFor="battleAnimationSpeed" className="block text-gray-300 text-lg font-medium mb-3">Battle Animation Speed</label>
                   <select
+                    id="battleAnimationSpeed"
                     value={localPreferences.battleAnimationSpeed}
                     onChange={(e) => setLocalPreferences(prev => ({ 
                       ...prev, 
                       battleAnimationSpeed: e.target.value as any 
                     }))}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500 text-lg"
                   >
                     <option value="slow">Slow</option>
                     <option value="normal">Normal</option>
@@ -482,14 +522,15 @@ export default function UserProfile({
                 </div>
                 
                 <div>
-                  <label className="block text-gray-300 mb-2">Collection Sort Order</label>
+                  <label htmlFor="defaultSortOrder" className="block text-gray-300 text-lg font-medium mb-3">Collection Sort Order</label>
                   <select
+                    id="defaultSortOrder"
                     value={localPreferences.defaultSortOrder}
                     onChange={(e) => setLocalPreferences(prev => ({ 
                       ...prev, 
                       defaultSortOrder: e.target.value as any 
                     }))}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500 text-lg"
                   >
                     <option value="recent">Recently Used</option>
                     <option value="level">Highest Level</option>
@@ -499,7 +540,7 @@ export default function UserProfile({
                 </div>
               </div>
               
-              <div className="mt-6 space-y-4">
+              <div className="mt-8 space-y-5">
                 {[
                   { key: 'soundEnabled', label: 'Sound Effects', icon: Bell },
                   { key: 'musicEnabled', label: 'Background Music', icon: Bell },
@@ -507,22 +548,22 @@ export default function UserProfile({
                   { key: 'autoSaveEnabled', label: 'Auto Save Progress', icon: Save },
                   { key: 'expertMode', label: 'Expert Mode', icon: Target }
                 ].map(({ key, label, icon: Icon }) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-300">{label}</span>
+                  <div key={key} className="flex items-center justify-between bg-gray-900 p-4 rounded-lg shadow-inner border border-gray-700">
+                    <div className="flex items-center gap-4">
+                      <Icon className="w-6 h-6 text-gray-400" />
+                      <span className="text-gray-300 text-lg">{label}</span>
                     </div>
                     <button
                       onClick={() => setLocalPreferences(prev => ({ 
                         ...prev, 
                         [key]: !prev[key as keyof UserPreferences] 
                       }))}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        localPreferences[key as keyof UserPreferences] ? 'bg-blue-500' : 'bg-gray-600'
+                      className={`relative w-16 h-8 rounded-full transition-colors duration-300 shadow-md ${
+                        localPreferences[key as keyof UserPreferences] ? 'bg-blue-600' : 'bg-gray-600'
                       }`}
                     >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                        localPreferences[key as keyof UserPreferences] ? 'translate-x-7' : 'translate-x-1'
+                      <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-transform duration-300 shadow-inner ${
+                        localPreferences[key as keyof UserPreferences] ? 'translate-x-8' : 'translate-x-1'
                       }`} />
                     </button>
                   </div>
@@ -531,7 +572,7 @@ export default function UserProfile({
               
               <button
                 onClick={handleSavePreferences}
-                className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                className="mt-8 w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-semibold text-xl shadow-lg transition-all duration-300 transform hover:scale-105"
               >
                 Save Preferences
               </button>
