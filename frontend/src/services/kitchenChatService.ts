@@ -48,7 +48,21 @@ export class KitchenChatService {
       console.log('✅ Kitchen Chat Service connected to:', socketUrl, 'with ID:', this.socket?.id);
     });
 
+    this.socket.on('connect_error', (error) => {
+      console.error('❌ Kitchen Chat Service connection error:', error);
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      console.warn('🔌 Kitchen Chat Service disconnected:', reason);
+    });
+
     this.socket.on('kitchen_conversation_response', (data) => {
+      console.log('📥 Kitchen conversation response received:', {
+        conversationId: data.conversationId,
+        hasMessage: !!data.message,
+        hasError: !!data.error,
+        messageLength: data.message?.length || 0
+      });
       this.handleConversationResponse(data);
     });
   }
@@ -76,8 +90,7 @@ export class KitchenChatService {
       const conversationId = `kitchen_${Date.now()}_${context.character.id}`;
       
       // Send request to backend
-      console.log('📤 Sending kitchen chat request:', conversationId);
-      this.socket!.emit('kitchen_chat_request', {
+      const requestData = {
         conversationId,
         characterId: context.character.id,
         prompt,
@@ -87,7 +100,18 @@ export class KitchenChatService {
           coach: context.coachName,
           livingConditions: context.livingConditions
         }
+      };
+      
+      console.log('📤 Sending kitchen chat request:', {
+        conversationId,
+        characterId: context.character.id,
+        characterName: context.character.name,
+        trigger: trigger.substring(0, 50) + '...',
+        promptLength: prompt.length,
+        socketId: this.socket!.id
       });
+      
+      this.socket!.emit('kitchen_chat_request', requestData);
 
       // Set timeout for response
       const timeout = setTimeout(() => {

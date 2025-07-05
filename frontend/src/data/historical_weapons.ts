@@ -146,25 +146,7 @@ export const historicalWeapons: Equipment[] = [
     obtainMethod: 'event'
   },
 
-  // FENRIR - Norse Age
-  {
-    id: 'reinforced_claws',
-    name: 'Reinforced Claws',
-    description: 'Iron caps fitted over natural claws',
-    slot: 'weapon',
-    type: 'claws',
-    rarity: 'common',
-    level: 1,
-    requiredLevel: 1,
-    requiredArchetype: ['beast'],
-    preferredCharacter: 'fenrir',
-    stats: { atk: 16, spd: 8, critRate: 15 },
-    effects: [],
-    icon: '🐾',
-    flavor: 'Simple but effective enhancement to natural weapons',
-    obtainMethod: 'shop',
-    price: 100
-  },
+  // FENRIR - Norse Age (reinforced_claws moved to equipment.ts to avoid duplicate keys)
   {
     id: 'chain_whip_fenrir',
     name: 'Broken Chain Whip',

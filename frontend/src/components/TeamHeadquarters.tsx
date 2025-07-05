@@ -657,13 +657,49 @@ export default function TeamHeadquarters() {
             isAI: true,
             round: 1
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Scene generation failed for ${charName}:`, error);
+          
+          // More informative error handling
+          let errorMessage = `*${character.name.split(' ')[0]} seems lost in thought*`;
+          
+          if (error.message === 'Socket not connected to backend. Please refresh the page and try again.') {
+            errorMessage = `*${character.name.split(' ')[0]} is waiting for the connection to establish...*`;
+            console.log('🔌 Socket connection issue detected. Waiting for connection...');
+            
+            // Try to wait for connection
+            const connected = await kitchenChatService.waitForConnection(3000);
+            if (connected) {
+              console.log('✅ Socket connected! Retrying...');
+              // Retry once after connection
+              try {
+                const response = await kitchenChatService.generateKitchenConversation(context, trigger);
+                openingConversations.push({
+                  id: `scene1_${Date.now()}_${charName}`,
+                  avatar: character.avatar,
+                  speaker: character.name.split(' ')[0],
+                  message: response,
+                  isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
+                  timestamp: new Date(),
+                  isAI: true,
+                  round: 1
+                });
+                continue; // Skip the fallback
+              } catch (retryError) {
+                console.error(`Retry failed for ${charName}:`, retryError);
+              }
+            }
+          } else if (error.message === 'USAGE_LIMIT_REACHED') {
+            errorMessage = `*${character.name.split(' ')[0]} is conserving energy for later battles*`;
+          } else if (error.message?.includes('timeout')) {
+            errorMessage = `*${character.name.split(' ')[0]} pauses, gathering their thoughts*`;
+          }
+          
           openingConversations.push({
             id: `fallback_${Date.now()}_${charName}`,
             avatar: character.avatar,
             speaker: character.name.split(' ')[0],
-            message: `*${character.name.split(' ')[0]} looks around confused* This living situation is... interesting.`,
+            message: errorMessage,
             isComplaint: false,
             timestamp: new Date(),
             isAI: false,
