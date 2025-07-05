@@ -526,27 +526,51 @@ export default function TrainingGrounds() {
   });
 
   // Start training
-  const startTraining = (activity: TrainingActivity) => {
+  const startTraining = async (activity: TrainingActivity) => {
     if (selectedCharacter.energy < activity.energyCost) return;
     if (!canTrain() && activity.type !== 'skill') return;
     if (activity.type === 'skill' && !canLearnSkills()) return;
     
-    setCurrentActivity(activity);
-    setIsTraining(true);
-    setTrainingProgress(0);
-    setTrainingTimeLeft(activity.duration);
-    
-    // Increment daily sessions
-    setDailyTrainingSessions(prev => prev + 1);
-    
-    // Deduct energy (with membership cost reduction)
-    const multipliers = getTrainingMultipliers(membershipTier, selectedFacility);
-    const energyCost = Math.ceil(activity.energyCost * multipliers.energyCost);
-    
-    setSelectedCharacter(prev => ({
-      ...prev,
-      energy: prev.energy - energyCost
-    }));
+    try {
+      // Get user ID from auth context (you'll need to implement this)
+      const userId = 'user123'; // Replace with actual user ID from auth context
+      
+      // Load the training system manager
+      const trainingManager = TrainingSystemManager.loadProgress();
+      
+      // Start training with usage tracking following battle service pattern
+      const session = await trainingManager.startTraining(
+        selectedCharacter.id, 
+        activity.id, 
+        userId, 
+        selectedFacility
+      );
+      
+      if (!session) {
+        throw new Error('Failed to start training session');
+      }
+      
+      setCurrentActivity(activity);
+      setIsTraining(true);
+      setTrainingProgress(0);
+      setTrainingTimeLeft(activity.duration);
+      
+      // Increment daily sessions
+      setDailyTrainingSessions(prev => prev + 1);
+      
+      // Deduct energy (with membership cost reduction)
+      const multipliers = getTrainingMultipliers(membershipTier, selectedFacility);
+      const energyCost = Math.ceil(activity.energyCost * multipliers.energyCost);
+      
+      setSelectedCharacter(prev => ({
+        ...prev,
+        energy: prev.energy - energyCost
+      }));
+      
+    } catch (error) {
+      console.error('Training failed:', error);
+      alert(error instanceof Error ? error.message : 'Training failed');
+    }
   };
 
   // Training timer effect

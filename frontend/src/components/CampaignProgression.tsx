@@ -65,7 +65,7 @@ export default function CampaignProgression() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          Master the psychology of legendary characters through progressive challenges
+          Master the psychology of _____ characters through progressive challenges
         </motion.p>
       </div>
 

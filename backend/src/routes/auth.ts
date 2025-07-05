@@ -1,179 +1,181 @@
 import { Router, Request, Response } from 'express';
 import { AuthService, authenticateToken } from '../services/auth';
 import { AuthRequest } from '../types';
+import { dbAdapter } from '../services/databaseAdapter';
+import { authLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 const authService = new AuthService();
 
-// Register new user
-router.post('/register', async (req: Request, res: Response): Promise<void> => {
+// Register new user - matches server.ts exactly
+router.post('/register', authLimiter, async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
-
-    const result = await authService.register({
-      username,
-      email,
-      password,
-    });
-
-    // SECURITY: Set httpOnly cookies instead of sending tokens in response
-    res.cookie('accessToken', result.tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/'
-    });
     
-    res.cookie('refreshToken', result.tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/'
-    });
-
-    res.status(201).json({
-      success: true,
-      user: result.user,
-      // Don't send tokens in response body
-    });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-// Login user
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { email, password } = req.body;
-
-    const result = await authService.login({
-      email,
-      password,
-    });
-
-    // SECURITY: Set httpOnly cookies instead of sending tokens in response
-    res.cookie('accessToken', result.tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/'
-    });
+    // Use real authentication service
+    const { user, tokens } = await authService.register({ username, email, password });
     
-    res.cookie('refreshToken', result.tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/'
-    });
-
-    res.json({
-      success: true,
-      user: result.user,
-      // Don't send tokens in response body
-    });
-  } catch (error: any) {
-    res.status(401).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-// Refresh tokens
-router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
-  try {
-    // SECURITY: Get refresh token from httpOnly cookie instead of request body
-    const refreshToken = req.cookies.refreshToken;
-
-    if (!refreshToken) {
-      res.status(400).json({
-        success: false,
-        error: 'Refresh token required',
-      });
-      return;
-    }
-
-    const tokens = await authService.refreshTokens(refreshToken);
-
-    // SECURITY: Set new tokens as httpOnly cookies
+    // SECURITY: Set httpOnly cookies instead of returning tokens in response
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/'
+      maxAge: 15 * 60 * 1000 // 15 minutes
     });
     
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/'
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
-
-    res.json({
-      success: true,
-      // Don't send tokens in response body
-    });
-  } catch (error: any) {
-    res.status(401).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-// Get current user profile
-router.get('/me', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    res.json({
-      success: true,
-      user: req.user,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-// Logout
-router.post('/logout', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    await authService.logout(req.user!.id);
     
-    // SECURITY: Clear httpOnly cookies on logout
-    res.clearCookie('accessToken', {
+    // Give new user a starter character (Robin Hood)
+    const starterCharacter = await dbAdapter.userCharacters.create({
+      user_id: user.id,
+      character_id: 'char_003', // Robin Hood
+      nickname: 'My Robin Hood'
+    });
+    
+    return res.status(201).json({
+      success: true,
+      user,
+      starterCharacter: starterCharacter ? {
+        id: starterCharacter.id,
+        name: starterCharacter.name,
+        title: starterCharacter.title,
+        nickname: starterCharacter.nickname,
+        level: starterCharacter.level
+      } : null
+      // SECURITY: Don't return tokens in response body
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Login user - matches server.ts exactly
+router.post('/login', authLimiter, async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Use real authentication service
+    const { user, tokens } = await authService.login({ email, password });
+    
+    // SECURITY: Set httpOnly cookies instead of returning tokens in response
+    res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      path: '/'
+      maxAge: 15 * 60 * 1000 // 15 minutes
+    });
+    
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+    
+    return res.json({
+      success: true,
+      user
+      // SECURITY: Don't return tokens in response body
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Refresh tokens endpoint - matches server.ts exactly
+router.post('/refresh', authLimiter, async (req: Request, res: Response) => {
+  try {
+    // SECURITY: Read refresh token from httpOnly cookie instead of request body
+    const refreshToken = req.cookies?.refreshToken;
+    
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Refresh token required'
+      });
+    }
+    
+    const tokens = await authService.refreshTokens(refreshToken);
+    
+    // SECURITY: Set new tokens as httpOnly cookies
+    res.cookie('accessToken', tokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000 // 15 minutes
+    });
+    
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+    
+    return res.json({
+      success: true
+      // SECURITY: Don't return tokens in response body
+    });
+  } catch (error: any) {
+    return res.status(401).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Logout endpoint - matches server.ts exactly
+router.post('/logout', authenticateToken, async (req: any, res: Response) => {
+  try {
+    await authService.logout(req.user.id);
+    
+    // SECURITY: Clear httpOnly cookies
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
     });
     
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/'
+      sameSite: 'strict'
     });
     
-    res.json({
+    return res.json({
       success: true,
-      message: 'Logged out successfully',
+      message: 'Logged out successfully'
     });
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      error: error.message,
+      error: error.message
+    });
+  }
+});
+
+// Get user profile endpoint - matches server.ts exactly
+router.get('/profile', authenticateToken, async (req: any, res: Response) => {
+  try {
+    return res.json({
+      success: true,
+      user: req.user
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

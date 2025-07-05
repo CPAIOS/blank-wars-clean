@@ -141,7 +141,7 @@ export default function CharacterDatabase({
           Character Database
         </h1>
         <p className="text-gray-400 text-lg">
-          Explore legendary warriors, mages, and mythical beings from across history
+          Explore _____ warriors, mages, and beings from _____ times and _____ universes
         </p>
       </div>
 

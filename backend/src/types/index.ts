@@ -11,6 +11,14 @@ export interface User {
   total_battles: number;
   total_wins: number;
   rating: number;
+  daily_chat_count: number;
+  daily_chat_reset_date: string;
+  daily_image_count: number;
+  daily_image_reset_date: string;
+  daily_battle_count: number;
+  daily_battle_reset_date: string;
+  daily_training_count: number;
+  daily_training_reset_date: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -121,4 +129,37 @@ export interface SocketUser {
   userId: string;
   socketId: string;
   currentBattle?: string;
+}
+
+export interface UsageLimits {
+  free: {
+    dailyChatLimit: number;
+    dailyImageLimit: number;
+    dailyBattleLimit: number;
+    dailyTrainingLimit: number;
+  };
+  premium: {
+    dailyChatLimit: number;
+    dailyImageLimit: number;
+    dailyBattleLimit: number;
+    dailyTrainingLimit: number;
+  };
+  legendary: {
+    dailyChatLimit: number;
+    dailyImageLimit: number;
+    dailyBattleLimit: number;
+    dailyTrainingLimit: number;
+  };
+}
+
+export interface UsageStatus {
+  canChat: boolean;
+  canGenerateImage: boolean;
+  canBattle: boolean;
+  canTraining: boolean;
+  remainingChats: number;
+  remainingImages: number;
+  remainingBattles: number;
+  remainingTraining: number;
+  resetTime: string;
 }

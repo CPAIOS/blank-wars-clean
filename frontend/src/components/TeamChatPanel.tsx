@@ -51,6 +51,7 @@ export default function TeamChatPanel({
   const [coachMessage, setCoachMessage] = useState('');
   const [isTyping, setIsTyping] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [usageLimitReached, setUsageLimitReached] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
@@ -94,9 +95,24 @@ export default function TeamChatPanel({
       setIsTyping(null);
     });
 
-    socketRef.current.on('team_chat_error', (error: { message: string }) => {
+    socketRef.current.on('team_chat_error', (error: { message?: string; error?: string; usageLimitReached?: boolean }) => {
       console.error('❌ Team chat error:', error);
       setIsTyping(null);
+      
+      if (error.usageLimitReached) {
+        setUsageLimitReached(true);
+        // Add a system message about the usage limit
+        const limitMessage: ChatMessage = {
+          id: `limit-${Date.now()}`,
+          sender: 'system',
+          senderName: 'System',
+          senderAvatar: '⚠️',
+          message: error.error || 'Daily AI interaction limit reached. Upgrade to premium for more conversations!',
+          timestamp: new Date(),
+          messageType: 'concern'
+        };
+        setMessages(prev => [...prev, limitMessage]);
+      }
     });
 
     return () => {
@@ -172,6 +188,7 @@ export default function TeamChatPanel({
 
   const handleSendCoachMessage = () => {
     if (!coachMessage.trim()) return;
+    if (usageLimitReached) return;
 
     const newMessage: ChatMessage = {
       id: `coach-${Date.now()}`,
@@ -422,10 +439,11 @@ export default function TeamChatPanel({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSendCoachMessage}
-          disabled={!coachMessage.trim()}
+          disabled={!coachMessage.trim() || usageLimitReached}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 rounded-lg text-white font-medium transition-colors flex items-center gap-1"
         >
           <Send className="w-4 h-4" />
+          {usageLimitReached && <span className="text-xs">Limit reached</span>}
         </motion.button>
       </div>
 

@@ -74,7 +74,7 @@ export const judgePersonalities: JudgePersonality[] = [
   {
     name: 'Judge Spectacle',
     style: 'theatrical',
-    description: 'A showman who prioritizes entertainment value above all else',
+    description: 'A theatrical judge who favors spectacular combat and dramatic moments',
     rulingTendencies: {
       favorsDamage: 80,
       favorsCreativity: 85,

@@ -15,6 +15,7 @@ import CoachProgressionPage from '@/app/coach/page';
 // Import stable components
 import TeamHeadquarters from './TeamHeadquarters';
 import ChatDemo from './ChatDemo'; // Use full-featured chat with stable patterns
+import TeamBuildingActivities from './TeamBuildingActivities';
 
 // Import components directly to fix crashes
 import TrainingGrounds from './TrainingGrounds';
@@ -28,6 +29,7 @@ import MembershipSelection from './MembershipSelection';
 import TrainingFacilitySelector from './TrainingFacilitySelector';
 import SkillTree from './SkillTree';
 import AICoach from './AICoach';
+import CharacterDatabase from './CharacterDatabase';
 import { createDemoCharacterCollection } from '@/data/characters';
 
 // Lazy load non-critical components
@@ -853,6 +855,25 @@ export default function MainTabSystem() {
     </div>
   );
 
+  const TeamBuildingWrapper = () => {
+    const sampleTeamMembers = [
+      { id: 'char1', name: 'Achilles', avatar: '🛡️', mood: 'Motivated' },
+      { id: 'char2', name: 'Joan of Arc', avatar: '⚔️', mood: 'Focused' },
+      { id: 'char3', name: 'Tesla', avatar: '⚡', mood: 'Curious' }
+    ];
+
+    return (
+      <TeamBuildingActivities
+        teamBudget={1500}
+        teamMembers={sampleTeamMembers}
+        onActivityComplete={(result) => {
+          console.log('Activity completed:', result);
+          // In real implementation, update team stats here
+        }}
+      />
+    );
+  };
+
   const mainTabs: MainTab[] = [
     {
       id: 'characters',
@@ -860,11 +881,19 @@ export default function MainTabSystem() {
       icon: Users,
       color: 'blue',
       subTabs: [
-        { id: 'headquarters', label: 'Headquarters', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space' },
         { id: 'progression', label: 'Progression', icon: TrendingUp, component: ProgressionDashboardWrapper, description: 'Level up, stats, & skill trees' },
         { id: 'equipment', label: 'Equipment', icon: Crown, component: EquipmentManagerWrapper, description: 'Weapons & armor with training bonuses' },
         { id: 'abilities', label: 'Abilities', icon: Sparkles, component: AbilityManagerWrapper, description: 'Manage powers & training points' },
         { id: 'chat', label: 'Chat', icon: MessageCircle, component: ChatDemo, description: 'Character conversations' },
+      ]
+    },
+    {
+      id: 'headquarters',
+      label: 'HQ',
+      icon: Home,
+      color: 'amber',
+      subTabs: [
+        { id: 'overview', label: 'Team Base', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space and facilities' },
       ]
     },
     {
@@ -917,6 +946,9 @@ export default function MainTabSystem() {
       color: 'purple',
       subTabs: [
         { id: 'profile', label: 'Profile', icon: User, component: CoachProgressionPage, description: 'View your coach profile and progression' },
+        { id: 'individual-sessions', label: 'Individual Sessions', icon: MessageCircle, component: PlaceholderComponent, description: 'One-on-one coaching with team members' },
+        { id: 'team-building', label: 'Team Building', icon: Users, component: TeamBuildingWrapper, description: 'Organize dinners, retreats, and activities' },
+        { id: 'group-activities', label: 'Group Activities', icon: Activity, component: PlaceholderComponent, description: 'Game nights and group therapy sessions' },
       ]
     }
   ];

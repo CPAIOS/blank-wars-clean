@@ -282,6 +282,22 @@ export function checkObedience(
 }
 
 // Coaching Points Progression System
+/**
+ * Get effective stats for battle calculations (traditional + temporary)
+ */
+export function getEffectiveStats(character: TeamCharacter): TraditionalStats {
+  return {
+    strength: character.traditionalStats.strength + character.temporaryStats.strength,
+    vitality: character.traditionalStats.vitality + character.temporaryStats.vitality,
+    speed: character.traditionalStats.speed + character.temporaryStats.speed,
+    dexterity: character.traditionalStats.dexterity + character.temporaryStats.dexterity,
+    stamina: character.traditionalStats.stamina + character.temporaryStats.stamina,
+    intelligence: character.traditionalStats.intelligence + character.temporaryStats.intelligence,
+    charisma: character.traditionalStats.charisma + character.temporaryStats.charisma,
+    spirit: character.traditionalStats.spirit + character.temporaryStats.spirit
+  };
+}
+
 export function updateCoachingPointsAfterBattle(team: Team, isWin: boolean): Team {
   if (isWin) {
     // Win: Reset to 3 points and clear consecutive losses
@@ -312,6 +328,115 @@ export function updateCoachingPointsAfterBattle(team: Team, isWin: boolean): Tea
       battlesPlayed: team.battlesPlayed + 1
     };
   }
+}
+
+// Enhanced team creation with headquarters bonuses and penalties
+export function createDemoPlayerTeamWithBonuses(
+  headquartersBonuses?: Record<string, number>, 
+  headquartersPenalties?: Record<string, number>
+): Team {
+  const baseTeam = createDemoPlayerTeam();
+  
+  // Apply headquarters effects to all team characters
+  baseTeam.characters = baseTeam.characters.map(character => {
+    let modifiedStats = { ...character.temporaryStats };
+    
+    // Apply bonuses
+    if (headquartersBonuses) {
+      Object.entries(headquartersBonuses).forEach(([bonusName, bonusValue]) => {
+        switch (bonusName) {
+          case 'Strength':
+            modifiedStats.strength += bonusValue;
+            break;
+          case 'Vitality':
+            modifiedStats.vitality += bonusValue;
+            break;
+          case 'Speed':
+            modifiedStats.speed += bonusValue;
+            break;
+          case 'Dexterity':
+          case 'Accuracy':
+            modifiedStats.dexterity += bonusValue;
+            break;
+          case 'Stamina':
+            modifiedStats.stamina += bonusValue;
+            break;
+          case 'Intelligence':
+            modifiedStats.intelligence += bonusValue;
+            break;
+          case 'Charisma':
+            modifiedStats.charisma += bonusValue;
+            break;
+          case 'Spirit':
+            modifiedStats.spirit += bonusValue;
+            break;
+        }
+      });
+    }
+    
+    // Apply penalties
+    if (headquartersPenalties) {
+      Object.entries(headquartersPenalties).forEach(([penaltyName, penaltyValue]) => {
+        if (penaltyName === 'All Stats') {
+          // Apply to all stats
+          modifiedStats.strength += penaltyValue;
+          modifiedStats.vitality += penaltyValue;
+          modifiedStats.speed += penaltyValue;
+          modifiedStats.dexterity += penaltyValue;
+          modifiedStats.stamina += penaltyValue;
+          modifiedStats.intelligence += penaltyValue;
+          modifiedStats.charisma += penaltyValue;
+          modifiedStats.spirit += penaltyValue;
+        } else {
+          // Apply to specific stats
+          switch (penaltyName) {
+            case 'Strength':
+              modifiedStats.strength += penaltyValue;
+              break;
+            case 'Vitality':
+              modifiedStats.vitality += penaltyValue;
+              break;
+            case 'Speed':
+              modifiedStats.speed += penaltyValue;
+              break;
+            case 'Dexterity':
+            case 'Accuracy':
+              modifiedStats.dexterity += penaltyValue;
+              break;
+            case 'Stamina':
+              modifiedStats.stamina += penaltyValue;
+              break;
+            case 'Intelligence':
+              modifiedStats.intelligence += penaltyValue;
+              break;
+            case 'Charisma':
+              modifiedStats.charisma += penaltyValue;
+              break;
+            case 'Spirit':
+              modifiedStats.spirit += penaltyValue;
+              break;
+            case 'Morale':
+              // Morale affects multiple stats
+              modifiedStats.charisma += penaltyValue * 0.5;
+              modifiedStats.spirit += penaltyValue * 0.3;
+              break;
+            case 'Teamwork':
+              // Teamwork affects coordination stats
+              modifiedStats.charisma += penaltyValue * 0.4;
+              modifiedStats.intelligence += penaltyValue * 0.3;
+              break;
+          }
+        }
+      });
+    }
+    
+    return {
+      ...character,
+      temporaryStats: modifiedStats
+    };
+  });
+  
+  return baseTeam;
 }
 
 // Create demo teams for testing

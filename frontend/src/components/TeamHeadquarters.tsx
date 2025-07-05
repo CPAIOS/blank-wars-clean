@@ -24,11 +24,19 @@ import {
   User,
   Coffee,
   MessageSquare,
-  AlertCircle
+  AlertCircle,
+  HelpCircle,
+  Video,
+  Mic
 } from 'lucide-react';
 import { createDemoCharacterCollection, Character } from '../data/characters';
 import { kitchenChatService } from '../services/kitchenChatService';
 import { PromptTemplateService } from '../services/promptTemplateService';
+import { roomImageService } from '../services/roomImageService';
+import { useTutorial } from '../hooks/useTutorial';
+import { teamHeadquartersTutorialSteps } from '../data/tutorialSteps';
+import Tutorial from './Tutorial';
+import { usageService, UsageStatus } from '../services/usageService';
 
 // Headquarters progression tiers
 interface HeadquartersTier {
@@ -56,13 +64,32 @@ interface RoomTheme {
   icon: string;
 }
 
-// Room instance
+// Room element categories for multi-element theming
+interface RoomElement {
+  id: string;
+  name: string;
+  category: 'wallDecor' | 'furniture' | 'lighting' | 'accessories' | 'flooring';
+  description: string;
+  bonus: string;
+  bonusValue: number;
+  suitableCharacters: string[];
+  cost: { coins: number; gems: number };
+  backgroundColor: string;
+  textColor: string;
+  icon: string;
+  compatibleWith: string[]; // Other element IDs that synergize well
+  incompatibleWith: string[]; // Other element IDs that clash
+}
+
+// Room instance with multi-element support
 interface Room {
   id: string;
   name: string;
-  theme: string | null;
+  theme: string | null; // Legacy single theme support
+  elements: string[]; // New multi-element system
   assignedCharacters: string[];
   maxCharacters: number;
+  customImageUrl?: string; // DALL-E generated image
 }
 
 // User headquarters state
@@ -251,6 +278,229 @@ const ROOM_THEMES: RoomTheme[] = [
   }
 ];
 
+// Multi-element room decoration system
+const ROOM_ELEMENTS: RoomElement[] = [
+  // Wall Decor
+  {
+    id: 'gothic_tapestries',
+    name: 'Gothic Tapestries',
+    category: 'wallDecor',
+    description: 'Dark velvet tapestries with mysterious symbols',
+    bonus: 'Magic Damage',
+    bonusValue: 8,
+    suitableCharacters: ['dracula', 'frankenstein_monster'],
+    cost: { coins: 2000, gems: 5 },
+    backgroundColor: 'bg-purple-900/20',
+    textColor: 'text-purple-300',
+    icon: '🪶',
+    compatibleWith: ['gothic_chandelier', 'stone_floors'],
+    incompatibleWith: ['neon_strips', 'holographic_panels']
+  },
+  {
+    id: 'weapon_displays',
+    name: 'Weapon Displays',
+    category: 'wallDecor',
+    description: 'Mounted swords, shields, and battle trophies',
+    bonus: 'Physical Damage',
+    bonusValue: 8,
+    suitableCharacters: ['achilles', 'joan', 'robin_hood'],
+    cost: { coins: 2500, gems: 4 },
+    backgroundColor: 'bg-amber-900/20',
+    textColor: 'text-amber-300',
+    icon: '⚔️',
+    compatibleWith: ['wooden_furniture', 'torch_lighting'],
+    incompatibleWith: ['crystal_displays', 'tech_panels']
+  },
+  {
+    id: 'holographic_panels',
+    name: 'Holographic Panels',
+    category: 'wallDecor',
+    description: 'Advanced tech displays with data streams',
+    bonus: 'Accuracy',
+    bonusValue: 10,
+    suitableCharacters: ['tesla', 'space_cyborg', 'agent_x'],
+    cost: { coins: 4000, gems: 12 },
+    backgroundColor: 'bg-cyan-900/20',
+    textColor: 'text-cyan-300',
+    icon: '📱',
+    compatibleWith: ['led_lighting', 'metal_floors'],
+    incompatibleWith: ['gothic_tapestries', 'wooden_furniture']
+  },
+
+  // Furniture
+  {
+    id: 'throne_chair',
+    name: 'Royal Throne',
+    category: 'furniture',
+    description: 'Ornate golden throne for true royalty',
+    bonus: 'Leadership',
+    bonusValue: 12,
+    suitableCharacters: ['cleopatra', 'genghis_khan'],
+    cost: { coins: 3000, gems: 8 },
+    backgroundColor: 'bg-yellow-900/20',
+    textColor: 'text-yellow-300',
+    icon: '👑',
+    compatibleWith: ['golden_accents', 'marble_floors'],
+    incompatibleWith: ['wooden_furniture', 'tech_stations']
+  },
+  {
+    id: 'wooden_furniture',
+    name: 'Rustic Wood Set',
+    category: 'furniture',
+    description: 'Handcrafted wooden tables and chairs',
+    bonus: 'Stamina',
+    bonusValue: 8,
+    suitableCharacters: ['billy_the_kid', 'robin_hood'],
+    cost: { coins: 1500, gems: 3 },
+    backgroundColor: 'bg-orange-900/20',
+    textColor: 'text-orange-300',
+    icon: '🪑',
+    compatibleWith: ['weapon_displays', 'torch_lighting'],
+    incompatibleWith: ['throne_chair', 'tech_stations']
+  },
+  {
+    id: 'tech_stations',
+    name: 'Tech Workstations',
+    category: 'furniture',
+    description: 'Advanced computer terminals and lab equipment',
+    bonus: 'Critical Chance',
+    bonusValue: 10,
+    suitableCharacters: ['tesla', 'holmes', 'alien_grey'],
+    cost: { coins: 5000, gems: 15 },
+    backgroundColor: 'bg-blue-900/20',
+    textColor: 'text-blue-300',
+    icon: '💻',
+    compatibleWith: ['holographic_panels', 'led_lighting'],
+    incompatibleWith: ['throne_chair', 'wooden_furniture']
+  },
+
+  // Lighting
+  {
+    id: 'gothic_chandelier',
+    name: 'Gothic Chandelier',
+    category: 'lighting',
+    description: 'Ornate iron chandelier with flickering candles',
+    bonus: 'Magic Damage',
+    bonusValue: 6,
+    suitableCharacters: ['dracula', 'frankenstein_monster'],
+    cost: { coins: 2000, gems: 6 },
+    backgroundColor: 'bg-purple-900/20',
+    textColor: 'text-purple-300',
+    icon: '🕯️',
+    compatibleWith: ['gothic_tapestries', 'stone_floors'],
+    incompatibleWith: ['led_lighting', 'neon_strips']
+  },
+  {
+    id: 'led_lighting',
+    name: 'LED Strip System',
+    category: 'lighting',
+    description: 'Color-changing LED lights with smart controls',
+    bonus: 'Speed',
+    bonusValue: 8,
+    suitableCharacters: ['tesla', 'space_cyborg'],
+    cost: { coins: 3500, gems: 10 },
+    backgroundColor: 'bg-cyan-900/20',
+    textColor: 'text-cyan-300',
+    icon: '💡',
+    compatibleWith: ['holographic_panels', 'tech_stations'],
+    incompatibleWith: ['gothic_chandelier', 'torch_lighting']
+  },
+  {
+    id: 'torch_lighting',
+    name: 'Medieval Torches',
+    category: 'lighting',
+    description: 'Classic wall-mounted torches for authentic ambiance',
+    bonus: 'Physical Damage',
+    bonusValue: 6,
+    suitableCharacters: ['achilles', 'joan'],
+    cost: { coins: 1000, gems: 2 },
+    backgroundColor: 'bg-amber-900/20',
+    textColor: 'text-amber-300',
+    icon: '🔥',
+    compatibleWith: ['weapon_displays', 'wooden_furniture'],
+    incompatibleWith: ['led_lighting', 'gothic_chandelier']
+  },
+
+  // Accessories
+  {
+    id: 'crystal_displays',
+    name: 'Mystical Crystals',
+    category: 'accessories',
+    description: 'Glowing crystals with magical properties',
+    bonus: 'Mana Regeneration',
+    bonusValue: 15,
+    suitableCharacters: ['merlin', 'sun_wukong'],
+    cost: { coins: 2500, gems: 8 },
+    backgroundColor: 'bg-blue-900/20',
+    textColor: 'text-blue-300',
+    icon: '🔮',
+    compatibleWith: ['gothic_chandelier', 'stone_floors'],
+    incompatibleWith: ['weapon_displays', 'tech_stations']
+  },
+  {
+    id: 'golden_accents',
+    name: 'Golden Decorations',
+    category: 'accessories',
+    description: 'Luxurious gold trim and ornamental pieces',
+    bonus: 'Defense',
+    bonusValue: 10,
+    suitableCharacters: ['cleopatra', 'genghis_khan'],
+    cost: { coins: 4000, gems: 12 },
+    backgroundColor: 'bg-yellow-900/20',
+    textColor: 'text-yellow-300',
+    icon: '✨',
+    compatibleWith: ['throne_chair', 'marble_floors'],
+    incompatibleWith: ['wooden_furniture', 'metal_floors']
+  },
+
+  // Flooring
+  {
+    id: 'stone_floors',
+    name: 'Ancient Stone',
+    category: 'flooring',
+    description: 'Weathered stone blocks with mystical runes',
+    bonus: 'Defense',
+    bonusValue: 8,
+    suitableCharacters: ['dracula', 'merlin'],
+    cost: { coins: 3000, gems: 7 },
+    backgroundColor: 'bg-gray-900/20',
+    textColor: 'text-gray-300',
+    icon: '🗿',
+    compatibleWith: ['gothic_tapestries', 'crystal_displays'],
+    incompatibleWith: ['metal_floors', 'tech_stations']
+  },
+  {
+    id: 'marble_floors',
+    name: 'Royal Marble',
+    category: 'flooring',
+    description: 'Polished marble with golden veins',
+    bonus: 'Leadership',
+    bonusValue: 8,
+    suitableCharacters: ['cleopatra', 'achilles'],
+    cost: { coins: 5000, gems: 15 },
+    backgroundColor: 'bg-yellow-900/20',
+    textColor: 'text-yellow-300',
+    icon: '⬜',
+    compatibleWith: ['throne_chair', 'golden_accents'],
+    incompatibleWith: ['wooden_furniture', 'stone_floors']
+  },
+  {
+    id: 'metal_floors',
+    name: 'Tech Flooring',
+    category: 'flooring',
+    description: 'Reinforced metal grating with LED strips',
+    bonus: 'Speed',
+    bonusValue: 8,
+    suitableCharacters: ['tesla', 'space_cyborg'],
+    cost: { coins: 4000, gems: 10 },
+    backgroundColor: 'bg-cyan-900/20',
+    textColor: 'text-cyan-300',
+    icon: '🔲',
+    compatibleWith: ['holographic_panels', 'led_lighting'],
+    incompatibleWith: ['stone_floors', 'marble_floors']
+  }
+];
+
 
 export default function TeamHeadquarters() {
   
@@ -261,6 +511,38 @@ export default function TeamHeadquarters() {
     }))
   );
 
+  // Usage tracking state
+  const [usageStatus, setUsageStatus] = useState<UsageStatus | null>(null);
+  
+  // Tutorial system
+  const { isFirstTimeUser, startTutorial, isActive: isTutorialActive, resetTutorial } = useTutorial();
+  
+  // Debug helper for testing (remove in production)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).resetTutorial = resetTutorial;
+      (window as any).startTutorial = () => startTutorial(teamHeadquartersTutorialSteps);
+    }
+  }, [resetTutorial, startTutorial]);
+
+  // Load usage status on component mount
+  useEffect(() => {
+    const loadUsageStatus = async () => {
+      try {
+        const status = await usageService.getUserUsageStatus();
+        setUsageStatus(status);
+      } catch (error) {
+        console.error('Failed to load usage status:', error);
+      }
+    };
+    
+    loadUsageStatus();
+    
+    // Refresh usage status every 5 minutes
+    const interval = setInterval(loadUsageStatus, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [headquarters, setHeadquarters] = useState<HeadquartersState>({
     currentTier: 'spartan_apartment',
     rooms: [
@@ -268,14 +550,16 @@ export default function TeamHeadquarters() {
         id: 'room_1',
         name: 'Bunk Room Alpha',
         theme: null,
-        assignedCharacters: ['achilles', 'holmes', 'dracula', 'merlin'],
+        elements: [], // New multi-element system
+        assignedCharacters: ['achilles', 'holmes', 'dracula', 'merlin', 'cleopatra', 'joan'], // Overcrowded!
         maxCharacters: 4
       },
       {
         id: 'room_2', 
         name: 'Bunk Room Beta',
         theme: null,
-        assignedCharacters: ['cleopatra', 'joan', 'frankenstein_monster', 'sun_wukong'],
+        elements: [], // New multi-element system
+        assignedCharacters: ['frankenstein_monster', 'sun_wukong', 'tesla', 'billy_the_kid', 'genghis_khan'], // Overcrowded!
         maxCharacters: 4
       }
     ],
@@ -284,12 +568,38 @@ export default function TeamHeadquarters() {
   });
 
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'overview' | 'room_detail' | 'upgrade_shop' | 'kitchen_chat'>('overview');
+  const [viewMode, setViewMode] = useState<'overview' | 'room_detail' | 'upgrade_shop' | 'kitchen_chat' | 'confessionals'>('overview');
   const [kitchenConversations, setKitchenConversations] = useState<any[]>([]);
   const [isGeneratingConversation, setIsGeneratingConversation] = useState(false);
+  
+  // Calculate battle bonuses from room themes
+  const battleBonuses = headquarters.rooms.reduce((bonuses: Record<string, number>, room) => {
+    if (room.theme) {
+      const theme = ROOM_THEMES.find(t => t.id === room.theme);
+      if (theme && room.assignedCharacters.length > 0) {
+        bonuses[theme.bonus] = (bonuses[theme.bonus] || 0) + theme.bonusValue;
+      }
+    }
+    return bonuses;
+  }, {});
   const [currentSceneRound, setCurrentSceneRound] = useState(0);
   const [sceneInitialized, setSceneInitialized] = useState(false);
   const [coachMessage, setCoachMessage] = useState('');
+  const [draggedCharacter, setDraggedCharacter] = useState<string | null>(null);
+  const [showCharacterPool, setShowCharacterPool] = useState(false);
+  const [selectedElementCategory, setSelectedElementCategory] = useState<'wallDecor' | 'furniture' | 'lighting' | 'accessories' | 'flooring' | null>(null);
+  const [isGeneratingRoomImage, setIsGeneratingRoomImage] = useState(false);
+
+  // Auto-start tutorial for first-time users
+  useEffect(() => {
+    if (isFirstTimeUser() && !isTutorialActive) {
+      // Small delay to let the component render first
+      const timer = setTimeout(() => {
+        startTutorial(teamHeadquartersTutorialSteps);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isFirstTimeUser, isTutorialActive, startTutorial]);
 
   const currentTier = HEADQUARTERS_TIERS.find(tier => tier.id === headquarters.currentTier)!;
   const nextTier = HEADQUARTERS_TIERS.find(tier => HEADQUARTERS_TIERS.indexOf(tier) === HEADQUARTERS_TIERS.indexOf(currentTier) + 1);
@@ -382,12 +692,19 @@ export default function TeamHeadquarters() {
       let participants: string[] = [];
       
       if (newRound <= 3) {
+        // Non-sequential response selection
         const lastParticipants = [...new Set(kitchenConversations.slice(0, 3).map(c => c.speaker))];
-        participants = headquarters.rooms[0].assignedCharacters.filter(name => {
+        const availableResponders = headquarters.rooms[0].assignedCharacters.filter(name => {
           const char = availableCharacters.find(c => c.baseName === name);
           return char && lastParticipants.includes(char.name.split(' ')[0]);
         });
-        trigger = `The conversation continues - someone responds to what was just said`;
+        
+        // Randomly select 1-2 characters (non-sequential)
+        const numResponders = Math.min(Math.random() > 0.5 ? 2 : 1, availableResponders.length);
+        participants = availableResponders.sort(() => Math.random() - 0.5).slice(0, numResponders);
+        
+        const lastMessage = kitchenConversations[0];
+        trigger = `Someone responds to ${lastMessage.speaker}'s comment: "${lastMessage.message}". Keep the conversation natural and build on what was said.`;
       } else if (newRound <= 6) {
         const currentParticipants = [...new Set(kitchenConversations.map(c => c.speaker))];
         const availableNewChars = headquarters.rooms[0].assignedCharacters.filter(name => {
@@ -396,11 +713,13 @@ export default function TeamHeadquarters() {
         });
         
         if (availableNewChars.length > 0) {
-          participants = [availableNewChars[0]];
-          trigger = `${availableCharacters.find(c => c.baseName === availableNewChars[0])?.name.split(' ')[0]} walks into the kitchen and reacts to what's happening`;
+          // Random selection of new character
+          participants = [availableNewChars[Math.floor(Math.random() * availableNewChars.length)]];
+          trigger = `${availableCharacters.find(c => c.baseName === participants[0])?.name.split(' ')[0]} walks into the kitchen and reacts to what's happening`;
         } else {
-          participants = headquarters.rooms[0].assignedCharacters.slice(0, 2);
-          trigger = 'The situation escalates further';
+          // Random selection from all characters
+          participants = headquarters.rooms[0].assignedCharacters.sort(() => Math.random() - 0.5).slice(0, 2);
+          trigger = 'The conversation takes a new turn';
         }
       } else {
         participants = PromptTemplateService.selectSceneParticipants(headquarters.rooms[0].assignedCharacters, 2);
@@ -435,19 +754,52 @@ export default function TeamHeadquarters() {
         };
         
         try {
-          const response = await kitchenChatService.generateKitchenConversation(context, trigger);
-          newConversations.push({
-            id: `scene${newRound}_${Date.now()}_${charName}`,
-            avatar: character.avatar,
-            speaker: character.name.split(' ')[0],
-            message: response,
-            isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
-            timestamp: new Date(),
-            isAI: true,
-            round: newRound
-          });
+          // Enhanced context with conversation history
+          const conversationHistory = kitchenConversations.slice(0, 5).map(c => `${c.speaker}: ${c.message}`).join('\n');
+          const enhancedContext = {
+            ...context,
+            conversationHistory,
+            recentEvents: [trigger, ...context.recentEvents]
+          };
+          
+          const response = await kitchenChatService.generateKitchenConversation(enhancedContext, trigger);
+          
+          // Duplicate detection to prevent repetitive responses
+          const recentMessages = kitchenConversations.slice(0, 3).map(c => c.message.toLowerCase());
+          const isUnique = response && response.length > 10 && 
+            !recentMessages.some(msg => {
+              const similarity = msg.includes(response.toLowerCase().substring(0, 15)) || 
+                               response.toLowerCase().includes(msg.substring(0, 15));
+              return similarity;
+            });
+          
+          if (isUnique) {
+            newConversations.push({
+              id: `scene${newRound}_${Date.now()}_${charName}`,
+              avatar: character.avatar,
+              speaker: character.name.split(' ')[0],
+              message: response,
+              isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
+              timestamp: new Date(),
+              isAI: true,
+              round: newRound
+            });
+          }
         } catch (error) {
           console.error(`Failed to continue scene for ${charName}:`, error);
+          if (error instanceof Error && error.message === 'USAGE_LIMIT_REACHED') {
+            // Stop trying more characters and refresh usage status
+            const loadUsageStatus = async () => {
+              try {
+                const status = await usageService.getUserUsageStatus();
+                setUsageStatus(status);
+              } catch (error) {
+                console.error('Failed to refresh usage status:', error);
+              }
+            };
+            loadUsageStatus();
+            break; // Stop generating more conversations
+          }
         }
         
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -571,28 +923,169 @@ export default function TeamHeadquarters() {
     return conflicts;
   };
 
-  // Calculate total battle bonuses
-  const calculateBattleBonuses = () => {
-    const bonuses: Record<string, number> = {};
+  // Calculate character happiness in room
+  const getCharacterHappiness = (charName: string, roomId: string) => {
+    const room = headquarters.rooms.find(r => r.id === roomId);
+    if (!room) return { level: 3, status: 'Content', emoji: '😐' };
+
+    let happiness = 3; // Base happiness (1-5 scale)
     
+    // Theme compatibility
+    const compatibility = getThemeCompatibility(charName, room.theme);
+    if (compatibility.type === 'compatible') {
+      happiness += 1;
+    } else if (compatibility.type === 'incompatible') {
+      happiness -= 1; // Penalty for wrong theme
+    }
+    
+    // Overcrowding penalty
+    if (room.assignedCharacters.length > room.maxCharacters) {
+      happiness -= 1;
+    }
+    
+    // Character conflicts
+    const conflicts = getCharacterConflicts(roomId);
+    if (conflicts.length > 0) {
+      happiness -= 1;
+    }
+    
+    // Tier bonus
+    const tierIndex = HEADQUARTERS_TIERS.findIndex(t => t.id === headquarters.currentTier);
+    happiness += Math.floor(tierIndex / 2);
+    
+    // Clamp between 1-5
+    happiness = Math.max(1, Math.min(5, happiness));
+    
+    const statusMap = {
+      1: { status: 'Miserable', emoji: '😫' },
+      2: { status: 'Unhappy', emoji: '😒' },
+      3: { status: 'Content', emoji: '😐' },
+      4: { status: 'Happy', emoji: '😊' },
+      5: { status: 'Ecstatic', emoji: '🤩' }
+    };
+    
+    return { level: happiness, ...statusMap[happiness as keyof typeof statusMap] };
+  };
+
+  // Theme compatibility helper functions
+  const getThemeCompatibility = (charName: string, themeId: string | null) => {
+    if (!themeId) return { compatible: true, type: 'no_theme' };
+    
+    const theme = ROOM_THEMES.find(t => t.id === themeId);
+    if (!theme) return { compatible: true, type: 'no_theme' };
+    
+    const isCompatible = theme.suitableCharacters.includes(charName);
+    return {
+      compatible: isCompatible,
+      type: isCompatible ? 'compatible' : 'incompatible',
+      theme,
+      bonusValue: isCompatible ? theme.bonusValue : 0,
+      penalty: isCompatible ? 0 : -5 // Small happiness penalty for wrong theme
+    };
+  };
+
+  const getRoomThemeWarnings = (roomId: string) => {
+    const room = headquarters.rooms.find(r => r.id === roomId);
+    if (!room || !room.theme) return [];
+    
+    const theme = ROOM_THEMES.find(t => t.id === room.theme);
+    if (!theme) return [];
+    
+    const warnings = [];
+    const incompatibleCharacters = room.assignedCharacters.filter(charName => 
+      !theme.suitableCharacters.includes(charName)
+    );
+    
+    if (incompatibleCharacters.length > 0) {
+      warnings.push({
+        type: 'theme_mismatch',
+        severity: 'warning',
+        characters: incompatibleCharacters,
+        message: `${incompatibleCharacters.length} fighter(s) clash with ${theme.name} set design`,
+        suggestion: `Consider moving to ${getCharacterSuggestedThemes(incompatibleCharacters[0]).map(t => t.name).join(' or ')}`
+      });
+    }
+    
+    return warnings;
+  };
+
+  const getCharacterSuggestedThemes = (charName: string) => {
+    return ROOM_THEMES.filter(theme => theme.suitableCharacters.includes(charName));
+  };
+
+  const calculateMissedBonuses = (roomId: string) => {
+    const room = headquarters.rooms.find(r => r.id === roomId);
+    if (!room) return [];
+    
+    const missedBonuses = [];
+    
+    room.assignedCharacters.forEach(charName => {
+      const compatibility = getThemeCompatibility(charName, room.theme);
+      
+      // Only show missed bonuses if character is incompatible or room has no theme
+      if (compatibility.type === 'incompatible' || compatibility.type === 'no_theme') {
+        const suggestedThemes = getCharacterSuggestedThemes(charName);
+        suggestedThemes.forEach(theme => {
+          missedBonuses.push({
+            character: charName,
+            theme: theme.name,
+            bonus: `+${theme.bonusValue}% ${theme.bonus}`,
+            themeId: theme.id
+          });
+        });
+      }
+    });
+    
+    return missedBonuses;
+  };
+
+  // Calculate team chemistry penalties from overcrowding
+  const calculateTeamChemistry = () => {
+    const totalCharacters = headquarters.rooms.reduce((sum, room) => sum + room.assignedCharacters.length, 0);
+    const totalCapacity = headquarters.rooms.reduce((sum, room) => sum + room.maxCharacters, 0);
+    
+    let chemistryPenalty = 0;
+    if (totalCharacters > totalCapacity) {
+      const overflow = totalCharacters - totalCapacity;
+      if (overflow >= 4) chemistryPenalty = -35; // 12+ characters in 8-capacity apartment
+      else if (overflow >= 2) chemistryPenalty = -25; // 10+ characters
+      else chemistryPenalty = -15; // 8+ characters
+    }
+    
+    return { teamCoordination: chemistryPenalty };
+  };
+
+  // Calculate total battle bonuses and penalties
+  const calculateBattleEffects = () => {
+    const effects: Record<string, number> = {};
+    
+    // Positive bonuses from room themes
     headquarters.rooms.forEach(room => {
       if (room.theme) {
         const theme = ROOM_THEMES.find(t => t.id === room.theme);
         if (theme) {
           room.assignedCharacters.forEach(charName => {
             if (theme.suitableCharacters.includes(charName)) {
-              if (!bonuses[theme.bonus]) bonuses[theme.bonus] = 0;
-              bonuses[theme.bonus] += theme.bonusValue;
+              if (!effects[theme.bonus]) effects[theme.bonus] = 0;
+              effects[theme.bonus] += theme.bonusValue;
             }
           });
         }
       }
     });
+    
+    // Negative penalties from overcrowding
+    const chemistry = calculateTeamChemistry();
+    Object.entries(chemistry).forEach(([key, value]) => {
+      if (value !== 0) {
+        effects[key] = value;
+      }
+    });
 
-    return bonuses;
+    return effects;
   };
 
-  const battleBonuses = calculateBattleBonuses();
+  const battleEffects = calculateBattleEffects();
 
   const upgradeHeadquarters = (tierId: string) => {
     const tier = HEADQUARTERS_TIERS.find(t => t.id === tierId);
@@ -610,6 +1103,7 @@ export default function TeamHeadquarters() {
           id: `room_${i + 1}`,
           name: `Room ${i + 1}`,
           theme: null,
+          elements: [], // New multi-element system
           assignedCharacters: [],
           maxCharacters: tier.charactersPerRoom
         }))
@@ -636,6 +1130,185 @@ export default function TeamHeadquarters() {
     }
   };
 
+  // Room element management functions
+  const addElementToRoom = (roomId: string, elementId: string) => {
+    const element = ROOM_ELEMENTS.find(e => e.id === elementId);
+    const room = headquarters.rooms.find(r => r.id === roomId);
+    
+    if (!element || !room) return;
+
+    // Check element capacity based on tier
+    const tierCapacity = {
+      'spartan_apartment': 2,
+      'basic_house': 3,
+      'team_mansion': 5,
+      'elite_compound': 10
+    };
+    
+    const maxElements = tierCapacity[headquarters.currentTier as keyof typeof tierCapacity] || 2;
+    
+    if (room.elements.length >= maxElements) {
+      console.warn(`Room is at element capacity (${maxElements})`);
+      return;
+    }
+
+    // Check if player can afford
+    if (headquarters.currency.coins >= element.cost.coins && headquarters.currency.gems >= element.cost.gems) {
+      setHeadquarters(prev => ({
+        ...prev,
+        currency: {
+          coins: prev.currency.coins - element.cost.coins,
+          gems: prev.currency.gems - element.cost.gems
+        },
+        rooms: prev.rooms.map(room => 
+          room.id === roomId 
+            ? { ...room, elements: [...room.elements, elementId] }
+            : room
+        )
+      }));
+    }
+  };
+
+  const removeElementFromRoom = (roomId: string, elementId: string) => {
+    setHeadquarters(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(room => 
+        room.id === roomId 
+          ? { ...room, elements: room.elements.filter(id => id !== elementId) }
+          : room
+      )
+    }));
+  };
+
+  // Calculate bonuses from room elements (including synergy bonuses)
+  const calculateRoomBonuses = (roomId: string) => {
+    const room = headquarters.rooms.find(r => r.id === roomId);
+    if (!room) return {};
+
+    const bonuses: Record<string, number> = {};
+    
+    // Base element bonuses
+    room.elements.forEach(elementId => {
+      const element = ROOM_ELEMENTS.find(e => e.id === elementId);
+      if (element) {
+        bonuses[element.bonus] = (bonuses[element.bonus] || 0) + element.bonusValue;
+      }
+    });
+
+    // Synergy bonuses for compatible elements
+    room.elements.forEach(elementId => {
+      const element = ROOM_ELEMENTS.find(e => e.id === elementId);
+      if (element) {
+        const compatibleInRoom = element.compatibleWith.filter(compatId => 
+          room.elements.includes(compatId)
+        );
+        
+        // Add 25% bonus for each compatible element
+        compatibleInRoom.forEach(() => {
+          bonuses[element.bonus] = (bonuses[element.bonus] || 0) + Math.floor(element.bonusValue * 0.25);
+        });
+      }
+    });
+
+    return bonuses;
+  };
+
+  // Get element capacity for current tier
+  const getElementCapacity = () => {
+    const tierCapacity = {
+      'spartan_apartment': 2,
+      'basic_house': 3,
+      'team_mansion': 5,
+      'elite_compound': 10
+    };
+    return tierCapacity[headquarters.currentTier as keyof typeof tierCapacity] || 2;
+  };
+
+  // Generate custom room image using DALL-E
+  const generateRoomImage = async (roomId: string) => {
+    const room = headquarters.rooms.find(r => r.id === roomId);
+    if (!room || room.elements.length === 0) {
+      console.warn('Cannot generate image: room not found or no elements selected');
+      return;
+    }
+
+    setIsGeneratingRoomImage(true);
+
+    try {
+      const roomElements = room.elements.map(elementId => {
+        const element = ROOM_ELEMENTS.find(e => e.id === elementId);
+        return element ? {
+          id: element.id,
+          name: element.name,
+          category: element.category,
+          description: element.description
+        } : null;
+      }).filter(Boolean) as any[];
+
+      const imageUrl = await roomImageService.generateRoomImage({
+        roomName: room.name,
+        elements: roomElements,
+        style: 'photorealistic reality TV set',
+        size: 'medium'
+      });
+
+      // Update room with generated image
+      setHeadquarters(prev => ({
+        ...prev,
+        rooms: prev.rooms.map(r => 
+          r.id === roomId ? { ...r, customImageUrl: imageUrl } : r
+        )
+      }));
+
+    } catch (error) {
+      console.error('Failed to generate room image:', error);
+    } finally {
+      setIsGeneratingRoomImage(false);
+    }
+  };
+
+  // Character assignment functions
+  const assignCharacterToRoom = (characterId: string, roomId: string) => {
+    setHeadquarters(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(room => {
+        if (room.id === roomId) {
+          // Add character if not already assigned
+          if (!room.assignedCharacters.includes(characterId)) {
+            return {
+              ...room,
+              assignedCharacters: [...room.assignedCharacters, characterId]
+            };
+          }
+        } else {
+          // Remove character from other rooms
+          return {
+            ...room,
+            assignedCharacters: room.assignedCharacters.filter(id => id !== characterId)
+          };
+        }
+        return room;
+      })
+    }));
+  };
+
+  const removeCharacterFromRoom = (characterId: string, roomId: string) => {
+    setHeadquarters(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(room => 
+        room.id === roomId
+          ? { ...room, assignedCharacters: room.assignedCharacters.filter(id => id !== characterId) }
+          : room
+      )
+    }));
+  };
+
+  // Get unassigned characters for the pool
+  const getUnassignedCharacters = () => {
+    const assignedCharacters = headquarters.rooms.flatMap(room => room.assignedCharacters);
+    return availableCharacters.filter(char => !assignedCharacters.includes(char.baseName));
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -652,14 +1325,32 @@ export default function TeamHeadquarters() {
               <p className="text-gray-400">{currentTier.description}</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-yellow-400">
-              <Coins className="w-5 h-5" />
-              <span className="font-semibold">{headquarters.currency.coins.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center gap-2 text-purple-400">
-              <Gem className="w-5 h-5" />
-              <span className="font-semibold">{headquarters.currency.gems}</span>
+          <div className="flex items-center gap-6">
+            {/* Battle Effects Display */}
+            {Object.keys(battleEffects).length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  {Object.values(battleEffects).some(v => v > 0) && <Sword className="w-4 h-4 text-green-400" />}
+                  {Object.values(battleEffects).some(v => v < 0) && <Shield className="w-4 h-4 text-red-400" />}
+                </div>
+                <div className="text-sm space-y-1">
+                  {Object.entries(battleEffects).map(([effect, value]) => (
+                    <div key={effect} className={value > 0 ? 'text-green-400' : 'text-red-400'}>
+                      {value > 0 ? '+' : ''}{value}% {effect.replace(/([A-Z])/g, ' $1').trim()}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-yellow-400">
+                <Coins className="w-5 h-5" />
+                <span className="font-semibold">{headquarters.currency.coins.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-2 text-purple-400">
+                <Gem className="w-5 h-5" />
+                <span className="font-semibold">{headquarters.currency.gems}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -684,8 +1375,8 @@ export default function TeamHeadquarters() {
       </motion.div>
 
       {/* Navigation */}
-      <div className="flex gap-2">
-        {['overview', 'kitchen_chat', 'upgrade_shop'].map((mode) => (
+      <div className="flex gap-2 items-center">
+        {['overview', 'kitchen_chat', 'confessionals', 'upgrade_shop'].map((mode) => (
           <button
             key={mode}
             onClick={() => setViewMode(mode as any)}
@@ -694,24 +1385,165 @@ export default function TeamHeadquarters() {
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
+            data-tutorial={mode === 'kitchen_chat' ? 'kitchen-chat-tab' : mode === 'upgrade_shop' ? 'upgrade-tab' : mode === 'confessionals' ? 'confessionals-tab' : undefined}
           >
-            {mode === 'overview' ? 'Room Overview' : 
+            {mode === 'overview' ? 'Living Quarters' : 
              mode === 'kitchen_chat' ? 'Kitchen Table' : 
-             'Upgrade Shop'}
+             mode === 'confessionals' ? 'Confessionals' :
+             'Facilities'}
           </button>
         ))}
+        <button
+          onClick={() => setShowCharacterPool(!showCharacterPool)}
+          className={`px-4 py-2 rounded-lg transition-all ${
+            showCharacterPool
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+          data-tutorial="character-pool-button"
+        >
+          <User className="w-4 h-4 inline mr-2" />
+          Available Fighters ({getUnassignedCharacters().length})
+        </button>
+        <button
+          onClick={() => startTutorial(teamHeadquartersTutorialSteps)}
+          className="px-4 py-2 rounded-lg transition-all bg-purple-600 text-white hover:bg-purple-500"
+          title="Restart Tutorial"
+        >
+          <HelpCircle className="w-4 h-4 inline mr-2" />
+          Tutorial
+        </button>
       </div>
 
       {/* Main Content */}
       <AnimatePresence mode="wait">
         {viewMode === 'overview' && (
-          <motion.div
-            key="overview"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
-          >
+          <>
+            {/* Team Dashboard */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gray-800/80 rounded-xl p-6 border border-gray-700 mb-6"
+              data-tutorial="team-dashboard"
+            >
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                Fighter Status Monitor
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Team Chemistry */}
+                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4 text-red-400" />
+                    <h3 className="font-semibold text-red-400">Team Performance</h3>
+                  </div>
+                  <div className="text-2xl font-bold text-red-300 mb-1">
+                    {calculateTeamChemistry().teamCoordination}%
+                  </div>
+                  <div className="text-sm text-red-200">
+                    DRAMA OVERLOAD - Viewers love conflict but battles suffer!
+                  </div>
+                </div>
+                
+                {/* Personal Stress */}
+                <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="w-4 h-4 text-orange-400" />
+                    <h3 className="font-semibold text-orange-400">Living Conditions</h3>
+                  </div>
+                  <div className="text-2xl font-bold text-orange-300 mb-1">
+                    CRAMPED
+                  </div>
+                  <div className="text-sm text-orange-200">
+                    {headquarters.rooms.reduce((sum, room) => sum + room.assignedCharacters.length, 0)} team members sharing {headquarters.rooms.reduce((sum, room) => sum + room.maxCharacters, 0)} beds
+                  </div>
+                </div>
+                
+                {/* Next Action */}
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ArrowUp className="w-4 h-4 text-blue-400" />
+                    <h3 className="font-semibold text-blue-400">Coach's Note</h3>
+                  </div>
+                  <div className="text-lg font-bold text-blue-300 mb-1">
+                    Upgrade Set
+                  </div>
+                  <div className="text-sm text-blue-200">
+                    Need {Math.max(0, 25000 - headquarters.currency.coins).toLocaleString()} more prize money
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Set Design Opportunities Summary */}
+            {(() => {
+              const allWarnings = headquarters.rooms.flatMap(room => getRoomThemeWarnings(room.id));
+              const allMissedBonuses = headquarters.rooms.flatMap(room => calculateMissedBonuses(room.id));
+              const incompatibleCount = headquarters.rooms.reduce((count, room) => {
+                return count + room.assignedCharacters.filter(char => {
+                  const compat = getThemeCompatibility(char, room.theme);
+                  return compat.type === 'incompatible';
+                }).length;
+              }, 0);
+
+              if (allWarnings.length === 0 && allMissedBonuses.length === 0) return null;
+
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-amber-900/20 rounded-xl p-4 border border-amber-500/30 mb-6"
+                >
+                  <h3 className="text-lg font-semibold text-amber-300 mb-3 flex items-center gap-2">
+                    📺 Set Design Opportunities
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-amber-200 font-medium mb-1">Team Issues:</div>
+                      <div className="text-amber-100">
+                        • {incompatibleCount} fighter(s) in mismatched sets
+                        • {allWarnings.length} room(s) with poor theme synergy
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-amber-200 font-medium mb-1">Ratings Boost Available:</div>
+                      <div className="text-amber-100">
+                        • {allMissedBonuses.length} unused character-set synergies
+                        • Up to +{allMissedBonuses.length > 0 ? Math.max(...allMissedBonuses.map(b => parseInt(b.bonus.replace(/[^\d]/g, '')) || 0)) : 0}% performance bonus possible
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })()}
+            
+            {/* Front Door & Room Grid */}
+            <motion.div
+              key="overview"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-6"
+            >
+              {/* Show Entrance */}
+              <div className="text-center">
+                <div className="inline-block relative">
+                  <img 
+                    src="/images/front-door.png" 
+                    alt="Blank Wars Team Housing Entrance"
+                    className="w-48 h-64 object-cover rounded-xl border border-gray-600 shadow-lg"
+                  />
+                  <div className="absolute bottom-2 left-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                    🏠 Team Housing Entrance
+                  </div>
+                </div>
+              </div>
+
+              {/* Living Quarters Grid */}
+              <div 
+                className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                data-tutorial="room-grid"
+              >
             {headquarters.rooms.map((room) => {
               const theme = room.theme ? ROOM_THEMES.find(t => t.id === room.theme) : null;
               const conflicts = getCharacterConflicts(room.id);
@@ -723,9 +1555,24 @@ export default function TeamHeadquarters() {
                     theme 
                       ? `${theme.backgroundColor} border-gray-600` 
                       : 'bg-gray-800/50 border-gray-700'
-                  }`}
+                  } ${draggedCharacter ? 'border-blue-400 border-dashed' : ''}`}
                   whileHover={{ scale: 1.02 }}
                   onClick={() => setSelectedRoom(room.id)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.add('border-green-400');
+                  }}
+                  onDragLeave={(e) => {
+                    e.currentTarget.classList.remove('border-green-400');
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('border-green-400');
+                    if (draggedCharacter) {
+                      assignCharacterToRoom(draggedCharacter, room.id);
+                      setDraggedCharacter(null);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -744,34 +1591,123 @@ export default function TeamHeadquarters() {
                     </div>
                   )}
 
-                  {/* Character Avatars */}
-                  <div className="flex flex-wrap gap-2 mb-3">
+                  {/* Character Avatars with Status */}
+                  <div className="flex flex-wrap gap-3 mb-3">
                     {room.assignedCharacters.map(charName => {
                       const character = availableCharacters.find(c => c.baseName === charName);
+                      const happiness = getCharacterHappiness(charName, room.id);
+                      const themeCompatibility = getThemeCompatibility(charName, room.theme);
+                      
                       return character ? (
-                        <div key={charName} className="flex flex-col items-center">
-                          <div className="text-lg">{character.avatar}</div>
+                        <div 
+                          key={charName} 
+                          className={`flex flex-col items-center group relative cursor-move ${
+                            themeCompatibility.type === 'incompatible' ? 'ring-2 ring-amber-400/50 rounded-lg p-1' : ''
+                          }`}
+                          draggable
+                          onDragStart={(e) => {
+                            setDraggedCharacter(charName);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragEnd={() => setDraggedCharacter(null)}
+                          data-tutorial="character-avatar"
+                        >
+                          <div className="relative">
+                            <div className="text-xl">{character.avatar}</div>
+                            <div className="absolute -top-1 -right-1 text-xs">{happiness.emoji}</div>
+                            {/* Theme compatibility indicator */}
+                            {themeCompatibility.type === 'incompatible' && (
+                              <div className="absolute -bottom-1 -left-1 text-xs">⚠️</div>
+                            )}
+                            {themeCompatibility.type === 'compatible' && (
+                              <div className="absolute -bottom-1 -left-1 text-xs">✨</div>
+                            )}
+                          </div>
                           <div className="text-xs text-gray-400 truncate max-w-16">
                             {character.name.split(' ')[0]}
                           </div>
+                          {/* Enhanced tooltip with theme info */}
+                          <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 max-w-48">
+                            <div>{happiness.status}</div>
+                            {themeCompatibility.type === 'incompatible' && (
+                              <div className="text-amber-300 mt-1">
+                                ⚠️ Set mismatch (-1 mood level)
+                              </div>
+                            )}
+                            {themeCompatibility.type === 'compatible' && (
+                              <div className="text-green-300 mt-1">
+                                ✨ Perfect set match (+{themeCompatibility.bonusValue}% {themeCompatibility.theme?.bonus})
+                              </div>
+                            )}
+                          </div>
+                          {/* Remove button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeCharacterFromRoom(charName, room.id);
+                            }}
+                            className="absolute -top-1 -left-1 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
                         </div>
                       ) : null;
                     })}
-                    {/* Empty beds */}
-                    {Array.from({ length: room.maxCharacters - room.assignedCharacters.length }).map((_, i) => (
-                      <div key={`empty-${i}`} className="flex flex-col items-center opacity-30">
-                        <Bed className="w-6 h-6 text-gray-500" />
-                        <div className="text-xs text-gray-500">Empty</div>
+                    {/* Empty beds or overcrowding indicator */}
+                    {room.assignedCharacters.length <= room.maxCharacters ? (
+                      Array.from({ length: room.maxCharacters - room.assignedCharacters.length }).map((_, i) => (
+                        <div key={`empty-${i}`} className="flex flex-col items-center opacity-30 hover:opacity-50 transition-opacity cursor-pointer">
+                          <Bed className="w-6 h-6 text-gray-500" />
+                          <div className="text-xs text-gray-500">Available</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex flex-col items-center text-red-400">
+                        <Sofa className="w-6 h-6" />
+                        <div className="text-xs">
+                          +{room.assignedCharacters.length - room.maxCharacters} on couches
+                        </div>
                       </div>
-                    ))}
+                    )}
                   </div>
 
-                  {/* Conflicts */}
+                  {/* Conflicts and Overcrowding Status */}
+                  {room.assignedCharacters.length > room.maxCharacters && (
+                    <div className="text-xs text-red-400 italic mb-1">
+                      🛏️ OVERCROWDED: {room.assignedCharacters.length - room.maxCharacters} team members sleeping on floor/couches
+                    </div>
+                  )}
                   {conflicts.length > 0 && (
-                    <div className="text-xs text-orange-400 italic">
+                    <div className="text-xs text-orange-400 italic mb-1">
                       😤 {conflicts[0]}
                     </div>
                   )}
+                  
+                  {/* Theme Compatibility Warnings */}
+                  {(() => {
+                    const warnings = getRoomThemeWarnings(room.id);
+                    const missedBonuses = calculateMissedBonuses(room.id);
+                    
+                    if (warnings.length === 0 && missedBonuses.length === 0) return null;
+                    
+                    return (
+                      <div className="space-y-1">
+                        {warnings.map((warning, index) => (
+                          <div key={index} className="text-xs text-amber-400 italic">
+                            ⚠️ {warning.message}
+                          </div>
+                        ))}
+                        
+                        {/* Suggestions for better assignments */}
+                        {missedBonuses.length > 0 && (
+                          <div className="text-xs text-blue-300 italic">
+                            💡 Available bonuses: {missedBonuses.slice(0, 2).map(bonus => bonus.bonus).join(', ')}
+                            {missedBonuses.length > 2 && ` +${missedBonuses.length - 2} more`}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {!theme && headquarters.currentTier !== 'spartan_apartment' && (
                     <div className="text-xs text-blue-400 flex items-center gap-1">
@@ -782,7 +1718,9 @@ export default function TeamHeadquarters() {
                 </motion.div>
               );
             })}
-          </motion.div>
+              </div>
+            </motion.div>
+          </>
         )}
 
         {viewMode === 'kitchen_chat' && (
@@ -796,26 +1734,25 @@ export default function TeamHeadquarters() {
             <div className="mb-6">
               <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
                 <Coffee className="w-5 h-5" />
-                Kitchen Table Conversations
+                Kitchen Table
               </h2>
-              <p className="text-gray-400 text-sm">Where legendary warriors discuss their living situation...</p>
+              <p className="text-gray-400 text-sm">The show's most popular segment - raw, unfiltered fighter interactions...</p>
             </div>
 
             {/* Kitchen Table Visual */}
             <div className="bg-gradient-to-b from-amber-900/20 to-amber-800/10 rounded-xl p-6 mb-6 border border-amber-700/30">
               <div className="text-center mb-4">
-                <div className="text-6xl mb-2">🍽️</div>
-                <div className="text-gray-300 text-sm">The communal kitchen table - ground zero for legendary drama</div>
-                {headquarters.currentTier === 'spartan_apartment' && (
-                  <div className="text-xs text-purple-400 mt-2">
-                    ⚰️ (Dracula's coffin is under here during the day)
-                  </div>
-                )}
+                <img 
+                  src="/images/kitchen-table.png" 
+                  alt="Blank Wars Kitchen Table"
+                  className="w-64 h-48 object-cover rounded-lg border border-amber-600/50 shadow-lg mx-auto mb-3"
+                />
+                <div className="text-gray-300 text-sm">The show's main set - where legends become roommates and drama unfolds</div>
               </div>
 
               {/* Current Residents */}
               <div className="flex justify-center gap-4 mb-4">
-                {headquarters.rooms[0].assignedCharacters.slice(0, 3).map((charName, index) => {
+                {headquarters.rooms[0].assignedCharacters.slice(0, 4).map((charName) => {
                   const character = availableCharacters.find(c => c.baseName === charName);
                   if (!character) return null;
                   return (
@@ -824,11 +1761,6 @@ export default function TeamHeadquarters() {
                       <div className="text-xs text-gray-400">
                         {character.name.split(' ')[0]}
                       </div>
-                      {index === 2 && (
-                        <div className="text-xs text-orange-400 mt-1">
-                          😴 Couch
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -840,12 +1772,23 @@ export default function TeamHeadquarters() {
               <div className="text-sm text-gray-400">
                 Scene Round: {currentSceneRound}
               </div>
+              {usageStatus && (
+                <div className="text-sm text-gray-400 border border-gray-600 rounded px-2 py-1">
+                  {usageService.getUsageDisplayText(usageStatus).chatText}
+                  {usageStatus.remainingChats > 0 && usageStatus.remainingChats < 5 && (
+                    <span className="ml-2 text-orange-400">({usageService.formatTimeUntilReset(usageStatus.resetTime)})</span>
+                  )}
+                </div>
+              )}
               <button
                 onClick={continueScene}
-                disabled={isGeneratingConversation}
+                disabled={isGeneratingConversation || (usageStatus && !usageStatus.canChat)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors font-semibold"
               >
                 {currentSceneRound === 0 ? '🎬 Start Scene' : '▶️ Continue Scene'}
+                {usageStatus && !usageStatus.canChat && (
+                  <span className="ml-2 text-red-300 text-xs">Limit reached</span>
+                )}
               </button>
               <button
                 onClick={() => {
@@ -865,6 +1808,27 @@ export default function TeamHeadquarters() {
                 </div>
               )}
             </div>
+
+            {/* Usage Limit Warning */}
+            {usageStatus && !usageStatus.canChat && (
+              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-4 h-4 text-red-400" />
+                  <h3 className="font-semibold text-red-400">Daily AI Interaction Limit Reached</h3>
+                </div>
+                <p className="text-red-200 text-sm mb-3">
+                  You've used all your daily AI interactions (character chats, kitchen conversations, team chat). Upgrade to premium for unlimited conversations!
+                </p>
+                <div className="flex gap-2">
+                  <button className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg transition-colors font-semibold">
+                    ⭐ Upgrade to Premium
+                  </button>
+                  <div className="px-3 py-2 bg-gray-700 text-gray-300 text-sm rounded-lg">
+                    {usageService.formatTimeUntilReset(usageStatus.resetTime)}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Live AI Conversations */}
             <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -1037,9 +2001,164 @@ export default function TeamHeadquarters() {
             </div>
           </motion.div>
         )}
+
+        {viewMode === 'confessionals' && (
+          <motion.div
+            key="confessionals"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="bg-gray-800/80 rounded-xl p-6 border border-gray-700"
+          >
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <Video className="w-5 h-5" />
+                Confessional Booth
+              </h2>
+              <p className="text-gray-400 text-sm">Private one-on-one interviews where fighters reveal their true thoughts...</p>
+            </div>
+
+            {/* Confessional Setup */}
+            <div className="bg-gradient-to-b from-purple-900/20 to-purple-800/10 rounded-xl p-6 mb-6 border border-purple-700/30">
+              <div className="text-center mb-4">
+                <div className="w-32 h-24 bg-gray-700 rounded-lg mx-auto mb-3 flex items-center justify-center border-2 border-purple-500/50">
+                  <div className="text-4xl">🎥</div>
+                </div>
+                <div className="text-gray-300 text-sm">
+                  <span className="text-red-400">● REC</span> Confessional Camera - Where fighters spill the tea
+                </div>
+              </div>
+
+              {/* Hostmaster AI Host Section */}
+              <div className="bg-gray-800/50 rounded-lg p-4 mb-4 border border-gray-600">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="text-2xl">🤖</div>
+                  <div>
+                    <div className="font-semibold text-purple-400">Hostmaster v8.72</div>
+                    <div className="text-xs text-gray-400">AI Interview System</div>
+                  </div>
+                </div>
+                <div className="bg-purple-900/30 rounded p-3 text-sm text-purple-200">
+                  <div className="font-mono text-xs text-purple-300 mb-1">[HOSTMASTER v8.72 CONFESSIONAL PROTOCOL ACTIVE]</div>
+                  "HOSTMASTER here, Coach. Our cameras are capturing some fascinating team dynamics. Which of your fighters would you like to check in with today?"
+                </div>
+              </div>
+
+              {/* Character Selection for Interview */}
+              <div className="mb-4">
+                <h3 className="text-purple-300 font-semibold mb-3 flex items-center gap-2">
+                  <Mic className="w-4 h-4" />
+                  Select Fighter for Interview
+                </h3>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {headquarters.rooms.flatMap(room => room.assignedCharacters).map((charName) => {
+                    const character = availableCharacters.find(c => c.baseName === charName);
+                    if (!character) return null;
+                    
+                    return (
+                      <div
+                        key={charName}
+                        className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-pointer hover:bg-purple-600/30 transition-colors"
+                        onClick={() => {
+                          // TODO: Start confessional with this character
+                          console.log('Starting confessional with', character.name);
+                        }}
+                      >
+                        <div className="text-2xl mb-1">{character.avatar}</div>
+                        <div className="text-xs text-white text-center">
+                          {character.name.split(' ')[0]}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Coming Soon Section */}
+              <div className="bg-amber-900/20 rounded-lg p-4 border border-amber-600/30">
+                <div className="text-center">
+                  <div className="text-amber-300 font-semibold mb-2">🚧 Production in Progress</div>
+                  <div className="text-amber-200 text-sm">
+                    Confessional interviews coming soon! Features will include:
+                  </div>
+                  <div className="text-amber-100 text-xs mt-2 space-y-1">
+                    <div>• Hostmaster-led character interviews</div>
+                    <div>• Behind-the-scenes drama revelations</div>
+                    <div>• Strategy discussions and alliances</div>
+                    <div>• Character relationship insights</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sample Confessional Questions Preview */}
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Sample Hostmaster Interview Questions
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="text-gray-300">
+                  <span className="text-purple-400 font-mono">[HOSTMASTER]:</span> "For our viewers at home - how are the new living arrangements working for your team?"
+                </div>
+                <div className="text-gray-300">
+                  <span className="text-purple-400 font-mono">[HOSTMASTER]:</span> "Coach, the audience is curious - which fighter is showing the most growth lately?"
+                </div>
+                <div className="text-gray-300">
+                  <span className="text-purple-400 font-mono">[HOSTMASTER]:</span> "On a scale of 1-10, how would you rate your team's chemistry this week?"
+                </div>
+                <div className="text-gray-300">
+                  <span className="text-purple-400 font-mono">[HOSTMASTER]:</span> "Our sensors are picking up some tension - as their coach, how are you handling team conflicts?"
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
-      {/* Room Detail Modal */}
+      {/* Character Pool Panel */}
+      {viewMode === 'overview' && showCharacterPool && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="bg-gray-800/80 rounded-xl p-6 border border-gray-700"
+        >
+          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Available Fighters ({getUnassignedCharacters().length})
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {getUnassignedCharacters().map(character => (
+              <div
+                key={character.baseName}
+                className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-move hover:bg-gray-600/50 transition-colors"
+                draggable
+                onDragStart={(e) => {
+                  setDraggedCharacter(character.baseName);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => setDraggedCharacter(null)}
+              >
+                <div className="text-3xl mb-2">{character.avatar}</div>
+                <div className="text-sm text-white text-center">
+                  {character.name.split(' ')[0]}
+                </div>
+                <div className="text-xs text-gray-400 text-center">
+                  {character.archetype}
+                </div>
+              </div>
+            ))}
+            {getUnassignedCharacters().length === 0 && (
+              <div className="col-span-full text-center text-gray-400 py-8">
+                All fighters are on set!
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Multi-Element Room Theming Modal */}
       <AnimatePresence>
         {selectedRoom && (
           <motion.div
@@ -1053,21 +2172,236 @@ export default function TeamHeadquarters() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+              className="bg-gray-800 rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-700"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-xl font-bold text-white mb-4">Room Management</h2>
-              <p className="text-gray-400 mb-4">Detailed room management coming soon!</p>
-              <button
-                onClick={() => setSelectedRoom(null)}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg transition-colors"
-              >
-                Close
-              </button>
+              {(() => {
+                const room = headquarters.rooms.find(r => r.id === selectedRoom);
+                if (!room) return null;
+
+                const elementCapacity = getElementCapacity();
+                const roomBonuses = calculateRoomBonuses(selectedRoom);
+
+                return (
+                  <>
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h2 className="text-2xl font-bold text-white">{room.name}</h2>
+                        <p className="text-gray-400">Multi-Element Set Design Studio</p>
+                      </div>
+                      <button
+                        onClick={() => setSelectedRoom(null)}
+                        className="text-gray-400 hover:text-white text-2xl"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {/* Room Preview */}
+                    <div className="bg-gradient-to-b from-blue-900/20 to-blue-800/10 rounded-xl p-6 mb-6 border border-blue-700/30">
+                      <div className="text-center mb-4">
+                        {room.customImageUrl ? (
+                          <img 
+                            src={room.customImageUrl} 
+                            alt={`${room.name} custom design`}
+                            className="w-full h-48 object-cover rounded-lg border border-gray-600 shadow-lg"
+                          />
+                        ) : (
+                          <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center border-2 border-gray-600">
+                            <div className="text-center">
+                              <div className="text-6xl mb-2">🏠</div>
+                              <div className="text-gray-400">Preview Room Design</div>
+                              <button
+                                onClick={() => generateRoomImage(selectedRoom)}
+                                disabled={isGeneratingRoomImage || room.elements.length === 0}
+                                className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                              >
+                                {isGeneratingRoomImage ? 'Generating...' : 
+                                 room.elements.length === 0 ? 'Add elements first' : 
+                                 '🎨 Generate Custom Image'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Element Capacity */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-blue-300 font-semibold">Element Capacity</span>
+                          <span className="text-blue-200">{room.elements.length}/{elementCapacity}</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full transition-all"
+                            style={{ width: `${(room.elements.length / elementCapacity) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Active Bonuses */}
+                      {Object.keys(roomBonuses).length > 0 && (
+                        <div className="bg-green-900/20 rounded-lg p-3 border border-green-500/30">
+                          <h4 className="text-green-400 font-semibold mb-2 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4" />
+                            Active Set Bonuses
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(roomBonuses).map(([bonus, value]) => (
+                              <div key={bonus} className="text-sm text-green-300 bg-green-900/30 px-2 py-1 rounded">
+                                +{value}% {bonus}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Current Elements */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-white mb-3">Current Set Elements</h3>
+                      {room.elements.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {room.elements.map(elementId => {
+                            const element = ROOM_ELEMENTS.find(e => e.id === elementId);
+                            if (!element) return null;
+
+                            return (
+                              <div
+                                key={elementId}
+                                className={`p-3 rounded-lg border ${element.backgroundColor} ${element.textColor}`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-lg">{element.icon}</span>
+                                    <div>
+                                      <div className="font-semibold">{element.name}</div>
+                                      <div className="text-xs opacity-80">{element.category}</div>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => removeElementFromRoom(selectedRoom, elementId)}
+                                    className="text-red-400 hover:text-red-300 text-lg"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-400 py-8 border-2 border-dashed border-gray-600 rounded-lg">
+                          No elements selected. Choose from categories below to start designing!
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Element Categories */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-white mb-3">Add Elements by Category</h3>
+                      <div className="grid grid-cols-5 gap-2 mb-4">
+                        {(['wallDecor', 'furniture', 'lighting', 'accessories', 'flooring'] as const).map(category => (
+                          <button
+                            key={category}
+                            onClick={() => setSelectedElementCategory(category)}
+                            className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                              selectedElementCategory === category
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            }`}
+                          >
+                            {category === 'wallDecor' ? 'Wall Decor' : 
+                             category === 'furniture' ? 'Furniture' :
+                             category === 'lighting' ? 'Lighting' :
+                             category === 'accessories' ? 'Accessories' : 'Flooring'}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Elements for Selected Category */}
+                      {selectedElementCategory && (
+                        <div className="bg-gray-700/30 rounded-lg p-4">
+                          <h4 className="text-white font-semibold mb-3 capitalize">{selectedElementCategory} Options</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {ROOM_ELEMENTS
+                              .filter(element => element.category === selectedElementCategory)
+                              .map(element => {
+                                const isOwned = room.elements.includes(element.id);
+                                const canAfford = headquarters.currency.coins >= element.cost.coins && 
+                                                 headquarters.currency.gems >= element.cost.gems;
+                                const atCapacity = room.elements.length >= elementCapacity;
+
+                                return (
+                                  <div
+                                    key={element.id}
+                                    className={`p-3 rounded-lg border transition-all ${
+                                      isOwned 
+                                        ? 'border-green-500 bg-green-900/20' 
+                                        : canAfford && !atCapacity
+                                        ? 'border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/30'
+                                        : 'border-gray-600 bg-gray-700/30'
+                                    }`}
+                                    onClick={() => {
+                                      if (!isOwned && canAfford && !atCapacity) {
+                                        addElementToRoom(selectedRoom, element.id);
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <span className="text-2xl">{element.icon}</span>
+                                      <div className="flex-1">
+                                        <div className="font-semibold text-white">{element.name}</div>
+                                        <div className="text-sm text-gray-400">{element.description}</div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between text-sm">
+                                      <div className="text-blue-400">
+                                        +{element.bonusValue}% {element.bonus}
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-yellow-400">{element.cost.coins}</span>
+                                        <span className="text-purple-400">{element.cost.gems}</span>
+                                      </div>
+                                    </div>
+
+                                    {isOwned && (
+                                      <div className="mt-2 text-green-400 text-sm font-semibold">✓ Owned</div>
+                                    )}
+                                    {!canAfford && !isOwned && (
+                                      <div className="mt-2 text-red-400 text-sm">Cannot afford</div>
+                                    )}
+                                    {atCapacity && !isOwned && (
+                                      <div className="mt-2 text-orange-400 text-sm">Room at capacity</div>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            }
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Close Button */}
+                    <button
+                      onClick={() => setSelectedRoom(null)}
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 px-4 rounded-lg transition-colors font-semibold"
+                    >
+                      Save Set Design
+                    </button>
+                  </>
+                );
+              })()}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Tutorial System */}
+      <Tutorial />
     </div>
   );
 }

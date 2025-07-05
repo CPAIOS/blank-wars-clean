@@ -48,6 +48,7 @@ import { useBattleWebSocket } from '@/hooks/useBattleWebSocket';
 import { io } from 'socket.io-client';
 import { useTimeoutManager } from '@/hooks/useTimeoutManager';
 import { formatCharacterName } from '@/utils/characterUtils';
+import { calculateNetHeadquartersEffect } from '@/utils/headquartersUtils';
 import { Shield, Sword, Zap, Heart, MessageCircle, Sparkles, Timer, Volume2, AlertTriangle, Settings, VolumeX, CreditCard, Gift, Users, X, Gavel } from 'lucide-react';
 
 // Import new team battle system
@@ -58,12 +59,14 @@ import {
   BattleSetup, 
   RoundResult,
   createDemoPlayerTeam,
+  createDemoPlayerTeamWithBonuses,
   createDemoOpponentTeam,
   checkGameplanAdherence as checkTeamGameplanAdherence,
   getMentalHealthLevel,
   getMoraleModifier,
   getTeamChemistryModifier,
-  updateCoachingPointsAfterBattle
+  updateCoachingPointsAfterBattle,
+  getEffectiveStats
 } from '@/data/teamBattleSystem';
 import { AIJudge, RogueAction, CharacterResponseGenerator } from '@/data/aiJudge';
 import { CoachingEngine, CoachingSession } from '@/data/coachingSystem';
@@ -158,7 +161,35 @@ export default function ImprovedBattleArena() {
   }, []);
   
   // New Team Battle System State with refs for stability
-  const [playerTeam, setPlayerTeam] = useState<Team>(createDemoPlayerTeam());
+  // Mock headquarters state for demo - in real app this would come from global state
+  const mockHeadquarters = {
+    currentTier: 'spartan_apartment', // This gives penalties
+    rooms: [
+      {
+        id: 'room_1',
+        name: 'Bunk Room Alpha',
+        theme: 'victorian_study', // Intelligence +20
+        assignedCharacters: ['holmes', 'dracula', 'achilles', 'joan', 'tesla', 'merlin'], // OVERCROWDED! (6 > 4)
+        maxCharacters: 4
+      },
+      {
+        id: 'room_2', 
+        name: 'Bunk Room Beta',
+        theme: null, // No theme = small penalty
+        assignedCharacters: ['genghis_khan', 'cleopatra'], // These two conflict!
+        maxCharacters: 4
+      }
+    ],
+    currency: { coins: 50000, gems: 100 },
+    unlockedThemes: ['victorian_study', 'greek_classical']
+  };
+
+  // Calculate headquarters bonuses AND penalties
+  const headquartersEffects = calculateNetHeadquartersEffect(mockHeadquarters);
+  
+  const [playerTeam, setPlayerTeam] = useState<Team>(() => 
+    createDemoPlayerTeamWithBonuses(headquartersEffects.bonuses, headquartersEffects.penalties)
+  );
   const [opponentTeam, setOpponentTeam] = useState<Team>(createDemoOpponentTeam());
   const [battleState, setBattleState] = useState<BattleState | null>(null);
   const [currentRound, setCurrentRound] = useState(1);
@@ -197,7 +228,7 @@ export default function ImprovedBattleArena() {
   }, [battleState, currentRound, currentMatch, playerMorale, opponentMorale, playerMatchWins, opponentMatchWins, playerRoundWins, opponentRoundWins]);
   
   // Legacy battle state (for backward compatibility)
-  const [phase, setPhase] = useState<BattlePhase>({ name: 'matchmaking' });
+  const [phase, setPhase] = useState<BattlePhase>('pre_battle_huddle');
   const [currentAnnouncement, setCurrentAnnouncement] = useState('Welcome to the Arena! Choose your opponent to begin battle!');
   
   // Matchmaking state
@@ -381,9 +412,9 @@ export default function ImprovedBattleArena() {
       name: formatCharacterName(teamChar.name),
       maxHp: teamChar.maxHp,
       hp: teamChar.currentHp,
-      atk: teamChar.traditionalStats.strength,
-      def: teamChar.traditionalStats.vitality,
-      spd: teamChar.traditionalStats.speed,
+      atk: getEffectiveStats(teamChar).strength,
+      def: getEffectiveStats(teamChar).vitality,
+      spd: getEffectiveStats(teamChar).speed,
       level: teamChar.level,
       xp: teamChar.experience,
       xpToNext: teamChar.experienceToNext,
@@ -391,7 +422,7 @@ export default function ImprovedBattleArena() {
       avatar: teamChar.avatar,
       battleStats: createBattleStats(),
       statusEffects: teamChar.statusEffects || [],
-      abilities: getCharacterAbilities(teamChar.name, teamChar.archetype),
+      abilities: getCharacterAbilities(teamChar.name, teamChar.archetype) as any[],
       items: [],
       specialPowers: [
         { name: 'Character Power', type: 'amplifier', description: 'Unique ability', effect: '+20% damage', icon: '✨', cooldown: 3, currentCooldown: 0 }
@@ -439,7 +470,7 @@ export default function ImprovedBattleArena() {
   }, [chatMessages]);
 
   // Timer countdown with stable reference
-  const handleTimerExpiredRef = useRef<() => void>();
+  const handleTimerExpiredRef = useRef<() => void>(() => {});
   
   useEffect(() => {
     if (isTimerActive && timer !== null && timer > 0) {
@@ -1923,7 +1954,7 @@ export default function ImprovedBattleArena() {
       const baseDamage = PhysicalBattleEngine.calculateBaseDamage(battleAttacker, executedAction);
       const weaponDamage = PhysicalBattleEngine.calculateWeaponDamage(battleAttacker, executedAction);
       const strengthBonus = PhysicalBattleEngine.calculateStrengthBonus(battleAttacker);
-      const psychologyMod = PhysicalBattleEngine.calculatePsychologyModifier(battleAttacker);
+      const psychologyMod = PhysicalBattleEngine.calculatePsychologyModifier(battleAttacker, battleDefender, battleState);
       const armorDefense = PhysicalBattleEngine.calculateArmorDefense(battleDefender);
       
       // Combine all damage components with psychology modifiers and team chemistry
@@ -2312,6 +2343,50 @@ export default function ImprovedBattleArena() {
         onCharacterClick={conductIndividualCoaching}
         onSelectChatCharacter={handleSelectChatCharacter}
       />
+
+      {/* Headquarters Effects Display - Bonuses and Penalties */}
+      {(Object.keys(headquartersEffects.bonuses).length > 0 || Object.keys(headquartersEffects.penalties).length > 0) && (
+        <div className="mb-4 space-y-3">
+          {/* Bonuses */}
+          {Object.keys(headquartersEffects.bonuses).length > 0 && (
+            <div className="p-3 bg-green-900/20 rounded-lg border border-green-500/30">
+              <h3 className="text-green-400 font-semibold mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Headquarters Bonuses
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(headquartersEffects.bonuses).map(([bonus, value]) => (
+                  <div key={bonus} className="flex items-center gap-1 text-sm text-green-300">
+                    <Sparkles className="w-3 h-3" />
+                    +{value} {bonus}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Penalties */}
+          {Object.keys(headquartersEffects.penalties).length > 0 && (
+            <div className="p-3 bg-red-900/20 rounded-lg border border-red-500/30">
+              <h3 className="text-red-400 font-semibold mb-2 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                Headquarters Penalties
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(headquartersEffects.penalties).map(([penalty, value]) => (
+                  <div key={penalty} className="flex items-center gap-1 text-sm text-red-300">
+                    <AlertTriangle className="w-3 h-3" />
+                    {value} {penalty}
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs text-red-200 mt-2">
+                Fix overcrowding, resolve conflicts, and upgrade housing to reduce penalties!
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 3. Compact Battle Communication Hub - Side-by-side Announcer and Team Chat */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">

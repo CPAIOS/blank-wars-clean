@@ -1,0 +1,24 @@
+{
+  "characterIds": [
+    "achilles",
+    "merlin",
+    "fenrir",
+    "cleopatra",
+    "holmes",
+    "dracula",
+    "joan",
+    "frankenstein_monster",
+    "sun_wukong",
+    "sammy_slugger",
+    "billy_the_kid",
+    "genghis_khan",
+    "tesla",
+    "alien_grey",
+    "robin_hood",
+    "space_cyborg",
+    "agent_x"
+  ],
+  "totalCount": 17,
+  "extractedAt": "2025-07-03T13:39:03.134Z",
+  "note": "Complete character data migration - preserve ALL details"
+}

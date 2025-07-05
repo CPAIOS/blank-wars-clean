@@ -6,9 +6,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Blank Wars - Battle & Bond with Legendary Warriors",
-  description: "The revolutionary TCG where you battle and form emotional connections with AI-powered legendary characters from across history.",
-  keywords: "trading card game, AI chat, battles, legendary characters",
+  title: "Blank Wars - Battle & Bond with _____ Warriors",
+  description: "The revolutionary TCG where you battle and form emotional connections with AI-powered characters from _____ times, _____ universes, and _____ origins.",
+  keywords: "trading card game, AI chat, battles, blank wars, characters from any time",
 };
 
 export default function RootLayout({

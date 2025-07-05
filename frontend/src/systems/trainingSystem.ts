@@ -355,35 +355,86 @@ export class TrainingSystemManager {
       .map(activity => activity.id);
   }
 
-  // Start training session
-  startTraining(characterId: string, activityId: string): TrainingSession | null {
-    const character = this.getCharacterState(characterId);
-    const activity = trainingActivities.find(a => a.id === activityId);
-    
-    if (!character || !activity) return null;
-    
-    // Check if character can afford the training
-    if (character.trainingPoints < activity.cost) return null;
-    
-    // Check if character is already training
-    if (this.activeSessions.has(characterId)) return null;
-    
-    // Deduct training points
-    character.trainingPoints -= activity.cost;
-    
-    // Create training session
-    const session: TrainingSession = {
-      id: `${characterId}-${activityId}-${Date.now()}`,
-      characterId,
-      activityId,
-      startTime: new Date(),
-      duration: activity.duration,
-      completed: false
-    };
-    
-    this.activeSessions.set(characterId, session);
-    return session;
+  // Start training session with usage tracking
+  async startTraining(characterId: string, activityId: string, userId: string, gymTier: string = 'community'): Promise<TrainingSession | null> {
+    try {
+      // Use backend training service with direct usage tracking
+      const { trainingService } = require('../../backend/src/services/trainingService');
+      const { db } = require('../../backend/src/database/sqlite');
+      
+      const result = await trainingService.startTraining(characterId, activityId, userId, gymTier, db);
+      
+      if (result.usageLimitReached) {
+        throw new Error('Daily training limit reached. Upgrade to premium or use a better gym for more training sessions!');
+      }
+      
+      if (!result.session) {
+        return null;
+      }
+      
+      const character = this.getCharacterState(characterId);
+      const activity = trainingActivities.find(a => a.id === activityId);
+      
+      if (!character || !activity) return null;
+      
+      // Check if character can afford the training
+      if (character.trainingPoints < activity.cost) return null;
+      
+      // Check if character is already training
+      if (this.activeSessions.has(characterId)) return null;
+      
+      // Deduct training points
+      character.trainingPoints -= activity.cost;
+      
+      // Store session locally
+      this.activeSessions.set(characterId, result.session);
+      return result.session;
+      
+    } catch (error) {
+      console.error('Training failed:', error);
+      throw error;
+    }
   }
+
+  private getBaseLimit(subscriptionTier: string): number {
+    switch (subscriptionTier) {
+      case 'free': return 3;
+      case 'premium': return 5;
+      case 'legendary': return 10;
+      default: return 3;
+    }
+  }
+
+  private getGymBonus(gymTier: string): number {
+    switch (gymTier) {
+      case 'community': return 0;
+      case 'bronze': return 2;
+      case 'elite': return 5;
+      case 'legendary': return 10;
+      default: return 0;
+    }
+  }
+
+  private getPerCharacterLimit(gymTier: string): number {
+    switch (gymTier) {
+      case 'community': return 2;
+      case 'bronze': return 3;
+      case 'elite': return 4;
+      case 'legendary': return 5;
+      default: return 2;
+    }
+  }
+
+  private getCharacterUsageToday(characterId: string): number {
+    const today = new Date().toISOString().split('T')[0];
+    const character = this.getCharacterState(characterId);
+    if (!character) return 0;
+    
+    return character.trainingHistory.filter(session => 
+      session.startTime.toISOString().split('T')[0] === today && session.completed
+    ).length;
+  }
+
 
   // Complete training session
   completeTraining(characterId: string): TrainingResult[] | null {

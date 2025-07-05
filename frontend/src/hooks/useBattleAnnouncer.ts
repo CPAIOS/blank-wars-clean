@@ -259,6 +259,22 @@ export function useBattleAnnouncer() {
     });
   }, [announce]);
 
+  // Hostmaster v8.72 - Handle AI-generated announcements
+  const handleHostmasterAnnouncement = useCallback((announcementData: {
+    text: string;
+    type: 'intro' | 'round' | 'action' | 'victory' | 'defeat' | 'special';
+    priority: 'low' | 'normal' | 'high';
+    delay?: number;
+    metadata?: any;
+  }) => {
+    announce({
+      text: announcementData.text,
+      type: announcementData.type,
+      priority: announcementData.priority,
+      delay: announcementData.delay
+    });
+  }, [announce]);
+
   return {
     // State
     isAnnouncerSpeaking: state.isAnnouncerSpeaking,
@@ -284,6 +300,7 @@ export function useBattleAnnouncer() {
     announceStrategySelection,
     announceBattleCry,
     announcePhaseTransition,
+    handleHostmasterAnnouncement,
 
     // Utility
     isSpeaking: () => audioService.isSpeaking(),

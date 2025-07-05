@@ -69,8 +69,7 @@ export class KitchenChatService {
     });
     
     if (!this.socket?.connected) {
-      console.warn('Socket not connected, using fallback');
-      return this.getFallbackResponse(context.character, trigger);
+      throw new Error('Socket not connected to backend. Please refresh the page and try again.');
     }
 
     return new Promise((resolve, reject) => {
@@ -103,9 +102,13 @@ export class KitchenChatService {
           clearTimeout(timeout);
           this.socket!.off('kitchen_conversation_response', responseHandler);
           if (data.error) {
-            reject(new Error(data.error));
+            if (data.usageLimitReached) {
+              reject(new Error('USAGE_LIMIT_REACHED'));
+            } else {
+              reject(new Error(data.error));
+            }
           } else {
-            resolve(data.message || this.getFallbackResponse(context.character, trigger));
+            resolve(data.message || 'AI response unavailable');
           }
         }
       };
@@ -220,41 +223,7 @@ export class KitchenChatService {
     return conflicts;
   }
 
-  /**
-   * Fallback responses for when AI is unavailable
-   */
-  private getFallbackResponse(character: Character, trigger: string): string {
-    const fallbacks = {
-      'Achilles': [
-        "A warrior adapts to any battlefield... even this cramped apartment.",
-        "By Zeus! These living conditions test even my legendary patience!",
-        "In Troy, we had better accommodations than this!"
-      ],
-      'Sherlock Holmes': [
-        "I deduce that our living arrangements were designed by someone with a twisted sense of humor.",
-        "Elementary - the coach clearly prioritizes their own comfort over team morale.",
-        "These circumstances require... creative problem-solving."
-      ],
-      'Count Dracula': [
-        "This modern torture is worse than any wooden stake!",
-        "Mortals and their infernal noise during my rest hours...",
-        "When I find who designed this accommodation..."
-      ],
-      'Cleopatra VII': [
-        "A pharaoh should not endure such... humble circumstances.",
-        "In Alexandria, servants would be flogged for less comfortable quarters.",
-        "This is beneath the dignity of Egyptian royalty!"
-      ]
-    };
-
-    const characterFallbacks = fallbacks[character.name as keyof typeof fallbacks] || [
-      "This situation is... challenging.",
-      "I never expected to find myself in such circumstances.",
-      "We must make the best of this arrangement."
-    ];
-
-    return characterFallbacks[Math.floor(Math.random() * characterFallbacks.length)];
-  }
+  // Removed getFallbackResponse method - we now properly handle connection errors instead of hiding them
 
   /**
    * Handle conversation responses from backend

@@ -50,7 +50,7 @@ export default function TutorialSystem({ isOpen, onClose, defaultSection = 'basi
     {
       id: 'basics',
       title: 'Getting Started',
-      description: 'Learn the fundamentals of coaching legendary characters',
+      description: 'Learn the fundamentals of coaching _____ characters',
       icon: BookOpen,
       steps: [
         {
@@ -124,13 +124,13 @@ export default function TutorialSystem({ isOpen, onClose, defaultSection = 'basi
         {
           id: 'database',
           title: 'Character Database',
-          description: 'Discover and recruit legendary characters',
+          description: 'Discover and recruit _____ characters',
           icon: Users,
           content: (
             <div className="space-y-4">
               <div className="text-center mb-4">
                 <div className="text-4xl mb-2">📚</div>
-                <p className="text-gray-300">Browse hundreds of legendary characters from history and mythology.</p>
+                <p className="text-gray-300">Browse characters from _____ times, _____ universes, and _____ mythologies.</p>
               </div>
               <div className="grid grid-cols-1 gap-4">
                 <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
@@ -200,7 +200,7 @@ export default function TutorialSystem({ isOpen, onClose, defaultSection = 'basi
         {
           id: 'equipment',
           title: 'Equipment & Gear',
-          description: 'Equip characters with legendary weapons and armor',
+          description: 'Equip characters with _____ weapons and armor',
           icon: Crown,
           content: (
             <div className="space-y-4">

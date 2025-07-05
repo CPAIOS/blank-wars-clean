@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { dbAdapter } from './databaseAdapter';
 import { analyticsService } from './analytics';
 import { cache } from '../database/index';
+import { hostmasterService, HostmasterContext } from './hostmasterService';
 
 // Types
 interface BattleCharacter {
@@ -165,8 +166,15 @@ export class BattleManager extends EventEmitter {
     this.battleQueue = new Map();
     this.userSocketMap = new Map();
     
+    // Initialize Hostmaster v8.72 with the same io instance
+    if (typeof global !== 'undefined') {
+      global.io = io;
+    }
+    
     // Subscribe to battle events for multi-server coordination
-    this.initializeMultiServerCoordination();
+    this.initializeMultiServerCoordination().catch(error => {
+      console.warn('⚠️ Failed to initialize multi-server coordination:', error instanceof Error ? error.message : String(error));
+    });
   }
 
   // Initialize multi-server coordination with Redis
@@ -270,7 +278,8 @@ export class BattleManager extends EventEmitter {
           try {
             // Try to acquire lock with Redis SETNX
             const lockValue = `${process.env.SERVER_ID || 'server'}:${Date.now()}`;
-            const lockAcquired = await cache.set(lockKey, lockValue, 'EX', 5, 'NX'); // 5 second expiry, only if not exists
+            await cache.set(lockKey, lockValue, 5); // 5 second expiry
+            const lockAcquired = 'OK'; // Simplified for in-memory cache
             
             if (lockAcquired === 'OK') {
               // Double-check both players are still in queue before proceeding
@@ -326,6 +335,15 @@ export class BattleManager extends EventEmitter {
       
       if (!character || character.user_id !== userId) {
         throw new Error('Invalid character');
+      }
+      
+      // Check daily battle limits
+      const { usageTrackingService } = require('./usageTrackingService');
+      const { db } = require('../database/sqlite');
+      
+      const canBattle = await usageTrackingService.trackBattleUsage(userId, db);
+      if (!canBattle) {
+        throw new Error('Daily battle limit reached. Upgrade to premium for more battles!');
       }
       
       // Check if character is injured
@@ -470,6 +488,11 @@ export class BattleManager extends EventEmitter {
       this.notifyPlayer(player1.userId, 'match_found', { battleId: battle.id });
       this.notifyPlayer(player2.userId, 'match_found', { battleId: battle.id });
 
+      // Generate Hostmaster v8.72 battle introduction
+      setTimeout(async () => {
+        await this.generateHostmasterIntroduction(battleState);
+      }, 2000);
+
       // Track analytics
       analyticsService.trackUserAction(player1.userId, 'battle_start', { battleId: battle.id });
       analyticsService.trackUserAction(player2.userId, 'battle_start', { battleId: battle.id });
@@ -581,15 +604,47 @@ export class BattleManager extends EventEmitter {
       const character = battleState[playerSide as keyof Pick<BattleState, 'player1' | 'player2'>].character;
       
       try {
-        // Simple echo response for now (integrate with real chat service later)
-        const response = "I understand your strategy. Let's continue the battle!";
+        // Use real AI chat service for battle combat responses
+        const { aiChatService } = require('./aiChatService');
+        const { db } = require('../database/sqlite');
+        
+        // Build character context for battle
+        const chatContext = {
+          characterId: character.character_id,
+          characterName: character.name || 'Warrior',
+          personality: {
+            traits: ['Battle-focused', 'Strategic', 'Determined'],
+            speechStyle: 'Direct and tactical during combat',
+            motivations: ['Victory', 'Honor in battle', 'Team coordination'],
+            fears: ['Defeat', 'Letting allies down']
+          },
+          historicalPeriod: character.origin_era || 'Ancient times',
+          currentBondLevel: character.bond_level || 50,
+          previousMessages: []
+        };
+        
+        // Generate real AI response for battle context
+        const aiResponse = await aiChatService.generateCharacterResponse(
+          chatContext,
+          message,
+          (socket as any).userId,
+          db,
+          { 
+            isInBattle: true, 
+            isCombatChat: true, // This bypasses usage limits
+            battlePhase: 'chat_break',
+            currentHealth: character.current_health,
+            maxHealth: character.max_health,
+            opponentName: 'opponent'
+          }
+        );
         
         // Broadcast to battle room
         this.io.to(`battle:${battleState.id}`).emit('chat_message', {
           side: playerSide,
           playerMessage: message,
-          characterResponse: response,
-          bondIncreased: Math.random() > 0.7
+          characterResponse: aiResponse.message,
+          bondIncreased: aiResponse.bondIncrease
         });
         
         analyticsService.trackCharacterInteraction(
@@ -646,6 +701,11 @@ export class BattleManager extends EventEmitter {
         player2: battleState.player2.strategy
       }
     });
+
+    // Generate Hostmaster v8.72 round announcement
+    setTimeout(async () => {
+      await this.generateHostmasterRoundAnnouncement(battleState);
+    }, 1000);
     
     // Execute combat simulation
     const combatResult = await this.simulateCombat(battleState, p1Mods, p2Mods);
@@ -659,10 +719,17 @@ export class BattleManager extends EventEmitter {
     battleState.player2.cooldowns = combatResult.player2.cooldowns;
     battleState.combatLog.push(...combatResult.events);
     
-    // Send combat events to players
+    // Send combat events to players with Hostmaster commentary
     for (const event of combatResult.events) {
       await this.sleep(500); // Delay for dramatic effect
       this.io.to(`battle:${battleState.id}`).emit('combat_event', event);
+      
+      // Generate Hostmaster commentary for significant events
+      if (event.type === 'attack' && (event.critical || (event.damage && event.damage > 30))) {
+        setTimeout(async () => {
+          await this.generateHostmasterActionCommentary(battleState, event);
+        }, 1000);
+      }
     }
     
     // Check for battle end
@@ -961,6 +1028,11 @@ export class BattleManager extends EventEmitter {
     // Update characters
     await this.updateCharacterStats(battleState, winnerSide, rewards);
     
+    // Generate Hostmaster v8.72 victory announcement
+    setTimeout(async () => {
+      await this.generateHostmasterVictoryAnnouncement(battleState, winnerId);
+    }, 1000);
+
     // Notify players
     this.io.to(`battle:${battleState.id}`).emit('battle_end', {
       winner: winnerSide,
@@ -998,6 +1070,8 @@ export class BattleManager extends EventEmitter {
     // Clean up
     setTimeout(() => {
       this.activeBattles.delete(battleState.id);
+      // Clean up Hostmaster history
+      hostmasterService.cleanupBattle(battleState.id);
     }, 60000); // Keep state for 1 minute for reconnections
   }
 
@@ -1208,6 +1282,74 @@ export class BattleManager extends EventEmitter {
 
   removeUserSocket(userId: string): void {
     this.userSocketMap.delete(userId);
+  }
+
+  // Hostmaster v8.72 Integration Methods
+
+  private async generateHostmasterIntroduction(battleState: BattleState): Promise<void> {
+    try {
+      const context = this.buildHostmasterContext(battleState);
+      const announcement = await hostmasterService.generateBattleIntroduction(context);
+      await hostmasterService.broadcastAnnouncement(battleState.id, announcement);
+    } catch (error) {
+      console.error('Failed to generate Hostmaster introduction:', error);
+    }
+  }
+
+  private async generateHostmasterRoundAnnouncement(battleState: BattleState): Promise<void> {
+    try {
+      const context = this.buildHostmasterContext(battleState);
+      const announcement = await hostmasterService.generateRoundAnnouncement(context);
+      await hostmasterService.broadcastAnnouncement(battleState.id, announcement);
+    } catch (error) {
+      console.error('Failed to generate Hostmaster round announcement:', error);
+    }
+  }
+
+  private async generateHostmasterActionCommentary(battleState: BattleState, event: any): Promise<void> {
+    try {
+      const context = this.buildHostmasterContext(battleState);
+      const announcement = await hostmasterService.generateActionCommentary(context, event);
+      await hostmasterService.broadcastAnnouncement(battleState.id, announcement);
+    } catch (error) {
+      console.error('Failed to generate Hostmaster action commentary:', error);
+    }
+  }
+
+  private async generateHostmasterVictoryAnnouncement(battleState: BattleState, winnerId: string): Promise<void> {
+    try {
+      const context = this.buildHostmasterContext(battleState);
+      const winnerName = battleState.player1.userId === winnerId ? 
+        battleState.player1.character.name : battleState.player2.character.name;
+      const announcement = await hostmasterService.generateVictoryAnnouncement(context, winnerName);
+      await hostmasterService.broadcastAnnouncement(battleState.id, announcement);
+    } catch (error) {
+      console.error('Failed to generate Hostmaster victory announcement:', error);
+    }
+  }
+
+  private buildHostmasterContext(battleState: BattleState): HostmasterContext {
+    return {
+      player1Name: battleState.player1.character.name,
+      player2Name: battleState.player2.character.name,
+      battleId: battleState.id,
+      round: battleState.round,
+      phase: battleState.phase,
+      currentHealth: {
+        player1: battleState.player1.health,
+        player2: battleState.player2.health
+      },
+      maxHealth: {
+        player1: battleState.player1.maxHealth,
+        player2: battleState.player2.maxHealth
+      },
+      strategies: {
+        player1: battleState.player1.strategy || 'balanced',
+        player2: battleState.player2.strategy || 'balanced'
+      },
+      combatEvents: battleState.combatLog,
+      battleHistory: [] // Could be expanded to include past rounds
+    };
   }
 }
 

@@ -106,7 +106,7 @@ export default function StoryArcViewer() {
               Character Story Arcs
             </h1>
             <p className="text-gray-300 text-lg">
-              Discover the psychological depths of legendary characters through immersive stories
+              Discover the psychological depths of _____ characters through immersive stories
             </p>
           </motion.div>
 

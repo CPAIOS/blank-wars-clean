@@ -111,7 +111,7 @@ export default function HomePage() {
         
         <div className="mt-6">
           <p className="text-xl text-gray-300 mb-4 max-w-2xl mx-auto">
-            Manage Legendary Characters • Coach Epic Teams • Master AI Personalities
+            A Reality Show about Warriors from _____ time, place or legend living, training, and fighting together in a multiverse team combat league
           </p>
           {isAuthenticated && user && (
             <p className="text-blue-400 font-semibold">
