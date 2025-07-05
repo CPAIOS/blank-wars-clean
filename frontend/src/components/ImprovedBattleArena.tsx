@@ -18,6 +18,7 @@ import MatchmakingPanel from './MatchmakingPanel';
 import ChaosPanel from './ChaosPanel';
 import TeamChatPanel from './TeamChatPanel';
 import { combatRewards, createBattleStats, BattleStats } from '@/data/combatRewards';
+import { BattlePhase } from '@/data/battleFlow';
 import { generateAIResponse } from '@/utils/aiChatResponses';
 import { createBattlePerformance, CombatSkillEngine, CombatSkillReward } from '@/data/combatSkillProgression';
 import { type MatchmakingResult, getTeamWeightClass, calculateWeightClassXP } from '@/data/weightClassSystem';
@@ -130,10 +131,7 @@ interface Item {
   uses: number;
 }
 
-interface BattlePhase {
-  name: 'pre-battle' | 'battle-cry' | 'strategy-selection' | 'round-combat' | 'round-end' | 'battle-end';
-  subPhase?: string;
-}
+// BattlePhase type imported from @/data/battleFlow
 
 export default function ImprovedBattleArena() {
   // Memory leak prevention with error handling
