@@ -104,7 +104,17 @@ export class UsageTrackingService {
     try {
       // Get current user data
       const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
-      if (!user) return false;
+      
+      // For anonymous users, allow limited chat usage for testing/demos
+      if (!user) {
+        if (userId === 'anonymous') {
+          // Anonymous users get 3 free chats per session (no persistence)
+          // In a real app, you'd track this in memory or require signup
+          console.log('🔓 Allowing anonymous user limited chat access for demo');
+          return true;
+        }
+        return false;
+      }
 
       // Reset count if it's a new day
       let newChatCount = user.daily_chat_count;

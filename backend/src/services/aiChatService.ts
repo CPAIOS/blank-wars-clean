@@ -114,9 +114,22 @@ export class AIChatService {
         console.log('🔄 Rate limited, retrying OpenAI call...');
         try {
           await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+          
+          // Rebuild messages for retry
+          const systemPrompt = this.buildCharacterPrompt(context, battleContext);
+          const retryMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+            { role: 'system', content: systemPrompt }
+          ];
+          
+          if (context.previousMessages && context.previousMessages.length > 0) {
+            const recentMessages = context.previousMessages.slice(-5);
+            retryMessages.push(...recentMessages);
+          }
+          retryMessages.push({ role: 'user', content: userMessage });
+          
           const retryResponse = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
-            messages,
+            messages: retryMessages,
             temperature: 0.85,
             max_tokens: 200,
             presence_penalty: 1.2,
