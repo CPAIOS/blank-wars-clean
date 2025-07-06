@@ -70,13 +70,16 @@ export class PostBattleAnalysisSystem {
     // Step 4: Assess psychological consequences and trauma
     const psychologicalConsequences = this.assessPsychologicalImpact(battleState, battleMemories);
     
-    // Step 5: Generate training recommendations
+    // Step 5: Apply combat experience psychStats improvements - NEW!
+    this.applyCombatExperienceGains(battleState, characterEvaluations, psychologicalConsequences);
+    
+    // Step 6: Generate training recommendations
     const trainingRecommendations = this.generateTrainingPlan(characterEvaluations, psychologicalConsequences);
     
-    // Step 6: Analyze team chemistry evolution
+    // Step 7: Analyze team chemistry evolution
     const teamChemistryEvolution = this.analyzeTeamEvolution(battleState, relationshipChanges);
     
-    // Step 7: Calculate overall team metrics
+    // Step 8: Calculate overall team metrics
     const teamMetrics = this.calculateTeamPerformanceMetrics(battleState, characterEvaluations);
     
     return {
@@ -1484,6 +1487,131 @@ export class PostBattleAnalysisSystem {
   private static determineCultureShift(oldChemistry: number, newChemistry: number, changes: RelationshipChange[]): string { return 'No significant culture change'; }
   private static calculateConflictResolution(battleState: BattleState): number { return 50; }
   private static calculateAdaptability(battleState: BattleState): number { return 50; }
+
+  // ============= COMBAT EXPERIENCE PSYCHSTATS PROGRESSION =============
+  
+  /**
+   * Apply psychStats improvements based on combat experience and battle performance
+   * This connects battle outcomes to character psychological development
+   */
+  static applyCombatExperienceGains(
+    battleState: BattleState, 
+    evaluations: CharacterEvaluation[], 
+    consequences: PsychologicalConsequence[]
+  ): void {
+    evaluations.forEach(evaluation => {
+      const character = battleState.teams.player.characters.find(c => c.character.id === evaluation.characterId);
+      if (!character) return;
+
+      // Calculate psychStats improvements based on battle performance
+      let trainingImprovement = 0;
+      let teamPlayerImprovement = 0;
+      let egoChange = 0;
+      let mentalHealthChange = 0;
+      let communicationImprovement = 0;
+
+      // Performance-based improvements
+      if (evaluation.overallPerformance > 70) {
+        // Good performance builds confidence and competence
+        trainingImprovement += 1.5;
+        mentalHealthChange += 2;
+        egoChange += 1;
+        console.log(`${character.character.name}: Excellent performance (+training, +mental health, +ego)`);
+      }
+
+      if (evaluation.teamplayScore > 70) {
+        // Good teamwork improves teamPlayer and communication
+        teamPlayerImprovement += 2;
+        communicationImprovement += 1.5;
+        console.log(`${character.character.name}: Great teamwork (+teamPlayer, +communication)`);
+      }
+
+      // Victory/defeat effects
+      const won = battleState.result?.winner === 'player';
+      if (won) {
+        // Victory improves mental health and confidence
+        mentalHealthChange += 1;
+        egoChange += 0.5;
+      } else {
+        // Defeat teaches humility but can harm mental health
+        egoChange -= 1;
+        mentalHealthChange -= 0.5;
+        trainingImprovement += 0.5; // Learn from mistakes
+      }
+
+      // Psychological consequence effects
+      consequences.forEach(consequence => {
+        if (consequence.characterId === evaluation.characterId) {
+          switch (consequence.type) {
+            case 'growth':
+              trainingImprovement += 2;
+              mentalHealthChange += 3;
+              communicationImprovement += 1;
+              console.log(`${character.character.name}: Personal growth (+training, +mental health, +communication)`);
+              break;
+            case 'trauma':
+              mentalHealthChange -= 3;
+              egoChange -= 1;
+              console.log(`${character.character.name}: Trauma experienced (-mental health, -ego)`);
+              break;
+            case 'inspiration':
+              egoChange += 2;
+              communicationImprovement += 2;
+              console.log(`${character.character.name}: Inspired (+ego, +communication)`);
+              break;
+          }
+        }
+      });
+
+      // Apply improvements (using same system as training)
+      this.updateCharacterPsychStatsFromCombat(
+        evaluation.characterId, 
+        {
+          training: trainingImprovement,
+          teamPlayer: teamPlayerImprovement,
+          ego: egoChange,
+          mentalHealth: mentalHealthChange,
+          communication: communicationImprovement
+        }
+      );
+    });
+  }
+
+  /**
+   * Update character psychStats based on combat experience
+   * Similar to training system but for battle-based improvements
+   */
+  private static updateCharacterPsychStatsFromCombat(
+    characterId: string,
+    improvements: {
+      training: number;
+      teamPlayer: number;
+      ego: number;
+      mentalHealth: number;
+      communication: number;
+    }
+  ): void {
+    // Only update if localStorage is available (browser environment)
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      console.log(`Combat experience skipped (SSR): ${characterId} improvements`);
+      return;
+    }
+
+    const templateId = characterId.split('_')[0]; // Remove instance suffix
+
+    Object.entries(improvements).forEach(([statType, change]) => {
+      if (Math.abs(change) > 0.1) { // Only apply meaningful changes
+        const improvementKey = `${templateId}_${statType}_improvement`;
+        const currentImprovement = parseFloat(localStorage.getItem(improvementKey) || '0');
+        const newImprovement = Math.max(-20, Math.min(30, currentImprovement + change)); // Cap between -20 and +30
+        
+        localStorage.setItem(improvementKey, newImprovement.toString());
+        
+        const changeStr = change > 0 ? `+${change.toFixed(1)}` : change.toFixed(1);
+        console.log(`Combat experience: ${characterId}'s ${statType} ${changeStr} (total: ${newImprovement.toFixed(1)})`);
+      }
+    });
+  }
 }
 
 export default PostBattleAnalysisSystem;

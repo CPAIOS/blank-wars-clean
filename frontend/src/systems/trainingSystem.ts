@@ -571,7 +571,65 @@ export class TrainingSystemManager {
         break;
       case 'mental-health':
         character.mentalHealth = Math.max(0, Math.min(100, character.mentalHealth + effect.change));
+        // ALSO improve character's actual psychStats.mentalHealth
+        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.3);
         break;
+      
+      // Map training effects to character psychStats improvements
+      case 'tactics':
+      case 'strategy':
+      case 'discipline':
+        // Tactical training improves ability to follow instructions
+        this.updateCharacterPsychStats(character.characterId, 'training', effect.change * 0.4);
+        break;
+      
+      case 'leadership':
+      case 'charisma':
+      case 'communication':
+        // Leadership training improves communication abilities
+        this.updateCharacterPsychStats(character.characterId, 'communication', effect.change * 0.4);
+        break;
+      
+      case 'social-skills':
+      case 'empathy':
+      case 'team-cooperation':
+        // Social training improves teamwork
+        this.updateCharacterPsychStats(character.characterId, 'teamPlayer', effect.change * 0.4);
+        break;
+      
+      case 'confidence':
+      case 'self-esteem':
+        // Confidence training affects ego
+        this.updateCharacterPsychStats(character.characterId, 'ego', effect.change * 0.3);
+        break;
+      
+      case 'rage-control':
+      case 'patience':
+      case 'emotional-stability':
+      case 'self-control':
+        // Anger management improves mental health and reduces ego
+        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.4);
+        this.updateCharacterPsychStats(character.characterId, 'ego', -effect.change * 0.2);
+        break;
+      
+      case 'resilience':
+      case 'trauma':
+        // Trauma therapy and resilience training improve mental health
+        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.5);
+        break;
+      
+      case 'team-trust':
+      case 'trustworthiness':
+        // Trust-building improves teamwork
+        this.updateCharacterPsychStats(character.characterId, 'teamPlayer', effect.change * 0.4);
+        break;
+      
+      case 'addiction-resistance':
+        // Addiction counseling improves mental health and training discipline
+        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.3);
+        this.updateCharacterPsychStats(character.characterId, 'training', effect.change * 0.2);
+        break;
+        
       // Add more trait handling as needed
     }
   }
@@ -579,6 +637,41 @@ export class TrainingSystemManager {
   private hasAngerIssues(characterId: string): boolean {
     // Check character's psychology profile for anger issues
     return characterId === 'achilles' || characterId === 'thor';
+  }
+
+  /**
+   * Updates the character's actual psychStats used in battle psychology
+   * This is the critical connection between training and battle performance
+   */
+  private updateCharacterPsychStats(
+    characterId: string, 
+    statType: 'training' | 'teamPlayer' | 'ego' | 'mentalHealth' | 'communication',
+    change: number
+  ): void {
+    // Only update if localStorage is available (browser environment)
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      console.log(`Training improvement skipped (SSR): ${characterId}'s ${statType} +${change.toFixed(1)}`);
+      return;
+    }
+
+    // Find character in the character database
+    const { createCharacter, characterTemplates } = require('../data/characters');
+    const templateId = characterId.replace(/_.*$/, ''); // Remove instance suffix
+    
+    if (!characterTemplates[templateId]) {
+      console.warn(`Character template ${templateId} not found for psychStats update`);
+      return;
+    }
+
+    // In a real app, this would update persistent character data
+    // For now, we'll track improvements and apply them during character creation
+    const improvementKey = `${characterId}_${statType}_improvement`;
+    const currentImprovement = parseFloat(localStorage.getItem(improvementKey) || '0');
+    const newImprovement = Math.max(0, Math.min(30, currentImprovement + change)); // Cap at +30 improvement
+    
+    localStorage.setItem(improvementKey, newImprovement.toString());
+    
+    console.log(`Training improved ${characterId}'s ${statType} by ${change.toFixed(1)} (total: +${newImprovement.toFixed(1)})`);
   }
 
   private hasLeadershipPotential(characterId: string): boolean {

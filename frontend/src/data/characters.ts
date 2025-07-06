@@ -132,6 +132,15 @@ export interface Character {
   fatigue: number;              // 0-100, affects performance
   lastTrainingDate?: Date;
   
+  // Psychology Stats - determines mental state and team dynamics
+  psychStats: {
+    training: number;           // 0-100, how well they follow instructions
+    teamPlayer: number;         // 0-100, how well they work with others
+    ego: number;               // 0-100, how arrogant/self-important they are
+    mentalHealth: number;      // 0-100, psychological stability
+    communication: number;     // 0-100, how well they express themselves
+  };
+  
   // Battle AI
   battleAI: {
     aggression: number;         // 0-100
@@ -222,6 +231,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 75,
     bondLevel: 50,
     fatigue: 0,
+    psychStats: {
+      training: 75,        // Follows honor code but can be impulsive
+      teamPlayer: 60,      // Works with others but wants to be the hero
+      ego: 85,            // Very proud, knows he's the greatest warrior
+      mentalHealth: 70,    // Generally stable but prone to rage
+      communication: 75    // Noble and inspiring speech
+    },
     battleAI: {
       aggression: 90,
       defensiveness: 30,
@@ -309,6 +325,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 90,
     bondLevel: 60,
     fatigue: 0,
+    psychStats: {
+      training: 90,        // Highly disciplined magical training
+      teamPlayer: 85,      // Wise mentor, guides others well
+      ego: 40,            // Humble despite great power
+      mentalHealth: 90,    // Ancient wisdom provides stability
+      communication: 95    // Articulate teacher and advisor
+    },
     battleAI: {
       aggression: 40,
       defensiveness: 80,
@@ -397,6 +420,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 45,
     bondLevel: 70,
     fatigue: 0,
+    psychStats: {
+      training: 45,        // Wild nature resists instruction
+      teamPlayer: 30,      // Lone wolf mentality
+      ego: 70,            // Proud beast, knows his strength
+      mentalHealth: 60,    // Beast instincts create instability
+      communication: 25    // More growls than words
+    },
     battleAI: {
       aggression: 95,
       defensiveness: 20,
@@ -484,6 +514,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 80,
     bondLevel: 55,
     fatigue: 0,
+    psychStats: {
+      training: 80,        // Disciplined royal education
+      teamPlayer: 75,      // Skilled diplomat and leader
+      ego: 95,            // Supreme confidence as pharaoh
+      mentalHealth: 85,    // Royal composure and stability
+      communication: 95    // Master of rhetoric and persuasion
+    },
     battleAI: {
       aggression: 50,
       defensiveness: 70,
@@ -576,6 +613,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 90,
     bondLevel: 50,
     fatigue: 0,
+    psychStats: {
+      training: 85,        // Follows logical deduction but can be stubborn
+      teamPlayer: 45,      // Prefers working alone, finds others inefficient
+      ego: 90,            // Supremely confident in his abilities
+      mentalHealth: 75,    // Generally stable but obsessive
+      communication: 60    // Precise but can be condescending
+    },
     battleAI: {
       aggression: 35,
       defensiveness: 70,
@@ -666,6 +710,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 85,
     bondLevel: 30,
     fatigue: 0,
+    psychStats: {
+      training: 65,        // Ancient intellect can adapt when motivated
+      teamPlayer: 20,      // Supremacist, sees others as food/tools
+      ego: 95,            // Immortal lord, superior to all
+      mentalHealth: 60,    // Centuries of existence, some instability
+      communication: 85    // Charismatic and seductive
+    },
     battleAI: {
       aggression: 85,
       defensiveness: 50,
@@ -756,6 +807,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 95,
     bondLevel: 65,
     fatigue: 0,
+    psychStats: {
+      training: 95,        // Divinely inspired discipline
+      teamPlayer: 90,      // Natural born leader, rallies others
+      ego: 30,            // Humble servant of higher purpose
+      mentalHealth: 85,    // Faith provides stability
+      communication: 80    // Inspiring and uplifting
+    },
     battleAI: {
       aggression: 70,
       defensiveness: 80,
@@ -846,6 +904,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 60,
     bondLevel: 35,
     fatigue: 0,
+    psychStats: {
+      training: 55,        // Tragic past makes him resistant to orders
+      teamPlayer: 70,      // Wants to protect others despite rejection
+      ego: 20,            // Low self-worth, sees self as monster
+      mentalHealth: 45,    // Deep psychological trauma
+      communication: 40    // Struggles to express himself clearly
+    },
     battleAI: {
       aggression: 65,
       defensiveness: 85,
@@ -936,6 +1001,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 90,
     bondLevel: 50,
     fatigue: 0,
+    psychStats: {
+      training: 65,        // Rebellious nature resists authority
+      teamPlayer: 80,      // Loyal to friends, fights for others
+      ego: 70,            // Confident trickster, knows he's clever
+      mentalHealth: 85,    // Immortal stability with playful nature
+      communication: 90    // Master of wordplay and wit
+    },
     battleAI: {
       aggression: 60,
       defensiveness: 40,
@@ -1028,6 +1100,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 75,
     bondLevel: 35,
     fatigue: 0,
+    psychStats: {
+      training: 80,        // Street-smart discipline
+      teamPlayer: 65,      // Works well with honest cops/allies
+      ego: 60,            // Confident but not arrogant
+      mentalHealth: 70,    // Cynical but stable
+      communication: 75    // Gritty eloquence and street wisdom
+    },
     battleAI: {
       aggression: 55,
       defensiveness: 50,
@@ -1120,6 +1199,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 70,
     bondLevel: 45,
     fatigue: 0,
+    psychStats: {
+      training: 55,        // Outlaw resists formal authority
+      teamPlayer: 75,      // Loyal to gang/friends
+      ego: 80,            // Cocky gunslinger confidence
+      mentalHealth: 65,    // Wild lifestyle creates some instability
+      communication: 70    // Charming outlaw charisma
+    },
     battleAI: {
       aggression: 75,
       defensiveness: 40,
@@ -1212,6 +1298,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 90,
     bondLevel: 50,
     fatigue: 0,
+    psychStats: {
+      training: 95,        // Supreme military discipline
+      teamPlayer: 85,      // Excellent commander and strategist
+      ego: 95,            // Knows he's the greatest conqueror
+      mentalHealth: 90,    // Iron will and mental fortitude
+      communication: 85    // Commanding presence and inspiration
+    },
     battleAI: {
       aggression: 95,
       defensiveness: 70,
@@ -1304,6 +1397,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 80,
     bondLevel: 25,
     fatigue: 0,
+    psychStats: {
+      training: 85,        // Cybernetic precision and efficiency
+      teamPlayer: 40,      // Calculating, sees others as assets
+      ego: 75,            // Superior technology breeds confidence
+      mentalHealth: 80,    // Cybernetic stability with organic emotions
+      communication: 35    // Direct but lacks warmth
+    },
     battleAI: {
       aggression: 80,
       defensiveness: 75,
@@ -1394,6 +1494,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 90,
     bondLevel: 45,
     fatigue: 0,
+    psychStats: {
+      training: 95,        // Genius-level learning and discipline
+      teamPlayer: 60,      // Prefers solo work but can collaborate
+      ego: 85,            // Knows he's a visionary genius
+      mentalHealth: 70,    // Obsessive tendencies create some instability
+      communication: 80    // Passionate about his inventions
+    },
     battleAI: {
       aggression: 55,
       defensiveness: 65,
@@ -1484,6 +1591,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 95,
     bondLevel: 20,
     fatigue: 0,
+    psychStats: {
+      training: 95,        // Superior alien discipline and logic
+      teamPlayer: 30,      // Sees others as subjects, not equals
+      ego: 90,            // Superior species complex
+      mentalHealth: 85,    // Alien psychology, different stability
+      communication: 40    // Clinical and detached
+    },
     battleAI: {
       aggression: 30,
       defensiveness: 85,
@@ -1574,6 +1688,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 90,
     bondLevel: 60,
     fatigue: 0,
+    psychStats: {
+      training: 90,        // Excellent archer discipline
+      teamPlayer: 90,      // Natural leader, fights for others
+      ego: 50,            // Humble hero, fights for justice
+      mentalHealth: 85,    // Strong moral compass provides stability
+      communication: 85    // Charismatic leader and rallying speaker
+    },
     battleAI: {
       aggression: 60,
       defensiveness: 55,
@@ -1667,6 +1788,13 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
     trainingLevel: 85,
     bondLevel: 40,
     fatigue: 0,
+    psychStats: {
+      training: 95,        // Elite spy training and discipline
+      teamPlayer: 70,      // Works well in covert teams
+      ego: 65,            // Confident but not arrogant
+      mentalHealth: 85,    // Professional stability under pressure
+      communication: 75    // Smooth talking and persuasive
+    },
     battleAI: {
       aggression: 55,
       defensiveness: 70,
@@ -1734,7 +1862,40 @@ export function createCharacter(templateId: string, customizations?: Partial<Cha
     ...customizations
   };
 
+  // Apply training improvements to psychStats - CRITICAL CONNECTION!
+  applyTrainingImprovements(character, templateId);
+
   return character;
+}
+
+/**
+ * Apply training improvements to character's psychStats
+ * This connects the training system to battle psychology
+ */
+function applyTrainingImprovements(character: Character, templateId: string): void {
+  // Only apply improvements if localStorage is available (browser environment)
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return; // Skip during server-side rendering
+  }
+  
+  // Get training improvements from localStorage (where training system stores them)
+  const psychStatFields: (keyof Character['psychStats'])[] = ['training', 'teamPlayer', 'ego', 'mentalHealth', 'communication'];
+  
+  psychStatFields.forEach(statType => {
+    const improvementKey = `${templateId}_${statType}_improvement`;
+    const improvement = parseFloat(localStorage.getItem(improvementKey) || '0');
+    
+    if (Math.abs(improvement) > 0.1) { // Apply both positive and negative changes
+      // Apply improvement to the character's psychStats
+      const oldValue = character.psychStats[statType];
+      const newValue = Math.max(0, Math.min(100, oldValue + improvement));
+      character.psychStats[statType] = newValue;
+      
+      // Log the improvement for debugging
+      const changeStr = improvement > 0 ? `+${improvement.toFixed(1)}` : improvement.toFixed(1);
+      console.log(`Applied training/combat: ${character.name}'s ${statType} ${oldValue} → ${newValue.toFixed(1)} (${changeStr})`);
+    }
+  });
 }
 
 export function getCharacterById(characterId: string): Character | null {
