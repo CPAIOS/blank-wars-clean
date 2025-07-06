@@ -99,6 +99,12 @@ export class UsageTrackingService {
    * Track a chat usage and update user record
    */
   static async trackChatUsage(userId: string, db: any): Promise<boolean> {
+    // DEVELOPMENT MODE: Allow unlimited chat usage for testing
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🔓 Development mode: allowing unlimited chat for userId:', userId);
+      return true;
+    }
+    
     const today = new Date().toISOString().split('T')[0];
     
     try {
