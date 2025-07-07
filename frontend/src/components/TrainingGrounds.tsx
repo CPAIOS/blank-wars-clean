@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Dumbbell, 
   Target, 
@@ -12,14 +12,21 @@ import {
   TrendingUp, 
   Play, 
   Pause, 
-  RotateCcw,
   Award,
   Coins,
   Battery,
   Heart,
+  Sparkles,
+  BookOpen,
+  MessageCircle,
+  Send,
+  User,
 } from 'lucide-react';
 import { memberships, MembershipTier, getTrainingMultipliers, getDailyLimits, FacilityType } from '@/data/memberships';
 import { getBaseStatsForLevel, getLevelData } from '@/data/characterProgression';
+import { TrainingSystemManager } from '@/systems/trainingSystem';
+import { trainingChatService } from '@/services/trainingChatService';
+import { createDemoCharacterCollection } from '@/data/characters';
 
 interface Character {
   id: string;
@@ -102,6 +109,19 @@ export default function TrainingGrounds() {
   const [selectedFacility] = useState<FacilityType>('community');
   const [dailyTrainingSessions, setDailyTrainingSessions] = useState(0);
   const [dailyEnergyRefills, setDailyEnergyRefills] = useState(0);
+  const [trainingPoints, setTrainingPoints] = useState(0);
+  
+  // Training chat state
+  const [showTrainingChat, setShowTrainingChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{
+    id: string;
+    sender: 'coach' | 'character';
+    message: string;
+    timestamp: Date;
+    characterName?: string;
+  }>>([]);
+  const [currentChatMessage, setCurrentChatMessage] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   // Training activities
   const trainingActivities: TrainingActivity[] = [
@@ -528,7 +548,7 @@ export default function TrainingGrounds() {
     }
     
     return () => clearInterval(interval);
-  }, [isTraining, trainingTimeLeft]);
+  }, [isTraining, trainingTimeLeft, completeTraining, currentActivity?.duration]);
 
   // Complete training
   const completeTraining = () => {
@@ -630,6 +650,85 @@ export default function TrainingGrounds() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Training chat functions
+  const sendTrainingChatMessage = async () => {
+    if (!currentChatMessage.trim() || isChatLoading) return;
+
+    const messageText = currentChatMessage.trim();
+    setCurrentChatMessage('');
+    setIsChatLoading(true);
+
+    // Add coach message to chat
+    const coachMessage = {
+      id: `coach_${Date.now()}`,
+      sender: 'coach' as const,
+      message: messageText,
+      timestamp: new Date()
+    };
+    setChatMessages(prev => [...prev, coachMessage]);
+
+    try {
+      // Get available characters for context
+      const availableCharacters = createDemoCharacterCollection();
+      const currentCharacter = availableCharacters.find(c => c.name === selectedCharacter.name) || availableCharacters[0];
+      
+      // Prepare training context
+      const trainingContext = {
+        character: currentCharacter,
+        teammates: availableCharacters.filter(c => c.id !== currentCharacter.id).slice(0, 5),
+        coachName: 'Coach',
+        trainingEnvironment: {
+          facilityTier: selectedFacility,
+          equipment: ['Weights', 'Treadmill', 'Combat dummies', 'Resistance bands'],
+          currentActivity: currentActivity?.name || 'Free training',
+          energyLevel: Math.round((selectedCharacter.energy / selectedCharacter.maxEnergy) * 100),
+          trainingProgress: Math.round(trainingProgress)
+        },
+        recentTrainingEvents: [
+          `Completed ${dailyTrainingSessions} training sessions today`,
+          `Current energy: ${selectedCharacter.energy}/${selectedCharacter.maxEnergy}`,
+          `Training points earned: ${trainingPoints}`
+        ]
+      };
+
+      const response = await trainingChatService.startTrainingConversation(
+        currentCharacter,
+        trainingContext,
+        messageText
+      );
+
+      // Add character response to chat
+      const characterMessage = {
+        id: `char_${Date.now()}`,
+        sender: 'character' as const,
+        message: response,
+        timestamp: new Date(),
+        characterName: currentCharacter.name
+      };
+      setChatMessages(prev => [...prev, characterMessage]);
+
+    } catch (error) {
+      console.error('Training chat error:', error);
+      const errorMessage = {
+        id: `error_${Date.now()}`,
+        sender: 'character' as const,
+        message: 'Sorry, I\'m having trouble responding right now. Let\'s focus on training!',
+        timestamp: new Date(),
+        characterName: selectedCharacter.name
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleChatKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendTrainingChatMessage();
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       {/* Header */}
@@ -645,7 +744,7 @@ export default function TrainingGrounds() {
       </div>
 
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-4 gap-6">
         {/* Character Info Panel */}
         <div className="lg:col-span-1">
           <motion.div 
@@ -733,6 +832,10 @@ export default function TrainingGrounds() {
               </div>
               <div className="text-sm text-white">
                 Refills: {dailyEnergyRefills}/{membershipLimits.dailyEnergyRefills === 'unlimited' ? '∞' : membershipLimits.dailyEnergyRefills}
+              </div>
+              <div className="text-sm text-yellow-400 flex items-center gap-1">
+                <Star className="w-3 h-3" />
+                Training Points: {trainingPoints}
               </div>
               {membershipLimits.xpMultiplier > 1 && (
                 <div className="text-sm text-green-400 flex items-center gap-1">
@@ -886,6 +989,116 @@ export default function TrainingGrounds() {
                 <p className="text-gray-500">
                   Your character needs more energy or higher level to access training activities.
                 </p>
+              </div>
+            )}
+          </motion.div>
+        </div>
+
+        {/* Training Chat Panel */}
+        <div className="lg:col-span-1">
+          <motion.div 
+            className="bg-gray-900/50 rounded-xl border border-gray-700 p-6 h-fit"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-orange-400" />
+                Training Coach
+              </h2>
+              <button
+                onClick={() => setShowTrainingChat(!showTrainingChat)}
+                className={`p-2 rounded-lg transition-colors ${
+                  showTrainingChat 
+                    ? 'bg-orange-600 text-white' 
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+              </button>
+            </div>
+
+            {showTrainingChat ? (
+              <>
+                {/* Chat Messages */}
+                <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                  {chatMessages.length === 0 ? (
+                    <div className="text-center py-8">
+                      <User className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                      <p className="text-gray-400 text-sm">
+                        Chat with {selectedCharacter.name} about training techniques and workout strategies!
+                      </p>
+                    </div>
+                  ) : (
+                    chatMessages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.sender === 'coach' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-xs px-3 py-2 rounded-lg ${
+                          msg.sender === 'coach'
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-gray-700 text-gray-200'
+                        }`}>
+                          {msg.sender === 'character' && (
+                            <div className="text-xs text-gray-400 mb-1">{msg.characterName}</div>
+                          )}
+                          <div className="text-sm">{msg.message}</div>
+                          <div className="text-xs opacity-70 mt-1">
+                            {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  
+                  {isChatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-700 px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Chat Input */}
+                <div className="border-t border-gray-700 pt-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={currentChatMessage}
+                      onChange={(e) => setCurrentChatMessage(e.target.value)}
+                      onKeyPress={handleChatKeyPress}
+                      placeholder={`Ask ${selectedCharacter.name} about training...`}
+                      className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+                      disabled={isChatLoading}
+                    />
+                    <button
+                      onClick={sendTrainingChatMessage}
+                      disabled={!currentChatMessage.trim() || isChatLoading}
+                      className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    Press Enter to send • Chat with {selectedCharacter.name} about workouts, techniques, and training goals
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <MessageCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 mb-4">
+                  Get training advice and motivation from {selectedCharacter.name}
+                </p>
+                <button
+                  onClick={() => setShowTrainingChat(true)}
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Start Training Chat
+                </button>
               </div>
             )}
           </motion.div>

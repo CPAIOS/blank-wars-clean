@@ -358,11 +358,27 @@ export class TrainingSystemManager {
   // Start training session with usage tracking
   async startTraining(characterId: string, activityId: string, userId: string, gymTier: string = 'community'): Promise<TrainingSession | null> {
     try {
-      // Use backend training service with direct usage tracking
-      const { trainingService } = require('../../backend/src/services/trainingService');
-      const { db } = require('../../backend/src/database/sqlite');
-      
-      const result = await trainingService.startTraining(characterId, activityId, userId, gymTier, db);
+      // Use training API
+      const response = await fetch('/api/training/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          characterId,
+          activityId,
+          userId,
+          gymTier
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to start training');
+      }
+
+      const result = await response.json();
       
       if (result.usageLimitReached) {
         throw new Error('Daily training limit reached. Upgrade to premium or use a better gym for more training sessions!');
