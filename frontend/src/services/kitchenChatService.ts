@@ -39,13 +39,21 @@ export class KitchenChatService {
   }
 
   private initializeSocket() {
-    const socketUrl = process.env.NODE_ENV === 'production' 
-      ? process.env.NEXT_PUBLIC_BACKEND_URL 
-      : 'http://localhost:3006';
+    // Determine backend URL based on environment
+    let socketUrl: string;
+    
+    if (process.env.NODE_ENV === 'production') {
+      // Production: use environment variable or blankwars.com backend
+      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://www.blankwars.com:3006';
+    } else {
+      // Development: use localhost
+      socketUrl = 'http://localhost:3006';
+    }
     
     console.log('🔧 Kitchen Chat Service initializing with URL:', socketUrl);
     console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
     console.log('🔧 NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
+    console.log('🔧 Current hostname:', typeof window !== 'undefined' ? window.location.hostname : 'SSR');
     
     this.socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
