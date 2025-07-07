@@ -17,15 +17,7 @@ import {
   Coins,
   Battery,
   Heart,
-  BookOpen,
-  Sparkles,
-  Crown,
-  Building
 } from 'lucide-react';
-import SkillTree from './SkillTree';
-import MembershipSelection from './MembershipSelection';
-import TrainingFacilitySelector from './TrainingFacilitySelector';
-import { coreSkills, archetypeSkills, signatureSkills } from '@/data/skills';
 import { memberships, MembershipTier, getTrainingMultipliers, getDailyLimits, FacilityType } from '@/data/memberships';
 import { getBaseStatsForLevel, getLevelData } from '@/data/characterProgression';
 
@@ -56,7 +48,7 @@ interface TrainingActivity {
   id: string;
   name: string;
   description: string;
-  type: 'strength' | 'defense' | 'speed' | 'special' | 'endurance' | 'skill';
+  type: 'strength' | 'defense' | 'speed' | 'special' | 'endurance';
   duration: number; // in seconds
   energyCost: number;
   xpGain: number;
@@ -67,7 +59,6 @@ interface TrainingActivity {
     level: number;
     archetype?: string[];
   };
-  skillId?: string; // For skill learning activities
   trainingPointsGain?: number;
 }
 
@@ -106,11 +97,9 @@ export default function TrainingGrounds() {
   const [currentActivity, setCurrentActivity] = useState<TrainingActivity | null>(null);
   const [trainingProgress, setTrainingProgress] = useState(0);
   const [trainingTimeLeft, setTrainingTimeLeft] = useState(0);
-  const [activeTab, setActiveTab] = useState<'training' | 'skills' | 'facilities' | 'membership'>('training');
-  const [trainingPoints, setTrainingPoints] = useState(10); // Mock training points
-  const [learnedSkills, setLearnedSkills] = useState<string[]>(['power_strike']); // Mock learned skills
-  const [membershipTier, setMembershipTier] = useState<MembershipTier>('free');
-  const [selectedFacility, setSelectedFacility] = useState<FacilityType>('community');
+  // Removed tabs - TrainingGrounds now focuses only on training activities
+  const [membershipTier] = useState<MembershipTier>('free');
+  const [selectedFacility] = useState<FacilityType>('community');
   const [dailyTrainingSessions, setDailyTrainingSessions] = useState(0);
   const [dailyEnergyRefills, setDailyEnergyRefills] = useState(0);
 
@@ -193,49 +182,6 @@ export default function TrainingGrounds() {
       icon: Award,
       difficulty: 'extreme',
       requirements: { level: 15, archetype: ['warrior', 'leader'] }
-    },
-    // Skill Learning Activities
-    {
-      id: 'skill_learning_basic',
-      name: 'Skill Training: Core',
-      description: 'Learn fundamental combat and survival skills',
-      type: 'skill',
-      duration: 45,
-      energyCost: 25,
-      xpGain: 60,
-      statBonus: 0,
-      trainingPointsGain: 1,
-      icon: BookOpen,
-      difficulty: 'medium',
-      requirements: { level: 5 }
-    },
-    {
-      id: 'skill_learning_advanced',
-      name: 'Advanced Skill Mastery',
-      description: 'Master complex techniques and abilities',
-      type: 'skill',
-      duration: 60,
-      energyCost: 40,
-      xpGain: 100,
-      statBonus: 0,
-      trainingPointsGain: 2,
-      icon: Sparkles,
-      difficulty: 'hard',
-      requirements: { level: 10 }
-    },
-    {
-      id: 'skill_learning_signature',
-      name: 'Signature Skill Development',
-      description: 'Unlock your character\'s unique abilities',
-      type: 'skill',
-      duration: 90,
-      energyCost: 60,
-      xpGain: 150,
-      statBonus: 0,
-      trainingPointsGain: 3,
-      icon: Star,
-      difficulty: 'extreme',
-      requirements: { level: 15 }
     },
     
     // === WARRIOR ARCHETYPE TRAINING ===
@@ -505,9 +451,6 @@ export default function TrainingGrounds() {
     return dailyTrainingSessions < membershipLimits.dailyTrainingSessions;
   };
 
-  const canLearnSkills = () => {
-    return membershipLimits.skillLearningSessions > 0;
-  };
 
   // Available activities based on character and membership
   const availableActivities = trainingActivities.filter(activity => {
@@ -518,18 +461,13 @@ export default function TrainingGrounds() {
     const withinLimits = canTrain();
     
     // Skill activities require membership access
-    if (activity.type === 'skill' && !canLearnSkills()) {
-      return false;
-    }
-    
     return meetsLevel && meetsArchetype && hasEnergy && withinLimits;
   });
 
   // Start training
   const startTraining = async (activity: TrainingActivity) => {
     if (selectedCharacter.energy < activity.energyCost) return;
-    if (!canTrain() && activity.type !== 'skill') return;
-    if (activity.type === 'skill' && !canLearnSkills()) return;
+    if (!canTrain()) return;
     
     try {
       // Get user ID from auth context (you'll need to implement this)
@@ -706,68 +644,8 @@ export default function TrainingGrounds() {
         </p>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex justify-center mb-6">
-        <div className="bg-gray-800/50 rounded-xl p-1 flex gap-1">
-          <button
-            onClick={() => setActiveTab('training')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'training'
-                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Dumbbell className="w-5 h-5" />
-            <span>Training Activities</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('skills')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'skills'
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <BookOpen className="w-5 h-5" />
-            <span>Skill Tree</span>
-            {trainingPoints > 0 && (
-              <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full font-bold">
-                {trainingPoints}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('facilities')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'facilities'
-                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Building className="w-5 h-5" />
-            <span>Facilities</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('membership')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'membership'
-                ? 'bg-gradient-to-r from-gold-500 to-yellow-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Crown className="w-5 h-5" />
-            <span>Membership</span>
-            {membershipTier && membershipTier !== 'free' && memberships[membershipTier] && (
-              <span className="bg-gold-500 text-black text-xs px-2 py-0.5 rounded-full font-bold">
-                {memberships[membershipTier].icon}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
 
-      {activeTab === 'training' ? (
-        <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Character Info Panel */}
         <div className="lg:col-span-1">
           <motion.div 
@@ -981,9 +859,7 @@ export default function TrainingGrounds() {
                             <div className="flex items-center gap-1">
                               <TrendingUp className="w-3 h-3 text-green-400" />
                               <span className="text-green-400">
-                                {activity.type === 'skill' && activity.trainingPointsGain 
-                                  ? `+${activity.trainingPointsGain} TP` 
-                                  : `+${activity.statBonus} ${activity.type}`}
+                                +{activity.statBonus} {activity.type}
                               </span>
                             </div>
                           </div>
@@ -1015,52 +891,6 @@ export default function TrainingGrounds() {
           </motion.div>
         </div>
       </div>
-      ) : activeTab === 'skills' ? (
-        /* Skills Tab */
-        <div className="max-w-full">
-          <SkillTree
-            characterId={selectedCharacter.id}
-            characterName={selectedCharacter.name}
-            characterLevel={selectedCharacter.level}
-            characterArchetype={selectedCharacter.archetype}
-            learnedSkills={learnedSkills}
-            trainingPoints={trainingPoints}
-            onLearnSkill={(skillId) => {
-              // Get skill cost
-              const allSkills = [...coreSkills, ...(archetypeSkills[selectedCharacter.archetype] || []), ...(signatureSkills[selectedCharacter.id] || [])];
-              const skill = allSkills.find(s => s.id === skillId);
-              
-              if (skill && trainingPoints >= skill.requirements.trainingCost) {
-                setLearnedSkills(prev => [...prev, skillId]);
-                setTrainingPoints(prev => prev - skill.requirements.trainingCost);
-              }
-            }}
-          />
-        </div>
-      ) : activeTab === 'facilities' ? (
-        /* Facilities Tab */
-        <div className="max-w-full">
-          <TrainingFacilitySelector
-            membershipTier={membershipTier}
-            selectedFacility={selectedFacility}
-            onSelectFacility={setSelectedFacility}
-            onUpgradeMembership={() => setActiveTab('membership')}
-          />
-        </div>
-      ) : (
-        /* Membership Tab */
-        <div className="max-w-full">
-          <MembershipSelection
-            currentTier={membershipTier}
-            onSelectTier={(tier) => setMembershipTier(tier)}
-            onPurchase={(tier) => {
-              // Handle purchase logic here
-              setMembershipTier(tier);
-              console.log(`Purchasing ${tier} membership`);
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }
