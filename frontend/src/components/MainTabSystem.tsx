@@ -27,9 +27,11 @@ import EquipmentManager from './EquipmentManager';
 import AbilityManager from './AbilityManager';
 import MembershipSelection from './MembershipSelection';
 import TrainingFacilitySelector from './TrainingFacilitySelector';
+import FacilitiesManager from './FacilitiesManager';
 import SkillTree from './SkillTree';
 import AICoach from './AICoach';
 import CharacterDatabase from './CharacterDatabase';
+import CoachingInterface from './CoachingInterface';
 import { createDemoCharacterCollection } from '@/data/characters';
 
 // Lazy load non-critical components
@@ -79,9 +81,11 @@ interface MainTab {
 
 export default function MainTabSystem() {
   const [activeMainTab, setActiveMainTab] = useState('characters');
-  const [activeSubTab, setActiveSubTab] = useState('headquarters');
+  const [activeSubTab, setActiveSubTab] = useState('progression');
   const [isMainTabExpanded, setIsMainTabExpanded] = useState(true);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState('achilles');
+  
+  console.log('🔥 MainTabSystem state:', { activeMainTab, activeSubTab, globalSelectedCharacterId });
 
   // Demo character data with enhanced training integration
   const demoCharacter = {
@@ -346,13 +350,21 @@ export default function MainTabSystem() {
     
     // Handle equipment changes
     const handleEquip = (equipment: any) => {
-      setCharacterEquipment(prev => ({
-        ...prev,
-        [globalSelectedCharacterId]: {
-          ...prev[globalSelectedCharacterId],
-          [equipment.slot]: equipment
-        }
-      }));
+      console.log('🔧 handleEquip called:', equipment);
+      console.log('🔧 Current character:', globalSelectedCharacterId);
+      console.log('🔧 Current equipment state:', characterEquipment);
+      
+      setCharacterEquipment(prev => {
+        const updated = {
+          ...prev,
+          [globalSelectedCharacterId]: {
+            ...prev[globalSelectedCharacterId],
+            [equipment.slot]: equipment
+          }
+        };
+        console.log('🔧 Updated equipment state:', updated);
+        return updated;
+      });
     };
     
     const handleUnequip = (slot: string) => {
@@ -445,7 +457,7 @@ export default function MainTabSystem() {
         characterName={selectedCharacter.name}
         characterLevel={selectedCharacter.level}
         characterArchetype={selectedCharacter.archetype}
-        equippedItems={selectedCharacter.equippedItems || characterEquipment[globalSelectedCharacterId] || {}}
+        equippedItems={characterEquipment[globalSelectedCharacterId] || {}}
         inventory={selectedCharacter.inventory || []}
         onEquip={handleEquip}
         onUnequip={handleUnequip}
@@ -638,6 +650,7 @@ export default function MainTabSystem() {
 
   const ClubhouseWrapper = () => {
     try {
+      console.log('Loading Clubhouse component...');
       return (
         <Clubhouse
           currentUserId="demo_user_001"
@@ -653,7 +666,13 @@ export default function MainTabSystem() {
         <div className="p-8 text-center">
           <h2 className="text-2xl font-bold mb-4 text-red-400">Social Tab Error</h2>
           <p className="text-gray-400">The social features are temporarily unavailable.</p>
-          <p className="text-sm text-gray-500 mt-2">Error: {error?.message || 'Unknown error'}</p>
+          <p className="text-sm text-gray-500 mt-2">Error: {(error as Error)?.message || 'Unknown error'}</p>
+          <details className="mt-4 text-left">
+            <summary className="cursor-pointer text-blue-400">Error Details</summary>
+            <pre className="text-xs text-gray-300 mt-2 overflow-auto">
+              {(error as Error)?.stack || JSON.stringify(error, null, 2)}
+            </pre>
+          </details>
         </div>
       );
     }
@@ -874,6 +893,109 @@ export default function MainTabSystem() {
     );
   };
 
+  const IndividualSessionsWrapper = () => {
+    const demoCharacters = createDemoCharacterCollection();
+    const baseCharacter = demoCharacters[0];
+    
+    // Create a BattleCharacter wrapper for the CoachingInterface
+    const battleCharacter = {
+      character: baseCharacter,
+      currentHealth: baseCharacter.hp,
+      currentMana: 100,
+      physicalDamageDealt: 0,
+      physicalDamageTaken: 0,
+      statusEffects: [],
+      mentalState: {
+        stress: 25,
+        confidence: 75,
+        teamTrust: 80,
+        strategicFocus: 'balanced'
+      },
+      gameplanAdherence: 85,
+      teamRole: 'damage',
+      performanceRating: 'good',
+      keyMoments: []
+    };
+    
+    return (
+      <CoachingInterface
+        character={battleCharacter}
+        isTimeoutActive={false}
+        timeRemaining={0}
+        onCoachingAction={(action) => console.log('Coaching action:', action)}
+        onCloseCoaching={() => console.log('Coaching session closed')}
+      />
+    );
+  };
+
+  const GroupActivitiesWrapper = () => {
+    const sampleTeamMembers = [
+      { id: 'char1', name: 'Achilles', avatar: '🛡️', mood: 'Motivated' },
+      { id: 'char2', name: 'Joan of Arc', avatar: '⚔️', mood: 'Focused' },
+      { id: 'char3', name: 'Tesla', avatar: '⚡', mood: 'Curious' }
+    ];
+
+    return (
+      <TeamBuildingActivities
+        teamBudget={1500}
+        teamMembers={sampleTeamMembers}
+        onActivityComplete={(result) => {
+          console.log('Group activity completed:', result);
+          // In real implementation, update team stats here
+        }}
+      />
+    );
+  };
+
+  const FacilitiesManagerWrapper = () => {
+    // Demo facilities state
+    const [demoFacilities, setDemoFacilities] = useState([
+      { id: 'gym', level: 2, purchaseDate: new Date(), maintenancePaid: true, bonusesActive: true },
+      { id: 'medical_bay', level: 1, purchaseDate: new Date(), maintenancePaid: false, bonusesActive: false }
+    ]);
+    
+    const demoCurrency = { coins: 50000, gems: 100 };
+    const demoTeamLevel = 12;
+    const demoAchievements = ['team_harmony', 'inner_peace', 'tech_pioneer'];
+    
+    const handlePurchaseFacility = (facilityId: string) => {
+      console.log('Purchasing facility:', facilityId);
+      setDemoFacilities(prev => [...prev, {
+        id: facilityId,
+        level: 1,
+        purchaseDate: new Date(),
+        maintenancePaid: true,
+        bonusesActive: true
+      }]);
+    };
+    
+    const handleUpgradeFacility = (facilityId: string) => {
+      console.log('Upgrading facility:', facilityId);
+      setDemoFacilities(prev => prev.map(f => 
+        f.id === facilityId ? { ...f, level: f.level + 1 } : f
+      ));
+    };
+    
+    const handlePayMaintenance = (facilityId: string) => {
+      console.log('Paying maintenance for facility:', facilityId);
+      setDemoFacilities(prev => prev.map(f => 
+        f.id === facilityId ? { ...f, maintenancePaid: true, bonusesActive: true } : f
+      ));
+    };
+    
+    return (
+      <FacilitiesManager
+        teamLevel={demoTeamLevel}
+        currency={demoCurrency}
+        unlockedAchievements={demoAchievements}
+        ownedFacilities={demoFacilities}
+        onPurchaseFacility={handlePurchaseFacility}
+        onUpgradeFacility={handleUpgradeFacility}
+        onPayMaintenance={handlePayMaintenance}
+      />
+    );
+  };
+
   const mainTabs: MainTab[] = [
     {
       id: 'characters',
@@ -904,7 +1026,7 @@ export default function MainTabSystem() {
       subTabs: [
         { id: 'activities', label: 'Activities', icon: Target, component: TrainingGrounds, description: 'Daily training sessions' },
         { id: 'progress', label: 'Progress', icon: Trophy, component: TrainingProgressComponent, description: 'Training limits & daily progress' },
-        { id: 'facilities', label: 'Facilities', icon: Building, component: TrainingFacilitySelector, description: 'Choose training locations' },
+        { id: 'facilities', label: 'Facilities', icon: Building, component: FacilitiesManagerWrapper, description: 'Manage team facilities and upgrades' },
         { id: 'membership', label: 'Membership', icon: Crown, component: MembershipSelection, description: 'Training tier subscriptions' },
         { id: 'trainer', label: 'Personal Trainer', icon: Brain, component: PersonalTrainerWrapper, description: 'Training recommendations & guidance' },
       ]
@@ -946,9 +1068,9 @@ export default function MainTabSystem() {
       color: 'purple',
       subTabs: [
         { id: 'profile', label: 'Profile', icon: User, component: CoachProgressionPage, description: 'View your coach profile and progression' },
-        { id: 'individual-sessions', label: 'Individual Sessions', icon: MessageCircle, component: PlaceholderComponent, description: 'One-on-one coaching with team members' },
+        { id: 'individual-sessions', label: 'Individual Sessions', icon: MessageCircle, component: IndividualSessionsWrapper, description: 'One-on-one coaching with team members' },
         { id: 'team-building', label: 'Team Building', icon: Users, component: TeamBuildingWrapper, description: 'Organize dinners, retreats, and activities' },
-        { id: 'group-activities', label: 'Group Activities', icon: Activity, component: PlaceholderComponent, description: 'Game nights and group therapy sessions' },
+        { id: 'group-activities', label: 'Group Activities', icon: Activity, component: GroupActivitiesWrapper, description: 'Game nights and group therapy sessions' },
       ]
     }
   ];

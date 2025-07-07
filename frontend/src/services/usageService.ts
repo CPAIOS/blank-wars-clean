@@ -32,11 +32,17 @@ class UsageService {
   async getUserUsageStatus(): Promise<UsageStatus> {
     try {
       const token = localStorage.getItem('authToken');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add token if available
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`${this.baseUrl}/api/usage/status`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -46,7 +52,7 @@ class UsageService {
       return await response.json();
     } catch (error) {
       console.error('Error fetching usage status:', error);
-      // Return default values for anonymous/error cases
+      // Return default values for error cases
       return {
         canChat: true,
         canGenerateImage: true,
@@ -75,9 +81,9 @@ class UsageService {
       console.error('Error fetching tier limits:', error);
       // Return default limits
       return {
-        free: { dailyChatLimit: 5, dailyImageLimit: 1, dailyBattleLimit: 3 },
-        premium: { dailyChatLimit: 75, dailyImageLimit: 5, dailyBattleLimit: 15 },
-        legendary: { dailyChatLimit: -1, dailyImageLimit: 10, dailyBattleLimit: -1 }
+        free: { dailyChatLimit: 5, dailyImageLimit: 1 },
+        premium: { dailyChatLimit: 75, dailyImageLimit: 5 },
+        legendary: { dailyChatLimit: -1, dailyImageLimit: 10 }
       };
     }
   }
