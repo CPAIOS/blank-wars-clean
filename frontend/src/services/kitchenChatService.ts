@@ -43,9 +43,14 @@ export class KitchenChatService {
       ? process.env.NEXT_PUBLIC_BACKEND_URL 
       : 'http://localhost:3006';
     
+    console.log('🔧 Kitchen Chat Service initializing with URL:', socketUrl);
+    console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
+    console.log('🔧 NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
+    
     this.socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
+      forceNew: true,
     });
 
     this.socket.on('connect', () => {
@@ -54,6 +59,13 @@ export class KitchenChatService {
 
     this.socket.on('connect_error', (error) => {
       console.error('❌ Kitchen Chat Service connection error:', error);
+      console.error('❌ Attempted URL:', socketUrl);
+      console.error('❌ Error details:', {
+        message: error.message,
+        description: error.description,
+        context: error.context,
+        type: error.type
+      });
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -303,20 +315,36 @@ export class KitchenChatService {
    * Wait for socket connection
    */
   async waitForConnection(timeout: number = 5000): Promise<boolean> {
-    if (this.socket?.connected) return true;
+    console.log('🔍 Checking socket connection status...');
+    console.log('🔍 Socket exists:', !!this.socket);
+    console.log('🔍 Socket connected:', this.socket?.connected);
+    console.log('🔍 Socket connecting:', this.socket?.connecting);
+    
+    if (this.socket?.connected) {
+      console.log('✅ Already connected');
+      return true;
+    }
     
     return new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = timeout / 100;
+      
       const checkInterval = setInterval(() => {
+        attempts++;
+        console.log(`🔍 Connection attempt ${attempts}/${maxAttempts} - Connected: ${this.socket?.connected}`);
+        
         if (this.socket?.connected) {
           clearInterval(checkInterval);
+          console.log('✅ Connection established');
           resolve(true);
         }
+        
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          console.log('❌ Connection timeout');
+          resolve(false);
+        }
       }, 100);
-      
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        resolve(false);
-      }, timeout);
     });
   }
   

@@ -477,4 +477,4 @@ Keep it to 1-2 sentences, insightful and dramatic!`;
 }
 
 // Export singleton instance
-export const hostmasterService = new HostmasterService(global.io);
+export const hostmasterService = new HostmasterService((global as any).io);

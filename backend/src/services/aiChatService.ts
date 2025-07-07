@@ -162,15 +162,30 @@ export class AIChatService {
       prompt += ` You are known in ${mythology} mythology.`;
     }
     
-    prompt += `\n\nYour personality traits: ${personality.traits.join(', ')}.`;
-    prompt += `\nYour speech style: ${personality.speechStyle}.`;
-    prompt += `\nYour motivations: ${personality.motivations.join(', ')}.`;
-    prompt += `\nYour fears: ${personality.fears.join(', ')}.`;
+    // Safety check for personality structure
+    if (!personality || !personality.traits) {
+      console.log('⚠️ Missing personality for', characterName, '- using defaults');
+      const defaultPersonality = {
+        traits: ['Determined'],
+        speechStyle: 'Direct',
+        motivations: ['Success'],
+        fears: ['Failure']
+      };
+      prompt += `\n\nYour personality traits: ${defaultPersonality.traits.join(', ')}.`;
+      prompt += `\nYour speech style: ${defaultPersonality.speechStyle}.`;
+      prompt += `\nYour motivations: ${defaultPersonality.motivations.join(', ')}.`;
+      prompt += `\nYour fears: ${defaultPersonality.fears.join(', ')}.`;
+    } else {
+      prompt += `\n\nYour personality traits: ${personality.traits.join(', ')}.`;
+      prompt += `\nYour speech style: ${personality.speechStyle}.`;
+      prompt += `\nYour motivations: ${personality.motivations.join(', ')}.`;
+      prompt += `\nYour fears: ${personality.fears.join(', ')}.`;
+    }
     
-    if (personality.interests) {
+    if (personality && personality.interests) {
       prompt += `\nYour interests and hobbies: ${personality.interests.join(', ')}.`;
     }
-    if (personality.quirks) {
+    if (personality && personality.quirks) {
       prompt += `\nYour unique quirks and mannerisms: ${personality.quirks.join(', ')}.`;
     }
     

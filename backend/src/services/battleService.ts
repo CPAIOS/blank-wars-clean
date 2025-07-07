@@ -168,7 +168,7 @@ export class BattleManager extends EventEmitter {
     
     // Initialize Hostmaster v8.72 with the same io instance
     if (typeof global !== 'undefined') {
-      global.io = io;
+      (global as any).io = io;
     }
     
     // Subscribe to battle events for multi-server coordination
@@ -618,8 +618,8 @@ export class BattleManager extends EventEmitter {
             motivations: ['Victory', 'Honor in battle', 'Team coordination'],
             fears: ['Defeat', 'Letting allies down']
           },
-          historicalPeriod: character.origin_era || 'Ancient times',
-          currentBondLevel: character.bond_level || 50,
+          historicalPeriod: (character as any).origin_era || 'Ancient times',
+          currentBondLevel: (character as any).bond_level || 50,
           previousMessages: []
         };
         
