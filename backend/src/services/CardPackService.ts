@@ -125,6 +125,34 @@ export class CardPackService {
     return mintedCards;
   }
 
+  public async getMintedCardsForUser(userId: string): Promise<MintedCard[]> {
+    try {
+      const result = await query(
+        `SELECT
+           qc.serial_number,
+           c.id AS character_id,
+           c.name AS character_name,
+           c.rarity AS character_rarity,
+           c.base_health
+         FROM qr_codes qc
+         JOIN characters c ON qc.character_id = c.id
+         WHERE qc.redeemed_by = $1 AND qc.is_redeemed = FALSE
+         ORDER BY qc.acquired_at DESC`,
+        [userId]
+      );
+      return result.rows.map((row: any) => ({
+        serialNumber: row.serial_number,
+        characterId: row.character_id,
+        characterName: row.character_name,
+        characterRarity: row.character_rarity,
+        baseHealth: row.base_health, // Include base_health for frontend display if needed
+      }));
+    } catch (error) {
+      console.error(`Error getting minted cards for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
   public async redeemDigitalCard(userId: string, serialNumber: string): Promise<Character | undefined> {
     try {
       // 1. Find the QR code and check if it's valid and not redeemed

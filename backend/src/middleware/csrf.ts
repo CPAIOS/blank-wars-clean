@@ -33,9 +33,12 @@ export const getCsrfToken = (req: Request, res: Response) => {
 // Skip CSRF for certain routes (e.g., public endpoints)
 export const skipCsrf = (paths: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    console.log('🔒 CSRF Check - Path:', req.path, 'Skip paths:', paths);
     if (paths.some(path => req.path.startsWith(path))) {
+      console.log('✅ CSRF Skipped for:', req.path);
       return next();
     }
+    console.log('🚫 CSRF Required for:', req.path);
     return csrfMiddleware(req, res, next);
   };
 };

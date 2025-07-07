@@ -4,7 +4,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
-    "dev": "nodemon src/server.js",
+    "dev": "ts-node --transpile-only src/server.ts",
     "start": "node dist/server.js",
     "start:prod": "NODE_ENV=production node dist/server.js",
     "test": "jest",

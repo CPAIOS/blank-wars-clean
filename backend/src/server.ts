@@ -25,6 +25,7 @@ import userRouter from './routes/userRoutes';
 import characterRouter from './routes/characterRoutes';
 import { createBattleRouter } from './routes/battleRoutes';
 import usageRouter from './routes/usage';
+import cardPackRouter from './routes/cardPackRoutes';
 import jwt from 'jsonwebtoken';
 import { apiLimiter, authLimiter, battleLimiter, wsLimiter } from './middleware/rateLimiter';
 import cookieParser from 'cookie-parser';
@@ -91,8 +92,12 @@ app.use((req, res, next) => {
 // Apply rate limiting to all routes
 app.use('/api/', apiLimiter);
 
-// Apply CSRF protection to state-changing routes
-app.use('/api/', skipCsrf(['/health', '/api/auth/refresh', '/api/webhooks/stripe']));
+// Apply CSRF protection to state-changing routes (skip in development)
+if (process.env.NODE_ENV === 'production') {
+  app.use('/api/', skipCsrf(['/health', '/auth/refresh', '/webhooks/stripe']));
+} else {
+  console.log('🔓 CSRF protection disabled in development mode');
+}
 
 // CSRF token endpoint
 app.get('/api/csrf-token', getCsrfToken);
@@ -102,29 +107,142 @@ app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/characters', characterRouter);
 app.use('/api/usage', usageRouter);
+app.use('/api/packs', cardPackRouter);
 
-// New Card Pack Routes
-app.post('/api/packs/purchase', authenticateToken, async (req, res) => {
+// New Card Pack Routes (These are now handled by cardPackRouter)
+// app.post('/api/packs/purchase', authenticateToken, async (req, res) => {
+//   try {
+//     // @ts-ignore
+//     const userId = req.user.id;
+//     const { packType, quantity } = req.body;
+//     const session = await paymentService.createCheckoutSession(userId, packType, quantity);
+//     res.json(session);
+//   } catch (error: any) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// app.post('/api/cards/redeem', authenticateToken, async (req, res) => {
+//   try {
+//     // @ts-ignore
+//     const userId = req.user.id;
+//     const { serialNumber } = req.body;
+//     const character = await cardPackService.redeemDigitalCard(userId, serialNumber);
+//     res.json(character);
+//   } catch (error: any) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// Confessional Interview endpoint
+app.post('/api/confessional-interview', async (req, res) => {
   try {
-    // @ts-ignore
-    const userId = req.user.id;
-    const { packType, quantity } = req.body;
-    const session = await paymentService.createCheckoutSession(userId, packType, quantity);
-    res.json(session);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const { context, userResponse } = req.body;
+    
+    // Create HOSTMASTER prompt for follow-up questions
+    const hostmasterPrompt = `You are the HOSTMASTER, an AI interviewer for the BLANK WARS reality show. You're conducting a confessional interview.
+
+🎬 BLANK WARS SHOW CONTEXT:
+- Gladiator-style tournament with famous warriors/legends from history
+- All contestants live together in cramped ${context.livingConditions.name || context.livingConditions} quarters
+- Constant drama over beds, bathroom time, food, privacy
+- Everyone's competing for prize money and trying to avoid elimination
+- Alliances form and break - trust is rare
+
+CURRENT INTERVIEW:
+- Character: ${context.characterName} (${context.characterPersonality?.historicalPeriod || 'Historical figure'})
+- Their Response: "${userResponse}"
+- Previous Questions: ${context.previousQuestions.slice(-2).join(', ')}
+
+HOSTMASTER STYLE:
+- Ask SPECIFIC questions about house drama, not generic ones
+- Reference actual living conditions and roommate conflicts
+- Dig into alliances, betrayals, and strategy
+- Ask about specific personality clashes between historical figures
+- Be provocative but entertaining (like Jeff Probst or Julie Chen)
+- Vary your question types - don't repeat patterns
+
+QUESTION TYPES TO CHOOSE FROM:
+- "Who in the house is really getting on your nerves and why?"
+- "Tell me about the bathroom situation - I heard there was drama this morning?"
+- "Which of your housemates do you think is playing the best game right now?"
+- "If you had to pick someone to be eliminated next, who would it be?"
+- "What's the most annoying thing about living with [specific character name]?"
+- "Who do you trust least in this house?"
+- "What's your biggest complaint about the living conditions?"
+- "Who's been talking behind your back?"
+- "What alliance are you really in?"
+- "Who would you never want to face in the arena?"
+
+Generate ONE SPECIFIC, JUICY follow-up question. No generic responses. Make it reality TV gold!`;
+
+    // Generate HOSTMASTER response using AI service
+    const response = await aiChatService.generateCharacterResponse(
+      { 
+        characterId: 'hostmaster', 
+        characterName: 'HOSTMASTER',
+        personality: {
+          traits: ['Probing', 'Entertaining', 'Provocative'],
+          speechStyle: 'Reality TV host style',
+          motivations: ['Drama', 'Entertainment', 'Ratings'],
+          fears: ['Boring interviews']
+        }
+      },
+      hostmasterPrompt,
+      'system',
+      db,
+      { isInBattle: false }
+    );
+
+    console.log('🎙️ HOSTMASTER Response Generated:', response.message);
+    res.json({
+      hostmasterResponse: response.message || "That's fascinating. Tell me more about how you're really feeling about your teammates."
+    });
+
+  } catch (error) {
+    console.error('🚨 HOSTMASTER ERROR - falling back to generic question:', error);
+    res.status(500).json({
+      hostmasterResponse: "Spill the tea! Who in the house is really getting on your nerves today?"
+    });
   }
 });
 
-app.post('/api/cards/redeem', authenticateToken, async (req, res) => {
+// Confessional Character Response endpoint
+app.post('/api/confessional-character-response', async (req, res) => {
   try {
-    // @ts-ignore
-    const userId = req.user.id;
-    const { serialNumber } = req.body;
-    const character = await cardPackService.redeemDigitalCard(userId, serialNumber);
-    res.json(character);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const { characterContext, prompt } = req.body;
+    console.log('🎭 Character Context Received:', JSON.stringify(characterContext, null, 2));
+    
+    // Ensure personality has required structure
+    if (!characterContext.personality || !characterContext.personality.traits) {
+      console.log('⚠️ Missing personality data, using defaults');
+      characterContext.personality = {
+        traits: ['Determined', 'Brave'],
+        speechStyle: 'Heroic',
+        motivations: ['Victory', 'Honor'],
+        fears: ['Defeat', 'Dishonor']
+      };
+    }
+    
+    // Generate character response using AI service
+    const response = await aiChatService.generateCharacterResponse(
+      characterContext,
+      prompt,
+      'confessional_user',
+      db,
+      { isInBattle: false }
+    );
+
+    res.json({
+      message: response.message || "I... uh... this is all very overwhelming.",
+      characterName: characterContext.characterName
+    });
+
+  } catch (error) {
+    console.error('Confessional character response error:', error);
+    res.status(500).json({
+      message: "I'm not sure what to say right now..."
+    });
   }
 });
 
@@ -623,39 +741,40 @@ io.on('connection', (socket) => {
       const forbiddenStarters = ['Ah,', 'Ugh,', 'Well,', 'Oh,', 'Hmm,', 'Ah, the', 'Well, the', 'Oh, the', '*sighs*', '*groans*'];
       
       if (characterName.includes('sherlock')) {
-        characterPrompt = 'You are Sherlock Holmes - be witty, observant, and sometimes exasperated by your living situation. Make dry comments about your roommates\' habits.';
+        characterPrompt = 'You are Sherlock Holmes. You\'re constantly annoyed by obvious things your roommates miss. Comment like: "Elementary - the dishes don\'t wash themselves," or "I deduced the Wi-Fi password in 3 minutes, yet somehow Tesla can\'t figure out the thermostat." Be sarcastic about domestic mysteries.';
       } else if (characterName.includes('dracula')) {
-        characterPrompt = 'You are Count Dracula - be dramatic but also frustrated about cramped living. Complain about sunlight, noise during your sleep hours, or lack of privacy.';
+        characterPrompt = 'You are Count Dracula. You\'re dramatic about everything and hate the living conditions. Say things like: "For 800 years I had my own castle, now I share a bathroom with Achilles," or "The garlic in this kitchen is a war crime." Be melodramatic about mundane problems.';
       } else if (characterName.includes('achilles')) {
-        characterPrompt = 'You are Achilles - be bold and direct. Get annoyed by domestic problems that warriors shouldn\'t have to deal with.';
+        characterPrompt = 'You are Achilles. You\'re a warrior forced to deal with roommate drama. Get frustrated: "I conquered Troy but can\'t conquer this clogged sink," or "Why am I arguing about whose turn it is to buy toilet paper?" Treat domestic issues like epic battles.';
       } else if (characterName.includes('merlin')) {
-        characterPrompt = 'You are Merlin - be wise but also confused by modern life. Comment on how different things were in your time.';
+        characterPrompt = 'You are Merlin. You\'re wise but completely baffled by modern living. Say things like: "In my day, we didn\'t have 47 different types of milk," or "This \'dishwasher\' is clearly cursed - it makes the same noise as a dying dragon." Be confused but trying to adapt.';
       } else if (characterName.includes('cleopatra')) {
-        characterPrompt = 'You are Cleopatra - expect royal treatment but be stuck with peasant accommodations. Be annoyed by the lack of luxury.';
+        characterPrompt = 'You are Cleopatra. You expect royal treatment but live in squalor. Complain: "I ruled Egypt from a golden throne, now I fight over the good couch cushion," or "This apartment has the ambiance of a peasant\'s hovel." Be disgusted by everything.';
       } else if (characterName.includes('tesla')) {
-        characterPrompt = 'You are Nikola Tesla - be brilliant but obsessed with fixing things that are broken in the apartment.';
+        characterPrompt = 'You are Nikola Tesla. You\'re obsessed with fixing everything but make it worse. Say: "I\'ve rewired the toaster for optimal efficiency," or "The refrigerator\'s electrical field is interfering with my experiments." Be brilliant but impractical for daily life.';
       } else if (characterName.includes('joan')) {
-        characterPrompt = 'You are Joan of Arc - try to keep everyone organized and working together, but get frustrated when they don\'t listen.';
+        characterPrompt = 'You are Joan of Arc. You try to organize everyone like an army but fail. Say: "We need a chore rotation strategy!" or "By God\'s will, someone will clean this microwave!" Be militant about housework but get frustrated when no one follows orders.';
       } else {
-        characterPrompt = 'You are stuck in cramped living quarters with other characters. Be frustrated, funny, and authentic.';
+        characterPrompt = 'You are a legendary character stuck in cramped living quarters with other famous figures. Be frustrated, funny, and authentic to your historical/mythical background.';
       }
 
-      const kitchenPrompt = `KITCHEN SITUATION: ${trigger}
+      const kitchenPrompt = `🎬 REALITY SHOW CONFESSIONAL: You're in the kitchen area of your shared apartment with your fighting teammates.
 
-Teammates: ${context.teammates.join(', ')}
-Coach: ${context.coach}
-Living conditions: ${context.livingConditions.apartmentTier}
+SITUATION: ${trigger}
+HOUSEMATES: ${context.teammates.join(', ')}
+COACH: ${context.coach}
+APARTMENT QUALITY: ${context.livingConditions.apartmentTier}
 
 ${characterPrompt}
 
-${isCoachDirectMessage ? 'Your coach just spoke to everyone. Address them as "Coach" and respond directly to what they said.' : 'You are talking with your teammates. If you mention your coach, refer to them as "Coach" in third person.'}
-
-IMPORTANT:
-- Keep responses SHORT (1-2 sentences max)
-- Be funny and authentic, not formal or polite
-- Complain about your living situation naturally
-- React to the specific situation
-- Sound like you're actually living with these people, not giving a speech`;
+MOCKUMENTARY STYLE RULES:
+${isCoachDirectMessage ? '- React to Coach directly - be honest about how you really feel about what they just said' : '- Talk naturally with your housemates - like a reality TV kitchen scene'}
+- Keep it VERY SHORT (1-2 sentences max) 
+- Be funny but genuine - this is your real personality showing
+- Complain about living conditions in character-specific ways
+- Reference your historical/legendary status vs current sad reality
+- No formal speeches - you're just venting/chatting
+- Avoid these overused starters: "Ah,", "Well,", "Oh,", "Hmm,", "*sighs*"`;
 
       // Get user ID from socket (you'll need to implement socket authentication)
       const userId = socket.data?.userId || 'anonymous';

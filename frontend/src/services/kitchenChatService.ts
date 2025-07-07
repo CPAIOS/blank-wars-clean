@@ -44,7 +44,8 @@ export class KitchenChatService {
     
     if (process.env.NODE_ENV === 'production') {
       // Production: use environment variable or blankwars.com backend
-      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://www.blankwars.com:3006';
+      // For production, backend should be deployed separately 
+      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-backend.railway.app';
     } else {
       // Development: use localhost
       socketUrl = 'http://localhost:3006';
