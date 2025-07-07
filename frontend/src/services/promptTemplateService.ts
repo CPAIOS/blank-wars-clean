@@ -20,13 +20,21 @@ interface PromptContext {
   sceneType: 'mundane' | 'conflict' | 'chaos';
   trigger: string;
   timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  sleepingContext?: {
+    sleepsOnFloor?: boolean;
+    sleepsOnCouch?: boolean;
+    sleepsUnderTable?: boolean;
+    roomOvercrowded?: boolean;
+    floorSleeperCount?: number;
+    roommateCount?: number;
+  };
 }
 
 export class PromptTemplateService {
   
   // HQ Tier Templates - Core living situation context
   private static HQ_TIER_TEMPLATES = {
-    spartan_apartment: `LIVING SITUATION: You currently live in a cramped 2-room apartment where characters from across time and reality share bunk beds. Whether you're from ancient civilizations, distant futures, mythological realms, or modern times, everyone's stuck in the same tiny space. Personal space doesn't exist. Every sound echoes through thin walls. The bathroom has a permanent line. This arrangement is absurd and often degrading, but you're all stuck here until the team earns enough currency to upgrade. One person has to sleep on the couch, which rotates and causes ongoing resentment.`,
+    spartan_apartment: `LIVING SITUATION: You currently live in a cramped 2-room apartment where characters from across time and reality share bunk beds. Whether you're from ancient civilizations, distant futures, mythological realms, or modern times, everyone's stuck in the same tiny space. Personal space doesn't exist. Every sound echoes through thin walls. The bathroom has a permanent line. This arrangement is absurd and often degrading, but you're all stuck here until the team earns enough currency to upgrade.`,
     
     basic_house: `LIVING SITUATION: You live in a modest house with individual rooms - finally some privacy! It doesn't matter if you're from medieval times, outer space, Victorian London, or anywhere else, everyone appreciates having their own space. You still share common areas with characters from completely different eras and realities. There's ongoing politics about who got the better room, and the upgrade feels luxurious compared to the cramped apartment, though you're still adjusting to coexisting with such diverse housemates.`,
     
@@ -75,6 +83,15 @@ TEAM DYNAMICS: You know these teammates well by now. You've developed relationsh
     night: `TIME CONTEXT: It's late night. Some people are trying to sleep while others are night owls. Noise is more annoying than usual.`
   };
 
+  // Sleeping Arrangement Templates
+  private static SLEEPING_TEMPLATES = {
+    floor: `YOUR SLEEPING SITUATION: You've been sleeping on the floor, which is taking a serious toll on your body and mood. Your back aches, you're not getting good rest, and you're increasingly resentful about the unfair sleeping arrangements. This is beneath your standards and you're frustrated about it.`,
+    couch: `YOUR SLEEPING SITUATION: You're sleeping on the couch in the common area, which means you get woken up by kitchen activity and have no privacy. It's better than the floor but still far from ideal. You're tired of being disturbed by people's morning routines.`,
+    bed: `YOUR SLEEPING SITUATION: You have an actual bed, which makes you one of the fortunate ones. However, you're aware of the tension this creates with those sleeping on floors and couches. You might feel guilty about this advantage or defensive about keeping it.`,
+    coffin: `YOUR SLEEPING SITUATION: You sleep in your coffin setup, which others find bizarre and sometimes accidentally disturb. Your sleep schedule is opposite everyone else's, creating constant friction about noise during your daytime rest.`,
+    overcrowded: `ROOM DYNAMICS: Your bedroom is severely overcrowded with {roommateCount} people crammed in. There's {floorSleeperCount} people sleeping on floors and couches. The lack of personal space creates constant tension and irritability among roommates.`
+  };
+
   /**
    * Generate a complete prompt by stacking all relevant templates
    */
@@ -86,7 +103,8 @@ TEAM DYNAMICS: You know these teammates well by now. You've developed relationsh
       coachName,
       sceneType,
       trigger,
-      timeOfDay
+      timeOfDay,
+      sleepingContext
     } = context;
 
     // Stack the templates
@@ -115,7 +133,26 @@ TEAM DYNAMICS: You know these teammates well by now. You've developed relationsh
       prompt += '\n\n' + this.TIME_TEMPLATES[timeOfDay];
     }
 
-    // 5. Scene Type
+    // 5. Sleeping Arrangement Context (if provided)
+    if (sleepingContext) {
+      if (sleepingContext.sleepsUnderTable) {
+        prompt += '\n\n' + this.SLEEPING_TEMPLATES.coffin;
+      } else if (sleepingContext.sleepsOnFloor) {
+        prompt += '\n\n' + this.SLEEPING_TEMPLATES.floor;
+      } else if (sleepingContext.sleepsOnCouch) {
+        prompt += '\n\n' + this.SLEEPING_TEMPLATES.couch;
+      } else {
+        prompt += '\n\n' + this.SLEEPING_TEMPLATES.bed;
+      }
+      
+      if (sleepingContext.roomOvercrowded && sleepingContext.floorSleeperCount && sleepingContext.roommateCount) {
+        prompt += '\n\n' + this.SLEEPING_TEMPLATES.overcrowded
+          .replace('{roommateCount}', sleepingContext.roommateCount.toString())
+          .replace('{floorSleeperCount}', sleepingContext.floorSleeperCount.toString());
+      }
+    }
+
+    // 6. Scene Type
     prompt += '\n\n' + this.SCENE_TYPE_TEMPLATES[sceneType];
 
     // 6. Specific Trigger
@@ -128,9 +165,61 @@ TEAM DYNAMICS: You know these teammates well by now. You've developed relationsh
   }
 
   /**
+   * Generate sleeping arrangement conflicts based on current room assignments
+   */
+  static generateSleepingConflicts(headquarters: { rooms: Array<{ assignedCharacters: string[], maxCharacters: number }> }): string[] {
+    const sleepingConflicts: string[] = [];
+    
+    headquarters.rooms.forEach(room => {
+      const overcrowded = room.assignedCharacters.length > room.maxCharacters;
+      const floorsleepers = Math.max(0, room.assignedCharacters.length - room.maxCharacters);
+      
+      if (overcrowded) {
+        sleepingConflicts.push(
+          `Someone who slept on the floor last night is complaining about back pain and being grumpy`,
+          `There's heated tension about who gets the actual beds versus floor/couch sleeping`,
+          `The floor sleepers are demanding a fair rotation system for the beds`,
+          `Someone's loud snoring from the bed kept the floor sleepers awake all night`,
+          `Floor sleepers are bitter about the unfair sleeping arrangements`,
+          `Someone sleeping on the couch is complaining about being woken up by kitchen activity`
+        );
+      }
+      
+      if (room.assignedCharacters.length >= 2) {
+        sleepingConflicts.push(
+          `Roommates are bickering about personal space and belongings cluttering the shared bedroom`,
+          `Someone's early morning/late night routine is disrupting their roommate's sleep`,
+          `There's passive-aggressive complaints about someone hogging all the blankets`,
+          `Someone's restless tossing and turning kept their bunk mate awake`,
+          `Roommates are arguing about temperature preferences for sleeping`,
+          `Someone left their clothes and gear all over the shared sleeping space`
+        );
+      }
+      
+      if (room.assignedCharacters.includes('dracula')) {
+        sleepingConflicts.push(
+          `Dracula is furious about daytime noise disrupting his sleep schedule`,
+          `Someone accidentally disturbed Dracula's coffin setup and now there's tension`,
+          `Dracula is complaining about the lack of proper darkness for his rest`
+        );
+      }
+      
+      // Add conflicts based on room overcrowding level
+      if (floorsleepers >= 3) {
+        sleepingConflicts.push(
+          `The sleeping situation has become chaotic with too many people on floors and couches`,
+          `Multiple floor sleepers are forming an alliance to demand better arrangements`
+        );
+      }
+    });
+    
+    return sleepingConflicts;
+  }
+
+  /**
    * Generate random scene triggers by type
    */
-  static generateSceneTrigger(sceneType: 'mundane' | 'conflict' | 'chaos', hqTier: string): string {
+  static generateSceneTrigger(sceneType: 'mundane' | 'conflict' | 'chaos', hqTier: string, headquarters?: { rooms: Array<{ assignedCharacters: string[], maxCharacters: number }> }): string {
     const triggers = {
       mundane: [
         "Someone's making a grocery list and asking for input",
@@ -177,6 +266,12 @@ TEAM DYNAMICS: You know these teammates well by now. You've developed relationsh
       triggers.chaos.push("The bunk bed collapsed with someone in it");
     }
 
+    // Add dynamic sleeping arrangement conflicts if headquarters data is provided
+    if (headquarters && sceneType === 'conflict') {
+      const sleepingConflicts = this.generateSleepingConflicts(headquarters);
+      triggers.conflict.push(...sleepingConflicts);
+    }
+
     const sceneTriggers = triggers[sceneType];
     return sceneTriggers[Math.floor(Math.random() * sceneTriggers.length)];
   }
@@ -186,12 +281,32 @@ TEAM DYNAMICS: You know these teammates well by now. You've developed relationsh
    */
   static selectSceneParticipants(
     allCharacters: string[], 
-    maxParticipants: number = 3
+    maxParticipants: number = 5,  // Increased from 3 to include more characters
+    dynamicContext?: { sleepingArrangements?: Record<string, string>, energyLevels?: Record<string, number> }
   ): string[] {
-    // Always include 2-3 characters max to keep conversations focused
-    const participantCount = Math.min(maxParticipants, allCharacters.length);
-    const shuffled = [...allCharacters].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, participantCount);
+    // Filter characters based on availability (not sleeping, has energy)
+    const availableCharacters = allCharacters.filter(charName => {
+      const sleepStatus = dynamicContext?.sleepingArrangements?.[charName];
+      const energyLevel = dynamicContext?.energyLevels?.[charName] || 50;
+      
+      // Characters with very low energy or sleeping should be less likely to participate
+      if (energyLevel < 20) return Math.random() > 0.8; // 20% chance if exhausted
+      if (sleepStatus === 'floor' && Math.random() > 0.7) return false; // Floor sleepers less social
+      
+      return true;
+    });
+
+    // Dynamic participant count based on scene energy
+    const baseCount = Math.min(maxParticipants, availableCharacters.length);
+    const participantCount = Math.max(2, Math.floor(baseCount * (0.6 + Math.random() * 0.4))); // 60-100% of available
+    
+    // Weighted selection - characters with higher energy more likely to participate
+    const weightedCharacters = availableCharacters.map(char => ({
+      character: char,
+      weight: (dynamicContext?.energyLevels?.[char] || 50) + Math.random() * 30 // Add randomness
+    })).sort((a, b) => b.weight - a.weight);
+    
+    return weightedCharacters.slice(0, participantCount).map(w => w.character);
   }
 
   /**

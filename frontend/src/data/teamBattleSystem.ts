@@ -208,7 +208,10 @@ export function getTeamChemistryModifier(chemistry: number): number {
 }
 
 // Team Chemistry Calculation
-export function calculateTeamChemistry(characters: TeamCharacter[]): number {
+export function calculateTeamChemistry(
+  characters: TeamCharacter[], 
+  headquartersEffects?: { bonuses: Record<string, number>, penalties: Record<string, number> }
+): number {
   if (characters.length === 0) return 0;
   
   const avgTeamPlayer = characters.reduce((sum, char) => sum + char.psychStats.teamPlayer, 0) / characters.length;
@@ -222,7 +225,17 @@ export function calculateTeamChemistry(characters: TeamCharacter[]): number {
   const baseChemistry = (avgTeamPlayer + avgCommunication + avgMentalHealth) / 3;
   const egoReduction = (avgEgo - 50) * 0.3; // Ego above 50 hurts chemistry
   
-  return Math.max(0, Math.min(100, baseChemistry - egoReduction));
+  // Factor in living conditions
+  let environmentalPenalty = 0;
+  if (headquartersEffects?.penalties) {
+    const moralePenalty = Math.abs(headquartersEffects.penalties['Morale'] || 0);
+    const teamworkPenalty = Math.abs(headquartersEffects.penalties['Teamwork'] || 0);
+    
+    // Poor living conditions and personality conflicts devastate team chemistry
+    environmentalPenalty = moralePenalty + teamworkPenalty; // -30 morale + -25 teamwork = -55 chemistry
+  }
+  
+  return Math.max(0, Math.min(100, baseChemistry - egoReduction - environmentalPenalty));
 }
 
 // Gameplan Adherence Check - Will character follow coach's strategy?
@@ -436,6 +449,12 @@ export function createDemoPlayerTeamWithBonuses(
     };
   });
   
+  // Recalculate team chemistry with headquarters effects
+  baseTeam.teamChemistry = calculateTeamChemistry(
+    baseTeam.characters, 
+    { bonuses: headquartersBonuses || {}, penalties: headquartersPenalties || {} }
+  );
+  
   return baseTeam;
 }
 
@@ -591,8 +610,8 @@ export function createDemoPlayerTeam(): Team {
     lastBattleDate: new Date()
   };
   
-  // Calculate actual team chemistry
-  team.teamChemistry = calculateTeamChemistry(team.characters);
+  // Calculate actual team chemistry (no headquarters effects for base demo team)
+  team.teamChemistry = calculateTeamChemistry(team.characters, undefined);
   
   return team;
 }
@@ -670,7 +689,7 @@ export function createDemoOpponentTeam(): Team {
     characters: opponentCharacters,
     coachingPoints: 3, // AI team also has coaching points (3 points to distribute among team)
     consecutiveLosses: 0, // Track losses for coaching degradation
-    teamChemistry: calculateTeamChemistry(opponentCharacters),
+    teamChemistry: calculateTeamChemistry(opponentCharacters, undefined),
     teamCulture: 'military',
     averageLevel: opponentCharacters.reduce((sum, char) => sum + char.level, 0) / opponentCharacters.length,
     totalPower: opponentCharacters.reduce((sum, char) => sum + char.traditionalStats.strength + char.traditionalStats.vitality, 0), // Simplified power calculation

@@ -59,6 +59,17 @@ export default function EquipmentManager({
   const availableEquipment = allEquipment.filter(item => 
     canEquip(item, characterLevel, characterArchetype)
   );
+  
+  console.log('🎯 Equipment Manager Debug:', {
+    characterName,
+    characterLevel,
+    characterArchetype,
+    totalEquipment: allEquipment.length,
+    availableEquipment: availableEquipment.length,
+    equippedItems,
+    onEquip: !!onEquip,
+    onUnequip: !!onUnequip
+  });
 
   // Filter and sort equipment
   const filteredEquipment = availableEquipment
@@ -342,6 +353,10 @@ export default function EquipmentManager({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            console.log('⚔️ Equip button clicked:', equipment);
+                            console.log('⚔️ onEquip function:', onEquip);
+                            console.log('⚔️ canEquipItem:', canEquipItem);
+                            console.log('⚔️ equipped:', equipped);
                             onEquip(equipment);
                           }}
                           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"

@@ -14,7 +14,9 @@ import CoachProgressionPage from '@/app/coach/page';
 
 // Import stable components
 import TeamHeadquarters from './TeamHeadquarters';
-import ChatDemo from './ChatDemo'; // Use full-featured chat with stable patterns
+import PerformanceCoachingChat from './PerformanceCoachingChat';
+import EquipmentAdvisorChat from './EquipmentAdvisorChat';
+import SkillDevelopmentChat from './SkillDevelopmentChat';
 import TeamBuildingActivities from './TeamBuildingActivities';
 
 // Import components directly to fix crashes
@@ -32,6 +34,7 @@ import SkillTree from './SkillTree';
 import AICoach from './AICoach';
 import CharacterDatabase from './CharacterDatabase';
 import CoachingInterface from './CoachingInterface';
+import TeamManagementCoaching from './TeamManagementCoaching';
 import { createDemoCharacterCollection } from '@/data/characters';
 
 // Lazy load non-critical components
@@ -1006,7 +1009,9 @@ export default function MainTabSystem() {
         { id: 'progression', label: 'Progression', icon: TrendingUp, component: ProgressionDashboardWrapper, description: 'Level up, stats, & skill trees' },
         { id: 'equipment', label: 'Equipment', icon: Crown, component: EquipmentManagerWrapper, description: 'Weapons & armor with training bonuses' },
         { id: 'abilities', label: 'Abilities', icon: Sparkles, component: AbilityManagerWrapper, description: 'Manage powers & training points' },
-        { id: 'chat', label: 'Chat', icon: MessageCircle, component: ChatDemo, description: 'Character conversations' },
+        { id: 'performance', label: 'Performance', icon: Activity, component: PerformanceCoachingChat, description: 'Character discusses battle performance and improvement areas' },
+        { id: 'gear-advice', label: 'Equipment', icon: Crown, component: EquipmentAdvisorChat, description: 'Character talks about gear choices and weapon preferences' },
+        { id: 'training', label: 'Training', icon: BookOpen, component: SkillDevelopmentChat, description: 'Character discusses skill development and training focus' },
       ]
     },
     {
@@ -1068,6 +1073,7 @@ export default function MainTabSystem() {
       color: 'purple',
       subTabs: [
         { id: 'profile', label: 'Profile', icon: User, component: CoachProgressionPage, description: 'View your coach profile and progression' },
+        { id: 'team-management', label: 'Team Management', icon: Shield, component: TeamManagementCoaching, description: 'Handle team conflicts, strategy reviews, and leadership decisions' },
         { id: 'individual-sessions', label: 'Individual Sessions', icon: MessageCircle, component: IndividualSessionsWrapper, description: 'One-on-one coaching with team members' },
         { id: 'team-building', label: 'Team Building', icon: Users, component: TeamBuildingWrapper, description: 'Organize dinners, retreats, and activities' },
         { id: 'group-activities', label: 'Group Activities', icon: Activity, component: GroupActivitiesWrapper, description: 'Game nights and group therapy sessions' },

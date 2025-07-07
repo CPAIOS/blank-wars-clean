@@ -10,7 +10,11 @@ interface KitchenChatContext {
     apartmentTier: string;
     roomTheme: string | null;
     sleepsOnCouch: boolean;
+    sleepsOnFloor: boolean;
     sleepsUnderTable: boolean;
+    roomOvercrowded: boolean;
+    floorSleeperCount: number;
+    roommateCount: number;
   };
   recentEvents: string[];
 }
@@ -171,7 +175,15 @@ export class KitchenChatService {
       coachName,
       sceneType,
       trigger,
-      timeOfDay: PromptTemplateService.selectTimeOfDay()
+      timeOfDay: PromptTemplateService.selectTimeOfDay(),
+      sleepingContext: {
+        sleepsOnFloor: livingConditions.sleepsOnFloor,
+        sleepsOnCouch: livingConditions.sleepsOnCouch,
+        sleepsUnderTable: livingConditions.sleepsUnderTable,
+        roomOvercrowded: livingConditions.roomOvercrowded,
+        floorSleeperCount: livingConditions.floorSleeperCount,
+        roommateCount: livingConditions.roommateCount
+      }
     };
     
     return PromptTemplateService.generatePrompt(promptContext);

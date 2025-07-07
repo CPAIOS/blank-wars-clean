@@ -16,9 +16,12 @@ import {
   Clock,
   Hash,
   Plus,
-  X
+  X,
+  Coffee
 } from 'lucide-react';
 import CommunityBoard from './CommunityBoard';
+import AIMessageBoard from './AIMessageBoard';
+import ClubhouseLounge from './ClubhouseLounge';
 import GraffitiWall from './GraffitiWall';
 import Leaderboards from './Leaderboards';
 import { 
@@ -48,7 +51,7 @@ export default function Clubhouse({
   currentUserLevel,
   currentUserGuild
 }: ClubhouseProps) {
-  const [activeTab, setActiveTab] = useState<'home' | 'board' | 'wall' | 'leaderboard' | 'events'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'board' | 'ai-board' | 'lounge' | 'wall' | 'leaderboard' | 'events'>('home');
   const [messages, setMessages] = useState<CommunityMessage[]>(sampleMessages);
   const [graffiti, setGraffiti] = useState<GraffitiArt[]>(sampleGraffiti);
   const [stats, setStats] = useState<CommunityStats>(communityStats);
@@ -189,6 +192,34 @@ export default function Clubhouse({
             <span>Message Board</span>
             <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
               {messages.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('ai-board')}
+            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'ai-board'
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+            }`}
+          >
+            <Users className="w-5 h-5" />
+            <span>AI Drama Board</span>
+            <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
+              LIVE
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('lounge')}
+            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'lounge'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+            }`}
+          >
+            <Coffee className="w-5 h-5" />
+            <span>Social Lounge</span>
+            <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
+              CROSS-TEAM
             </span>
           </button>
           <button
@@ -427,6 +458,30 @@ export default function Clubhouse({
               onNewMessage={handleNewMessage}
               onLikeMessage={handleLikeMessage}
             />
+          </motion.div>
+        )}
+
+        {activeTab === 'ai-board' && (
+          <motion.div
+            key="ai-board"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <AIMessageBoard />
+          </motion.div>
+        )}
+
+        {activeTab === 'lounge' && (
+          <motion.div
+            key="lounge"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ClubhouseLounge />
           </motion.div>
         )}
 

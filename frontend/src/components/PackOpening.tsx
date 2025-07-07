@@ -131,20 +131,17 @@ export default function PackOpening() {
 
     try {
       // In a real scenario, the backend would return the actual cards minted
-      // For now, we simulate it by calling redeem for each card in the pack
-      // This part needs to be updated once the backend returns the minted cards directly
-      const mintedCards = await paymentAPI.redeemCard(selectedPack.id); // This is incorrect, needs actual serial numbers
-      
-      // Placeholder for actual minted cards from backend
-      const simulatedMintedCards: Card[] = [
-        { id: 'char_001', name: 'Achilles', title: 'Hero', rarity: 'legendary', avatar: '⚔️', isNew: true, serialNumber: 'abc123def456' },
-        { id: 'char_002', name: 'Merlin', title: 'Wizard', rarity: 'mythic', avatar: '🔮', isNew: true, serialNumber: 'ghi789jkl012' },
-        { id: 'char_003', name: 'Fenrir', title: 'Wolf', rarity: 'legendary', avatar: '🐺', isNew: true, serialNumber: 'mno345pqr678' },
-        { id: 'char_004', name: 'Cleopatra', title: 'Pharaoh', rarity: 'epic', avatar: '👑', isNew: true, serialNumber: 'stu901vwx234' },
-        { id: 'char_005', name: 'Holmes', title: 'Detective', rarity: 'rare', avatar: '🕵️', isNew: true, serialNumber: 'yza567bcd890' },
-      ];
-
-      setCards(simulatedMintedCards);
+      const fetchedCards = await paymentAPI.getMintedCards();
+      setCards(fetchedCards.map((card: any) => ({
+        id: card.character_id,
+        name: card.character_name,
+        title: '', // You might need to fetch this from a character database on the frontend
+        rarity: card.character_rarity,
+        avatar: '✨', // Placeholder, replace with actual avatar from character data
+        isNew: true, // Assuming newly minted cards are always new
+        serialNumber: card.serial_number,
+        stats: { attack: 0, defense: 0, speed: 0 } // Placeholder, replace with actual stats
+      })));
       
       setTimeout(() => {
         setPhase('revealing');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
@@ -587,6 +587,31 @@ export default function TeamHeadquarters() {
   const [coachMessage, setCoachMessage] = useState('');
   const [draggedCharacter, setDraggedCharacter] = useState<string | null>(null);
   const [showCharacterPool, setShowCharacterPool] = useState(false);
+  
+  // Enhanced visual feedback states
+  const [moveNotification, setMoveNotification] = useState<{message: string, type: 'success' | 'warning'} | null>(null);
+  const [highlightedRoom, setHighlightedRoom] = useState<string | null>(null);
+  const notificationTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // Confessional Interview State
+  const [confessionalData, setConfessionalData] = useState<{
+    activeCharacter: string | null;
+    messages: Array<{id: number; type: 'hostmaster' | 'character'; content: string; timestamp: Date}>;
+    isInterviewing: boolean;
+    isPaused: boolean;
+    questionCount: number;
+    isLoading: boolean;
+  }>({
+    activeCharacter: null,
+    messages: [],
+    isInterviewing: false,
+    isPaused: false,
+    questionCount: 0,
+    isLoading: false
+  });
+  
+  // Track active timeouts to prevent multiple interviews
+  const confessionalTimeouts = useRef<Set<NodeJS.Timeout>>(new Set());
   const [selectedElementCategory, setSelectedElementCategory] = useState<'wallDecor' | 'furniture' | 'lighting' | 'accessories' | 'flooring' | null>(null);
   const [isGeneratingRoomImage, setIsGeneratingRoomImage] = useState(false);
 
@@ -618,7 +643,7 @@ export default function TeamHeadquarters() {
       const sceneType = PromptTemplateService.selectSceneType();
       const allRoommates = headquarters.rooms[0].assignedCharacters;
       const participants = PromptTemplateService.selectSceneParticipants(allRoommates, 3);
-      const trigger = PromptTemplateService.generateSceneTrigger(sceneType, headquarters.currentTier);
+      const trigger = PromptTemplateService.generateSceneTrigger(sceneType, headquarters.currentTier, headquarters);
       
       console.log('🎬 Starting new scene:', { sceneType, participants, trigger });
       
@@ -632,15 +657,26 @@ export default function TeamHeadquarters() {
           allRoommates.includes(c.baseName) && c.baseName !== charName
         );
         
+        // Calculate sleeping arrangement for this character
+        const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
+        const charIndex = room.assignedCharacters.indexOf(charName);
+        const isOvercrowded = room.assignedCharacters.length > room.maxCharacters;
+        const sleepsOnFloor = isOvercrowded && charIndex >= room.maxCharacters;
+        const sleepsOnCouch = charIndex === 2 && !sleepsOnFloor; // Third person gets couch if not floor
+        
         const context = {
           character,
           teammates,
           coachName: 'Coach',
           livingConditions: {
             apartmentTier: headquarters.currentTier,
-            roomTheme: headquarters.rooms[0].theme,
-            sleepsOnCouch: allRoommates.indexOf(charName) === 2,
-            sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment'
+            roomTheme: room.theme,
+            sleepsOnCouch,
+            sleepsOnFloor,
+            sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
+            roomOvercrowded: isOvercrowded,
+            floorSleeperCount: Math.max(0, room.assignedCharacters.length - room.maxCharacters),
+            roommateCount: room.assignedCharacters.length
           },
           recentEvents: [trigger]
         };
@@ -774,6 +810,13 @@ export default function TeamHeadquarters() {
         const character = availableCharacters.find(c => c.baseName === charName);
         if (!character) continue;
         
+        // Calculate sleeping arrangement for this character
+        const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
+        const charIndex = room.assignedCharacters.indexOf(charName);
+        const isOvercrowded = room.assignedCharacters.length > room.maxCharacters;
+        const sleepsOnFloor = isOvercrowded && charIndex >= room.maxCharacters;
+        const sleepsOnCouch = charIndex === 2 && !sleepsOnFloor;
+        
         const context = {
           character,
           teammates: availableCharacters.filter(c => 
@@ -782,9 +825,13 @@ export default function TeamHeadquarters() {
           coachName: 'Coach',
           livingConditions: {
             apartmentTier: headquarters.currentTier,
-            roomTheme: headquarters.rooms[0].theme,
-            sleepsOnCouch: headquarters.rooms[0].assignedCharacters.indexOf(charName) === 2,
-            sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment'
+            roomTheme: room.theme,
+            sleepsOnCouch,
+            sleepsOnFloor,
+            sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
+            roomOvercrowded: isOvercrowded,
+            floorSleeperCount: Math.max(0, room.assignedCharacters.length - room.maxCharacters),
+            roommateCount: room.assignedCharacters.length
           },
           recentEvents: kitchenConversations.slice(0, 3).map(c => `${c.speaker}: ${c.message}`)
         };
@@ -885,15 +932,26 @@ export default function TeamHeadquarters() {
           allRoommates.includes(c.baseName) && c.baseName !== charName
         );
         
+        // Calculate sleeping arrangement for this character
+        const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
+        const charIndex = room.assignedCharacters.indexOf(charName);
+        const isOvercrowded = room.assignedCharacters.length > room.maxCharacters;
+        const sleepsOnFloor = isOvercrowded && charIndex >= room.maxCharacters;
+        const sleepsOnCouch = charIndex === 2 && !sleepsOnFloor;
+        
         const context = {
           character,
           teammates,
           coachName: 'Coach',
           livingConditions: {
             apartmentTier: headquarters.currentTier,
-            roomTheme: headquarters.rooms[0].theme,
-            sleepsOnCouch: allRoommates.indexOf(charName) === 2,
-            sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment'
+            roomTheme: room.theme,
+            sleepsOnCouch,
+            sleepsOnFloor,
+            sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
+            roomOvercrowded: isOvercrowded,
+            floorSleeperCount: Math.max(0, room.assignedCharacters.length - room.maxCharacters),
+            roommateCount: room.assignedCharacters.length
           },
           recentEvents: [userMessage]
         };
@@ -1037,7 +1095,7 @@ export default function TeamHeadquarters() {
         type: 'theme_mismatch',
         severity: 'warning',
         characters: incompatibleCharacters,
-        message: `${incompatibleCharacters.length} fighter(s) clash with ${theme.name} set design`,
+        message: `${incompatibleCharacters.length} fighter(s) clash with ${theme.name} training environment`,
         suggestion: `Consider moving to ${getCharacterSuggestedThemes(incompatibleCharacters[0]).map(t => t.name).join(' or ')}`
       });
     }
@@ -1305,17 +1363,38 @@ export default function TeamHeadquarters() {
 
   // Character assignment functions
   const assignCharacterToRoom = (characterId: string, roomId: string) => {
+    const character = availableCharacters.find(c => c.baseName === characterId);
+    const room = headquarters.rooms.find(r => r.id === roomId);
+    
+    if (!character || !room) return;
+    
+    // Check if already in this room
+    if (room.assignedCharacters.includes(characterId)) {
+      // Clear previous notification timeout
+      if (notificationTimeout.current) {
+        clearTimeout(notificationTimeout.current);
+      }
+      
+      setMoveNotification({message: `${character.name} is already in ${room.name}`, type: 'warning'});
+      notificationTimeout.current = setTimeout(() => {
+        setMoveNotification(null);
+        setHighlightedRoom(null);
+      }, 3000);
+      return;
+    }
+    
     setHeadquarters(prev => ({
       ...prev,
       rooms: prev.rooms.map(room => {
         if (room.id === roomId) {
-          // Add character if not already assigned
-          if (!room.assignedCharacters.includes(characterId)) {
-            return {
-              ...room,
-              assignedCharacters: [...room.assignedCharacters, characterId]
-            };
-          }
+          const newAssignments = [...room.assignedCharacters, characterId];
+          // Check for overcrowding after the move
+          const willBeOvercrowded = newAssignments.length > room.maxCharacters;
+          
+          return {
+            ...room,
+            assignedCharacters: newAssignments
+          };
         } else {
           // Remove character from other rooms
           return {
@@ -1326,6 +1405,35 @@ export default function TeamHeadquarters() {
         return room;
       })
     }));
+    
+    // Enhanced visual feedback
+    const newCount = room.assignedCharacters.length + 1;
+    const isOvercrowded = newCount > room.maxCharacters;
+    
+    if (isOvercrowded) {
+      const sleepingOnFloor = newCount - room.maxCharacters;
+      setMoveNotification({
+        message: `${character.name} moved to ${room.name}! ⚠️ ${sleepingOnFloor} fighter(s) now sleeping on floor/couches`,
+        type: 'warning'
+      });
+    } else {
+      setMoveNotification({
+        message: `${character.name} moved to ${room.name}! Room capacity: ${newCount}/${room.maxCharacters}`,
+        type: 'success'
+      });
+    }
+    
+    // Clear previous notification timeout
+    if (notificationTimeout.current) {
+      clearTimeout(notificationTimeout.current);
+    }
+    
+    // Highlight the room briefly
+    setHighlightedRoom(roomId);
+    notificationTimeout.current = setTimeout(() => {
+      setHighlightedRoom(null);
+      setMoveNotification(null);
+    }, 3000);
   };
 
   const removeCharacterFromRoom = (characterId: string, roomId: string) => {
@@ -1343,6 +1451,259 @@ export default function TeamHeadquarters() {
   const getUnassignedCharacters = () => {
     const assignedCharacters = headquarters.rooms.flatMap(room => room.assignedCharacters);
     return availableCharacters.filter(char => !assignedCharacters.includes(char.baseName));
+  };
+
+  // Helper function to clear all confessional timeouts
+  const clearAllConfessionalTimeouts = () => {
+    confessionalTimeouts.current.forEach(timeout => clearTimeout(timeout));
+    confessionalTimeouts.current.clear();
+    console.log('🧹 Cleared all confessional timeouts');
+  };
+
+  // Confessional Interview Functions
+  const startConfessional = async (characterName: string) => {
+    console.log('🎬 Starting confessional for:', characterName);
+    
+    // Immediately clear any existing interviews and timeouts
+    clearAllConfessionalTimeouts();
+    
+    const character = availableCharacters.find(c => c.baseName === characterName);
+    console.log('🎭 Found character:', character?.name, 'ID:', character?.id);
+    if (!character) return;
+
+    const initialQuestion = `the living arrangements and how you're adjusting to sharing space with the other fighters`;
+
+    // Set new interview data (complete replacement, not updating previous state)
+    setConfessionalData({
+      activeCharacter: characterName,
+      isInterviewing: true,
+      isPaused: false,
+      questionCount: 1,
+      messages: [],
+      isLoading: false
+    });
+
+    // Automatically generate character's response to the initial question
+    const timeoutId = setTimeout(() => {
+      generateCharacterResponse(characterName, initialQuestion);
+    }, 1500);
+    
+    confessionalTimeouts.current.add(timeoutId);
+  };
+
+  const generateCharacterResponse = async (characterName: string, hostmasterQuestion: string) => {
+    console.log('🎪 Generating response for characterName:', characterName);
+    const character = availableCharacters.find(c => c.baseName === characterName);
+    console.log('🎨 Character found:', character?.name, 'ID:', character?.id);
+    if (!character) return;
+
+    // Check if interview is paused or stopped
+    if (confessionalData.isPaused || !confessionalData.isInterviewing) {
+      return;
+    }
+
+    try {
+      // First, generate the character's response to the HOSTMASTER question
+      const characterContext = {
+        characterId: character.id,
+        characterName: character.name,
+        personality: character.personality,
+        historicalPeriod: character.historicalPeriod,
+        mythology: character.mythology,
+        currentBondLevel: character.bondLevel,
+        previousMessages: []
+      };
+
+      // Get other characters for context
+      const allHousemates = headquarters.rooms.flatMap(room => room.assignedCharacters);
+      const otherCharacters = availableCharacters
+        .filter(c => allHousemates.includes(c.baseName) && c.baseName !== characterName)
+        .map(c => c.name)
+        .slice(0, 4); // Limit to 4 for prompt length
+
+      const characterPrompt = `You are ${character.name} in the BLANK WARS reality show confessional booth. An invisible director behind the camera just asked you an inaudible question about: "${hostmasterQuestion}"
+
+🎬 CONFESSIONAL BOOTH SETUP:
+- You're alone in the confessional booth, speaking directly to the camera
+- The director's voice is inaudible to viewers - only your responses are heard
+- You react to their unheard question/prompt and address it naturally
+- This creates authentic reality TV confessional footage
+
+🎬 BLANK WARS REALITY SHOW CONTEXT:
+- You're competing in a gladiator-style fighting tournament reality show
+- Famous warriors/legends from different eras are forced to live together
+- You all sleep in cramped ${headquarters.currentTier} quarters with limited privacy
+- Current housemates: ${otherCharacters.join(', ')} (and others)
+- There's constant drama about who gets the good bed, bathroom time, food, etc.
+- Everyone's competing for prize money and trying to avoid elimination
+- Alliances form and break constantly - trust no one
+- The cameras are always rolling, capturing every argument and breakdown
+
+YOUR CHARACTER ESSENCE:
+- Name: ${character.name}
+- Personality: ${character.personality.traits.join(', ')}
+- Background: ${character.historicalPeriod} - ${character.mythology}
+- Speech Style: ${character.personality.speechStyle}
+- Core Motivations: ${character.personality.motivations.join(', ')}
+
+INVISIBLE DIRECTOR RESPONSE STYLE:
+- Begin your response as if reacting to their inaudible question
+- Use phrases like "You want to know about..." or "That's an interesting question..." 
+- Reference the topic naturally as if they just asked you about it
+- Stay in character with authentic reactions to the invisible prompt
+- Keep responses 1-2 sentences but make them memorable and revealing
+- Show your historical personality clashing with reality TV dynamics
+
+EXAMPLE RESPONSE PATTERNS:
+- "You're asking about the living arrangements? Well, let me tell you..."
+- "That's a good question about [topic]. From my perspective..."
+- "You want the truth about [situation]? Here's what really happened..."
+- "Interesting that you'd ask about that. The reality is..."
+
+Remember: Only YOUR voice is heard. React to the invisible director's question naturally while staying true to your legendary character!`;
+
+      // Generate character response via API
+      console.log('🎤 Generating character response for:', character.name);
+      console.log('📦 Sending characterContext:', characterContext);
+      
+      // Set loading state
+      setConfessionalData(prev => ({ ...prev, isLoading: true }));
+      
+      const response = await fetch('http://localhost:3006/api/confessional-character-response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterContext,
+          prompt: characterPrompt
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const characterResponse = await response.json();
+      console.log('✅ Character response received:', characterResponse.message?.substring(0, 100) + '...');
+
+      // Add character response to messages
+      setConfessionalData(prev => ({
+        ...prev,
+        messages: [...prev.messages, {
+          id: Date.now(),
+          type: 'character',
+          content: characterResponse.message,
+          timestamp: new Date()
+        }],
+        isLoading: false
+      }));
+
+      // After character responds, generate next HOSTMASTER question
+      const hostmasterTimeoutId = setTimeout(async () => {
+        try {
+          const interviewContext = {
+            characterName: character.name,
+            characterPersonality: character.personality,
+            livingConditions: headquarters.currentTier,
+            previousQuestions: confessionalData.messages.filter(m => m.type === 'hostmaster').map(m => m.content),
+            characterResponses: [...confessionalData.messages.filter(m => m.type === 'character').map(m => m.content), characterResponse.message]
+          };
+
+          // Set loading state for hostmaster question generation
+          setConfessionalData(prev => ({ ...prev, isLoading: true }));
+          
+          const response = await fetch('http://localhost:3006/api/confessional-interview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              context: interviewContext,
+              userResponse: characterResponse.message
+            })
+          });
+
+          const data = await response.json();
+          
+          // Increment question count and clear loading state
+          setConfessionalData(prev => ({
+            ...prev,
+            questionCount: prev.questionCount + 1,
+            isLoading: false
+          }));
+
+          // Only continue automatically for first 3 questions, then pause for user control
+          if (confessionalData.questionCount < 3) {
+            const continueTimeoutId = setTimeout(() => {
+              generateCharacterResponse(characterName, data.hostmasterResponse);
+            }, 3000);
+            confessionalTimeouts.current.add(continueTimeoutId);
+          } else {
+            // Pause after 3 questions
+            setConfessionalData(prev => ({
+              ...prev,
+              isPaused: true
+            }));
+          }
+
+        } catch (error) {
+          console.error('Director prompt error:', error);
+          const fallbackQuestion = "your thoughts on team dynamics and how you think your teammates would describe your role in the house";
+          setConfessionalData(prev => ({
+            ...prev,
+            isLoading: false
+          }));
+
+          const fallbackTimeoutId = setTimeout(() => {
+            generateCharacterResponse(characterName, fallbackQuestion);
+          }, 3000);
+          confessionalTimeouts.current.add(fallbackTimeoutId);
+        }
+      }, 2000);
+      
+      confessionalTimeouts.current.add(hostmasterTimeoutId);
+
+    } catch (error) {
+      console.error('Character response error:', error);
+      setConfessionalData(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const pauseConfessional = () => {
+    setConfessionalData(prev => ({
+      ...prev,
+      isPaused: true
+    }));
+  };
+
+  const continueConfessional = () => {
+    if (!confessionalData.activeCharacter) return;
+    
+    setConfessionalData(prev => ({
+      ...prev,
+      isPaused: false
+    }));
+
+    // Find the last HOSTMASTER question and continue from there
+    const lastHostmasterMessage = confessionalData.messages
+      .filter(m => m.type === 'hostmaster')
+      .pop();
+    
+    if (lastHostmasterMessage) {
+      const continueTimeoutId = setTimeout(() => {
+        generateCharacterResponse(confessionalData.activeCharacter!, lastHostmasterMessage.content);
+      }, 1000);
+      confessionalTimeouts.current.add(continueTimeoutId);
+    }
+  };
+
+  const endConfessional = () => {
+    console.log('🏁 Ending confessional interview');
+    clearAllConfessionalTimeouts();
+    setConfessionalData({
+      activeCharacter: null,
+      messages: [],
+      isInterviewing: false,
+      isPaused: false,
+      questionCount: 0
+    });
   };
 
   return (
@@ -1431,15 +1792,20 @@ export default function TeamHeadquarters() {
         ))}
         <button
           onClick={() => setShowCharacterPool(!showCharacterPool)}
-          className={`px-4 py-2 rounded-lg transition-all ${
+          className={`px-4 py-2 rounded-lg transition-all relative ${
             showCharacterPool
               ? 'bg-green-600 text-white'
               : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
+          } ${getUnassignedCharacters().length > 0 ? 'animate-pulse ring-2 ring-blue-400/50' : ''}`}
           data-tutorial="character-pool-button"
         >
           <User className="w-4 h-4 inline mr-2" />
           Available Fighters ({getUnassignedCharacters().length})
+          {getUnassignedCharacters().length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
+              {getUnassignedCharacters().length}
+            </span>
+          )}
         </button>
         <button
           onClick={() => startTutorial(teamHeadquartersTutorialSteps)}
@@ -1531,7 +1897,7 @@ export default function TeamHeadquarters() {
                   className="bg-amber-900/20 rounded-xl p-4 border border-amber-500/30 mb-6"
                 >
                   <h3 className="text-lg font-semibold text-amber-300 mb-3 flex items-center gap-2">
-                    📺 Set Design Opportunities
+                    🏋️ Training Environment Opportunities
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
@@ -1553,6 +1919,27 @@ export default function TeamHeadquarters() {
               );
             })()}
             
+            {/* Move Notification */}
+            {moveNotification && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className={`p-4 rounded-lg border-2 flex items-center gap-3 ${
+                  moveNotification.type === 'success' 
+                    ? 'bg-green-900/50 border-green-500 text-green-200' 
+                    : 'bg-orange-900/50 border-orange-500 text-orange-200'
+                }`}
+              >
+                <div className="text-2xl">
+                  {moveNotification.type === 'success' ? '✅' : '⚠️'}
+                </div>
+                <div className="font-medium">
+                  {moveNotification.message}
+                </div>
+              </motion.div>
+            )}
+
             {/* Front Door & Room Grid */}
             <motion.div
               key="overview"
@@ -1591,7 +1978,9 @@ export default function TeamHeadquarters() {
                     theme 
                       ? `${theme.backgroundColor} border-gray-600` 
                       : 'bg-gray-800/50 border-gray-700'
-                  } ${draggedCharacter ? 'border-blue-400 border-dashed' : ''}`}
+                  } ${draggedCharacter ? 'border-blue-400 border-dashed' : ''} ${
+                    highlightedRoom === room.id ? 'ring-2 ring-green-400 border-green-400 bg-green-900/20' : ''
+                  }`}
                   whileHover={{ scale: 1.02 }}
                   onClick={() => setSelectedRoom(room.id)}
                   onDragOver={(e) => {
@@ -1709,8 +2098,16 @@ export default function TeamHeadquarters() {
 
                   {/* Conflicts and Overcrowding Status */}
                   {room.assignedCharacters.length > room.maxCharacters && (
-                    <div className="text-xs text-red-400 italic mb-1">
-                      🛏️ OVERCROWDED: {room.assignedCharacters.length - room.maxCharacters} team members sleeping on floor/couches
+                    <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-2 mb-2">
+                      <div className="text-sm text-red-300 font-semibold flex items-center gap-2">
+                        🛏️ OVERCROWDED ROOM
+                      </div>
+                      <div className="text-xs text-red-200">
+                        {room.assignedCharacters.length - room.maxCharacters} fighters sleeping on floor/couches
+                      </div>
+                      <div className="text-xs text-red-200 mt-1">
+                        Capacity: {room.assignedCharacters.length}/{room.maxCharacters} (-{Math.round((room.assignedCharacters.length - room.maxCharacters) * 10)}% team morale)
+                      </div>
                     </div>
                   )}
                   {conflicts.length > 0 && (
@@ -1784,15 +2181,14 @@ export default function TeamHeadquarters() {
                   className="w-64 h-48 object-cover rounded-lg border border-amber-600/50 shadow-lg mx-auto mb-3"
                 />
                 <div className="text-gray-300 text-sm">The show's main set - where legends become roommates and drama unfolds</div>
+                <div className="text-amber-400 text-xs mt-1">All {availableCharacters.length} fighters available for kitchen conversations</div>
               </div>
 
-              {/* Current Residents */}
-              <div className="flex justify-center gap-4 mb-4">
-                {headquarters.rooms[0].assignedCharacters.slice(0, 4).map((charName) => {
-                  const character = availableCharacters.find(c => c.baseName === charName);
-                  if (!character) return null;
+              {/* All 17 Fighters Available */}
+              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-2 justify-center mb-4 max-w-4xl mx-auto">
+                {availableCharacters.map((character) => {
                   return (
-                    <div key={charName} className="text-center">
+                    <div key={character.baseName} className="text-center">
                       <div className="text-3xl mb-1">{character.avatar}</div>
                       <div className="text-xs text-gray-400">
                         {character.name.split(' ')[0]}
@@ -2051,7 +2447,7 @@ export default function TeamHeadquarters() {
                 <Video className="w-5 h-5" />
                 Confessional Booth
               </h2>
-              <p className="text-gray-400 text-sm">Private one-on-one interviews where fighters reveal their true thoughts...</p>
+              <p className="text-gray-400 text-sm">Private confessional sessions where fighters respond to invisible director prompts...</p>
             </div>
 
             {/* Confessional Setup */}
@@ -2065,40 +2461,36 @@ export default function TeamHeadquarters() {
                 </div>
               </div>
 
-              {/* Hostmaster AI Host Section */}
+              {/* Invisible Director System */}
               <div className="bg-gray-800/50 rounded-lg p-4 mb-4 border border-gray-600">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="text-2xl">🤖</div>
+                  <div className="text-2xl">🎬</div>
                   <div>
-                    <div className="font-semibold text-purple-400">Hostmaster v8.72</div>
-                    <div className="text-xs text-gray-400">AI Interview System</div>
+                    <div className="font-semibold text-purple-400">Invisible Director</div>
+                    <div className="text-xs text-gray-400">Reality TV Confessional System</div>
                   </div>
                 </div>
                 <div className="bg-purple-900/30 rounded p-3 text-sm text-purple-200">
-                  <div className="font-mono text-xs text-purple-300 mb-1">[HOSTMASTER v8.72 CONFESSIONAL PROTOCOL ACTIVE]</div>
-                  "HOSTMASTER here, Coach. Our cameras are capturing some fascinating team dynamics. Which of your fighters would you like to check in with today?"
+                  <div className="font-mono text-xs text-purple-300 mb-1">[CONFESSIONAL BOOTH - INVISIBLE DIRECTOR ACTIVE]</div>
+                  "Behind-the-scenes director prompts guide authentic confessional responses. Only the fighter's voice is heard by viewers, creating realistic reality TV footage."
                 </div>
               </div>
 
               {/* Character Selection for Interview */}
               <div className="mb-4">
-                <h3 className="text-purple-300 font-semibold mb-3 flex items-center gap-2">
+                <h3 className="text-purple-300 font-semibold mb-1 flex items-center gap-2">
                   <Mic className="w-4 h-4" />
                   Select Fighter for Interview
                 </h3>
+                <p className="text-purple-200 text-xs mb-3">All {availableCharacters.length} fighters available for confessional interviews</p>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  {headquarters.rooms.flatMap(room => room.assignedCharacters).map((charName) => {
-                    const character = availableCharacters.find(c => c.baseName === charName);
-                    if (!character) return null;
+                  {availableCharacters.map((character) => {
                     
                     return (
                       <div
-                        key={charName}
+                        key={character.baseName}
                         className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-pointer hover:bg-purple-600/30 transition-colors"
-                        onClick={() => {
-                          // TODO: Start confessional with this character
-                          console.log('Starting confessional with', character.name);
-                        }}
+                        onClick={() => startConfessional(character.baseName)}
                       >
                         <div className="text-2xl mb-1">{character.avatar}</div>
                         <div className="text-xs text-white text-center">
@@ -2110,44 +2502,106 @@ export default function TeamHeadquarters() {
                 </div>
               </div>
 
-              {/* Coming Soon Section */}
-              <div className="bg-amber-900/20 rounded-lg p-4 border border-amber-600/30">
-                <div className="text-center">
-                  <div className="text-amber-300 font-semibold mb-2">🚧 Production in Progress</div>
-                  <div className="text-amber-200 text-sm">
-                    Confessional interviews coming soon! Features will include:
+              {/* Active Confessional Interview */}
+              {confessionalData.isInterviewing ? (
+                <div className="bg-gray-800/80 rounded-lg p-6 border border-purple-500/50">
+                  {/* Character Portrait */}
+                  <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-600">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center border-2 border-purple-400">
+                      <span className="text-2xl">
+                        {availableCharacters.find(c => c.baseName === confessionalData.activeCharacter)?.avatar || '👤'}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-white font-semibold text-lg">
+                        {availableCharacters.find(c => c.baseName === confessionalData.activeCharacter)?.name}
+                      </h3>
+                      <p className="text-gray-400 text-sm">
+                        {availableCharacters.find(c => c.baseName === confessionalData.activeCharacter)?.archetype} • In Confessional
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-amber-100 text-xs mt-2 space-y-1">
-                    <div>• Hostmaster-led character interviews</div>
-                    <div>• Behind-the-scenes drama revelations</div>
-                    <div>• Strategy discussions and alliances</div>
-                    <div>• Character relationship insights</div>
+                  
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${confessionalData.isPaused ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`}></div>
+                      <span className="text-purple-300 font-semibold">
+                        {confessionalData.isPaused ? 'PAUSED' : 'LIVE INTERVIEW'}
+                      </span>
+                      <span className="text-gray-500 text-sm">
+                        (Q{confessionalData.questionCount})
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      {confessionalData.isPaused ? (
+                        <button
+                          onClick={continueConfessional}
+                          className="text-green-400 hover:text-white px-3 py-1 rounded bg-gray-700 hover:bg-green-600 transition-colors"
+                        >
+                          Continue
+                        </button>
+                      ) : (
+                        <button
+                          onClick={pauseConfessional}
+                          className="text-yellow-400 hover:text-white px-3 py-1 rounded bg-gray-700 hover:bg-yellow-600 transition-colors"
+                        >
+                          Pause
+                        </button>
+                      )}
+                      <button
+                        onClick={endConfessional}
+                        className="text-red-400 hover:text-white px-3 py-1 rounded bg-gray-700 hover:bg-red-600 transition-colors"
+                      >
+                        End Interview
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Interview Messages */}
+                  <div className="bg-black/50 rounded-lg p-4 max-h-80 overflow-y-auto mb-4 space-y-3">
+                    {confessionalData.messages
+                      .filter(message => message.type === 'character') // Only show character responses
+                      .map((message) => (
+                      <div key={message.id} className="flex justify-start">
+                        <div className="max-w-md p-3 rounded-lg bg-gray-600/80 text-white">
+                          <div className="text-xs opacity-75 mb-1">
+                            {availableCharacters.find(c => c.baseName === confessionalData.activeCharacter)?.name.toUpperCase() || 'CHARACTER'}
+                          </div>
+                          <div className="text-sm">{message.content}</div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Loading Spinner */}
+                    {confessionalData.isLoading && (
+                      <div className="flex justify-center">
+                        <div className="bg-gray-700/80 text-white p-3 rounded-lg flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent"></div>
+                          <span className="text-sm text-gray-300">Character is responding...</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Interview Status */}
+                  <div className="text-center text-gray-400 text-sm">
+                    {confessionalData.isPaused ? (
+                      <span className="text-yellow-400">⏸️ Interview paused - Click "Continue" to resume the confession</span>
+                    ) : (
+                      <span>🎬 Confessional in progress... The character responds to invisible director prompts behind the camera.</span>
+                    )}
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-gray-700/30 rounded-lg p-4 text-center">
+                  <div className="text-gray-300 mb-2">🎥 Ready for Confessional</div>
+                  <div className="text-gray-400 text-sm">
+                    Click on a character above to start a live confessional session with invisible director prompts
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Sample Confessional Questions Preview */}
-            <div className="bg-gray-700/30 rounded-lg p-4">
-              <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Sample Hostmaster Interview Questions
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="text-gray-300">
-                  <span className="text-purple-400 font-mono">[HOSTMASTER]:</span> "For our viewers at home - how are the new living arrangements working for your team?"
-                </div>
-                <div className="text-gray-300">
-                  <span className="text-purple-400 font-mono">[HOSTMASTER]:</span> "Coach, the audience is curious - which fighter is showing the most growth lately?"
-                </div>
-                <div className="text-gray-300">
-                  <span className="text-purple-400 font-mono">[HOSTMASTER]:</span> "On a scale of 1-10, how would you rate your team's chemistry this week?"
-                </div>
-                <div className="text-gray-300">
-                  <span className="text-purple-400 font-mono">[HOSTMASTER]:</span> "Our sensors are picking up some tension - as their coach, how are you handling team conflicts?"
-                </div>
-              </div>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -2224,7 +2678,7 @@ export default function TeamHeadquarters() {
                     <div className="flex items-center justify-between mb-6">
                       <div>
                         <h2 className="text-2xl font-bold text-white">{room.name}</h2>
-                        <p className="text-gray-400">Multi-Element Set Design Studio</p>
+                        <p className="text-gray-400">Multi-Element Training Environment</p>
                       </div>
                       <button
                         onClick={() => setSelectedRoom(null)}
@@ -2426,7 +2880,7 @@ export default function TeamHeadquarters() {
                       onClick={() => setSelectedRoom(null)}
                       className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 px-4 rounded-lg transition-colors font-semibold"
                     >
-                      Save Set Design
+                      Save Training Setup
                     </button>
                   </>
                 );

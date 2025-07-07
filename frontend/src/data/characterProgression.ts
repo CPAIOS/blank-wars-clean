@@ -1,6 +1,18 @@
 // Character Progression System for _____ Wars
 // Levels 1-50 with balanced XP curves, stat scaling, and milestone rewards
 
+export interface CharacterSkills {
+  characterId: string;
+  coreSkills: Record<string, { level: number; experience: number; maxLevel: number }>;
+  signatureSkills?: Record<string, { name: string; level: number; description?: string }>;
+  archetypeSkills?: Record<string, { name: string; level: number; description?: string }>;
+  passiveAbilities?: Array<{ id: string; name: string; description: string }>;
+  activeAbilities?: Array<{ id: string; name: string; description: string; cost?: number }>;
+  unlockedNodes?: Array<{ id: string; name: string; type: string }>;
+  lastUpdated?: Date;
+}
+
+
 export interface LevelData {
   level: number;
   xpRequired: number;

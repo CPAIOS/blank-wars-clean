@@ -27,21 +27,13 @@ import {
   updatePsychologyState, 
   calculateDeviationRisk, 
   rollForDeviation,
+  calculateStabilityFactors,
   type PsychologyState,
   type DeviationEvent
 } from '@/data/characterPsychology';
 import { makeJudgeDecision, generateDeviationPrompt, judgePersonalities, type JudgeDecision } from '@/data/aiJudgeSystem';
-// import { CharacterSkills } from '@/data/characterProgression'; // Not available
-interface CharacterSkills {
-  characterId: string;
-  coreSkills: Record<string, { level: number; experience: number; maxLevel: number }>;
-  signatureSkills?: Record<string, { name: string; level: number; description?: string }>;
-  archetypeSkills?: Record<string, { name: string; level: number; description?: string }>;
-  passiveAbilities?: Array<{ id: string; name: string; description: string }>;
-  activeAbilities?: Array<{ id: string; name: string; description: string; cost?: number }>;
-  unlockedNodes?: Array<{ id: string; name: string; type: string }>;
-  lastUpdated?: Date;
-}
+import { CharacterSkills } from '@/data/characterProgression';
+
 
 // Removed local function - now using imported checkTeamGameplanAdherence
 import { useBattleAnnouncer } from '@/hooks/useBattleAnnouncer';
@@ -75,61 +67,7 @@ import { BattleEngine } from '@/systems/battleEngine';
 import { PhysicalBattleEngine } from '@/systems/physicalBattleEngine';
 import type { BattleCharacter, ExecutedAction, PlannedAction } from '@/data/battleFlow';
 
-// Legacy interface for backward compatibility
-interface Character {
-  name: string;
-  maxHp: number;
-  hp: number;
-  atk: number;
-  def: number;
-  spd: number;
-  level: number;
-  xp: number;
-  xpToNext: number;
-  trainingLevel: number; // 0-100, affects gameplan adherence
-  abilities: Ability[];
-  items: Item[];
-  avatar: string;
-  personality?: string;
-  speechStyle?: string;
-  selectedStrategy?: {
-    attack: string;
-    defense: string;
-    special: string;
-  };
-  statusEffects: string[];
-  specialPowers: SpecialPower[];
-  battleStats?: BattleStats;
-}
 
-interface SpecialPower {
-  name: string;
-  type: 'companion' | 'amplifier' | 'resistance';
-  description: string;
-  effect: string;
-  icon: string;
-  cooldown: number;
-  currentCooldown: number;
-}
-
-interface Ability {
-  name: string;
-  type: 'attack' | 'defense' | 'special';
-  power: number;
-  cooldown: number;
-  currentCooldown: number;
-  description: string;
-  icon: string;
-}
-
-interface Item {
-  name: string;
-  type: 'healing' | 'boost' | 'special';
-  effect: string;
-  icon: string;
-  description: string;
-  uses: number;
-}
 
 // BattlePhase type imported from @/data/battleFlow
 
@@ -251,6 +189,13 @@ export default function ImprovedBattleArena() {
   // Rogue Action State
   const [currentRogueAction, setCurrentRogueAction] = useState<RogueAction | null>(null);
   const [judgeRuling, setJudgeRuling] = useState<any>(null);
+
+  // Fast Battle System State
+  const [isFastBattleMode, setIsFastBattleMode] = useState(false);
+  const [fastBattleConsent, setFastBattleConsent] = useState<{player1: boolean, player2: boolean}>({
+    player1: false,
+    player2: false
+  });
 
   // Battle Announcer Integration with error handling
   const battleAnnouncer = useBattleAnnouncer();
@@ -375,58 +320,7 @@ export default function ImprovedBattleArena() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Convert TeamCharacter to legacy Character interface for UI compatibility
-  const convertTeamCharacterToCharacter = (teamChar: TeamCharacter): Character => {
-    // Character-specific abilities based on archetype
-    const getCharacterAbilities = (name: string, archetype: string) => {
-      switch (name) {
-        case 'Sherlock Holmes':
-          return [
-            { name: 'Deduction Strike', type: 'attack', power: 25, cooldown: 1, currentCooldown: 0, description: 'Analyzes weak points', icon: '🔍' },
-            { name: 'Defensive Analysis', type: 'defense', power: 0, cooldown: 2, currentCooldown: 0, description: 'Predicts enemy moves', icon: '🧠' },
-            { name: 'Elementary!', type: 'special', power: 40, cooldown: 3, currentCooldown: 0, description: 'Brilliant deduction', icon: '💡' }
-          ];
-        case 'Dracula':
-          return [
-            { name: 'Blood Drain', type: 'attack', power: 30, cooldown: 1, currentCooldown: 0, description: 'Vampiric attack', icon: '🩸' },
-            { name: 'Mist Form', type: 'defense', power: 0, cooldown: 3, currentCooldown: 0, description: 'Become intangible', icon: '🌫️' },
-            { name: 'Bat Swarm', type: 'special', power: 35, cooldown: 4, currentCooldown: 0, description: 'Summon bats', icon: '🦇' }
-          ];
-        case 'Joan of Arc':
-          return [
-            { name: 'Holy Strike', type: 'attack', power: 28, cooldown: 1, currentCooldown: 0, description: 'Divine blade', icon: '⚔️' },
-            { name: 'Divine Shield', type: 'defense', power: 0, cooldown: 2, currentCooldown: 0, description: 'Heavenly protection', icon: '🛡️' },
-            { name: 'Rally Cry', type: 'special', power: 20, cooldown: 3, currentCooldown: 0, description: 'Inspire allies', icon: '🏳️' }
-          ];
-        default:
-          return [
-            { name: 'Strike', type: 'attack', power: 25, cooldown: 1, currentCooldown: 0, description: 'Basic attack', icon: '⚔️' },
-            { name: 'Defend', type: 'defense', power: 0, cooldown: 2, currentCooldown: 0, description: 'Defensive stance', icon: '🛡️' },
-            { name: 'Special Move', type: 'special', power: 40, cooldown: 3, currentCooldown: 0, description: 'Character special', icon: '💫' }
-          ];
-      }
-    };
-
-    return {
-      name: formatCharacterName(teamChar.name),
-      maxHp: teamChar.maxHp,
-      hp: teamChar.currentHp,
-      atk: getEffectiveStats(teamChar).strength,
-      def: getEffectiveStats(teamChar).vitality,
-      spd: getEffectiveStats(teamChar).speed,
-      level: teamChar.level,
-      xp: teamChar.experience,
-      xpToNext: teamChar.experienceToNext,
-      trainingLevel: teamChar.psychStats.training,
-      avatar: teamChar.avatar,
-      battleStats: createBattleStats(),
-      statusEffects: teamChar.statusEffects || [],
-      abilities: getCharacterAbilities(teamChar.name, teamChar.archetype) as any[],
-      items: [],
-      specialPowers: [
-        { name: 'Character Power', type: 'amplifier', description: 'Unique ability', effect: '+20% damage', icon: '✨', cooldown: 3, currentCooldown: 0 }
-      ]
-    };
-  };
+  
 
   // Get current active fighter from team (cycles through team members)
   const getCurrentPlayerFighter = () => {
@@ -440,17 +334,24 @@ export default function ImprovedBattleArena() {
   };
 
   // Dynamic player1 and player2 based on current round
-  const [player1, setPlayer1] = useState<Character>(() => 
-    convertTeamCharacterToCharacter(getCurrentPlayerFighter())
+  const [player1, setPlayer1] = useState<TeamCharacter>(() =>
+    getCurrentPlayerFighter()
   );
-  const [player2, setPlayer2] = useState<Character>(() => 
-    convertTeamCharacterToCharacter(getCurrentOpponentFighter())
+  const [player2, setPlayer2] = useState<TeamCharacter>(() =>
+    getCurrentOpponentFighter()
   );
+
+  // Battle stats tracking (separate from TeamCharacter)
+  const [player1BattleStats, setPlayer1BattleStats] = useState<BattleStats>(createBattleStats());
+  const [player2BattleStats, setPlayer2BattleStats] = useState<BattleStats>(createBattleStats());
 
   // Update fighters when round changes
   useEffect(() => {
-    setPlayer1(convertTeamCharacterToCharacter(getCurrentPlayerFighter()));
-    setPlayer2(convertTeamCharacterToCharacter(getCurrentOpponentFighter()));
+    setPlayer1(getCurrentPlayerFighter());
+    setPlayer2(getCurrentOpponentFighter());
+    // Reset battle stats for new round
+    setPlayer1BattleStats(createBattleStats());
+    setPlayer2BattleStats(createBattleStats());
   }, [currentRound]);
 
   // Clear announcement ref when content changes
@@ -486,7 +387,7 @@ export default function ImprovedBattleArena() {
   const handleBattleStart = useCallback((data: any) => {
     console.log('Battle starting:', data);
     setCurrentAnnouncement(`Battle begins! ${data.player1?.username} vs ${data.player2?.username}`);
-    setPhase({ name: 'strategy-selection' });
+    setPhase('pre_battle_huddle');
     announceBattleStart(data.player1?.username || 'Player 1', data.player2?.username || 'Player 2');
   }, []);
 
@@ -494,20 +395,20 @@ export default function ImprovedBattleArena() {
     console.log('Round starting:', data);
     setCurrentRound(data.round || 1);
     setCurrentAnnouncement(`Round ${data.round || 1} begins!`);
-    setPhase({ name: 'round-combat' });
+    setPhase('combat');
     announceRoundStart(data.round || 1);
   }, []);
 
   const handleRoundEnd = useCallback((data: any) => {
     console.log('Round ended:', data);
     setCurrentAnnouncement(data.message || 'Round completed!');
-    setPhase({ name: 'round-end' });
+    setPhase('coaching_timeout');
   }, []);
 
   const handleBattleEnd = useCallback((result: any) => {
     console.log('Battle ended:', result);
     setCurrentAnnouncement(result.message || 'Battle completed!');
-    setPhase({ name: 'battle-end' });
+    setPhase('battle_complete');
     
     if (result.winner === socketRef.current?.currentUser?.id) {
       announceVictory(result.winnerName || 'You');
@@ -577,23 +478,23 @@ export default function ImprovedBattleArena() {
       // Update phase based on battle status
       switch (wsBattleState.status) {
         case 'strategy_select':
-          setPhase({ name: 'strategy-selection' });
+          setPhase('pre_battle_huddle');
           setCurrentAnnouncement('Select your strategy!');
           setTimer(15); // 15 seconds for strategy selection
           setIsTimerActive(true);
           break;
         case 'round_combat':
-          setPhase({ name: 'round-combat' });
+          setPhase('combat');
           setCurrentAnnouncement(`Round ${wsBattleState.current_round} in progress...`);
           break;
         case 'chat_break':
-          setPhase({ name: 'round-end' });
+          setPhase('coaching_timeout');
           setCurrentAnnouncement('Chat with your character!');
           setTimer(45); // 45 seconds for chat break
           setIsTimerActive(true);
           break;
         case 'completed':
-          setPhase({ name: 'battle-end' });
+          setPhase('battle_complete');
           break;
       }
     }
@@ -658,7 +559,7 @@ export default function ImprovedBattleArena() {
   const handleOpponentSelection = (opponent: MatchmakingResult) => {
     setSelectedOpponent(opponent);
     setShowMatchmaking(false);
-    setPhase({ name: 'pre-battle' });
+    setPhase('pre_battle_huddle');
     setCurrentAnnouncement(`Opponent selected: Level ${opponent.opponent.teamLevel} team. Prepare for battle!`);
     
     // Adjust opponent team stats based on selected level
@@ -687,12 +588,12 @@ export default function ImprovedBattleArena() {
     // Initialize character psychology for all fighters
     const psychologyMap = new Map<string, PsychologyState>();
     
-    // Initialize player team psychology
+    // Initialize player team psychology with headquarters effects and teammates
     playerTeam.characters.forEach(char => {
-      psychologyMap.set(char.id, initializePsychologyState(char));
+      psychologyMap.set(char.id, initializePsychologyState(char, headquartersEffects, playerTeam.characters));
     });
     
-    // Initialize opponent team psychology
+    // Initialize opponent team psychology (no headquarters effects)
     opponentTeam.characters.forEach(char => {
       psychologyMap.set(char.id, initializePsychologyState(char));
     });
@@ -727,7 +628,7 @@ export default function ImprovedBattleArena() {
     };
 
     setBattleState(newBattleState);
-    setPhase({ name: 'pre-battle' });
+    setPhase('pre_battle_huddle');
     announceBattleStart(playerTeam.name, opponentTeam.name);
     setCurrentAnnouncement(`🏆 3v3 TEAM BATTLE: ${playerTeam.name} vs ${opponentTeam.name}! 
     Your lineup: ${playerTeam.characters.map(c => c.name).join(', ')}
@@ -738,8 +639,112 @@ export default function ImprovedBattleArena() {
     }, 5000); // Extended to give more time to see team setup
   };
 
+  // Fast Battle System Functions
+  const isOpponentAI = () => {
+    // Check if opponent is AI-controlled (PvC) or human player (PvP)
+    // For now, all opponents are AI-controlled (PvC mode)
+    // TODO: Add PvP detection when multiplayer system is implemented
+    return true;
+  };
+
+  const handleFastBattleRequest = () => {
+    if (isOpponentAI()) {
+      // PvC: Instantly start fast battle
+      startFastBattle();
+    } else {
+      // PvP: Request consent from both players
+      setFastBattleConsent(prev => ({
+        ...prev,
+        player1: true
+      }));
+      // In real implementation, send request to opponent via WebSocket
+    }
+  };
+
+  const startFastBattle = () => {
+    setIsFastBattleMode(true);
+    
+    // Skip strategy selection and use AI defaults
+    const fastBattleSetup: BattleSetup = {
+      playerTeam,
+      opponentTeam,
+      playerMorale: { currentMorale: playerMorale, moraleHistory: [] },
+      opponentMorale: { currentMorale: opponentMorale, moraleHistory: [] },
+      roundResults: [],
+      currentFighters: {
+        player: playerTeam.characters[0],
+        opponent: opponentTeam.characters[0]
+      }
+    };
+
+    setBattleState(fastBattleSetup);
+    
+    // Instantly resolve battle
+    resolveFastBattle(fastBattleSetup);
+  };
+
+  const resolveFastBattle = (battleSetup: BattleSetup) => {
+    setCurrentAnnouncement('⚡ Fast Battle Mode Activated! Calculating results...');
+    
+    // Simulate entire battle with AI strategies
+    const battleResult = calculateFastBattleResult(battleSetup);
+    
+    // Apply results instantly
+    safeSetTimeout(() => {
+      setBattleState(battleResult.finalBattleState);
+      setPlayer1(battleResult.finalPlayerStats);
+      setPlayer2(battleResult.finalOpponentStats);
+      setPhase('battle-end');
+      
+      // Show results
+      const winnerName = battleResult.winner === 'player' ? playerTeam.name : opponentTeam.name;
+      setCurrentAnnouncement(`⚡ Fast Battle Complete! ${winnerName} Wins!`);
+      
+      // Apply rewards
+      if (battleResult.winner === 'player') {
+        setBattleRewards(battleResult.playerRewards);
+      }
+    }, 2000);
+  };
+
+  const calculateFastBattleResult = (battleSetup: BattleSetup) => {
+    // Simplified battle calculation for fast mode
+    const playerPower = calculateTeamPower(battleSetup.playerTeam);
+    const opponentPower = calculateTeamPower(battleSetup.opponentTeam);
+    
+    // Add some randomness (±20%)
+    const randomFactor = 0.8 + Math.random() * 0.4;
+    const adjustedPlayerPower = playerPower * randomFactor;
+    
+    const winner = adjustedPlayerPower > opponentPower ? 'player' : 'opponent';
+    
+    // Calculate damage and final stats
+    const damageTaken = Math.floor(Math.random() * 300) + 100;
+    const finalPlayerStats = winner === 'player' ? 
+      { ...player1, currentHp: Math.max(1, player1.currentHp - damageTaken * 0.3) } :
+      { ...player1, currentHp: Math.max(1, player1.currentHp - damageTaken) };
+    
+    const finalOpponentStats = winner === 'opponent' ?
+      { ...player2, currentHp: Math.max(1, player2.currentHp - damageTaken * 0.3) } :
+      { ...player2, currentHp: Math.max(1, player2.currentHp - damageTaken) };
+
+    return {
+      winner,
+      finalBattleState: battleSetup,
+      finalPlayerStats,
+      finalOpponentStats,
+      playerRewards: winner === 'player' ? combatRewards.victory : combatRewards.defeat
+    };
+  };
+
+  const calculateTeamPower = (team: Team) => {
+    return team.characters.reduce((total, char) => {
+      return total + char.level * 10 + char.traditionalStats.strength + char.traditionalStats.vitality;
+    }, 0);
+  };
+
   const conductTeamHuddle = () => {
-    setPhase({ name: 'battle-cry' });
+    setPhase('pre_battle_huddle');
     setCurrentAnnouncement('The teams gather for their pre-battle huddles! Team chemistry and psychology will be tested!');
     announcePhaseTransition('battle-cry');
 
@@ -767,7 +772,7 @@ export default function ImprovedBattleArena() {
   };
 
   const startStrategySelection = () => {
-    setPhase({ name: 'strategy-selection' });
+    setPhase('pre_battle_huddle');
     const announcement = `Strategy Planning Phase - Choose each character's approach for battle!`;
     setCurrentAnnouncement(announcement);
     announceStrategySelection();
@@ -787,7 +792,7 @@ export default function ImprovedBattleArena() {
   const startRoundCombat = () => {
     if (!battleState) return;
 
-    setPhase({ name: 'round-combat' });
+    setPhase('combat');
     const playerFighter = battleState.currentFighters.player;
     const opponentFighter = battleState.currentFighters.opponent;
     
@@ -939,7 +944,7 @@ export default function ImprovedBattleArena() {
   };
 
   const endBattle = (winner: 'player' | 'opponent' | 'draw') => {
-    setPhase({ name: 'battle-end' });
+    setPhase('battle_complete');
     
     let endMessage = '';
     if (winner === 'player') {
@@ -1019,12 +1024,12 @@ export default function ImprovedBattleArena() {
     } else if (type === 'round-start') {
       announceRoundStart(currentRound);
     } else if (type === 'victory') {
-      const winner = player1.hp <= 0 ? player2.name : player1.name;
-      const isFlawless = (player1.hp <= 0 && player2.hp === player2.maxHp) || 
-                        (player2.hp <= 0 && player1.hp === player1.maxHp);
+      const winner = player1.currentHp <= 0 ? player2.name : player1.name;
+      const isFlawless = (player1.currentHp <= 0 && player2.currentHp === player2.maxHp) || 
+                        (player2.currentHp <= 0 && player1.currentHp === player1.maxHp);
       announceVictory(winner, isFlawless);
     } else if (type === 'defeat') {
-      const loser = player1.hp <= 0 ? player1.name : player2.name;
+      const loser = player1.currentHp <= 0 ? player1.name : player2.name;
       announceDefeat(loser);
     } else {
       announceAction(message);
@@ -1038,7 +1043,7 @@ export default function ImprovedBattleArena() {
     }
 
     setCurrentAnnouncement('Searching for a worthy opponent...');
-    setPhase({ name: 'pre-battle' });
+    setPhase('pre_battle_huddle');
     
     // Use WebSocket to find a match
     findMatch(); // This will use the first available character automatically
@@ -1165,8 +1170,8 @@ export default function ImprovedBattleArena() {
             message: `Coach wants me to use ${strategy} for ${type}. What do you think?`,
             battleContext: {
               round: currentRound,
-              playerHealth: Math.round((player1.hp / player1.maxHp) * 100),
-              enemyHealth: Math.round((player2.hp / player2.maxHp) * 100)
+              playerHealth: Math.round((player1.currentHp / player1.maxHp) * 100),
+              enemyHealth: Math.round((player2.currentHp / player2.maxHp) * 100)
             }
           })
         }),
@@ -1297,8 +1302,8 @@ export default function ImprovedBattleArena() {
     // Generate dynamic AI response based on character and context
     const battleContext = {
       round: currentRound,
-      playerHealth: Math.round((player1.hp / player1.maxHp) * 100),
-      enemyHealth: Math.round((player2.hp / player2.maxHp) * 100),
+      playerHealth: Math.round((player1.currentHp / player1.maxHp) * 100),
+      enemyHealth: Math.round((player2.currentHp / player2.maxHp) * 100),
       strategy: selectedStrategies,
       phase: phase.name
     };
@@ -1347,7 +1352,7 @@ export default function ImprovedBattleArena() {
       },
       battleContext: {
         isInBattle: phase.name === 'round-combat',
-        currentHealth: Math.round((player1.hp / player1.maxHp) * 100),
+        currentHealth: Math.round((player1.currentHp / player1.maxHp) * 100),
         maxHealth: 100,
         battlePhase: phase.name
       }
@@ -1372,7 +1377,7 @@ export default function ImprovedBattleArena() {
   };
 
   const proceedToRoundCombat = () => {
-    setPhase({ name: 'round-combat' });
+    setPhase('combat');
     setTimer(null);
     setIsTimerActive(false);
     const announcement = `Round ${currentRound} begins! The warriors clash in epic combat!`;
@@ -1387,8 +1392,8 @@ export default function ImprovedBattleArena() {
 
   const executeCombatRound = () => {
     // Determine turn order based on speed
-    const p1Speed = player1.spd + Math.random() * 20;
-    const p2Speed = player2.spd + Math.random() * 20;
+    const p1Speed = player1.traditionalStats.speed + Math.random() * 20;
+    const p2Speed = player2.traditionalStats.speed + Math.random() * 20;
     
     const firstAttacker = p1Speed >= p2Speed ? player1 : player2;
     const secondAttacker = p1Speed >= p2Speed ? player2 : player1;
@@ -1406,7 +1411,7 @@ export default function ImprovedBattleArena() {
       safeSetTimeout(() => {
         // Calculate battle rewards
         calculateBattleRewards(firstAttacker.name === player1.name, secondAttacker.name === player1.name ? player1 : player2);
-        setPhase({ name: 'battle-end' });
+        setPhase('battle_complete');
         const victoryMessage = `Victory! ${firstAttacker.name} has defeated ${secondAttacker.name}!`;
         setCurrentAnnouncement(victoryMessage);
         announceMessage(victoryMessage, 'victory');
@@ -1444,11 +1449,11 @@ export default function ImprovedBattleArena() {
           // Check if battle is over (2 out of 3 matches)
           if (newPlayerMatchWins >= 2) {
             calculateBattleRewards(true, secondAttacker.name === player1.name ? player1 : player2);
-            setPhase({ name: 'battle-end' });
+            setPhase('battle_complete');
             setCurrentAnnouncement(`VICTORY! Player wins the battle ${newPlayerMatchWins}-${newOpponentMatchWins}!`);
           } else if (newOpponentMatchWins >= 2) {
             calculateBattleRewards(false, secondAttacker.name === player1.name ? player1 : player2);
-            setPhase({ name: 'battle-end' });
+            setPhase('battle_complete');
             setCurrentAnnouncement(`DEFEAT! Opponent wins the battle ${newOpponentMatchWins}-${newPlayerMatchWins}!`);
           } else {
             // Start next match - reset round tracking, move to next match
@@ -1456,7 +1461,7 @@ export default function ImprovedBattleArena() {
             setCurrentRound(1);
             setPlayerRoundWins(0);
             setOpponentRoundWins(0);
-            setPhase({ name: 'strategy-selection' });
+            setPhase('pre_battle_huddle');
             setCurrentAnnouncement(`Match ${currentMatch + 1} begins! Choose your strategy for the next fighters.`);
           }
         }, 3000);
@@ -1465,11 +1470,11 @@ export default function ImprovedBattleArena() {
       
       // Round end (no death) - determine winner by HP comparison
       safeSetTimeout(() => {
-        setPhase({ name: 'round-end' });
+        setPhase('coaching_timeout');
         
         // Determine round winner based on remaining HP
-        const roundWinner = player1.hp > player2.hp ? 'player' : player1.hp < player2.hp ? 'opponent' : 'tie';
-        const roundWinnerName = player1.hp > player2.hp ? player1.name : player1.hp < player2.hp ? player2.name : 'Tie';
+        const roundWinner = player1.currentHp > player2.currentHp ? 'player' : player1.currentHp < player2.currentHp ? 'opponent' : 'tie';
+        const roundWinnerName = player1.currentHp > player2.currentHp ? player1.name : player1.currentHp < player2.currentHp ? player2.name : 'Tie';
         
         // Calculate new round wins immediately
         const newPlayerRoundWins = roundWinner === 'player' ? playerRoundWins + 1 : playerRoundWins;
@@ -1496,7 +1501,7 @@ export default function ImprovedBattleArena() {
             if (newPlayerMatchWins >= 2) {
               // Player wins entire battle
               calculateBattleRewards(true, player1);
-              setPhase({ name: 'battle-end' });
+              setPhase('battle_complete');
               setCurrentAnnouncement(`VICTORY! Player wins the battle ${newPlayerMatchWins}-${opponentMatchWins}!`);
             } else {
               // Start next match
@@ -1504,7 +1509,7 @@ export default function ImprovedBattleArena() {
               setCurrentRound(1);
               setPlayerRoundWins(0);
               setOpponentRoundWins(0);
-              setPhase({ name: 'strategy-selection' });
+              setPhase('pre_battle_huddle');
               setCurrentAnnouncement(`Player wins Match ${currentMatch}! Match ${currentMatch + 1} begins - choose your strategy.`);
             }
           } else if (newOpponentRoundWins >= 2) {
@@ -1515,7 +1520,7 @@ export default function ImprovedBattleArena() {
             if (newOpponentMatchWins >= 2) {
               // Opponent wins entire battle
               calculateBattleRewards(false, player2);
-              setPhase({ name: 'battle-end' });
+              setPhase('battle_complete');
               setCurrentAnnouncement(`DEFEAT! Opponent wins the battle ${newOpponentMatchWins}-${playerMatchWins}!`);
             } else {
               // Start next match
@@ -1523,7 +1528,7 @@ export default function ImprovedBattleArena() {
               setCurrentRound(1);
               setPlayerRoundWins(0);
               setOpponentRoundWins(0);
-              setPhase({ name: 'strategy-selection' });
+              setPhase('pre_battle_huddle');
               setCurrentAnnouncement(`Opponent wins Match ${currentMatch}! Match ${currentMatch + 1} begins - choose your strategy.`);
             }
           } else {
@@ -1550,7 +1555,7 @@ export default function ImprovedBattleArena() {
               return newRound;
             });
             
-            setPhase({ name: 'strategy-selection' });
+            setPhase('pre_battle_huddle');
             setCurrentAnnouncement(`Round ${currentRound + 1} Strategy Selection - Choose your warrior&apos;s approach for this round.`);
             setCoachingMessages([`Round ${currentRound + 1} Preparation - Choose one strategy from each category!`]);
             setSelectedStrategies({ attack: null, defense: null, special: null });
@@ -1563,22 +1568,20 @@ export default function ImprovedBattleArena() {
   };
 
   // Adapter function: Convert ImprovedBattleArena Character to BattleCharacter format
-  const convertToBattleCharacter = (character: Character, morale: number): BattleCharacter => {
+  const convertToBattleCharacter = (character: TeamCharacter, morale: number): BattleCharacter => {
     return {
       character: {
         id: character.name.toLowerCase().replace(/\s+/g, '_'),
         name: character.name,
-        archetype: character.personality || 'balanced',
+        archetype: character.archetype || 'warrior',
         level: character.level,
-        experience: character.xp,
+        experience: character.experience,
         baseStats: {
-          baseStats: {
-          health: teamChar.maxHp,
-          attack: teamChar.traditionalStats.strength + teamChar.temporaryStats.strength,
-          defense: teamChar.traditionalStats.vitality + teamChar.temporaryStats.vitality,
-          speed: teamChar.traditionalStats.speed + teamChar.temporaryStats.speed,
-          special: 50 + teamChar.temporaryStats.spirit // Assuming spirit contributes to special
-        },
+          health: character.maxHp,
+          attack: character.traditionalStats.strength + character.temporaryStats.strength,
+          defense: character.traditionalStats.vitality + character.temporaryStats.vitality,
+          speed: character.traditionalStats.speed + character.temporaryStats.speed,
+          special: 50 + character.temporaryStats.spirit // Assuming spirit contributes to special
         },
         abilities: character.abilities.map(ability => ({
           id: ability.name.toLowerCase().replace(/\s+/g, '_'),
@@ -1589,25 +1592,15 @@ export default function ImprovedBattleArena() {
           cooldown: ability.cooldown || 0,
           mana_cost: 10 // Default mana cost for abilities
         })),
-        equipment: character.items.map(item => ({
-          id: item.name.toLowerCase().replace(/\s+/g, '_'),
-          name: item.name,
-          type: 'weapon', // Default type
-          rarity: 'common', // Default rarity
-          stats: {
-            attack: 10, // Default weapon stats
-            defense: 0,
-            speed: 0
-          }
-        })),
-        personalityTraits: character.personality ? [character.personality] : [],
+        equipment: [], // TeamCharacter doesn't have items
+        personalityTraits: character.personalityTraits || [],
         relationshipModifiers: {},
         battleMemories: []
       },
-      currentHealth: character.hp,
+      currentHealth: character.currentHp,
       currentMana: 100, // Default mana
-      physicalDamageDealt: character.battleStats?.damageDealt || 0,
-      physicalDamageTaken: character.battleStats?.damageTaken || 0,
+      physicalDamageDealt: 0, // TeamCharacter doesn't track battle stats
+      physicalDamageTaken: 0, // TeamCharacter doesn't track battle stats
       statusEffects: character.statusEffects.map(effect => ({
         type: effect,
         duration: 3,
@@ -1628,7 +1621,7 @@ export default function ImprovedBattleArena() {
   };
 
   // Check for AI character deviation before executing ability
-  const checkForChaos = (attacker: Character, defender: Character, ability: Ability, isAttacker1: boolean) => {
+  const checkForChaos = (attacker: TeamCharacter, defender: TeamCharacter, ability: Ability, isAttacker1: boolean) => {
     // Get character's current psychology state
     const psychState = characterPsychology.get(attacker.id);
     if (!psychState) {
@@ -1638,7 +1631,7 @@ export default function ImprovedBattleArena() {
     
     // Calculate battle context for deviation risk
     const battleContext = {
-      recentDamage: Math.max(0, attacker.maxHp - attacker.hp),
+      recentDamage: Math.max(0, attacker.maxHp - attacker.currentHp),
       teamPerformance: isAttacker1 ? playerMorale : opponentMorale,
       strategySuccessRate: 75, // TODO: Track actual strategy success
       opponentLevelDifference: defender.level - attacker.level,
@@ -1648,42 +1641,7 @@ export default function ImprovedBattleArena() {
     
     // Update psychology based on current state
     const factors = calculateStabilityFactors(
-      // Convert Character to TeamCharacter format
-      { 
-        ...attacker, 
-        id: attacker.id || attacker.name,
-        avatar: attacker.avatar || '🥊',
-        archetype: (attacker as any).archetype || 'warrior',
-        rarity: 'common' as const,
-        level: attacker.level,
-        experience: 0,
-        experienceToNext: 100,
-        traditionalStats: {
-          strength: attacker.str || 50,
-          vitality: attacker.vit || 50,
-          speed: attacker.spd || 50,
-          dexterity: attacker.dex || 50,
-          stamina: 50,
-          intelligence: 50,
-          charisma: 50,
-          spirit: 50
-        },
-        currentHp: attacker.hp,
-        maxHp: attacker.maxHp,
-        psychStats: {
-          training: 50,
-          teamPlayer: 50,
-          ego: 50,
-          mentalHealth: psychState.mentalStability,
-          communication: 50
-        },
-        temporaryStats: {
-          strength: 0, vitality: 0, speed: 0, dexterity: 0,
-          stamina: 0, intelligence: 0, charisma: 0, spirit: 0
-        },
-        abilities: attacker.abilities || [],
-        battleStats: attacker.battleStats
-      },
+      attacker, // attacker is already a TeamCharacter
       battleContext
     );
     
@@ -1693,45 +1651,13 @@ export default function ImprovedBattleArena() {
     newPsychMap.set(attacker.id, updatedPsychState);
     setCharacterPsychology(newPsychMap);
     
-    // Calculate deviation risk
+    // Calculate deviation risk with teammates
+    const attackerTeammates = isAttacker1 ? playerTeam.characters : opponentTeam.characters;
     const deviationRisk = calculateDeviationRisk(
-      { 
-        ...attacker, 
-        id: attacker.id || attacker.name,
-        avatar: attacker.avatar || '🥊',
-        archetype: (attacker as any).archetype || 'warrior',
-        rarity: 'common' as const,
-        level: attacker.level,
-        experience: 0,
-        experienceToNext: 100,
-        traditionalStats: {
-          strength: attacker.str || 50,
-          vitality: attacker.vit || 50,
-          speed: attacker.spd || 50,
-          dexterity: attacker.dex || 50,
-          stamina: 50,
-          intelligence: 50,
-          charisma: 50,
-          spirit: 50
-        },
-        currentHp: attacker.hp,
-        maxHp: attacker.maxHp,
-        psychStats: {
-          training: 50,
-          teamPlayer: 50,
-          ego: 50,
-          mentalHealth: psychState.mentalStability,
-          communication: 50
-        },
-        temporaryStats: {
-          strength: 0, vitality: 0, speed: 0, dexterity: 0,
-          stamina: 0, intelligence: 0, charisma: 0, spirit: 0
-        },
-        abilities: attacker.abilities || [],
-        battleStats: attacker.battleStats
-      },
+      attacker, // attacker is already a TeamCharacter
       updatedPsychState,
-      factors
+      factors,
+      attackerTeammates
     );
     
     // Roll for deviation
@@ -1749,8 +1675,8 @@ export default function ImprovedBattleArena() {
   // Handle character going rogue
   const handleCharacterDeviation = (
     deviation: DeviationEvent,
-    attacker: Character,
-    defender: Character,
+    attacker: TeamCharacter,
+    defender: TeamCharacter,
     ability: Ability,
     isAttacker1: boolean
   ) => {
@@ -1760,78 +1686,10 @@ export default function ImprovedBattleArena() {
     // Get judge decision
     const judgeDecision = makeJudgeDecision(
       deviation,
-      { 
-        ...attacker, 
-        id: attacker.id || attacker.name,
-        avatar: attacker.avatar || '🥊',
-        archetype: (attacker as any).archetype || 'warrior',
-        rarity: 'common' as const,
-        level: attacker.level,
-        experience: 0,
-        experienceToNext: 100,
-        traditionalStats: {
-          strength: attacker.str || 50,
-          vitality: attacker.vit || 50,
-          speed: attacker.spd || 50,
-          dexterity: attacker.dex || 50,
-          stamina: 50,
-          intelligence: 50,
-          charisma: 50,
-          spirit: 50
-        },
-        currentHp: attacker.hp,
-        maxHp: attacker.maxHp,
-        psychStats: {
-          training: 50,
-          teamPlayer: 50,
-          ego: 50,
-          mentalHealth: 50,
-          communication: 50
-        },
-        temporaryStats: {
-          strength: 0, vitality: 0, speed: 0, dexterity: 0,
-          stamina: 0, intelligence: 0, charisma: 0, spirit: 0
-        },
-        abilities: attacker.abilities || [],
-        battleStats: attacker.battleStats
-      },
+      attacker, // attacker is already a TeamCharacter
       {
         currentRound,
-        opponentCharacter: { 
-          ...defender, 
-          id: defender.id || defender.name,
-          avatar: defender.avatar || '🥊',
-          archetype: (defender as any).archetype || 'warrior',
-          rarity: 'common' as const,
-          level: defender.level,
-          experience: 0,
-          experienceToNext: 100,
-          traditionalStats: {
-            strength: defender.str || 50,
-            vitality: defender.vit || 50,
-            speed: defender.spd || 50,
-            dexterity: defender.dex || 50,
-            stamina: 50,
-            intelligence: 50,
-            charisma: 50,
-            spirit: 50
-          },
-          currentHp: defender.hp,
-          maxHp: defender.maxHp,
-          psychStats: {
-            training: 50,
-            teamPlayer: 50,
-            ego: 50,
-            mentalHealth: 50,
-            communication: 50
-          },
-          temporaryStats: {
-            strength: 0, vitality: 0, speed: 0, dexterity: 0,
-            stamina: 0, intelligence: 0, charisma: 0, spirit: 0
-          },
-          abilities: defender.abilities || [],
-          battleStats: defender.battleStats
-        },
+        opponentCharacter: defender, // defender is already a TeamCharacter
         arenaCondition: 'pristine' // TODO: Track arena damage
       },
       currentJudge
@@ -1847,8 +1705,8 @@ export default function ImprovedBattleArena() {
   // Apply the mechanical effect of chaos
   const applyChaosEffect = (
     judgeDecision: JudgeDecision,
-    attacker: Character,
-    defender: Character,
+    attacker: TeamCharacter,
+    defender: TeamCharacter,
     ability: Ability,
     isAttacker1: boolean
   ) => {
@@ -1857,7 +1715,7 @@ export default function ImprovedBattleArena() {
     switch (effect.type) {
       case 'damage':
         if (effect.target === 'self') {
-          const newAttackerHP = Math.max(0, attacker.hp - (effect.amount || 20));
+          const newAttackerHP = Math.max(0, attacker.currentHp - (effect.amount || 20));
           if (isAttacker1) {
             setPlayer1(prev => ({ ...prev, hp: newAttackerHP }));
           } else {
@@ -1865,11 +1723,11 @@ export default function ImprovedBattleArena() {
           }
           return {
             description: `${judgeDecision.narrative} - ${attacker.name} takes ${effect.amount} chaos damage!`,
-            newDefenderHP: defender.hp,
+            newDefenderHP: defender.currentHp,
             chaosEvent: true
           };
         } else if (effect.target === 'opponent') {
-          const newDefenderHP = Math.max(0, defender.hp - (effect.amount || 20));
+          const newDefenderHP = Math.max(0, defender.currentHp - (effect.amount || 20));
           if (isAttacker1) {
             setPlayer2(prev => ({ ...prev, hp: newDefenderHP }));
           } else {
@@ -1886,7 +1744,7 @@ export default function ImprovedBattleArena() {
       case 'skip_turn':
         return {
           description: `${judgeDecision.narrative} - ${attacker.name} forfeits their turn!`,
-          newDefenderHP: defender.hp,
+          newDefenderHP: defender.currentHp,
           chaosEvent: true
         };
         
@@ -1894,7 +1752,7 @@ export default function ImprovedBattleArena() {
         if (effect.target === 'teammate') {
           // Attack teammate instead - for now, just apply damage to attacker as friendly fire
           const friendlyFireDamage = (effect.amount || 15);
-          const newAttackerHP = Math.max(0, attacker.hp - friendlyFireDamage);
+          const newAttackerHP = Math.max(0, attacker.currentHp - friendlyFireDamage);
           if (isAttacker1) {
             setPlayer1(prev => ({ ...prev, hp: newAttackerHP }));
           } else {
@@ -1902,7 +1760,7 @@ export default function ImprovedBattleArena() {
           }
           return {
             description: `${judgeDecision.narrative} - Friendly fire deals ${friendlyFireDamage} damage to ${attacker.name}!`,
-            newDefenderHP: defender.hp,
+            newDefenderHP: defender.currentHp,
             chaosEvent: true
           };
         }
@@ -1927,10 +1785,10 @@ export default function ImprovedBattleArena() {
     };
   };
 
-  const executeAbility = (attacker: Character, defender: Character, ability: Ability, isAttacker1: boolean) => {
+  const executeAbility = (attacker: TeamCharacter, defender: TeamCharacter, ability: Ability, isAttacker1: boolean) => {
     let damage = 0;
     let description = '';
-    let newDefenderHP = defender.hp;
+    let newDefenderHP = defender.currentHp;
     let isCritical = false;
 
     if (ability.type === 'attack') {
@@ -1970,25 +1828,33 @@ export default function ImprovedBattleArena() {
       damage = Math.round(finalDamage * critMultiplier);
       
       // Calculate new HP
-      newDefenderHP = Math.max(0, defender.hp - damage);
+      newDefenderHP = Math.max(0, defender.currentHp - damage);
       
       // Track battle stats
-      const attackerStats = attacker.battleStats!;
-      const defenderStats = defender.battleStats!;
-      
-      attackerStats.damageDealt += damage;
-      attackerStats.skillsUsed += 1;
-      if (isCritical) attackerStats.criticalHits += 1;
-      
-      defenderStats.damageTaken += damage;
-      
-      // Apply damage and update stats
       if (isAttacker1) {
-        setPlayer1(prev => ({ ...prev, battleStats: attackerStats }));
-        setPlayer2(prev => ({ ...prev, hp: newDefenderHP, battleStats: defenderStats }));
+        setPlayer1BattleStats(prev => ({
+          ...prev,
+          damageDealt: prev.damageDealt + damage,
+          skillsUsed: prev.skillsUsed + 1,
+          criticalHits: isCritical ? prev.criticalHits + 1 : prev.criticalHits
+        }));
+        setPlayer2BattleStats(prev => ({
+          ...prev,
+          damageTaken: prev.damageTaken + damage
+        }));
+        setPlayer2(prev => ({ ...prev, currentHp: newDefenderHP }));
       } else {
-        setPlayer2(prev => ({ ...prev, battleStats: attackerStats }));
-        setPlayer1(prev => ({ ...prev, hp: newDefenderHP, battleStats: defenderStats }));
+        setPlayer2BattleStats(prev => ({
+          ...prev,
+          damageDealt: prev.damageDealt + damage,
+          skillsUsed: prev.skillsUsed + 1,
+          criticalHits: isCritical ? prev.criticalHits + 1 : prev.criticalHits
+        }));
+        setPlayer1BattleStats(prev => ({
+          ...prev,
+          damageTaken: prev.damageTaken + damage
+        }));
+        setPlayer1(prev => ({ ...prev, currentHp: newDefenderHP }));
       }
       
       // Enhanced description with psychology effects
@@ -2005,42 +1871,55 @@ export default function ImprovedBattleArena() {
     } else {
       // Special abilities
       if (ability.name.includes('Rage') || ability.name.includes('Inferno')) {
-        const specialDamage = Math.round(attacker.atk * 0.6);
+        const specialDamage = Math.round(attacker.traditionalStats.strength * 0.6);
         damage = specialDamage;
-        newDefenderHP = Math.max(0, defender.hp - damage);
+        newDefenderHP = Math.max(0, defender.currentHp - damage);
         
         // Track special ability stats
-        const attackerStats = attacker.battleStats!;
-        const defenderStats = defender.battleStats!;
-        
-        attackerStats.damageDealt += damage;
-        attackerStats.skillsUsed += 1;
-        defenderStats.damageTaken += damage;
-        
         if (isAttacker1) {
-          setPlayer1(prev => ({ ...prev, battleStats: attackerStats }));
-          setPlayer2(prev => ({ ...prev, hp: newDefenderHP, battleStats: defenderStats }));
+          setPlayer1BattleStats(prev => ({
+            ...prev,
+            damageDealt: prev.damageDealt + damage,
+            skillsUsed: prev.skillsUsed + 1
+          }));
+          setPlayer2BattleStats(prev => ({
+            ...prev,
+            damageTaken: prev.damageTaken + damage
+          }));
+          setPlayer2(prev => ({ ...prev, currentHp: newDefenderHP }));
         } else {
-          setPlayer2(prev => ({ ...prev, battleStats: attackerStats }));
-          setPlayer1(prev => ({ ...prev, hp: newDefenderHP, battleStats: defenderStats }));
+          setPlayer2BattleStats(prev => ({
+            ...prev,
+            damageDealt: prev.damageDealt + damage,
+            skillsUsed: prev.skillsUsed + 1
+          }));
+          setPlayer1BattleStats(prev => ({
+            ...prev,
+            damageTaken: prev.damageTaken + damage
+          }));
+          setPlayer1(prev => ({ ...prev, currentHp: newDefenderHP }));
         }
         description = `${attacker.name} unleashes ${ability.name}, dealing ${damage} massive damage!`;
       } else {
         const healing = 25;
-        const attackerStats = attacker.battleStats!;
-        attackerStats.skillsUsed += 1;
         
         if (isAttacker1) {
+          setPlayer1BattleStats(prev => ({
+            ...prev,
+            skillsUsed: prev.skillsUsed + 1
+          }));
           setPlayer1(prev => ({ 
             ...prev, 
-            hp: Math.min(prev.maxHp, prev.hp + healing),
-            battleStats: attackerStats
+            currentHp: Math.min(prev.maxHp, prev.currentHp + healing)
           }));
         } else {
+          setPlayer2BattleStats(prev => ({
+            ...prev,
+            skillsUsed: prev.skillsUsed + 1
+          }));
           setPlayer2(prev => ({ 
             ...prev, 
-            hp: Math.min(prev.maxHp, prev.hp + healing),
-            battleStats: attackerStats
+            currentHp: Math.min(prev.maxHp, prev.currentHp + healing)
           }));
         }
         description = `${attacker.name} uses ${ability.name}, restoring ${healing} HP!`;
@@ -2059,17 +1938,21 @@ export default function ImprovedBattleArena() {
     };
   };
 
-  const calculateBattleRewards = (player1Won: boolean, winningCharacter: Character) => {
+  const calculateBattleRewards = (player1Won: boolean, winningCharacter: TeamCharacter) => {
+    // Get the winning character's battle stats
+    const stats = player1Won ? player1BattleStats : player2BattleStats;
     // Update battle stats with final round and total counts
-    const stats = winningCharacter.battleStats!;
-    stats.roundsSurvived = currentRound;
-    stats.totalRounds = currentRound;
+    const updatedStats = {
+      ...stats,
+      roundsSurvived: currentRound,
+      totalRounds: currentRound
+    };
     
     // Calculate base rewards using the combat rewards system
     const baseRewards = combatRewards.calculateRewards(
       player1Won,
       winningCharacter.level,
-      stats,
+      updatedStats,
       player1Won ? player2.level : player1.level, // opponent level
       1.0 // membership multiplier (could be dynamic)
     );
@@ -2099,8 +1982,8 @@ export default function ImprovedBattleArena() {
     };
     
     // Check for level up
-    const newXP = winningCharacter.xp + rewards.xpGained;
-    const leveledUp = newXP >= winningCharacter.xpToNext;
+    const newXP = winningCharacter.experience + rewards.xpGained;
+    const leveledUp = newXP >= winningCharacter.experienceToNext;
     
     if (leveledUp) {
       rewards.leveledUp = true;
@@ -2114,9 +1997,9 @@ export default function ImprovedBattleArena() {
       isVictory: player1Won,
       oldLevel: winningCharacter.level,
       newLevel: leveledUp ? winningCharacter.level + 1 : winningCharacter.level,
-      oldXP: winningCharacter.xp,
-      newXP: leveledUp ? newXP - winningCharacter.xpToNext : newXP,
-      xpToNext: leveledUp ? Math.floor(winningCharacter.xpToNext * 1.2) : winningCharacter.xpToNext
+      oldXP: winningCharacter.experience,
+      newXP: leveledUp ? newXP - winningCharacter.experienceToNext : newXP,
+      xpToNext: leveledUp ? Math.floor(winningCharacter.experienceToNext * 1.2) : winningCharacter.experienceToNext
     });
     
     // Apply coaching points progression based on win/loss
@@ -2124,13 +2007,16 @@ export default function ImprovedBattleArena() {
       setPlayerTeam(prev => updateCoachingPointsAfterBattle(prev, true));
       setPlayer1(prev => ({
         ...prev,
-        xp: leveledUp ? newXP - prev.xpToNext : newXP,
+        experience: leveledUp ? newXP - prev.experienceToNext : newXP,
         level: leveledUp ? prev.level + 1 : prev.level,
-        xpToNext: leveledUp ? Math.floor(prev.xpToNext * 1.2) : prev.xpToNext,
-        // Apply stat bonuses
-        atk: rewards.statBonuses.atk ? prev.atk + rewards.statBonuses.atk : prev.atk,
-        def: rewards.statBonuses.def ? prev.def + rewards.statBonuses.def : prev.def,
-        spd: rewards.statBonuses.spd ? prev.spd + rewards.statBonuses.spd : prev.spd,
+        experienceToNext: leveledUp ? Math.floor(prev.experienceToNext * 1.2) : prev.experienceToNext,
+        // Apply stat bonuses to traditionalStats
+        traditionalStats: {
+          ...prev.traditionalStats,
+          strength: rewards.statBonuses.atk ? prev.traditionalStats.strength + rewards.statBonuses.atk : prev.traditionalStats.strength,
+          vitality: rewards.statBonuses.def ? prev.traditionalStats.vitality + rewards.statBonuses.def : prev.traditionalStats.vitality,
+          speed: rewards.statBonuses.spd ? prev.traditionalStats.speed + rewards.statBonuses.spd : prev.traditionalStats.speed
+        },
         maxHp: rewards.statBonuses.hp ? prev.maxHp + rewards.statBonuses.hp : prev.maxHp
       }));
     } else {
@@ -2152,7 +2038,7 @@ export default function ImprovedBattleArena() {
     });
 
     // Mock character skills for demo
-    const demoSkills: CharacterSkills = {
+    const demoSkills: TeamCharacterSkills = {
       characterId: winningCharacter.name,
       coreSkills: {
         combat: { level: Math.floor(winningCharacter.level * 0.8), experience: 450, maxLevel: 100 },
@@ -2188,7 +2074,7 @@ export default function ImprovedBattleArena() {
     setOpponentRoundWins(0);
     setSelectedOpponent(null);
     setShowMatchmaking(true);
-    setPhase({ name: 'matchmaking' });
+    setPhase('pre_battle_huddle');
     setCurrentAnnouncement('Welcome to the Arena! Choose your opponent to begin battle!');
     setBattleCries({ player1: '', player2: '' });
     setTimer(null);
@@ -2434,15 +2320,36 @@ export default function ImprovedBattleArena() {
       {/* Start Battle Button */}
       {phase.name === 'pre-battle' && selectedOpponent && (
         <div className="text-center space-y-4">
-          <button
-            onClick={startTeamBattle}
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg text-white font-bold text-xl shadow-lg transition-all transform hover:scale-105"
-          >
-            Begin Team Battle!
-          </button>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={startTeamBattle}
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg text-white font-bold text-xl shadow-lg transition-all transform hover:scale-105"
+            >
+              Begin Team Battle!
+            </button>
+            
+            {/* Fast Battle Button */}
+            <button
+              onClick={handleFastBattleRequest}
+              className="px-6 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform hover:scale-105 flex items-center gap-2"
+              title={isOpponentAI() ? "Instant battle resolution" : "Request fast battle (requires opponent consent)"}
+            >
+              ⚡ Fast Battle
+            </button>
+          </div>
+          
           <p className="text-gray-400 text-sm">
             3v3 Team Combat • Psychology & Chemistry Matter • Coach Wisely
           </p>
+          
+          {/* Fast Battle Status for PvP */}
+          {!isOpponentAI() && fastBattleConsent.player1 && (
+            <div className="bg-orange-900/30 border border-orange-500/50 rounded-lg p-3">
+              <p className="text-orange-300 text-sm">
+                ⚡ Fast Battle requested! Waiting for opponent consent...
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -2454,24 +2361,24 @@ export default function ImprovedBattleArena() {
           animate={{ opacity: 1, scale: 1 }}
         >
           <div className="text-6xl mb-4">
-            {player1.hp > player2.hp ? '🏆' : player2.hp > player1.hp ? '💀' : '🤝'}
+            {player1.currentHp > player2.currentHp ? '🏆' : player2.currentHp > player1.currentHp ? '💀' : '🤝'}
           </div>
           
           <h2 className="text-4xl font-bold text-white mb-4">
-            {player1.hp <= 0 ? `${player2.name} Wins!` : 
-             player2.hp <= 0 ? `${player1.name} Wins!` : 
-             player1.hp > player2.hp ? `${player1.name} Wins!` : 
+            {player1.currentHp <= 0 ? `${player2.name} Wins!` : 
+             player2.currentHp <= 0 ? `${player1.name} Wins!` : 
+             player1.currentHp > player2.currentHp ? `${player1.name} Wins!` : 
              `${player2.name} Wins!`}
           </h2>
           
           <div className="grid grid-cols-2 gap-6 max-w-md mx-auto text-center">
             <div className="bg-blue-600/20 p-4 rounded-lg">
               <h4 className="font-bold text-white">{player1.name}</h4>
-              <p className="text-blue-300">{player1.hp} HP remaining</p>
+              <p className="text-blue-300">{player1.currentHp} HP remaining</p>
             </div>
             <div className="bg-red-600/20 p-4 rounded-lg">
               <h4 className="font-bold text-white">{player2.name}</h4>
-              <p className="text-red-300">{player2.hp} HP remaining</p>
+              <p className="text-red-300">{player2.currentHp} HP remaining</p>
             </div>
           </div>
 

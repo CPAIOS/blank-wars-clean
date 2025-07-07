@@ -115,7 +115,7 @@ class RoomImageService {
       flooring: elements.filter(e => e.category === 'flooring').map(e => e.name)
     };
 
-    let prompt = `A ${style} interior room called "${roomName}" for a reality TV show, featuring: `;
+    let prompt = `A ${style} interior room called "${roomName}" for a competitive training facility, featuring: `;
     
     if (categoryBreakdown.wallDecor.length > 0) {
       prompt += `Wall decorations including ${categoryBreakdown.wallDecor.join(' and ')}. `;
