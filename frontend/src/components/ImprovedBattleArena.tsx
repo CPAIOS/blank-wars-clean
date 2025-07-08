@@ -1,22 +1,22 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import BattleRewards from './BattleRewards';
-import CombatSkillProgression from './CombatSkillProgression';
-import AudioSettings from './AudioSettings';
-import TradingCard from './TradingCard';
-import CardCollection from './CardCollection';
-import CardPackOpening from './CardPackOpening';
-import BattleHUD from './BattleHUD';
-import StrategyPanel from './StrategyPanel';
-import CharacterSpecificStrategyPanel from './CharacterSpecificStrategyPanel';
-import CoachingPanel from './CoachingPanel';
-import TeamDisplay from './TeamDisplay';
-import TeamOverview from './TeamOverview';
-import MatchmakingPanel from './MatchmakingPanel';
-import ChaosPanel from './ChaosPanel';
-import TeamChatPanel from './TeamChatPanel';
+import BattleRewards from '../BattleRewards';
+import CombatSkillProgression from '../CombatSkillProgression';
+import AudioSettings from '../AudioSettings';
+import TradingCard from '../TradingCard';
+import CardCollection from '../CardCollection';
+import CardPackOpening from '../CardPackOpening';
+import BattleHUD from '../BattleHUD';
+import StrategyPanel from '../StrategyPanel';
+import CharacterSpecificStrategyPanel from '../CharacterSpecificStrategyPanel';
+import CoachingPanel from '../CoachingPanel';
+import TeamDisplay from '../TeamDisplay';
+import TeamOverview from '../TeamOverview';
+import MatchmakingPanel from '../MatchmakingPanel';
+import ChaosPanel from '../ChaosPanel';
+import TeamChatPanel from '../TeamChatPanel';
 import { combatRewards, createBattleStats, BattleStats } from '@/data/combatRewards';
 import { BattlePhase } from '@/data/battleFlow';
 import { generateAIResponse } from '@/utils/aiChatResponses';
@@ -38,6 +38,21 @@ import { CharacterSkills } from '@/data/characterProgression';
 // Removed local function - now using imported checkTeamGameplanAdherence
 import { useBattleAnnouncer } from '@/hooks/useBattleAnnouncer';
 import { useBattleWebSocket } from '@/hooks/useBattleWebSocket';
+import { useBattleState } from '@/hooks/useBattleState';
+import { useBattleChat } from '@/hooks/useBattleChat';
+import { useBattleEngineLogic } from '@/hooks/useBattleEngineLogic';
+import { usePsychologySystem } from '@/hooks/usePsychologySystem';
+import { useCoachingSystem } from '@/hooks/useCoachingSystem';
+import { useCardCollectionSystem } from '@/hooks/useCardCollectionSystem';
+import { useUIPresentation } from '@/hooks/useUIPresentation';
+import { useBattleSimulation } from '@/hooks/useBattleSimulation';
+import { useBattleRewards } from '@/hooks/useBattleRewards';
+import { useBattleFlow } from '@/hooks/useBattleFlow';
+import { useBattleCommunication } from '@/hooks/useBattleCommunication';
+import { useBattleEvents } from '@/hooks/useBattleEvents';
+import { useMatchmaking } from '@/hooks/useMatchmaking';
+import { useBattleTimer } from '@/hooks/useBattleTimer';
+import { convertToBattleCharacter } from '@/utils/battleCharacterUtils';
 import { io } from 'socket.io-client';
 import { useTimeoutManager } from '@/hooks/useTimeoutManager';
 import { formatCharacterName } from '@/utils/characterUtils';
@@ -123,21 +138,28 @@ export default function ImprovedBattleArena() {
   // Calculate headquarters bonuses AND penalties
   const headquartersEffects = calculateNetHeadquartersEffect(mockHeadquarters);
   
-  const [playerTeam, setPlayerTeam] = useState<Team>(() => 
-    createDemoPlayerTeamWithBonuses(headquartersEffects.bonuses, headquartersEffects.penalties)
-  );
-  const [opponentTeam, setOpponentTeam] = useState<Team>(createDemoOpponentTeam());
-  const [battleState, setBattleState] = useState<BattleState | null>(null);
-  const [currentRound, setCurrentRound] = useState(1);
-  const [playerMorale, setPlayerMorale] = useState(75);
-  const [opponentMorale, setOpponentMorale] = useState(75);
+  // Use centralized state management instead of individual useState hooks
+  const { state, actions } = useBattleState();
   
-  // Match and Round tracking for proper battle structure
-  const [currentMatch, setCurrentMatch] = useState(1);
-  const [playerMatchWins, setPlayerMatchWins] = useState(0);
-  const [opponentMatchWins, setOpponentMatchWins] = useState(0);
-  const [playerRoundWins, setPlayerRoundWins] = useState(0); // rounds won in current match
-  const [opponentRoundWins, setOpponentRoundWins] = useState(0); // rounds won in current match
+  // Initialize player team with headquarters effects if not already set
+  useEffect(() => {
+    if (state.playerTeam.characters.length === 0) {
+      const teamWithEffects = createDemoPlayerTeamWithBonuses(headquartersEffects.bonuses, headquartersEffects.penalties);
+      actions.setPlayerTeam(teamWithEffects);
+    }
+  }, [headquartersEffects, actions, state.playerTeam.characters.length]);
+  
+  // Destructure state for easier access (maintaining original variable names)
+  const {
+    playerTeam, opponentTeam, battleState, currentRound, playerMorale, opponentMorale,
+    currentMatch, playerMatchWins, opponentMatchWins, playerRoundWins, opponentRoundWins
+  } = state;
+  
+  // Destructure actions for easier access (maintaining original setter names)
+  const {
+    setPlayerTeam, setOpponentTeam, setBattleState, setCurrentRound, setPlayerMorale, setOpponentMorale,
+    setCurrentMatch, setPlayerMatchWins, setOpponentMatchWins, setPlayerRoundWins, setOpponentRoundWins
+  } = actions;
   
   // Refs to avoid stale closures in async operations
   const battleStateRef = useRef<BattleState | null>(null);
@@ -163,39 +185,33 @@ export default function ImprovedBattleArena() {
     opponentRoundWinsRef.current = opponentRoundWins;
   }, [battleState, currentRound, currentMatch, playerMorale, opponentMorale, playerMatchWins, opponentMatchWins, playerRoundWins, opponentRoundWins]);
   
-  // Legacy battle state (for backward compatibility)
-  const [phase, setPhase] = useState<BattlePhase>('pre_battle_huddle');
-  const [currentAnnouncement, setCurrentAnnouncement] = useState('Welcome to the Arena! Choose your opponent to begin battle!');
+  // Destructure more state for easier access (maintaining original variable names)
+  const {
+    phase, currentAnnouncement, selectedOpponent, showMatchmaking,
+    characterPsychology, activeDeviations, judgeDecisions, currentJudge,
+    battleCries, timer, isTimerActive, showAudioSettings,
+    activeCoachingSession, showCoachingModal
+  } = state;
   
-  // Matchmaking state
-  const [selectedOpponent, setSelectedOpponent] = useState<MatchmakingResult | null>(null);
-  const [showMatchmaking, setShowMatchmaking] = useState(true);
+  // Destructure more actions for easier access (maintaining original setter names)
+  const {
+    setPhase, setCurrentAnnouncement, setSelectedOpponent, setShowMatchmaking,
+    setCharacterPsychology, setActiveDeviations, setJudgeDecisions, setCurrentJudge,
+    setBattleCries, setTimer, setIsTimerActive, setShowAudioSettings,
+    setActiveCoachingSession, setShowCoachingModal
+  } = actions;
   
-  // AI Chaos System state
-  const [characterPsychology, setCharacterPsychology] = useState<Map<string, PsychologyState>>(new Map());
-  const [activeDeviations, setActiveDeviations] = useState<DeviationEvent[]>([]);
-  const [judgeDecisions, setJudgeDecisions] = useState<JudgeDecision[]>([]);
-  const [currentJudge, setCurrentJudge] = useState(judgePersonalities[0]); // Judge Executioner as default
-  const [battleCries, setBattleCries] = useState({ player1: '', player2: '' });
-  const [timer, setTimer] = useState<number | null>(null);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [showAudioSettings, setShowAudioSettings] = useState(false);
-
-  // Coaching System State
-  const [activeCoachingSession, setActiveCoachingSession] = useState<CoachingSession | null>(null);
-  const [showCoachingModal, setShowCoachingModal] = useState(false);
-  const [selectedCharacterForCoaching, setSelectedCharacterForCoaching] = useState<TeamCharacter | null>(null);
+  // Destructure remaining state for easier access (maintaining original variable names)
+  const {
+    selectedCharacterForCoaching, currentRogueAction, judgeRuling,
+    isFastBattleMode, fastBattleConsent
+  } = state;
   
-  // Rogue Action State
-  const [currentRogueAction, setCurrentRogueAction] = useState<RogueAction | null>(null);
-  const [judgeRuling, setJudgeRuling] = useState<any>(null);
-
-  // Fast Battle System State
-  const [isFastBattleMode, setIsFastBattleMode] = useState(false);
-  const [fastBattleConsent, setFastBattleConsent] = useState<{player1: boolean, player2: boolean}>({
-    player1: false,
-    player2: false
-  });
+  // Destructure remaining actions for easier access (maintaining original setter names)
+  const {
+    setSelectedCharacterForCoaching, setCurrentRogueAction, setJudgeRuling,
+    setIsFastBattleMode, setFastBattleConsent
+  } = actions;
 
   // Battle Announcer Integration with error handling
   const battleAnnouncer = useBattleAnnouncer();
@@ -260,12 +276,233 @@ export default function ImprovedBattleArena() {
     joinBattle,
     selectStrategy: wsSelectStrategy,
     sendChat: wsSendChatMessage,
+    socket: wsSocket,
     disconnect
   } = battleWebSocket;
   
   // Fallback values for missing WebSocket properties
   const currentUser = null;
   const wsError = null;
+
+  // Initialize Battle Chat Hook - FIXED: This replaces the problematic handleCustomMessage
+  const battleChat = useBattleChat({
+    state,
+    actions: {
+      setChatMessages: actions.setChatMessages,
+      addChatMessage: actions.addChatMessage,
+      setCustomMessage: actions.setCustomMessage,
+      setIsCharacterTyping: actions.setIsCharacterTyping,
+      setSelectedChatCharacter: actions.setSelectedChatCharacter,
+    },
+    wsSocket,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout }
+  });
+
+  // Helper functions for battle engine logic hook
+  const speak = (text: string) => {
+    if (isAnnouncerEnabled) {
+      announceAction(text, 500);
+    }
+  };
+
+  // convertToBattleCharacter function moved to utils/battleCharacterUtils.ts (simpler version)
+
+  // announceMessage function moved to useUIPresentation hook
+
+  // Helper function for psychology hook
+  const executeAbility = (attacker: TeamCharacter, defender: TeamCharacter, ability: any, isAttacker1: boolean) => {
+    let damage = 0;
+    let description = '';
+    let newDefenderHP = defender.currentHp;
+    let isCritical = false;
+
+    if (ability.type === 'attack') {
+      // Convert to BattleCharacter format for psychology-enhanced combat
+      const attackerMorale = isAttacker1 ? playerMorale : opponentMorale;
+      const defenderMorale = isAttacker1 ? opponentMorale : playerMorale;
+      
+      const battleAttacker = convertToBattleCharacter(attacker, attackerMorale);
+      const battleDefender = convertToBattleCharacter(defender, defenderMorale);
+      
+      // Simple damage calculation (placeholder)
+      const baseDamage = attacker.traditionalStats.strength;
+      const defense = defender.traditionalStats.vitality;
+      damage = Math.max(1, Math.floor(baseDamage - defense/2));
+      
+      newDefenderHP = Math.max(0, defender.currentHp - damage);
+      description = `${attacker.name} uses ${ability.name} for ${damage} damage!`;
+    }
+
+    return {
+      description,
+      damage,
+      newDefenderHP,
+      newAttackerHP: attacker.currentHp,
+      isCritical
+    };
+  };
+
+  // Initialize Psychology System Hook
+  const psychologySystem = usePsychologySystem({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
+    speak,
+    executeAbility,
+    headquartersEffects
+  });
+
+  // Initialize Coaching System Hook
+  const coachingSystem = useCoachingSystem({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
+    speak
+  });
+
+  // Initialize Card Collection System Hook
+  const cardCollectionSystem = useCardCollectionSystem({
+    state,
+    actions
+  });
+
+  // Initialize UI Presentation Hook
+  const uiPresentation = useUIPresentation({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
+    speak
+  });
+
+  // Initialize Battle Engine Logic Hook 
+  const battleEngineLogic = useBattleEngineLogic({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
+    speak,
+    announceBattleStart,
+    announceVictory,
+    announceDefeat,
+    announceRoundStart,
+    announceAction,
+    announceMessage,
+    conductTeamHuddle: coachingSystem.conductTeamHuddle,
+    convertToBattleCharacter,
+    checkForChaos: psychologySystem.checkForChaos,
+    conductIndividualCoaching: coachingSystem.conductIndividualCoaching,
+    executeCoachingSession: coachingSystem.executeCoachingSession,
+    handleStrategyRecommendation: coachingSystem.handleStrategyRecommendation,
+    getCharacterOpinion: coachingSystem.getCharacterOpinion,
+    insistOnStrategy: coachingSystem.insistOnStrategy,
+    checkForBerserk: coachingSystem.checkForBerserk,
+    handleCharacterStrategyChange: coachingSystem.handleCharacterStrategyChange,
+    initializeCharacterStrategies: coachingSystem.initializeCharacterStrategies,
+    areAllCharacterStrategiesComplete: coachingSystem.areAllCharacterStrategiesComplete,
+    handleAllCharacterStrategiesComplete: coachingSystem.handleAllCharacterStrategiesComplete,
+    handleTeamChatMessage: coachingSystem.handleTeamChatMessage,
+    buildTeamFromCards: coachingSystem.buildTeamFromCards,
+    initializeCardCollection: cardCollectionSystem.initializeCardCollection,
+    handleCardSelect: cardCollectionSystem.handleCardSelect,
+    handleCardDeselect: cardCollectionSystem.handleCardDeselect,
+    handleCardsReceived: cardCollectionSystem.handleCardsReceived,
+    handleCurrencySpent: cardCollectionSystem.handleCurrencySpent,
+    announceMessage: uiPresentation.announceMessage,
+    handleSelectChatCharacter: uiPresentation.handleSelectChatCharacter,
+    getCurrentPlayerFighter: uiPresentation.getCurrentPlayerFighter,
+    getCurrentOpponentFighter: uiPresentation.getCurrentOpponentFighter,
+    calculateTeamPower: uiPresentation.calculateTeamPower,
+    handleTimerExpired: uiPresentation.handleTimerExpired,
+    showModal: uiPresentation.showModal,
+    hideModal: uiPresentation.hideModal,
+    startTimer: uiPresentation.startTimer,
+    stopTimer: uiPresentation.stopTimer,
+    showBattleCries: uiPresentation.showBattleCries,
+    transitionToPhase: uiPresentation.transitionToPhase,
+    executeCombatRound: battleSimulation.executeCombatRound,
+    calculateBattleRewards: battleRewards.calculateBattleRewards,
+    resetBattle: battleFlow.resetBattle,
+    startStrategySelection: battleFlow.startStrategySelection,
+    // Fast Battle System
+    isOpponentAI: battleSimulation.isOpponentAI,
+    handleFastBattleRequest: battleSimulation.handleFastBattleRequest,
+    startFastBattle: battleSimulation.startFastBattle,
+    resolveFastBattle: battleSimulation.resolveFastBattle,
+    calculateFastBattleResult: battleSimulation.calculateFastBattleResult,
+    headquartersEffects
+  });
+
+  // Initialize Battle Rewards Hook
+  const battleRewards = useBattleRewards({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout }
+  });
+
+  // Initialize Battle Flow Hook
+  const battleFlow = useBattleFlow({
+    state,
+    actions
+  });
+
+  // Initialize Battle Communication Hook
+  const battleCommunication = useBattleCommunication({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
+    announceBattleCry
+  });
+
+  // Initialize Battle Simulation Hook
+  const battleSimulation = useBattleSimulation({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
+    calculateBattleRewards: battleRewards.calculateBattleRewards,
+    announceAction
+  });
+
+  // Initialize Battle Events Hook
+  const battleEvents = useBattleEvents({
+    state,
+    actions,
+    announceBattleStart,
+    announceRoundStart,
+    announceVictory,
+    announceDefeat,
+    socketRef
+  });
+
+  // Initialize Matchmaking Hook
+  const matchmaking = useMatchmaking({
+    state,
+    actions
+  });
+
+  // Extract battle functions from hook
+  const { 
+    startTeamBattle, 
+    executeTeamRound, 
+    endBattle, 
+    proceedToRoundCombat,
+    handleRoundEnd,
+    calculateBattleOutcome,
+    resetBattle,
+    // Fast Battle System
+    isOpponentAI,
+    handleFastBattleRequest,
+    startFastBattle,
+    resolveFastBattle,
+    calculateFastBattleResult
+  } = battleEngineLogic;
+
+  // Initialize Battle Timer Hook
+  const battleTimer = useBattleTimer({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
+    proceedToRoundCombat
+  });
+
   const matchResult = null;
   const wsBattleState = null;
   const clearError = () => {};
@@ -275,45 +512,33 @@ export default function ImprovedBattleArena() {
   const onBattleEnd = null;
   const onChatMessage = null;
   
-  // Chat and AI coaching
-  const [coachingMessages, setCoachingMessages] = useState<string[]>([]);
-  const [characterResponse, setCharacterResponse] = useState<string>('');
-  const [showDisagreement, setShowDisagreement] = useState(false);
-  const [selectedStrategies, setSelectedStrategies] = useState<{
-    attack: string | null;
-    defense: string | null;
-    special: string | null;
-  }>({ attack: null, defense: null, special: null });
-  const [pendingStrategy, setPendingStrategy] = useState<{
-    type: 'attack' | 'defense' | 'special';
-    strategy: string;
-  } | null>(null);
+  // Destructure coaching and strategy state for easier access (maintaining original variable names)
+  const {
+    coachingMessages, characterResponse, showDisagreement,
+    selectedStrategies, pendingStrategy, characterStrategies,
+    chatMessages, customMessage, isCharacterTyping, selectedChatCharacter,
+    showRewards, battleRewards
+  } = state;
   
-  // New character-specific strategy system
-  const [characterStrategies, setCharacterStrategies] = useState<Map<string, {
-    characterId: string;
-    attack: string | null;
-    defense: string | null;
-    special: string | null;
-    isComplete: boolean;
-  }>>(new Map());
+  // Destructure coaching and strategy actions for easier access (maintaining original setter names)
+  const {
+    setCoachingMessages, setCharacterResponse, setShowDisagreement,
+    setSelectedStrategies, setPendingStrategy, setCharacterStrategies,
+    setChatMessages, setCustomMessage, setIsCharacterTyping, setSelectedChatCharacter,
+    setShowRewards, setBattleRewards
+  } = actions;
   
-  // Character Chat
-  const [chatMessages, setChatMessages] = useState<string[]>([]);
-  const [customMessage, setCustomMessage] = useState('');
-  const [isCharacterTyping, setIsCharacterTyping] = useState(false);
-  const [selectedChatCharacter, setSelectedChatCharacter] = useState<TeamCharacter>(() => playerTeam.characters[0]);
-  const [showRewards, setShowRewards] = useState(false);
-  const [battleRewards, setBattleRewards] = useState<any>(null);
-  const [showSkillProgression, setShowSkillProgression] = useState(false);
-  const [combatSkillReward, setCombatSkillReward] = useState<CombatSkillReward | null>(null);
+  // Destructure remaining state for easier access (maintaining original variable names)
+  const {
+    showSkillProgression, combatSkillReward,
+    playerCards, showCardCollection, showCardPacks, playerCurrency, selectedTeamCards
+  } = state;
   
-  // Card Collection System State
-  const [playerCards, setPlayerCards] = useState<TeamCharacter[]>([]);
-  const [showCardCollection, setShowCardCollection] = useState(false);
-  const [showCardPacks, setShowCardPacks] = useState(false);
-  const [playerCurrency, setPlayerCurrency] = useState(1000);
-  const [selectedTeamCards, setSelectedTeamCards] = useState<string[]>([]);
+  // Destructure remaining actions for easier access (maintaining original setter names)
+  const {
+    setShowSkillProgression, setCombatSkillReward,
+    setPlayerCards, setShowCardCollection, setShowCardPacks, setPlayerCurrency, setSelectedTeamCards
+  } = actions;
   
   const announcementRef = useRef<HTMLDivElement>(null);
   const coachingRef = useRef<HTMLDivElement>(null);
@@ -323,32 +548,29 @@ export default function ImprovedBattleArena() {
   
 
   // Get current active fighter from team (cycles through team members)
-  const getCurrentPlayerFighter = () => {
-    const fighterIndex = (currentRound - 1) % playerTeam.characters.length;
-    return playerTeam.characters[fighterIndex];
-  };
+  // getCurrentPlayerFighter function moved to useUIPresentation hook
+  // getCurrentOpponentFighter function moved to useUIPresentation hook
 
-  const getCurrentOpponentFighter = () => {
-    const fighterIndex = (currentRound - 1) % opponentTeam.characters.length;
-    return opponentTeam.characters[fighterIndex];
-  };
-
-  // Dynamic player1 and player2 based on current round
-  const [player1, setPlayer1] = useState<TeamCharacter>(() =>
-    getCurrentPlayerFighter()
-  );
-  const [player2, setPlayer2] = useState<TeamCharacter>(() =>
-    getCurrentOpponentFighter()
-  );
-
-  // Battle stats tracking (separate from TeamCharacter)
-  const [player1BattleStats, setPlayer1BattleStats] = useState<BattleStats>(createBattleStats());
-  const [player2BattleStats, setPlayer2BattleStats] = useState<BattleStats>(createBattleStats());
+  // Destructure final state for easier access (maintaining original variable names)
+  const { player1, player2, player1BattleStats, player2BattleStats } = state;
+  
+  // Destructure final actions for easier access (maintaining original setter names)
+  const { setPlayer1, setPlayer2, setPlayer1BattleStats, setPlayer2BattleStats } = actions;
+  
+  // Initialize fighters on first load
+  useEffect(() => {
+    if (!player1.id) {
+      setPlayer1(actions.getCurrentPlayerFighter());
+    }
+    if (!player2.id) {
+      setPlayer2(actions.getCurrentOpponentFighter());
+    }
+  }, [player1.id, player2.id]);
 
   // Update fighters when round changes
   useEffect(() => {
-    setPlayer1(getCurrentPlayerFighter());
-    setPlayer2(getCurrentOpponentFighter());
+    setPlayer1(actions.getCurrentPlayerFighter());
+    setPlayer2(actions.getCurrentOpponentFighter());
     // Reset battle stats for new round
     setPlayer1BattleStats(createBattleStats());
     setPlayer2BattleStats(createBattleStats());
@@ -384,44 +606,7 @@ export default function ImprovedBattleArena() {
 
   // WebSocket Integration Effects
   // Stable WebSocket event handlers using useCallback
-  const handleBattleStart = useCallback((data: any) => {
-    console.log('Battle starting:', data);
-    setCurrentAnnouncement(`Battle begins! ${data.player1?.username} vs ${data.player2?.username}`);
-    setPhase('pre_battle_huddle');
-    announceBattleStart(data.player1?.username || 'Player 1', data.player2?.username || 'Player 2');
-  }, []);
-
-  const handleRoundStart = useCallback((data: any) => {
-    console.log('Round starting:', data);
-    setCurrentRound(data.round || 1);
-    setCurrentAnnouncement(`Round ${data.round || 1} begins!`);
-    setPhase('combat');
-    announceRoundStart(data.round || 1);
-  }, []);
-
-  const handleRoundEnd = useCallback((data: any) => {
-    console.log('Round ended:', data);
-    setCurrentAnnouncement(data.message || 'Round completed!');
-    setPhase('coaching_timeout');
-  }, []);
-
-  const handleBattleEnd = useCallback((result: any) => {
-    console.log('Battle ended:', result);
-    setCurrentAnnouncement(result.message || 'Battle completed!');
-    setPhase('battle_complete');
-    
-    if (result.winner === socketRef.current?.currentUser?.id) {
-      announceVictory(result.winnerName || 'You');
-    } else {
-      announceDefeat(result.loserName || 'You');
-    }
-    
-    // Show rewards if available
-    if (result.rewards) {
-      setBattleRewards(result.rewards);
-      setShowRewards(true);
-    }
-  }, []);
+  // WebSocket event handlers moved to useBattleEvents hook
 
   const handleChatMessage = useCallback((message: any) => {
     console.log('Chat message received:', message);
@@ -432,10 +617,10 @@ export default function ImprovedBattleArena() {
   // WebSocket event setup with proper cleanup
   useEffect(() => {
     // Only set up listeners if the functions exist
-    const unsubscribeBattleStart = onBattleStart ? onBattleStart(handleBattleStart) : null;
-    const unsubscribeRoundStart = onRoundStart ? onRoundStart(handleRoundStart) : null;
+    const unsubscribeBattleStart = onBattleStart ? onBattleStart(battleEvents.handleBattleStart) : null;
+    const unsubscribeRoundStart = onRoundStart ? onRoundStart(battleEvents.handleRoundStart) : null;
     const unsubscribeRoundEnd = onRoundEnd ? onRoundEnd(handleRoundEnd) : null;
-    const unsubscribeBattleEnd = onBattleEnd ? onBattleEnd(handleBattleEnd) : null;
+    const unsubscribeBattleEnd = onBattleEnd ? onBattleEnd(battleEvents.handleBattleEnd) : null;
     const unsubscribeChatMessage = onChatMessage ? onChatMessage(handleChatMessage) : null;
 
     // Cleanup function
@@ -447,7 +632,7 @@ export default function ImprovedBattleArena() {
       if (typeof unsubscribeBattleEnd === 'function') unsubscribeBattleEnd();
       if (typeof unsubscribeChatMessage === 'function') unsubscribeChatMessage();
     };
-  }, [onBattleStart, onRoundStart, onRoundEnd, onBattleEnd, onChatMessage, handleBattleStart, handleRoundStart, handleRoundEnd, handleBattleEnd, handleChatMessage]);
+  }, [onBattleStart, onRoundStart, onRoundEnd, onBattleEnd, onChatMessage, battleEvents.handleBattleStart, battleEvents.handleRoundStart, handleRoundEnd, battleEvents.handleBattleEnd, handleChatMessage]);
 
   // Handle WebSocket connection status
   useEffect(() => {
@@ -500,67 +685,16 @@ export default function ImprovedBattleArena() {
     }
   }, [wsBattleState]);
 
-  const handleTimerExpired = () => {
-    // Auto-select random strategies when timer expires or proceed with current selections
-    setIsTimerActive(false);
-    if (phase.name === 'strategy-selection') {
-      const finalStrategies = { ...selectedStrategies };
-      
-      // Auto-select missing strategies (AI chooses)
-      if (!finalStrategies.attack) {
-        const attackOptions = player1.abilities?.filter(a => a.type === 'attack') || [];
-        if (attackOptions.length > 0) {
-          finalStrategies.attack = attackOptions[Math.floor(Math.random() * attackOptions.length)].name;
-        } else {
-          finalStrategies.attack = 'Basic Attack';
-        }
-      }
-      if (!finalStrategies.defense) {
-        const defenseOptions = player1.abilities?.filter(a => a.type === 'defense') || [];
-        if (defenseOptions.length > 0) {
-          finalStrategies.defense = defenseOptions[Math.floor(Math.random() * defenseOptions.length)].name;
-        } else {
-          finalStrategies.defense = 'Basic Defense';
-        }
-      }
-      if (!finalStrategies.special) {
-        const specialOptions = player1.specialPowers || [];
-        if (specialOptions.length > 0) {
-          finalStrategies.special = specialOptions[Math.floor(Math.random() * specialOptions.length)].name;
-        } else {
-          finalStrategies.special = 'Focus';
-        }
-      }
-      
-      setSelectedStrategies(finalStrategies);
-      
-      const missingSome = !selectedStrategies.attack || !selectedStrategies.defense || !selectedStrategies.special;
-      if (missingSome) {
-        setCoachingMessages(prev => [...prev, 'Time&apos;s up! Your warrior chooses their own strategy for missing categories!']);
-      } else {
-        setCoachingMessages(prev => [...prev, 'Time&apos;s up! Moving to combat with selected strategies!']);
-      }
-      
-      safeSetTimeout(() => {
-        proceedToRoundCombat();
-      }, 2000);
-    }
-  };
+  // handleTimerExpired function moved to useBattleTimer hook
 
   // Set the ref to the function
-  handleTimerExpiredRef.current = handleTimerExpired;
+  handleTimerExpiredRef.current = battleTimer.handleTimerExpired;
 
   const allStrategiesSelected = () => {
     return selectedStrategies.attack && selectedStrategies.defense && selectedStrategies.special;
   };
 
-  // New Team Battle Functions
-  // Handler for selecting an opponent from matchmaking
-  const handleOpponentSelection = (opponent: MatchmakingResult) => {
-    setSelectedOpponent(opponent);
-    setShowMatchmaking(false);
-    setPhase('pre_battle_huddle');
-    setCurrentAnnouncement(`Opponent selected: Level ${opponent.opponent.teamLevel} team. Prepare for battle!`);
+  // handleOpponentSelection function moved to useMatchmaking hook
     
     // Adjust opponent team stats based on selected level
     const adjustedOpponentTeam = {
@@ -584,210 +718,13 @@ export default function ImprovedBattleArena() {
     setOpponentTeam(adjustedOpponentTeam);
   };
 
-  const startTeamBattle = () => {
-    // Initialize character psychology for all fighters
-    const psychologyMap = new Map<string, PsychologyState>();
-    
-    // Initialize player team psychology with headquarters effects and teammates
-    playerTeam.characters.forEach(char => {
-      psychologyMap.set(char.id, initializePsychologyState(char, headquartersEffects, playerTeam.characters));
-    });
-    
-    // Initialize opponent team psychology (no headquarters effects)
-    opponentTeam.characters.forEach(char => {
-      psychologyMap.set(char.id, initializePsychologyState(char));
-    });
-    
-    setCharacterPsychology(psychologyMap);
-    setActiveDeviations([]);
-    setJudgeDecisions([]);
-    
-    // Randomly select a judge for this battle
-    const randomJudge = judgePersonalities[Math.floor(Math.random() * judgePersonalities.length)];
-    setCurrentJudge(randomJudge);
-    
-    const setup: BattleSetup = {
-      playerTeam,
-      opponentTeam,
-      battleType: 'friendly',
-      weightClass: 'amateur',
-      stakes: 'normal'
-    };
+  // Battle functions extracted above - Fast Battle System Functions moved to useBattleSimulation hook
 
-    const newBattleState: BattleState = {
-      setup,
-      currentRound: 1,
-      phase: 'pre_battle',
-      playerMorale: { currentMorale: playerMorale, moraleHistory: [] },
-      opponentMorale: { currentMorale: opponentMorale, moraleHistory: [] },
-      roundResults: [],
-      currentFighters: {
-        player: playerTeam.characters[0],
-        opponent: opponentTeam.characters[0]
-      }
-    };
+  // calculateTeamPower function moved to useUIPresentation hook
 
-    setBattleState(newBattleState);
-    setPhase('pre_battle_huddle');
-    announceBattleStart(playerTeam.name, opponentTeam.name);
-    setCurrentAnnouncement(`🏆 3v3 TEAM BATTLE: ${playerTeam.name} vs ${opponentTeam.name}! 
-    Your lineup: ${playerTeam.characters.map(c => c.name).join(', ')}
-    Opponents: ${opponentTeam.characters.map(c => c.name).join(', ')}`);
+  // conductTeamHuddle function moved to useCoachingSystem hook
 
-    safeSetTimeout(() => {
-      conductTeamHuddle();
-    }, 5000); // Extended to give more time to see team setup
-  };
-
-  // Fast Battle System Functions
-  const isOpponentAI = () => {
-    // Check if opponent is AI-controlled (PvC) or human player (PvP)
-    // For now, all opponents are AI-controlled (PvC mode)
-    // TODO: Add PvP detection when multiplayer system is implemented
-    return true;
-  };
-
-  const handleFastBattleRequest = () => {
-    if (isOpponentAI()) {
-      // PvC: Instantly start fast battle
-      startFastBattle();
-    } else {
-      // PvP: Request consent from both players
-      setFastBattleConsent(prev => ({
-        ...prev,
-        player1: true
-      }));
-      // In real implementation, send request to opponent via WebSocket
-    }
-  };
-
-  const startFastBattle = () => {
-    setIsFastBattleMode(true);
-    
-    // Skip strategy selection and use AI defaults
-    const fastBattleSetup: BattleSetup = {
-      playerTeam,
-      opponentTeam,
-      playerMorale: { currentMorale: playerMorale, moraleHistory: [] },
-      opponentMorale: { currentMorale: opponentMorale, moraleHistory: [] },
-      roundResults: [],
-      currentFighters: {
-        player: playerTeam.characters[0],
-        opponent: opponentTeam.characters[0]
-      }
-    };
-
-    setBattleState(fastBattleSetup);
-    
-    // Instantly resolve battle
-    resolveFastBattle(fastBattleSetup);
-  };
-
-  const resolveFastBattle = (battleSetup: BattleSetup) => {
-    setCurrentAnnouncement('⚡ Fast Battle Mode Activated! Calculating results...');
-    
-    // Simulate entire battle with AI strategies
-    const battleResult = calculateFastBattleResult(battleSetup);
-    
-    // Apply results instantly
-    safeSetTimeout(() => {
-      setBattleState(battleResult.finalBattleState);
-      setPlayer1(battleResult.finalPlayerStats);
-      setPlayer2(battleResult.finalOpponentStats);
-      setPhase('battle-end');
-      
-      // Show results
-      const winnerName = battleResult.winner === 'player' ? playerTeam.name : opponentTeam.name;
-      setCurrentAnnouncement(`⚡ Fast Battle Complete! ${winnerName} Wins!`);
-      
-      // Apply rewards
-      if (battleResult.winner === 'player') {
-        setBattleRewards(battleResult.playerRewards);
-      }
-    }, 2000);
-  };
-
-  const calculateFastBattleResult = (battleSetup: BattleSetup) => {
-    // Simplified battle calculation for fast mode
-    const playerPower = calculateTeamPower(battleSetup.playerTeam);
-    const opponentPower = calculateTeamPower(battleSetup.opponentTeam);
-    
-    // Add some randomness (±20%)
-    const randomFactor = 0.8 + Math.random() * 0.4;
-    const adjustedPlayerPower = playerPower * randomFactor;
-    
-    const winner = adjustedPlayerPower > opponentPower ? 'player' : 'opponent';
-    
-    // Calculate damage and final stats
-    const damageTaken = Math.floor(Math.random() * 300) + 100;
-    const finalPlayerStats = winner === 'player' ? 
-      { ...player1, currentHp: Math.max(1, player1.currentHp - damageTaken * 0.3) } :
-      { ...player1, currentHp: Math.max(1, player1.currentHp - damageTaken) };
-    
-    const finalOpponentStats = winner === 'opponent' ?
-      { ...player2, currentHp: Math.max(1, player2.currentHp - damageTaken * 0.3) } :
-      { ...player2, currentHp: Math.max(1, player2.currentHp - damageTaken) };
-
-    return {
-      winner,
-      finalBattleState: battleSetup,
-      finalPlayerStats,
-      finalOpponentStats,
-      playerRewards: winner === 'player' ? combatRewards.victory : combatRewards.defeat
-    };
-  };
-
-  const calculateTeamPower = (team: Team) => {
-    return team.characters.reduce((total, char) => {
-      return total + char.level * 10 + char.traditionalStats.strength + char.traditionalStats.vitality;
-    }, 0);
-  };
-
-  const conductTeamHuddle = () => {
-    setPhase('pre_battle_huddle');
-    setCurrentAnnouncement('The teams gather for their pre-battle huddles! Team chemistry and psychology will be tested!');
-    announcePhaseTransition('battle-cry');
-
-    // Show team chemistry and psychology info
-    const huddleMessages = [
-      `Team ${playerTeam.name} - Coach ${playerTeam.coachName} is leading the huddle.`, 
-      `Current Team Chemistry: ${Math.round(playerTeam.teamChemistry * 10) / 10}% | Team Morale: ${playerMorale}%`,
-      `Your starting lineup: ${playerTeam.characters.map(char => char.name).join(', ')}.`,
-      `Review their strengths and weaknesses before battle.`
-    ];
-
-    const delay = 2000; // Use const instead of let
-    huddleMessages.forEach((msg, index) => {
-      const capturedMsg = msg; // Capture message for closure
-      safeSetTimeout(() => {
-        setCurrentAnnouncement(capturedMsg);
-        announceAction(capturedMsg);
-      }, delay * (index + 1));
-    });
-
-    const totalDelay = delay * huddleMessages.length + 2000; // Capture delay calculation
-    safeSetTimeout(() => {
-      startStrategySelection(); // Move to strategy selection after huddle
-    }, totalDelay); // Use captured delay
-  };
-
-  const startStrategySelection = () => {
-    setPhase('pre_battle_huddle');
-    const announcement = `Strategy Planning Phase - Choose each character's approach for battle!`;
-    setCurrentAnnouncement(announcement);
-    announceStrategySelection();
-    
-    // Initialize character-specific strategies
-    initializeCharacterStrategies();
-    
-    setCoachingMessages(prev => [
-      ...(currentRound === 1 ? [`Welcome, Coach! This is your pre-battle strategy session. Set individual strategies for each team member.`] : prev),
-      `Choose attack, defense, and special strategies for each character!`
-    ]);
-    setSelectedStrategies({ attack: null, defense: null, special: null });
-    setTimer(60); // Increased to 60 seconds for better UX
-    setIsTimerActive(true);
-  };
+  // startStrategySelection function moved to useBattleFlow hook
 
   const startRoundCombat = () => {
     if (!battleState) return;
@@ -812,229 +749,14 @@ export default function ImprovedBattleArena() {
     }, 3000);
   };
 
-  const executeTeamRound = () => {
-    if (!battleState) return;
+  // executeTeamRound function moved to useBattleEngineLogic hook
 
-    const playerFighter = battleState.currentFighters.player;
-    const opponentFighter = battleState.currentFighters.opponent;
+  // endBattle function moved to useBattleEngineLogic hook
 
-    // Check if player character will follow the gameplan using sophisticated psychology system
-    const battlePlayerFighter = convertToBattleCharacter(playerFighter, playerMorale);
-    const plannedAction: PlannedAction = {
-      type: 'ability',
-      actionType: 'ability',
-      abilityId: playerFighter.abilities[0]?.name || 'basic_attack',
-      targetId: opponentFighter.id,
-      coachingInfluence: playerMorale / 100 // Convert morale to coaching influence
-    };
-    
-    const adherenceCheck = PhysicalBattleEngine.performGameplanAdherenceCheck(battlePlayerFighter, plannedAction);
+  // conductIndividualCoaching function moved to useCoachingSystem hook
+  // executeCoachingSession function moved to useCoachingSystem hook
 
-    let roundResult: RoundResult | null = null;
-
-    if (adherenceCheck.checkResult === 'goes_rogue' || adherenceCheck.checkResult === 'improvises') {
-      // Character goes rogue!
-      const rogueAction = AIJudge.generateRogueAction(
-        playerFighter,
-        opponentFighter, 
-        playerMorale,
-        playerMorale > opponentMorale ? 'winning' : 'losing'
-      );
-
-      const ruling = AIJudge.judgeRogueAction(rogueAction, opponentFighter, playerMorale);
-      
-      setCurrentRogueAction(rogueAction);
-      setJudgeRuling(ruling);
-
-      roundResult = {
-        round: currentRound,
-        attacker: playerFighter,
-        defender: opponentFighter,
-        attackerAction: 'rogue_action',
-        damage: ruling.damage,
-        wasStrategyAdherent: false,
-        rogueDescription: rogueAction.description,
-        moraleImpact: ruling.moraleChange,
-        newAttackerHp: playerFighter.currentHp - (ruling.targetDamage || 0),
-        newDefenderHp: opponentFighter.currentHp - ruling.damage,
-        narrativeDescription: ruling.narrativeDescription
-      };
-
-      // Generate coaching response with psychology reasoning
-      const coachResponse = AIJudge.generateCoachingResponse(rogueAction, ruling, playerTeam.coachName);
-      const characterResponse = CharacterResponseGenerator.generateResponse(playerFighter, rogueAction, coachResponse);
-      
-      // Add psychology reasoning to coaching messages
-      const psychologyReasoning = `Psychology Report: ${adherenceCheck.reasoning}`;
-      setCoachingMessages(prev => [...prev, psychologyReasoning, coachResponse, `${playerFighter.name}: ${characterResponse}`]);
-      
-    } else {
-      // Character follows gameplan - normal combat
-      const baseDamage = playerFighter.traditionalStats.strength;
-      const moraleModifier = getMoraleModifier(playerMorale);
-      const chemistryModifier = getTeamChemistryModifier(playerTeam.teamChemistry);
-      const damage = Math.floor(baseDamage * moraleModifier * chemistryModifier);
-      
-      roundResult = {
-        round: currentRound,
-        attacker: playerFighter,
-        defender: opponentFighter,
-        attackerAction: playerFighter.abilities[0] || 'refused',
-        damage,
-        wasStrategyAdherent: true,
-        moraleImpact: 5, // Small morale boost for following gameplan
-        newAttackerHp: playerFighter.currentHp,
-        newDefenderHp: opponentFighter.currentHp - damage,
-        narrativeDescription: `${playerFighter.name} follows the strategy perfectly and strikes ${opponentFighter.name}! ${adherenceCheck.reasoning}${chemistryModifier > 1.1 ? ' ⚡ Team synergy amplifies the attack!' : chemistryModifier < 0.9 ? ' 💥 Team dysfunction weakens the blow!' : ''}`
-      };
-    }
-
-    // Update battle state
-    if (roundResult) {
-      const currentRoundResult = roundResult; // Capture the value to avoid closure issues
-      setBattleState(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          roundResults: [...prev.roundResults, currentRoundResult]
-        };
-      });
-
-      // Update morale
-      const newPlayerMorale = Math.max(0, Math.min(100, playerMorale + currentRoundResult.moraleImpact));
-      setPlayerMorale(newPlayerMorale);
-
-      // Announce the result
-      setCurrentAnnouncement(currentRoundResult.narrativeDescription);
-      announceAction(currentRoundResult.narrativeDescription);
-
-      // Check for battle end or continue using refs for stability
-      const capturedRoundResult = currentRoundResult; // Capture for closure
-      safeSetTimeout(() => {
-        const currentRoundValue = currentRoundRef.current;
-        const currentBattleState = battleStateRef.current;
-        
-        if (capturedRoundResult.newDefenderHp <= 0) {
-          endBattle('player');
-        } else if (currentRoundValue >= 3) { // Max 3 rounds for 2-out-of-3 system
-          endBattle('draw');
-        } else {
-          setCurrentRound(prev => prev + 1);
-          // Switch fighters for next round using ref values
-          const playerTeamLength = currentBattleState?.teams?.player?.characters?.length || 1;
-          const opponentTeamLength = currentBattleState?.teams?.opponent?.characters?.length || 1;
-          const nextPlayerIndex = currentRoundValue % playerTeamLength;
-          const nextOpponentIndex = currentRoundValue % opponentTeamLength;
-        
-          setBattleState(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              currentFighters: {
-                player: playerTeam.characters[nextPlayerIndex],
-                opponent: opponentTeam.characters[nextOpponentIndex]
-              }
-            };
-          });
-          
-          safeSetTimeout(() => startRoundCombat(), 2000);
-        }
-      }, 4000);
-    }
-  };
-
-  const endBattle = (winner: 'player' | 'opponent' | 'draw') => {
-    setPhase('battle_complete');
-    
-    let endMessage = '';
-    if (winner === 'player') {
-      endMessage = `Victory! ${playerTeam.name} has triumphed through teamwork and strategy!`;
-      announceVictory(playerTeam.name, playerMorale > 90);
-    } else if (winner === 'opponent') {
-      endMessage = `Defeat! ${opponentTeam.name} has proven superior this day.`;
-      announceDefeat(playerTeam.name);
-    } else {
-      endMessage = 'The battle ends in a dramatic draw! Both teams showed incredible heart!';
-    }
-
-    setCurrentAnnouncement(endMessage);
-    
-    // Show post-battle team chemistry effects
-    safeSetTimeout(() => {
-      const newChemistry = Math.max(0, Math.min(100, playerTeam.teamChemistry + (winner === 'player' ? 10 : -5)));
-      setPlayerTeam(prev => ({ ...prev, teamChemistry: newChemistry }));
-      
-      const chemistryUpdate = `Post-battle team chemistry: ${Math.round(newChemistry * 10) / 10}% ${newChemistry > playerTeam.teamChemistry ? '(+)' : '(-)'}`;
-      setCurrentAnnouncement(chemistryUpdate);
-    }, 3000);
-  };
-
-  const conductIndividualCoaching = (character: TeamCharacter) => {
-    setSelectedCharacterForCoaching(character);
-    setShowCoachingModal(true);
-  };
-
-  const executeCoachingSession = (focus: 'performance' | 'mental_health' | 'team_relations' | 'strategy') => {
-    if (!selectedCharacterForCoaching) return;
-
-    const session = CoachingEngine.conductIndividualCoaching(
-      selectedCharacterForCoaching,
-      playerTeam,
-      focus,
-      75 // Coach skill level
-    );
-
-    setActiveCoachingSession(session);
-    
-    // Apply the coaching effects
-    setPlayerTeam(prev => ({
-      ...prev,
-      characters: prev.characters.map(char => 
-        char.id === selectedCharacterForCoaching.id
-          ? {
-              ...char,
-              psychStats: {
-                ...char.psychStats,
-                mentalHealth: Math.max(0, Math.min(100, char.psychStats.mentalHealth + session.outcome.mentalHealthChange)),
-                training: Math.max(0, Math.min(100, char.psychStats.training + session.outcome.trainingChange)),
-                teamPlayer: Math.max(0, Math.min(100, char.psychStats.teamPlayer + session.outcome.teamPlayerChange)),
-                ego: Math.max(0, Math.min(100, char.psychStats.ego + session.outcome.egoChange)),
-                communication: Math.max(0, Math.min(100, char.psychStats.communication + session.outcome.communicationChange))
-              }
-            }
-          : char
-      )
-    }));
-
-    setCoachingMessages(prev => [...prev, 
-      `Coaching ${selectedCharacterForCoaching.name} on ${focus}:`,
-      `${selectedCharacterForCoaching.name}: ${session.outcome.characterResponse}`,
-      `Coach Notes: ${session.outcome.coachNotes}`
-    ]);
-
-    setShowCoachingModal(false);
-  };
-
-  const announceMessage = async (message: string, type: string = 'general') => {
-    setCurrentAnnouncement(message);
-    
-    // Use the new announcer system
-    if (type === 'pre-battle') {
-      announceBattleStart(player1.name, player2.name);
-    } else if (type === 'round-start') {
-      announceRoundStart(currentRound);
-    } else if (type === 'victory') {
-      const winner = player1.currentHp <= 0 ? player2.name : player1.name;
-      const isFlawless = (player1.currentHp <= 0 && player2.currentHp === player2.maxHp) || 
-                        (player2.currentHp <= 0 && player1.currentHp === player1.maxHp);
-      announceVictory(winner, isFlawless);
-    } else if (type === 'defeat') {
-      const loser = player1.currentHp <= 0 ? player1.name : player2.name;
-      announceDefeat(loser);
-    } else {
-      announceAction(message);
-    }
-  };
+  // announceMessage function moved to useUIPresentation hook
 
   const startBattle = async () => {
     if (!isConnected || !isAuthenticated) {
@@ -1064,1112 +786,62 @@ export default function ImprovedBattleArena() {
     setTimer(null);
   };
 
-  const fetchBattleCries = useCallback(async () => {
-    // Ensure component is still mounted
-    const controller = new AbortController();
-    const timeoutId = safeSetTimeout(() => controller.abort(), 2000);
-    
-    const announcement = 'The warriors prepare to exchange battle cries...';
-    setCurrentAnnouncement(announcement);
-    announceBattleCry();
-    
-    // Set fallback battle cries immediately
-    const currentPlayer1 = player1;
-    const currentPlayer2 = player2;
-    
-    setBattleCries({
-      player1: `${currentPlayer1.name}: I'll show you the power of ${currentPlayer1.personality || 'determination'}!`,
-      player2: `${currentPlayer2.name}: Prepare yourself for ${currentPlayer2.personality || 'battle'}!`
-    });
-    
-    // Try API if available, but don't crash if it fails
-    try {
-      const [cry1, cry2] = await Promise.all([
-        fetch('https://blank-wars-demo-3.onrender.com/api/battle-cry', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ character: currentPlayer1 }),
-          signal: controller.signal
-        }).catch(() => null),
-        fetch('https://blank-wars-demo-3.onrender.com/api/battle-cry', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ character: currentPlayer2 }),
-          signal: controller.signal
-        }).catch(() => null)
-      ]);
+  // fetchBattleCries function moved to useBattleCommunication hook
 
-      safeClearTimeout(timeoutId);
+  // handleStrategyRecommendation function moved to useCoachingSystem hook
 
-      if (cry1?.ok && cry2?.ok) {
-        const data1 = await cry1.json().catch(() => null);
-        const data2 = await cry2.json().catch(() => null);
-        if (data1 && data2) {
-          setBattleCries({
-            player1: data1.battleCry || `${currentPlayer1.name}: For glory!`,
-            player2: data2.battleCry || `${currentPlayer2.name}: Victory will be mine!`
-          });
-        }
-      }
-    } catch (error) {
-      console.warn('Battle cry API not available, using fallback cries');
-      safeClearTimeout(timeoutId);
-    }
-    
-    return () => {
-      controller.abort();
-      safeClearTimeout(timeoutId);
-    };
-  }, [player1, player2, safeSetTimeout, safeClearTimeout]);
+  // getCharacterOpinion function moved to useCoachingSystem hook
 
-  const handleStrategyRecommendation = async (type: 'attack' | 'defense' | 'special', strategy: string) => {
-    // Coach recommends a strategy
-    setCoachingMessages(prev => [...prev, `Coach: I recommend ${strategy} for ${type}!`]);
-    setPendingStrategy({ type, strategy });
-    
-    // Character may disagree based on training level
-    const obedienceRoll = Math.random() * 100;
-    const disagreementChance = 100 - player1.trainingLevel;
-    
-    if (obedienceRoll < disagreementChance) {
-      // Character disagrees
-      setShowDisagreement(true);
-      const response = await getCharacterOpinion(type, strategy);
-      setCharacterResponse(response);
-      setCoachingMessages(prev => [...prev, `${player1.name}: ${response}`]);
-    } else {
-      // Character agrees
-      setSelectedStrategies(prev => ({ ...prev, [type]: strategy }));
-      setCoachingMessages(prev => [...prev, `${player1.name}: Understood, coach!`]);
-      setPendingStrategy(null);
-    }
-  };
+  // insistOnStrategy function moved to useCoachingSystem hook
 
-  const getCharacterOpinion = async (type: string, strategy: string): Promise<string> => {
-    // Generate fallback response based on character personality
-    const fallbackResponses = [
-      `I think ${strategy} could work, but I prefer my own approach.`,
-      `${strategy} for ${type}? I've got a better idea, coach.`,
-      `Trust me coach, I know what I'm doing better than that ${strategy} plan.`,
-      `I'll consider ${strategy}, but I might improvise based on what I see.`,
-      `That ${strategy} strategy might work, but I'm feeling something different.`
-    ];
-    const fallback = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-    
-    try {
-      const timeoutPromise = new Promise((_, reject) => 
-        safeSetTimeout(() => reject(new Error('API timeout')), 2000)
-      );
-        
-      const response = await Promise.race([
-        fetch('http://localhost:3006/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            character: player1.name,
-            message: `Coach wants me to use ${strategy} for ${type}. What do you think?`,
-            battleContext: {
-              round: currentRound,
-              playerHealth: Math.round((player1.currentHp / player1.maxHp) * 100),
-              enemyHealth: Math.round((player2.currentHp / player2.maxHp) * 100)
-            }
-          })
-        }),
-        timeoutPromise
-      ]);
+  // handleCharacterStrategyChange function moved to useCoachingSystem hook
 
-      if (response.ok) {
-        const data = await response.json();
-        return data.response;
-      }
-    } catch (error) {
-      console.warn('Character opinion API not available, using fallback');
-    }
-    
-    return fallback;
-  };
+  // initializeCharacterStrategies function moved to useCoachingSystem hook
+  // areAllCharacterStrategiesComplete function moved to useCoachingSystem hook  
+  // handleAllCharacterStrategiesComplete function moved to useCoachingSystem hook
 
-  const insistOnStrategy = () => {
-    if (!pendingStrategy) return;
-    
-    // Coach insists - another training check
-    const insistRoll = Math.random() * 100;
-    const coachingBonus = 20; // Insisting gives a bonus to adherence
-    const adherenceBonus = 10; // Base adherence bonus
-    
-    if (insistRoll < player1.trainingLevel + adherenceBonus) {
-      setCoachingMessages(prev => [...prev, 
-        'Coach: I insist! Trust me on this!',
-        `${player1.name}: Fine... I'll follow your lead, coach.`
-      ]);
-      setSelectedStrategies(prev => ({ ...prev, [pendingStrategy.type]: pendingStrategy.strategy }));
-      setShowDisagreement(false);
-      setPendingStrategy(null);
-    } else {
-      // Character still refuses
-      setCoachingMessages(prev => [...prev, 
-        'Coach: You must listen to me!',
-        `${player1.name}: No! I know what I'm doing!`
-      ]);
-      checkForBerserk();
-    }
-  };
+  // checkForBerserk function moved to useCoachingSystem hook
 
-  // Character-specific strategy handlers
-  const handleCharacterStrategyChange = (characterId: string, category: 'attack' | 'defense' | 'special', strategy: string) => {
-    setCharacterStrategies(prev => {
-      const newMap = new Map(prev);
-      const currentStrategy = newMap.get(characterId) || {
-        characterId,
-        attack: null,
-        defense: null,
-        special: null,
-        isComplete: false
-      };
-      
-      const updatedStrategy = {
-        ...currentStrategy,
-        [category]: strategy
-      };
-      
-      // Check if all categories are selected
-      updatedStrategy.isComplete = !!(updatedStrategy.attack && updatedStrategy.defense && updatedStrategy.special);
-      
-      newMap.set(characterId, updatedStrategy);
-      return newMap;
-    });
-  };
+  // FIXED: Use battleChat hook's selectChatCharacter instead of inline function
+  const handleSelectChatCharacter = battleChat.selectChatCharacter;
 
-  const initializeCharacterStrategies = () => {
-    const newMap = new Map<string, any>();
-    playerTeam.characters.forEach(character => {
-      newMap.set(character.id, {
-        characterId: character.id,
-        attack: null,
-        defense: null,
-        special: null,
-        isComplete: false
-      });
-    });
-    setCharacterStrategies(newMap);
-  };
-
-  const areAllCharacterStrategiesComplete = () => {
-    return Array.from(characterStrategies.values()).every(strategy => strategy.isComplete);
-  };
-
-  const handleAllCharacterStrategiesComplete = () => {
-    if (areAllCharacterStrategiesComplete()) {
-      setTimer(null);
-      setIsTimerActive(false);
-      handleTimerExpired();
-    }
-  };
-
-  const checkForBerserk = () => {
-    // Small chance of going berserk when refusing orders
-    const berserkChance = player1.trainingLevel < 50 ? 10 : 2;
-    const berserkRoll = Math.random() * 100;
-    
-    if (berserkRoll < berserkChance) {
-      setCoachingMessages(prev => [...prev, 
-        `⚠️ ${player1.name} has gone BERSERK! They're fighting on pure instinct!`
-      ]);
-      player1.statusEffects.push('Berserk');
-      announceMessage(`${player1.name} has entered a berserk rage!`, 'special-event');
-    }
-  };
-
-  const handleSelectChatCharacter = (character: TeamCharacter) => {
-    setSelectedChatCharacter(character);
-    // Clear chat history when switching characters for fresh conversations
-    setChatMessages([`Now chatting with ${character.name} ${character.avatar}`]);
-  };
-
-  const handleCustomMessage = async () => {
-    if (!customMessage.trim()) return;
-    
-    const messageToSend = customMessage;
-    setChatMessages(prev => [...prev, `You: ${messageToSend}`]);
-    setCustomMessage('');
-    setIsCharacterTyping(true);
-
-    // Send message via WebSocket if connected
-    if (isConnected && isAuthenticated) {
-      wsSendChatMessage(messageToSend);
-    }
-    
-    // Generate dynamic AI response based on character and context
-    const battleContext = {
-      round: currentRound,
-      playerHealth: Math.round((player1.currentHp / player1.maxHp) * 100),
-      enemyHealth: Math.round((player2.currentHp / player2.maxHp) * 100),
-      strategy: selectedStrategies,
-      phase: phase.name
-    };
-
-    // Simulate thinking delay for realism
-    await new Promise(resolve => safeSetTimeout(resolve, 1000 + Math.random() * 1500));
-    
-    // Use existing WebSocket connection instead of creating new ones
-    // FIXED: Don't create new socket connections - use existing wsSocket
-    
-    if (wsSocket) {
-      wsSocket.emit('chat_message', {
-      message: messageToSend,
-      character: selectedChatCharacter.name.toLowerCase().replace(/\s+/g, '_'),
-      characterData: {
-        name: selectedChatCharacter.name,
-        personality: selectedChatCharacter.name === 'Sherlock Holmes' ? {
-          traits: ['Analytical', 'Dramatic', 'Passionate about justice', 'Violin player', 'Tobacco connoisseur', 'Witty', 'Sometimes arrogant'],
-          speechStyle: 'Precise and deductive, but capable of passion and drama',
-          motivations: ['Solving mysteries', 'Intellectual challenges', 'Justice', 'The thrill of deduction'],
-          fears: ['Boredom', 'Unsolved cases', 'Mental stagnation'],
-          interests: ['Violin music', 'Chemistry', 'Criminal psychology', 'Tobacco varieties', 'Opera'],
-          quirks: ['Plays violin when thinking', 'Has strong opinions about cigars', 'Can be quite theatrical']
-        } : selectedChatCharacter.name === 'Joan of Arc' ? {
-          traits: ['Devout', 'Brave', 'Inspiring', 'Determined', 'Protective of others', 'Strategic minded'],
-          speechStyle: 'Passionate and faithful, but also tactical and inspiring',
-          motivations: ['Protecting France', 'Following divine calling', 'Liberating the oppressed', 'Leading others'],
-          fears: ['Failing in her mission', 'Losing faith', 'Her people suffering'],
-          interests: ['Military strategy', 'Prayer and faith', 'Protecting the innocent', 'French independence'],
-          quirks: ['Feels the weight of divine responsibility', 'Cares deeply for her soldiers', 'Balances faith with pragmatism']
-        } : selectedChatCharacter.name === 'Dracula' ? {
-          traits: ['Aristocratic', 'Charming', 'Ancient wisdom', 'Predatory', 'Sophisticated', 'Lonely'],
-          speechStyle: 'Eloquent and refined, with underlying menace and old-world charm',
-          motivations: ['Power over mortals', 'Eternal existence', 'Sophisticated pleasures', 'Dominion'],
-          fears: ['True death', 'Loneliness of immortality', 'Loss of power'],
-          interests: ['Fine wine and blood', 'Classical music', 'Art and culture', 'Night creatures'],
-          quirks: ['Speaks of centuries past', 'Appreciates beauty and refinement', 'Complex relationship with mortality']
-        } : {
-          traits: ['Mysterious', 'Wise', 'Thoughtful', 'Complex'],
-          speechStyle: 'Thoughtful and measured',
-          motivations: ['Knowledge', 'Understanding'],
-          fears: ['Ignorance', 'Misunderstanding'],
-          interests: ['Learning', 'Philosophy'],
-          quirks: ['Speaks thoughtfully', 'Values wisdom']
-        }
-      },
-      battleContext: {
-        isInBattle: phase.name === 'round-combat',
-        currentHealth: Math.round((player1.currentHp / player1.maxHp) * 100),
-        maxHealth: 100,
-        battlePhase: phase.name
-      }
-      });
-      
-      // Listen for response (only set up listener once)
-      wsSocket.on('chat_response', (data) => {
-        setChatMessages(prev => [...prev, `${formatCharacterName(data.character)}: ${data.message}`]);
-      });
-    }
-    
-    setIsCharacterTyping(false);
-  };
+  // FIXED: handleCustomMessage has been extracted to useBattleChat hook
+  // This eliminates the WebSocket resource leak issue
 
   // Team chat handler
-  const handleTeamChatMessage = (message: string) => {
-    // Add coach message to team chat log
-    setChatMessages(prev => [...prev, `Coach: ${message}`]);
-    
-    // Could trigger team chemistry changes based on message tone
-    // TODO: Analyze message sentiment and adjust team morale
-  };
+  // handleTeamChatMessage function moved to useCoachingSystem hook
 
-  const proceedToRoundCombat = () => {
-    setPhase('combat');
-    setTimer(null);
-    setIsTimerActive(false);
-    const announcement = `Round ${currentRound} begins! The warriors clash in epic combat!`;
-    setCurrentAnnouncement(announcement);
-    announceRoundStart(currentRound);
-    
-    // Execute combat after a brief delay
-    safeSetTimeout(() => {
-      executeCombatRound();
-    }, 3000);
-  };
+  // proceedToRoundCombat function moved to useBattleEngineLogic hook
 
-  const executeCombatRound = () => {
-    // Determine turn order based on speed
-    const p1Speed = player1.traditionalStats.speed + Math.random() * 20;
-    const p2Speed = player2.traditionalStats.speed + Math.random() * 20;
-    
-    const firstAttacker = p1Speed >= p2Speed ? player1 : player2;
-    const secondAttacker = p1Speed >= p2Speed ? player2 : player1;
-    const isP1First = p1Speed >= p2Speed;
-    
-    // First attack
-    const ability1 = firstAttacker.abilities[Math.floor(Math.random() * firstAttacker.abilities.length)];
-    const action1 = checkForChaos(firstAttacker, secondAttacker, ability1, isP1First);
-    
-    setCurrentAnnouncement(action1.description);
-    announceAction(action1.description, 500);
-    
-    // Check if battle is over using the returned HP value
-    if (action1.newDefenderHP !== undefined && action1.newDefenderHP <= 0) {
-      safeSetTimeout(() => {
-        // Calculate battle rewards
-        calculateBattleRewards(firstAttacker.name === player1.name, secondAttacker.name === player1.name ? player1 : player2);
-        setPhase('battle_complete');
-        const victoryMessage = `Victory! ${firstAttacker.name} has defeated ${secondAttacker.name}!`;
-        setCurrentAnnouncement(victoryMessage);
-        announceMessage(victoryMessage, 'victory');
-      }, 3000);
-      return;
-    }
-    
-    // Second attack (if still alive)
-    safeSetTimeout(() => {
-      const ability2 = secondAttacker.abilities[Math.floor(Math.random() * secondAttacker.abilities.length)];
-      const action2 = checkForChaos(secondAttacker, firstAttacker, ability2, !isP1First);
-      
-      setCurrentAnnouncement(action2.description);
-      announceAction(action2.description, 500);
-      
-      // Check if character dies - Death ends the MATCH immediately
-      if (action2.newDefenderHP !== undefined && action2.newDefenderHP <= 0) {
-        safeSetTimeout(() => {
-          // Determine match winner (survivor wins the match)
-          const matchWinner = secondAttacker.name === player1.name ? 'player' : 'opponent';
-          const newPlayerMatchWins = matchWinner === 'player' ? playerMatchWins + 1 : playerMatchWins;
-          const newOpponentMatchWins = matchWinner === 'opponent' ? opponentMatchWins + 1 : opponentMatchWins;
-          
-          // Update match wins
-          if (matchWinner === 'player') {
-            setPlayerMatchWins(newPlayerMatchWins);
-          } else {
-            setOpponentMatchWins(newOpponentMatchWins);
-          }
-          
-          const victoryMessage = `${secondAttacker.name} kills ${firstAttacker.name}! Match ${currentMatch} goes to ${matchWinner === 'player' ? 'Player' : 'Opponent'}!`;
-          setCurrentAnnouncement(victoryMessage);
-          announceMessage(victoryMessage, 'victory');
-          
-          // Check if battle is over (2 out of 3 matches)
-          if (newPlayerMatchWins >= 2) {
-            calculateBattleRewards(true, secondAttacker.name === player1.name ? player1 : player2);
-            setPhase('battle_complete');
-            setCurrentAnnouncement(`VICTORY! Player wins the battle ${newPlayerMatchWins}-${newOpponentMatchWins}!`);
-          } else if (newOpponentMatchWins >= 2) {
-            calculateBattleRewards(false, secondAttacker.name === player1.name ? player1 : player2);
-            setPhase('battle_complete');
-            setCurrentAnnouncement(`DEFEAT! Opponent wins the battle ${newOpponentMatchWins}-${newPlayerMatchWins}!`);
-          } else {
-            // Start next match - reset round tracking, move to next match
-            setCurrentMatch(prev => prev + 1);
-            setCurrentRound(1);
-            setPlayerRoundWins(0);
-            setOpponentRoundWins(0);
-            setPhase('pre_battle_huddle');
-            setCurrentAnnouncement(`Match ${currentMatch + 1} begins! Choose your strategy for the next fighters.`);
-          }
-        }, 3000);
-        return;
-      }
-      
-      // Round end (no death) - determine winner by HP comparison
-      safeSetTimeout(() => {
-        setPhase('coaching_timeout');
-        
-        // Determine round winner based on remaining HP
-        const roundWinner = player1.currentHp > player2.currentHp ? 'player' : player1.currentHp < player2.currentHp ? 'opponent' : 'tie';
-        const roundWinnerName = player1.currentHp > player2.currentHp ? player1.name : player1.currentHp < player2.currentHp ? player2.name : 'Tie';
-        
-        // Calculate new round wins immediately
-        const newPlayerRoundWins = roundWinner === 'player' ? playerRoundWins + 1 : playerRoundWins;
-        const newOpponentRoundWins = roundWinner === 'opponent' ? opponentRoundWins + 1 : opponentRoundWins;
-        
-        // Update round wins state
-        if (roundWinner === 'player') {
-          setPlayerRoundWins(newPlayerRoundWins);
-        } else if (roundWinner === 'opponent') {
-          setOpponentRoundWins(newOpponentRoundWins);
-        }
-        // If tie, no round wins are awarded
-        
-        const roundResultText = roundWinner === 'tie' ? `Round ${currentRound} ends in a tie!` : `Round ${currentRound} complete! ${roundWinnerName} wins this round!`;
-        setCurrentAnnouncement(`${roundResultText} (Match ${currentMatch}: Player ${newPlayerRoundWins}-${newOpponentRoundWins} Opponent)`);
-        
-        safeSetTimeout(() => {
-          // Check for 2-out-of-3 round victory (wins current match)
-          if (newPlayerRoundWins >= 2) {
-            // Player wins this match
-            const newPlayerMatchWins = playerMatchWins + 1;
-            setPlayerMatchWins(newPlayerMatchWins);
-            
-            if (newPlayerMatchWins >= 2) {
-              // Player wins entire battle
-              calculateBattleRewards(true, player1);
-              setPhase('battle_complete');
-              setCurrentAnnouncement(`VICTORY! Player wins the battle ${newPlayerMatchWins}-${opponentMatchWins}!`);
-            } else {
-              // Start next match
-              setCurrentMatch(prev => prev + 1);
-              setCurrentRound(1);
-              setPlayerRoundWins(0);
-              setOpponentRoundWins(0);
-              setPhase('pre_battle_huddle');
-              setCurrentAnnouncement(`Player wins Match ${currentMatch}! Match ${currentMatch + 1} begins - choose your strategy.`);
-            }
-          } else if (newOpponentRoundWins >= 2) {
-            // Opponent wins this match
-            const newOpponentMatchWins = opponentMatchWins + 1;
-            setOpponentMatchWins(newOpponentMatchWins);
-            
-            if (newOpponentMatchWins >= 2) {
-              // Opponent wins entire battle
-              calculateBattleRewards(false, player2);
-              setPhase('battle_complete');
-              setCurrentAnnouncement(`DEFEAT! Opponent wins the battle ${newOpponentMatchWins}-${playerMatchWins}!`);
-            } else {
-              // Start next match
-              setCurrentMatch(prev => prev + 1);
-              setCurrentRound(1);
-              setPlayerRoundWins(0);
-              setOpponentRoundWins(0);
-              setPhase('pre_battle_huddle');
-              setCurrentAnnouncement(`Opponent wins Match ${currentMatch}! Match ${currentMatch + 1} begins - choose your strategy.`);
-            }
-          } else {
-            // Next round - coaching phase
-            setCurrentRound(prev => {
-              const newRound = prev + 1;
-              // Update battle state with new fighters for team battle
-              if (battleState) {
-                const nextPlayerIndex = (newRound - 1) % playerTeam.characters.length;
-                const nextOpponentIndex = (newRound - 1) % opponentTeam.characters.length;
-                
-                setBattleState(prevState => {
-                  if (!prevState) return null;
-                  return {
-                    ...prevState,
-                    currentRound: newRound,
-                    currentFighters: {
-                      player: playerTeam.characters[nextPlayerIndex],
-                      opponent: opponentTeam.characters[nextOpponentIndex]
-                    }
-                  };
-                });
-              }
-              return newRound;
-            });
-            
-            setPhase('pre_battle_huddle');
-            setCurrentAnnouncement(`Round ${currentRound + 1} Strategy Selection - Choose your warrior&apos;s approach for this round.`);
-            setCoachingMessages([`Round ${currentRound + 1} Preparation - Choose one strategy from each category!`]);
-            setSelectedStrategies({ attack: null, defense: null, special: null });
-            setTimer(60); // Consistent 60 second timer
-            setIsTimerActive(true);
-          }
-        }, 4000);
-      }, 3000);
-    }, 4000);
-  };
+  // executeCombatRound function moved to useBattleSimulation hook
 
-  // Adapter function: Convert ImprovedBattleArena Character to BattleCharacter format
-  const convertToBattleCharacter = (character: TeamCharacter, morale: number): BattleCharacter => {
-    return {
-      character: {
-        id: character.name.toLowerCase().replace(/\s+/g, '_'),
-        name: character.name,
-        archetype: character.archetype || 'warrior',
-        level: character.level,
-        experience: character.experience,
-        baseStats: {
-          health: character.maxHp,
-          attack: character.traditionalStats.strength + character.temporaryStats.strength,
-          defense: character.traditionalStats.vitality + character.temporaryStats.vitality,
-          speed: character.traditionalStats.speed + character.temporaryStats.speed,
-          special: 50 + character.temporaryStats.spirit // Assuming spirit contributes to special
-        },
-        abilities: character.abilities.map(ability => ({
-          id: ability.name.toLowerCase().replace(/\s+/g, '_'),
-          name: ability.name,
-          type: ability.type === 'attack' ? 'offensive' : ability.type === 'defense' ? 'defensive' : 'support',
-          description: ability.description || `${ability.name} ability`,
-          damage_multiplier: ability.power / 100,
-          cooldown: ability.cooldown || 0,
-          mana_cost: 10 // Default mana cost for abilities
-        })),
-        equipment: [], // TeamCharacter doesn't have items
-        personalityTraits: character.personalityTraits || [],
-        relationshipModifiers: {},
-        battleMemories: []
-      },
-      currentHealth: character.currentHp,
-      currentMana: 100, // Default mana
-      physicalDamageDealt: 0, // TeamCharacter doesn't track battle stats
-      physicalDamageTaken: 0, // TeamCharacter doesn't track battle stats
-      statusEffects: character.statusEffects.map(effect => ({
-        type: effect,
-        duration: 3,
-        intensity: 1,
-        source: 'unknown'
-      })),
-      mentalState: {
-        confidence: morale >= 75 ? 'high' : morale >= 50 ? 'moderate' : morale >= 25 ? 'low' : 'very_low',
-        stress: morale <= 25 ? 'high' : morale <= 50 ? 'moderate' : 'low',
-        focus: 'focused',
-        mentalHealth: morale >= 60 ? 'excellent' : morale >= 40 ? 'good' : morale >= 20 ? 'fair' : 'poor'
-      },
-      teamRelationships: {},
-      gameplanAdherence: character.trainingLevel / 100, // Convert 0-100 to 0-1
-      roundsActive: 1,
-      lastAction: null
-    };
-  };
+  // convertToBattleCharacter function moved to utils/battleCharacterUtils.ts
 
-  // Check for AI character deviation before executing ability
-  const checkForChaos = (attacker: TeamCharacter, defender: TeamCharacter, ability: Ability, isAttacker1: boolean) => {
-    // Get character's current psychology state
-    const psychState = characterPsychology.get(attacker.id);
-    if (!psychState) {
-      // No psychology state, execute normally
-      return executeAbility(attacker, defender, ability, isAttacker1);
-    }
-    
-    // Calculate battle context for deviation risk
-    const battleContext = {
-      recentDamage: Math.max(0, attacker.maxHp - attacker.currentHp),
-      teamPerformance: isAttacker1 ? playerMorale : opponentMorale,
-      strategySuccessRate: 75, // TODO: Track actual strategy success
-      opponentLevelDifference: defender.level - attacker.level,
-      roundsWon: isAttacker1 ? playerRoundWins : opponentRoundWins,
-      roundsLost: isAttacker1 ? opponentRoundWins : playerRoundWins
-    };
-    
-    // Update psychology based on current state
-    const factors = calculateStabilityFactors(
-      attacker, // attacker is already a TeamCharacter
-      battleContext
-    );
-    
-    // Update psychology state
-    const updatedPsychState = updatePsychologyState(psychState, factors);
-    const newPsychMap = new Map(characterPsychology);
-    newPsychMap.set(attacker.id, updatedPsychState);
-    setCharacterPsychology(newPsychMap);
-    
-    // Calculate deviation risk with teammates
-    const attackerTeammates = isAttacker1 ? playerTeam.characters : opponentTeam.characters;
-    const deviationRisk = calculateDeviationRisk(
-      attacker, // attacker is already a TeamCharacter
-      updatedPsychState,
-      factors,
-      attackerTeammates
-    );
-    
-    // Roll for deviation
-    const deviation = rollForDeviation(deviationRisk);
-    
-    if (deviation) {
-      // Character goes rogue! Handle the chaos
-      return handleCharacterDeviation(deviation, attacker, defender, ability, isAttacker1);
-    } else {
-      // Normal execution
-      return executeAbility(attacker, defender, ability, isAttacker1);
-    }
-  };
+  // checkForChaos function moved to usePsychologySystem hook
 
-  // Handle character going rogue
-  const handleCharacterDeviation = (
-    deviation: DeviationEvent,
-    attacker: TeamCharacter,
-    defender: TeamCharacter,
-    ability: Ability,
-    isAttacker1: boolean
-  ) => {
-    // Add to active deviations
-    setActiveDeviations(prev => [...prev, deviation]);
-    
-    // Get judge decision
-    const judgeDecision = makeJudgeDecision(
-      deviation,
-      attacker, // attacker is already a TeamCharacter
-      {
-        currentRound,
-        opponentCharacter: defender, // defender is already a TeamCharacter
-        arenaCondition: 'pristine' // TODO: Track arena damage
-      },
-      currentJudge
-    );
-    
-    // Add judge decision
-    setJudgeDecisions(prev => [...prev, judgeDecision]);
-    
-    // Apply the judge's mechanical effect
-    return applyChaosEffect(judgeDecision, attacker, defender, ability, isAttacker1);
-  };
+  // handleCharacterDeviation function moved to usePsychologySystem hook
 
-  // Apply the mechanical effect of chaos
-  const applyChaosEffect = (
-    judgeDecision: JudgeDecision,
-    attacker: TeamCharacter,
-    defender: TeamCharacter,
-    ability: Ability,
-    isAttacker1: boolean
-  ) => {
-    const effect = judgeDecision.mechanicalEffect;
-    
-    switch (effect.type) {
-      case 'damage':
-        if (effect.target === 'self') {
-          const newAttackerHP = Math.max(0, attacker.currentHp - (effect.amount || 20));
-          if (isAttacker1) {
-            setPlayer1(prev => ({ ...prev, hp: newAttackerHP }));
-          } else {
-            setPlayer2(prev => ({ ...prev, hp: newAttackerHP }));
-          }
-          return {
-            description: `${judgeDecision.narrative} - ${attacker.name} takes ${effect.amount} chaos damage!`,
-            newDefenderHP: defender.currentHp,
-            chaosEvent: true
-          };
-        } else if (effect.target === 'opponent') {
-          const newDefenderHP = Math.max(0, defender.currentHp - (effect.amount || 20));
-          if (isAttacker1) {
-            setPlayer2(prev => ({ ...prev, hp: newDefenderHP }));
-          } else {
-            setPlayer1(prev => ({ ...prev, hp: newDefenderHP }));
-          }
-          return {
-            description: `${judgeDecision.narrative} - ${defender.name} takes ${effect.amount} chaos damage!`,
-            newDefenderHP,
-            chaosEvent: true
-          };
-        }
-        break;
-        
-      case 'skip_turn':
-        return {
-          description: `${judgeDecision.narrative} - ${attacker.name} forfeits their turn!`,
-          newDefenderHP: defender.currentHp,
-          chaosEvent: true
-        };
-        
-      case 'redirect_attack':
-        if (effect.target === 'teammate') {
-          // Attack teammate instead - for now, just apply damage to attacker as friendly fire
-          const friendlyFireDamage = (effect.amount || 15);
-          const newAttackerHP = Math.max(0, attacker.currentHp - friendlyFireDamage);
-          if (isAttacker1) {
-            setPlayer1(prev => ({ ...prev, hp: newAttackerHP }));
-          } else {
-            setPlayer2(prev => ({ ...prev, hp: newAttackerHP }));
-          }
-          return {
-            description: `${judgeDecision.narrative} - Friendly fire deals ${friendlyFireDamage} damage to ${attacker.name}!`,
-            newDefenderHP: defender.currentHp,
-            chaosEvent: true
-          };
-        }
-        break;
-        
-      default:
-        // Default chaos - execute normal ability but with chaos flavor
-        const normalResult = executeAbility(attacker, defender, ability, isAttacker1);
-        return {
-          ...normalResult,
-          description: `${judgeDecision.narrative} - ${normalResult.description}`,
-          chaosEvent: true
-        };
-    }
-    
-    // Fallback to normal execution
-    const normalResult = executeAbility(attacker, defender, ability, isAttacker1);
-    return {
-      ...normalResult,
-      description: `${judgeDecision.narrative} - ${normalResult.description}`,
-      chaosEvent: true
-    };
-  };
+  // applyChaosEffect function moved to usePsychologySystem hook
 
-  const executeAbility = (attacker: TeamCharacter, defender: TeamCharacter, ability: Ability, isAttacker1: boolean) => {
-    let damage = 0;
-    let description = '';
-    let newDefenderHP = defender.currentHp;
-    let isCritical = false;
+  // executeAbility function moved to usePsychologySystem hook
 
-    if (ability.type === 'attack') {
-      // Convert to BattleCharacter format for psychology-enhanced combat
-      const attackerMorale = isAttacker1 ? playerMorale : opponentMorale;
-      const defenderMorale = isAttacker1 ? opponentMorale : playerMorale;
-      
-      const battleAttacker = convertToBattleCharacter(attacker, attackerMorale);
-      const battleDefender = convertToBattleCharacter(defender, defenderMorale);
-      
-      // Create ExecutedAction for the PhysicalBattleEngine
-      const executedAction: ExecutedAction = {
-        type: 'ability',
-        abilityId: ability.name.toLowerCase().replace(/\s+/g, '_'),
-        narrativeDescription: `${attacker.name} uses ${ability.name}`
-      };
-      
-      // Use PhysicalBattleEngine for psychology-enhanced damage calculation
-      const baseDamage = PhysicalBattleEngine.calculateBaseDamage(battleAttacker, executedAction);
-      const weaponDamage = PhysicalBattleEngine.calculateWeaponDamage(battleAttacker, executedAction);
-      const strengthBonus = PhysicalBattleEngine.calculateStrengthBonus(battleAttacker);
-      const psychologyMod = PhysicalBattleEngine.calculatePsychologyModifier(battleAttacker, battleDefender, battleState);
-      const armorDefense = PhysicalBattleEngine.calculateArmorDefense(battleDefender);
-      
-      // Combine all damage components with psychology modifiers and team chemistry
-      const attackerTeam = isAttacker1 ? playerTeam : opponentTeam;
-      const chemistryModifier = getTeamChemistryModifier(attackerTeam.teamChemistry);
-      const totalAttack = (baseDamage + weaponDamage + strengthBonus) * psychologyMod * chemistryModifier;
-      const finalDamage = Math.max(1, Math.round(totalAttack - armorDefense));
-      
-      // Check for critical hit (enhanced by psychology)
-      const critChance = battleAttacker.mentalState.confidence === 'high' ? 0.15 : 
-                        battleAttacker.mentalState.confidence === 'moderate' ? 0.1 : 0.05;
-      isCritical = Math.random() < critChance;
-      const critMultiplier = isCritical ? 2 : 1;
-      
-      damage = Math.round(finalDamage * critMultiplier);
-      
-      // Calculate new HP
-      newDefenderHP = Math.max(0, defender.currentHp - damage);
-      
-      // Track battle stats
-      if (isAttacker1) {
-        setPlayer1BattleStats(prev => ({
-          ...prev,
-          damageDealt: prev.damageDealt + damage,
-          skillsUsed: prev.skillsUsed + 1,
-          criticalHits: isCritical ? prev.criticalHits + 1 : prev.criticalHits
-        }));
-        setPlayer2BattleStats(prev => ({
-          ...prev,
-          damageTaken: prev.damageTaken + damage
-        }));
-        setPlayer2(prev => ({ ...prev, currentHp: newDefenderHP }));
-      } else {
-        setPlayer2BattleStats(prev => ({
-          ...prev,
-          damageDealt: prev.damageDealt + damage,
-          skillsUsed: prev.skillsUsed + 1,
-          criticalHits: isCritical ? prev.criticalHits + 1 : prev.criticalHits
-        }));
-        setPlayer1BattleStats(prev => ({
-          ...prev,
-          damageTaken: prev.damageTaken + damage
-        }));
-        setPlayer1(prev => ({ ...prev, currentHp: newDefenderHP }));
-      }
-      
-      // Enhanced description with psychology effects
-      let psychologyDesc = '';
-      if (psychologyMod > 1.1) {
-        psychologyDesc = ' [High Confidence Boost!]';
-      } else if (psychologyMod < 0.9) {
-        psychologyDesc = ' [Affected by stress/low confidence]';
-      }
-      
-      description = `${attacker.name} uses ${ability.name} dealing ${damage} damage to ${defender.name}!${isCritical ? ' CRITICAL HIT!' : ''}${psychologyDesc}`;
-    } else if (ability.type === 'defense') {
-      description = `${attacker.name} uses ${ability.name} and gains defensive protection!`;
-    } else {
-      // Special abilities
-      if (ability.name.includes('Rage') || ability.name.includes('Inferno')) {
-        const specialDamage = Math.round(attacker.traditionalStats.strength * 0.6);
-        damage = specialDamage;
-        newDefenderHP = Math.max(0, defender.currentHp - damage);
-        
-        // Track special ability stats
-        if (isAttacker1) {
-          setPlayer1BattleStats(prev => ({
-            ...prev,
-            damageDealt: prev.damageDealt + damage,
-            skillsUsed: prev.skillsUsed + 1
-          }));
-          setPlayer2BattleStats(prev => ({
-            ...prev,
-            damageTaken: prev.damageTaken + damage
-          }));
-          setPlayer2(prev => ({ ...prev, currentHp: newDefenderHP }));
-        } else {
-          setPlayer2BattleStats(prev => ({
-            ...prev,
-            damageDealt: prev.damageDealt + damage,
-            skillsUsed: prev.skillsUsed + 1
-          }));
-          setPlayer1BattleStats(prev => ({
-            ...prev,
-            damageTaken: prev.damageTaken + damage
-          }));
-          setPlayer1(prev => ({ ...prev, currentHp: newDefenderHP }));
-        }
-        description = `${attacker.name} unleashes ${ability.name}, dealing ${damage} massive damage!`;
-      } else {
-        const healing = 25;
-        
-        if (isAttacker1) {
-          setPlayer1BattleStats(prev => ({
-            ...prev,
-            skillsUsed: prev.skillsUsed + 1
-          }));
-          setPlayer1(prev => ({ 
-            ...prev, 
-            currentHp: Math.min(prev.maxHp, prev.currentHp + healing)
-          }));
-        } else {
-          setPlayer2BattleStats(prev => ({
-            ...prev,
-            skillsUsed: prev.skillsUsed + 1
-          }));
-          setPlayer2(prev => ({ 
-            ...prev, 
-            currentHp: Math.min(prev.maxHp, prev.currentHp + healing)
-          }));
-        }
-        description = `${attacker.name} uses ${ability.name}, restoring ${healing} HP!`;
-      }
-    }
+  // calculateBattleRewards function moved to useBattleRewards hook
 
-    return {
-      round: currentRound,
-      attacker: attacker.name,
-      defender: defender.name,
-      action: ability.name,
-      damage,
-      description,
-      timestamp: Date.now(),
-      newDefenderHP // Return the calculated HP for immediate checking
-    };
-  };
-
-  const calculateBattleRewards = (player1Won: boolean, winningCharacter: TeamCharacter) => {
-    // Get the winning character's battle stats
-    const stats = player1Won ? player1BattleStats : player2BattleStats;
-    // Update battle stats with final round and total counts
-    const updatedStats = {
-      ...stats,
-      roundsSurvived: currentRound,
-      totalRounds: currentRound
-    };
-    
-    // Calculate base rewards using the combat rewards system
-    const baseRewards = combatRewards.calculateRewards(
-      player1Won,
-      winningCharacter.level,
-      updatedStats,
-      player1Won ? player2.level : player1.level, // opponent level
-      1.0 // membership multiplier (could be dynamic)
-    );
-    
-    // Enhanced XP calculation with weight class bonuses if opponent was selected via matchmaking
-    let enhancedXP = baseRewards.xpGained;
-    let xpBonusDescription = '';
-    
-    if (selectedOpponent && player1Won) {
-      const playerLevel = winningCharacter.level;
-      const opponentLevel = selectedOpponent.opponent.teamLevel;
-      const battleDuration = currentRound * 30; // Rough estimate
-      
-      const weightClassXP = calculateWeightClassXP(playerLevel, opponentLevel, true, battleDuration);
-      enhancedXP = weightClassXP.amount;
-      
-      if (weightClassXP.weightClassBonus && weightClassXP.weightClassBonus > 1) {
-        const bonusPercent = Math.round((weightClassXP.weightClassBonus - 1) * 100);
-        xpBonusDescription = `Weight Class Bonus: +${bonusPercent}% XP for fighting above your level!`;
-      }
-    }
-    
-    const rewards = {
-      ...baseRewards,
-      xpGained: enhancedXP,
-      xpBonusDescription
-    };
-    
-    // Check for level up
-    const newXP = winningCharacter.experience + rewards.xpGained;
-    const leveledUp = newXP >= winningCharacter.experienceToNext;
-    
-    if (leveledUp) {
-      rewards.leveledUp = true;
-      rewards.newLevel = winningCharacter.level + 1;
-    }
-    
-    setBattleRewards({
-      ...rewards,
-      characterName: winningCharacter.name,
-      characterAvatar: winningCharacter.avatar,
-      isVictory: player1Won,
-      oldLevel: winningCharacter.level,
-      newLevel: leveledUp ? winningCharacter.level + 1 : winningCharacter.level,
-      oldXP: winningCharacter.experience,
-      newXP: leveledUp ? newXP - winningCharacter.experienceToNext : newXP,
-      xpToNext: leveledUp ? Math.floor(winningCharacter.experienceToNext * 1.2) : winningCharacter.experienceToNext
-    });
-    
-    // Apply coaching points progression based on win/loss
-    if (player1Won) {
-      setPlayerTeam(prev => updateCoachingPointsAfterBattle(prev, true));
-      setPlayer1(prev => ({
-        ...prev,
-        experience: leveledUp ? newXP - prev.experienceToNext : newXP,
-        level: leveledUp ? prev.level + 1 : prev.level,
-        experienceToNext: leveledUp ? Math.floor(prev.experienceToNext * 1.2) : prev.experienceToNext,
-        // Apply stat bonuses to traditionalStats
-        traditionalStats: {
-          ...prev.traditionalStats,
-          strength: rewards.statBonuses.atk ? prev.traditionalStats.strength + rewards.statBonuses.atk : prev.traditionalStats.strength,
-          vitality: rewards.statBonuses.def ? prev.traditionalStats.vitality + rewards.statBonuses.def : prev.traditionalStats.vitality,
-          speed: rewards.statBonuses.spd ? prev.traditionalStats.speed + rewards.statBonuses.spd : prev.traditionalStats.speed
-        },
-        maxHp: rewards.statBonuses.hp ? prev.maxHp + rewards.statBonuses.hp : prev.maxHp
-      }));
-    } else {
-      // Handle loss - apply coaching points degradation
-      setPlayerTeam(prev => updateCoachingPointsAfterBattle(prev, false));
-    }
-    
-    // Calculate combat skill progression
-    const battlePerformance = createBattlePerformance(winningCharacter.name, {
-      isVictory: player1Won,
-      battleDuration: currentRound * 30, // Estimate based on rounds
-      playerLevel: winningCharacter.level,
-      opponentLevel: player1Won ? player2.level : player1.level,
-      damageDealt: stats.damageDealt,
-      damageTaken: stats.damageTaken,
-      criticalHits: stats.criticalHits,
-      abilitiesUsed: stats.skillsUsed,
-      environment: 'arena'
-    });
-
-    // Mock character skills for demo
-    const demoSkills: TeamCharacterSkills = {
-      characterId: winningCharacter.name,
-      coreSkills: {
-        combat: { level: Math.floor(winningCharacter.level * 0.8), experience: 450, maxLevel: 100 },
-        survival: { level: Math.floor(winningCharacter.level * 0.6), experience: 320, maxLevel: 100 },
-        mental: { level: Math.floor(winningCharacter.level * 0.7), experience: 380, maxLevel: 100 },
-        social: { level: Math.floor(winningCharacter.level * 0.5), experience: 210, maxLevel: 100 },
-        spiritual: { level: Math.floor(winningCharacter.level * 0.4), experience: 150, maxLevel: 100 }
-      },
-      signatureSkills: {},
-      archetypeSkills: {},
-      passiveAbilities: [],
-      activeAbilities: [],
-      unlockedNodes: [],
-      skillPoints: 5,
-      lastUpdated: new Date()
-    };
-
-    const skillReward = CombatSkillEngine.calculateSkillProgression(battlePerformance, demoSkills);
-    setCombatSkillReward(skillReward);
-
-    // Show rewards screen after a short delay
-    safeSetTimeout(() => {
-      setShowRewards(true);
-    }, 2000);
-  };
-
-  const resetBattle = () => {
-    setCurrentRound(1);
-    setCurrentMatch(1);
-    setPlayerMatchWins(0);
-    setOpponentMatchWins(0);
-    setPlayerRoundWins(0);
-    setOpponentRoundWins(0);
-    setSelectedOpponent(null);
-    setShowMatchmaking(true);
-    setPhase('pre_battle_huddle');
-    setCurrentAnnouncement('Welcome to the Arena! Choose your opponent to begin battle!');
-    setBattleCries({ player1: '', player2: '' });
-    setTimer(null);
-    setIsTimerActive(false);
-    setCoachingMessages([]);
-    setCharacterResponse('');
-    setShowDisagreement(false);
-    setSelectedStrategies({ attack: null, defense: null, special: null });
-    setPendingStrategy(null);
-    setChatMessages([]);
-    setCustomMessage('');
-    setIsCharacterTyping(false);
-    
-    // Reset rewards
-    setShowRewards(false);
-    setBattleRewards(null);
-    setShowSkillProgression(false);
-    setCombatSkillReward(null);
-    
-    // Reset character health, battle stats, and status
-    setPlayerTeam(prevTeam => ({
-      ...prevTeam,
-      characters: prevTeam.characters.map(char => ({
-        ...char,
-        currentHp: char.maxHp,
-        statusEffects: [],
-        temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
-      })),
-    }));
-    setPlayer1(prev => ({
-      ...prev,
-      hp: prev.maxHp,
-      statusEffects: [],
-      battleStats: createBattleStats(),
-      abilities: prev.abilities.map(a => ({ ...a, currentCooldown: 0 })),
-      specialPowers: prev.specialPowers.map(p => ({ ...p, currentCooldown: 0 }))
-    }));
-    
-    setPlayer2(prev => ({
-      ...prev,
-      hp: prev.maxHp,
-      statusEffects: [],
-      battleStats: createBattleStats(),
-      abilities: prev.abilities.map(a => ({ ...a, currentCooldown: 0 })),
-      specialPowers: prev.specialPowers.map(p => ({ ...p, currentCooldown: 0 }))
-    }));
-  };
+  // resetBattle function moved to useBattleFlow hook
 
   // Card Collection System Handlers
-  const initializeCardCollection = useCallback(() => {
-    // Initialize with current team characters and some additional demo cards
-    const initialCards = [
-      ...playerTeam.characters,
-      ...opponentTeam.characters,
-    ];
-    setPlayerCards(initialCards);
-  }, [playerTeam.characters, opponentTeam.characters]);
+  // initializeCardCollection function moved to useCardCollectionSystem hook
+  // handleCardSelect function moved to useCardCollectionSystem hook
+  // handleCardDeselect function moved to useCardCollectionSystem hook
+  // handleCardsReceived function moved to useCardCollectionSystem hook
+  // handleCurrencySpent function moved to useCardCollectionSystem hook
 
-  const handleCardSelect = (characterId: string) => {
-    if (selectedTeamCards.length < 3 && !selectedTeamCards.includes(characterId)) {
-      setSelectedTeamCards(prev => [...prev, characterId]);
-    }
-  };
-
-  const handleCardDeselect = (characterId: string) => {
-    setSelectedTeamCards(prev => prev.filter(id => id !== characterId));
-  };
-
-  const handleCardsReceived = (newCards: TeamCharacter[]) => {
-    setPlayerCards(prev => [...prev, ...newCards]);
-    setPlayerCurrency(prev => prev + 100); // Bonus for opening packs
-  };
-
-  const handleCurrencySpent = (amount: number) => {
-    setPlayerCurrency(prev => Math.max(0, prev - amount));
-  };
-
-  const buildTeamFromCards = () => {
-    const selectedCards = playerCards.filter(card => selectedTeamCards.includes(card.id));
-    if (selectedCards.length === 3) {
-      const newTeam: Team = {
-        ...playerTeam,
-        characters: selectedCards,
-        teamChemistry: 50, // Will be recalculated
-      };
-      setPlayerTeam(newTeam);
-      setShowCardCollection(false);
-      setSelectedTeamCards([]);
-    }
-  };
+  // buildTeamFromCards function moved to useCoachingSystem hook
 
   // Initialize card collection on mount
   useEffect(() => {
-    initializeCardCollection();
-  }, [initializeCardCollection]);
+    actions.initializeCardCollection();
+  }, [actions]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -2186,7 +858,7 @@ export default function ImprovedBattleArena() {
         chatContainerRef={chatContainerRef}
         selectedChatCharacter={selectedChatCharacter}
         onCustomMessageChange={setCustomMessage}
-        onSendMessage={handleCustomMessage}
+        onSendMessage={battleChat.handleCustomMessage}
         playerRoundWins={playerRoundWins}
         opponentRoundWins={opponentRoundWins}
         currentMatch={currentMatch}
@@ -2212,7 +884,7 @@ export default function ImprovedBattleArena() {
           currentMatch={currentMatch}
           playerTeam={playerTeam}
           characterStrategies={characterStrategies}
-          onStrategyChange={handleCharacterStrategyChange}
+          onStrategyChange={actions.handleCharacterStrategyChange}
           onAllStrategiesComplete={handleAllCharacterStrategiesComplete}
           coachingMessages={coachingMessages}
           timeRemaining={timer || 0}
@@ -2224,7 +896,7 @@ export default function ImprovedBattleArena() {
       <TeamOverview
         playerTeam={playerTeam}
         playerMorale={playerMorale}
-        onCharacterClick={conductIndividualCoaching}
+        onCharacterClick={actions.conductIndividualCoaching}
         onSelectChatCharacter={handleSelectChatCharacter}
       />
 
@@ -2302,7 +974,7 @@ export default function ImprovedBattleArena() {
             currentRound={currentRound}
             currentMatch={currentMatch}
             isVisible={true}
-            onSendCoachMessage={handleTeamChatMessage}
+            onSendCoachMessage={actions.handleTeamChatMessage}
           />
         </div>
       </div>
@@ -2311,7 +983,7 @@ export default function ImprovedBattleArena() {
       {phase.name === 'matchmaking' && (
         <MatchmakingPanel
           playerTeamLevels={playerTeam.characters.map(char => char.level)}
-          onSelectOpponent={handleOpponentSelection}
+          onSelectOpponent={matchmaking.handleOpponentSelection}
           isVisible={showMatchmaking}
         />
       )}
@@ -2383,7 +1055,7 @@ export default function ImprovedBattleArena() {
           </div>
 
           <button
-            onClick={resetBattle}
+            onClick={battleFlow.resetBattle}
             className="px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 rounded-lg text-white font-bold text-xl shadow-lg transition-all transform hover:scale-105"
           >
             Fight Again!
@@ -2436,7 +1108,7 @@ export default function ImprovedBattleArena() {
         isOpen={showCoachingModal}
         character={selectedCharacterForCoaching}
         onClose={() => setShowCoachingModal(false)}
-        onCoachingSession={executeCoachingSession}
+        onCoachingSession={actions.executeCoachingSession}
         coachingPoints={playerTeam.coachingPoints}
       />
 
@@ -2480,8 +1152,8 @@ export default function ImprovedBattleArena() {
                 characters={playerCards}
                 selectedCards={selectedTeamCards}
                 maxSelection={3}
-                onCardSelect={handleCardSelect}
-                onCardDeselect={handleCardDeselect}
+                onCardSelect={actions.handleCardSelect}
+                onCardDeselect={actions.handleCardDeselect}
                 showSelectionMode={true}
               />
             </div>
@@ -2499,7 +1171,7 @@ export default function ImprovedBattleArena() {
                   Cancel
                 </button>
                 <button
-                  onClick={buildTeamFromCards}
+                  onClick={actions.buildTeamFromCards}
                   disabled={selectedTeamCards.length !== 3}
                   className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
                     selectedTeamCards.length === 3
@@ -2519,10 +1191,10 @@ export default function ImprovedBattleArena() {
       <CardPackOpening
         isOpen={showCardPacks}
         onClose={() => setShowCardPacks(false)}
-        onCardsReceived={handleCardsReceived}
+        onCardsReceived={actions.handleCardsReceived}
         availableCards={playerCards}
         playerCurrency={playerCurrency}
-        onCurrencySpent={handleCurrencySpent}
+        onCurrencySpent={actions.handleCurrencySpent}
       />
 
     </div>

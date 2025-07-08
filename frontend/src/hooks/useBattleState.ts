@@ -60,20 +60,22 @@ export interface BattleStateData {
   isFastBattleMode: boolean;
   fastBattleConsent: { player1: boolean; player2: boolean };
   
-  // Strategy State
+  // Strategy State (matching original structure exactly)
   selectedStrategies: {
-    player1: { general: string; specific: string };
-    player2: { general: string; specific: string };
+    attack: string | null;
+    defense: string | null;
+    special: string | null;
   };
   pendingStrategy: {
-    characterId: string;
-    strategyType: 'general' | 'specific';
+    type: 'attack' | 'defense' | 'special';
     strategy: string;
   } | null;
   characterStrategies: Map<string, {
-    general: string;
-    specific: string;
-    lastUpdated: number;
+    characterId: string;
+    attack: string | null;
+    defense: string | null;
+    special: string | null;
+    isComplete: boolean;
   }>;
   
   // Chat State
@@ -137,9 +139,9 @@ export type BattleStateAction =
   | { type: 'SET_JUDGE_RULING'; payload: any }
   | { type: 'SET_IS_FAST_BATTLE_MODE'; payload: boolean }
   | { type: 'SET_FAST_BATTLE_CONSENT'; payload: { player1: boolean; player2: boolean } }
-  | { type: 'SET_SELECTED_STRATEGIES'; payload: { player1: { general: string; specific: string }; player2: { general: string; specific: string } } }
-  | { type: 'SET_PENDING_STRATEGY'; payload: { characterId: string; strategyType: 'general' | 'specific'; strategy: string } | null }
-  | { type: 'SET_CHARACTER_STRATEGIES'; payload: Map<string, { general: string; specific: string; lastUpdated: number }> }
+  | { type: 'SET_SELECTED_STRATEGIES'; payload: { attack: string | null; defense: string | null; special: string | null } }
+  | { type: 'SET_PENDING_STRATEGY'; payload: { type: 'attack' | 'defense' | 'special'; strategy: string } | null }
+  | { type: 'SET_CHARACTER_STRATEGIES'; payload: Map<string, { characterId: string; attack: string | null; defense: string | null; special: string | null; isComplete: boolean }> }
   | { type: 'SET_CHAT_MESSAGES'; payload: string[] }
   | { type: 'ADD_CHAT_MESSAGE'; payload: string }
   | { type: 'SET_CUSTOM_MESSAGE'; payload: string }
@@ -215,8 +217,9 @@ const createInitialState = (): BattleStateData => {
     
     // Strategy State
     selectedStrategies: {
-      player1: { general: '', specific: '' },
-      player2: { general: '', specific: '' }
+      attack: null,
+      defense: null,
+      special: null
     },
     pendingStrategy: null,
     characterStrategies: new Map(),
@@ -225,7 +228,18 @@ const createInitialState = (): BattleStateData => {
     chatMessages: [],
     customMessage: '',
     isCharacterTyping: false,
-    selectedChatCharacter: playerTeam.characters[0],
+    selectedChatCharacter: playerTeam.characters[0] || {
+      id: 'default',
+      name: 'Default Character',
+      health: 100,
+      maxHealth: 100,
+      attack: 50,
+      defense: 50,
+      speed: 50,
+      intelligence: 50,
+      stamina: 100,
+      battlePersonality: 'balanced'
+    } as TeamCharacter,
     
     // Rewards/Progression State
     showRewards: false,
@@ -241,8 +255,30 @@ const createInitialState = (): BattleStateData => {
     selectedTeamCards: [],
     
     // Character Battle State
-    player1: playerTeam.characters[0],
-    player2: playerTeam.characters[1] || playerTeam.characters[0],
+    player1: playerTeam.characters[0] || {
+      id: 'default1',
+      name: 'Player 1',
+      health: 100,
+      maxHealth: 100,
+      attack: 50,
+      defense: 50,
+      speed: 50,
+      intelligence: 50,
+      stamina: 100,
+      battlePersonality: 'balanced'
+    } as TeamCharacter,
+    player2: playerTeam.characters[1] || playerTeam.characters[0] || {
+      id: 'default2',
+      name: 'Player 2',
+      health: 100,
+      maxHealth: 100,
+      attack: 50,
+      defense: 50,
+      speed: 50,
+      intelligence: 50,
+      stamina: 100,
+      battlePersonality: 'balanced'
+    } as TeamCharacter,
     player1BattleStats: createBattleStats(),
     player2BattleStats: createBattleStats(),
   };
@@ -405,9 +441,9 @@ export const useBattleState = () => {
     setJudgeRuling: useCallback((ruling: any) => dispatch({ type: 'SET_JUDGE_RULING', payload: ruling }), []),
     setIsFastBattleMode: useCallback((fast: boolean) => dispatch({ type: 'SET_IS_FAST_BATTLE_MODE', payload: fast }), []),
     setFastBattleConsent: useCallback((consent: { player1: boolean; player2: boolean }) => dispatch({ type: 'SET_FAST_BATTLE_CONSENT', payload: consent }), []),
-    setSelectedStrategies: useCallback((strategies: { player1: { general: string; specific: string }; player2: { general: string; specific: string } }) => dispatch({ type: 'SET_SELECTED_STRATEGIES', payload: strategies }), []),
-    setPendingStrategy: useCallback((strategy: { characterId: string; strategyType: 'general' | 'specific'; strategy: string } | null) => dispatch({ type: 'SET_PENDING_STRATEGY', payload: strategy }), []),
-    setCharacterStrategies: useCallback((strategies: Map<string, { general: string; specific: string; lastUpdated: number }>) => dispatch({ type: 'SET_CHARACTER_STRATEGIES', payload: strategies }), []),
+    setSelectedStrategies: useCallback((strategies: { attack: string | null; defense: string | null; special: string | null }) => dispatch({ type: 'SET_SELECTED_STRATEGIES', payload: strategies }), []),
+    setPendingStrategy: useCallback((strategy: { type: 'attack' | 'defense' | 'special'; strategy: string } | null) => dispatch({ type: 'SET_PENDING_STRATEGY', payload: strategy }), []),
+    setCharacterStrategies: useCallback((strategies: Map<string, { characterId: string; attack: string | null; defense: string | null; special: string | null; isComplete: boolean }>) => dispatch({ type: 'SET_CHARACTER_STRATEGIES', payload: strategies }), []),
     setChatMessages: useCallback((messages: string[]) => dispatch({ type: 'SET_CHAT_MESSAGES', payload: messages }), []),
     addChatMessage: useCallback((message: string) => dispatch({ type: 'ADD_CHAT_MESSAGE', payload: message }), []),
     setCustomMessage: useCallback((message: string) => dispatch({ type: 'SET_CUSTOM_MESSAGE', payload: message }), []),
