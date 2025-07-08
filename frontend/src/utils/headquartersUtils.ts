@@ -17,12 +17,22 @@ export interface CharacterConflict {
   penalty: number; // Percentage penalty to apply
 }
 
+export interface Bed {
+  id: string;
+  type: 'bed' | 'bunk_bed' | 'couch' | 'air_mattress';
+  position: { x: number; y: number };
+  capacity: number;
+  comfortBonus: number;
+  cost?: { coins: number; gems: number };
+}
+
 export interface Room {
   id: string;
   name: string;
   theme: string | null;
   assignedCharacters: string[];
   maxCharacters: number;
+  beds: Bed[];
 }
 
 export interface RoomTheme {
@@ -343,13 +353,64 @@ export function calculateNetHeadquartersEffect(headquarters: HeadquartersState):
 }
 
 /**
+ * Calculate sleep comfort bonus for a character based on their bed assignment
+ */
+export function calculateSleepComfortBonus(
+  character: any,
+  room: Room,
+  characterId: string
+): number {
+  const charIndex = room.assignedCharacters.indexOf(characterId);
+  if (charIndex === -1) return -10; // Not assigned to any room, severe penalty
+
+  let assignedSlot = 0;
+  for (const bed of room.beds) {
+    if (charIndex < assignedSlot + bed.capacity) {
+      // Character gets this bed's comfort bonus
+      return bed.comfortBonus;
+    }
+    assignedSlot += bed.capacity;
+  }
+
+  // Character sleeps on floor (overcrowded)
+  return -10;
+}
+
+/**
+ * Calculate total sleep bonuses for all characters in HQ
+ */
+export function calculateHQSleepBonuses(headquarters: HeadquartersState): Record<string, number> {
+  const sleepBonuses: Record<string, number> = {};
+
+  headquarters.rooms.forEach(room => {
+    room.assignedCharacters.forEach((characterId, index) => {
+      let assignedSlot = 0;
+      let comfortBonus = -10; // Default floor sleeping penalty
+
+      for (const bed of room.beds) {
+        if (index < assignedSlot + bed.capacity) {
+          comfortBonus = bed.comfortBonus;
+          break;
+        }
+        assignedSlot += bed.capacity;
+      }
+
+      sleepBonuses[characterId] = comfortBonus;
+    });
+  });
+
+  return sleepBonuses;
+}
+
+/**
  * Apply headquarters bonuses and penalties to a character's temporary stats
  */
 export function applyHeadquartersEffectsToCharacter(
   character: any,
   bonuses: HeadquartersBonus,
   penalties: HeadquartersPenalty,
-  characterId: string
+  characterId: string,
+  sleepComfortBonus?: number
 ): any {
   const enhancedCharacter = { ...character };
   
@@ -375,6 +436,20 @@ export function applyHeadquartersEffectsToCharacter(
       }
     }
   });
+  
+  // Apply sleep comfort bonus (affects morale/stamina)
+  if (sleepComfortBonus !== undefined && enhancedCharacter.temporaryStats) {
+    // Sleep quality affects stamina and morale
+    if (enhancedCharacter.temporaryStats.stamina !== undefined) {
+      enhancedCharacter.temporaryStats.stamina += Math.floor(sleepComfortBonus * 0.5); // 50% of comfort to stamina
+    }
+    if (enhancedCharacter.temporaryStats.vitality !== undefined) {
+      enhancedCharacter.temporaryStats.vitality += Math.floor(sleepComfortBonus * 0.3); // 30% of comfort to vitality
+    }
+    
+    // Store the sleep comfort for display purposes
+    enhancedCharacter.sleepComfort = sleepComfortBonus;
+  }
   
   return enhancedCharacter;
 }

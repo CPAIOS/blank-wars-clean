@@ -37,6 +37,7 @@ import { useTutorial } from '../hooks/useTutorial';
 import { teamHeadquartersTutorialSteps } from '../data/tutorialSteps';
 import Tutorial from './Tutorial';
 import { usageService, UsageStatus } from '../services/usageService';
+import BedComponent from './BedComponent';
 
 // Headquarters progression tiers
 interface HeadquartersTier {
@@ -81,7 +82,29 @@ interface RoomElement {
   incompatibleWith: string[]; // Other element IDs that clash
 }
 
-// Room instance with multi-element support
+// Bed types and sleep quality
+interface Bed {
+  id: string;
+  type: 'bed' | 'bunk_bed' | 'couch' | 'air_mattress';
+  position: { x: number; y: number }; // For future positioning
+  capacity: number; // 1 for bed/couch, 2 for bunk bed
+  comfortBonus: number; // Sleep quality bonus
+  cost?: { coins: number; gems: number }; // For purchasable beds
+}
+
+// Purchasable bed options
+interface PurchasableBed {
+  id: string;
+  name: string;
+  type: 'bunk_bed' | 'air_mattress';
+  description: string;
+  capacity: number;
+  comfortBonus: number;
+  cost: { coins: number; gems: number };
+  icon: string;
+}
+
+// Room instance with bed system
 interface Room {
   id: string;
   name: string;
@@ -89,6 +112,7 @@ interface Room {
   elements: string[]; // New multi-element system
   assignedCharacters: string[];
   maxCharacters: number;
+  beds: Bed[]; // New bed system
   customImageUrl?: string; // DALL-E generated image
 }
 
@@ -99,6 +123,30 @@ interface HeadquartersState {
   currency: { coins: number; gems: number };
   unlockedThemes: string[];
 }
+
+// Available beds for purchase
+const PURCHASABLE_BEDS: PurchasableBed[] = [
+  {
+    id: 'additional_bunk',
+    name: 'Additional Bunk Bed',
+    type: 'bunk_bed',
+    description: 'A sturdy metal bunk bed that sleeps 2 fighters. Decent comfort for the price.',
+    capacity: 2,
+    comfortBonus: 10,
+    cost: { coins: 15000, gems: 25 },
+    icon: '🛏️'
+  },
+  {
+    id: 'air_mattress',
+    name: 'Air Mattress',
+    type: 'air_mattress',
+    description: 'Inflatable mattress for emergency sleeping. Better than the floor, barely.',
+    capacity: 1,
+    comfortBonus: 2,
+    cost: { coins: 5000, gems: 5 },
+    icon: '🛌'
+  }
+];
 
 const HEADQUARTERS_TIERS: HeadquartersTier[] = [
   {
@@ -548,19 +596,44 @@ export default function TeamHeadquarters() {
     rooms: [
       {
         id: 'room_1',
-        name: 'Bunk Room Alpha',
+        name: 'Master Bedroom',
         theme: null,
-        elements: [], // New multi-element system
-        assignedCharacters: ['achilles', 'holmes', 'dracula', 'merlin', 'cleopatra', 'joan'], // Overcrowded!
-        maxCharacters: 4
+        elements: [],
+        assignedCharacters: ['achilles', 'holmes', 'dracula', 'merlin'], // 4 characters: 1 bed + 1 couch + 2 floor
+        maxCharacters: 2, // Base capacity from bed + couch
+        beds: [
+          {
+            id: 'master_bed_1',
+            type: 'bed',
+            position: { x: 0, y: 0 },
+            capacity: 1,
+            comfortBonus: 15 // Best sleep quality
+          },
+          {
+            id: 'master_couch_1',
+            type: 'couch',
+            position: { x: 1, y: 0 },
+            capacity: 1,
+            comfortBonus: 5 // Lower comfort than bed
+          }
+        ]
       },
       {
         id: 'room_2', 
-        name: 'Bunk Room Beta',
+        name: 'Bunk Room',
         theme: null,
-        elements: [], // New multi-element system
-        assignedCharacters: ['frankenstein_monster', 'sun_wukong', 'tesla', 'billy_the_kid', 'genghis_khan'], // Overcrowded!
-        maxCharacters: 4
+        elements: [],
+        assignedCharacters: ['frankenstein_monster', 'sun_wukong', 'tesla', 'billy_the_kid', 'genghis_khan'], // 5 characters: 2 bunk + 3 floor
+        maxCharacters: 2, // Base capacity from bunk bed
+        beds: [
+          {
+            id: 'bunk_1',
+            type: 'bunk_bed',
+            position: { x: 0, y: 0 },
+            capacity: 2,
+            comfortBonus: 10 // Decent sleep quality
+          }
+        ]
       }
     ],
     currency: { coins: 50000, gems: 100 },
@@ -571,6 +644,84 @@ export default function TeamHeadquarters() {
   const [viewMode, setViewMode] = useState<'overview' | 'room_detail' | 'upgrade_shop' | 'kitchen_chat' | 'confessionals'>('overview');
   const [kitchenConversations, setKitchenConversations] = useState<any[]>([]);
   const [isGeneratingConversation, setIsGeneratingConversation] = useState(false);
+  const [selectedRoomForBeds, setSelectedRoomForBeds] = useState<string | null>(null);
+  const [showBedShop, setShowBedShop] = useState(false);
+
+  // Calculate total bed capacity for a room
+  const calculateRoomCapacity = (room: Room) => {
+    return room.beds.reduce((total, bed) => total + bed.capacity, 0);
+  };
+
+  // Calculate sleeping arrangement based on bed system
+  const calculateSleepingArrangement = (room: Room, characterName: string) => {
+    const charIndex = room.assignedCharacters.indexOf(characterName);
+    if (charIndex === -1) return { sleepsOnFloor: true, bedType: 'floor', comfortBonus: 0 };
+
+    let assignedSlot = 0;
+    for (const bed of room.beds) {
+      if (charIndex < assignedSlot + bed.capacity) {
+        // Character gets this bed
+        return {
+          sleepsOnFloor: false,
+          bedType: bed.type,
+          comfortBonus: bed.comfortBonus,
+          sleepsOnCouch: bed.type === 'couch',
+          sleepsInBed: bed.type === 'bed' || bed.type === 'bunk_bed'
+        };
+      }
+      assignedSlot += bed.capacity;
+    }
+
+    // Character sleeps on floor (overcrowded)
+    return {
+      sleepsOnFloor: true,
+      bedType: 'floor',
+      comfortBonus: -10, // Penalty for floor sleeping
+      sleepsOnCouch: false,
+      sleepsInBed: false
+    };
+  };
+
+  // Purchase bed function
+  const purchaseBed = (roomId: string, bedType: PurchasableBed) => {
+    const room = headquarters.rooms.find(r => r.id === roomId);
+    if (!room) return;
+
+    // Check if player has enough currency
+    if (headquarters.currency.coins < bedType.cost.coins || headquarters.currency.gems < bedType.cost.gems) {
+      alert(`Not enough currency! Need ${bedType.cost.coins} coins and ${bedType.cost.gems} gems.`);
+      return;
+    }
+
+    // Generate unique bed ID
+    const newBedId = `${bedType.type}_${Date.now()}`;
+    const newBed: Bed = {
+      id: newBedId,
+      type: bedType.type,
+      position: { x: room.beds.length, y: 0 }, // Simple positioning
+      capacity: bedType.capacity,
+      comfortBonus: bedType.comfortBonus
+    };
+
+    // Update headquarters state
+    setHeadquarters(prev => ({
+      ...prev,
+      currency: {
+        coins: prev.currency.coins - bedType.cost.coins,
+        gems: prev.currency.gems - bedType.cost.gems
+      },
+      rooms: prev.rooms.map(r => 
+        r.id === roomId 
+          ? { ...r, beds: [...r.beds, newBed] }
+          : r
+      )
+    }));
+
+    setMoveNotification({
+      message: `${bedType.name} purchased for ${room.name}! +${bedType.capacity} sleeping capacity`,
+      type: 'success'
+    });
+  };
   
   // Calculate battle bonuses from room themes
   const battleBonuses = headquarters.rooms.reduce((bonuses: Record<string, number>, room) => {
@@ -659,10 +810,9 @@ export default function TeamHeadquarters() {
         
         // Calculate sleeping arrangement for this character
         const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
-        const charIndex = room.assignedCharacters.indexOf(charName);
-        const isOvercrowded = room.assignedCharacters.length > room.maxCharacters;
-        const sleepsOnFloor = isOvercrowded && charIndex >= room.maxCharacters;
-        const sleepsOnCouch = charIndex === 2 && !sleepsOnFloor; // Third person gets couch if not floor
+        const sleepingArrangement = calculateSleepingArrangement(room, charName);
+        const roomCapacity = calculateRoomCapacity(room);
+        const isOvercrowded = room.assignedCharacters.length > roomCapacity;
         
         const context = {
           character,
@@ -671,11 +821,14 @@ export default function TeamHeadquarters() {
           livingConditions: {
             apartmentTier: headquarters.currentTier,
             roomTheme: room.theme,
-            sleepsOnCouch,
-            sleepsOnFloor,
+            sleepsOnCouch: sleepingArrangement.sleepsOnCouch,
+            sleepsOnFloor: sleepingArrangement.sleepsOnFloor,
+            sleepsInBed: sleepingArrangement.sleepsInBed,
+            bedType: sleepingArrangement.bedType,
+            comfortBonus: sleepingArrangement.comfortBonus,
             sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
             roomOvercrowded: isOvercrowded,
-            floorSleeperCount: Math.max(0, room.assignedCharacters.length - room.maxCharacters),
+            floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
             roommateCount: room.assignedCharacters.length
           },
           recentEvents: [trigger]
@@ -812,10 +965,9 @@ export default function TeamHeadquarters() {
         
         // Calculate sleeping arrangement for this character
         const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
-        const charIndex = room.assignedCharacters.indexOf(charName);
-        const isOvercrowded = room.assignedCharacters.length > room.maxCharacters;
-        const sleepsOnFloor = isOvercrowded && charIndex >= room.maxCharacters;
-        const sleepsOnCouch = charIndex === 2 && !sleepsOnFloor;
+        const sleepingArrangement = calculateSleepingArrangement(room, charName);
+        const roomCapacity = calculateRoomCapacity(room);
+        const isOvercrowded = room.assignedCharacters.length > roomCapacity;
         
         const context = {
           character,
@@ -826,11 +978,14 @@ export default function TeamHeadquarters() {
           livingConditions: {
             apartmentTier: headquarters.currentTier,
             roomTheme: room.theme,
-            sleepsOnCouch,
-            sleepsOnFloor,
+            sleepsOnCouch: sleepingArrangement.sleepsOnCouch,
+            sleepsOnFloor: sleepingArrangement.sleepsOnFloor,
+            sleepsInBed: sleepingArrangement.sleepsInBed,
+            bedType: sleepingArrangement.bedType,
+            comfortBonus: sleepingArrangement.comfortBonus,
             sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
             roomOvercrowded: isOvercrowded,
-            floorSleeperCount: Math.max(0, room.assignedCharacters.length - room.maxCharacters),
+            floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
             roommateCount: room.assignedCharacters.length
           },
           recentEvents: kitchenConversations.slice(0, 3).map(c => `${c.speaker}: ${c.message}`)
@@ -934,10 +1089,9 @@ export default function TeamHeadquarters() {
         
         // Calculate sleeping arrangement for this character
         const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
-        const charIndex = room.assignedCharacters.indexOf(charName);
-        const isOvercrowded = room.assignedCharacters.length > room.maxCharacters;
-        const sleepsOnFloor = isOvercrowded && charIndex >= room.maxCharacters;
-        const sleepsOnCouch = charIndex === 2 && !sleepsOnFloor;
+        const sleepingArrangement = calculateSleepingArrangement(room, charName);
+        const roomCapacity = calculateRoomCapacity(room);
+        const isOvercrowded = room.assignedCharacters.length > roomCapacity;
         
         const context = {
           character,
@@ -946,11 +1100,14 @@ export default function TeamHeadquarters() {
           livingConditions: {
             apartmentTier: headquarters.currentTier,
             roomTheme: room.theme,
-            sleepsOnCouch,
-            sleepsOnFloor,
+            sleepsOnCouch: sleepingArrangement.sleepsOnCouch,
+            sleepsOnFloor: sleepingArrangement.sleepsOnFloor,
+            sleepsInBed: sleepingArrangement.sleepsInBed,
+            bedType: sleepingArrangement.bedType,
+            comfortBonus: sleepingArrangement.comfortBonus,
             sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
             roomOvercrowded: isOvercrowded,
-            floorSleeperCount: Math.max(0, room.assignedCharacters.length - room.maxCharacters),
+            floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
             roommateCount: room.assignedCharacters.length
           },
           recentEvents: [userMessage]
@@ -1033,7 +1190,8 @@ export default function TeamHeadquarters() {
     }
     
     // Overcrowding penalty
-    if (room.assignedCharacters.length > room.maxCharacters) {
+    const roomCapacity = calculateRoomCapacity(room);
+    if (room.assignedCharacters.length > roomCapacity) {
       happiness -= 1;
     }
     
@@ -1136,7 +1294,7 @@ export default function TeamHeadquarters() {
   // Calculate team chemistry penalties from overcrowding
   const calculateTeamChemistry = () => {
     const totalCharacters = headquarters.rooms.reduce((sum, room) => sum + room.assignedCharacters.length, 0);
-    const totalCapacity = headquarters.rooms.reduce((sum, room) => sum + room.maxCharacters, 0);
+    const totalCapacity = headquarters.rooms.reduce((sum, room) => sum + calculateRoomCapacity(room), 0);
     
     let chemistryPenalty = 0;
     if (totalCharacters > totalCapacity) {
@@ -1389,7 +1547,8 @@ export default function TeamHeadquarters() {
         if (room.id === roomId) {
           const newAssignments = [...room.assignedCharacters, characterId];
           // Check for overcrowding after the move
-          const willBeOvercrowded = newAssignments.length > room.maxCharacters;
+          const roomCapacity = calculateRoomCapacity(room);
+          const willBeOvercrowded = newAssignments.length > roomCapacity;
           
           return {
             ...room,
@@ -1408,17 +1567,18 @@ export default function TeamHeadquarters() {
     
     // Enhanced visual feedback
     const newCount = room.assignedCharacters.length + 1;
-    const isOvercrowded = newCount > room.maxCharacters;
+    const roomCapacity = calculateRoomCapacity(room);
+    const isOvercrowded = newCount > roomCapacity;
     
     if (isOvercrowded) {
-      const sleepingOnFloor = newCount - room.maxCharacters;
+      const sleepingOnFloor = newCount - roomCapacity;
       setMoveNotification({
         message: `${character.name} moved to ${room.name}! ⚠️ ${sleepingOnFloor} fighter(s) now sleeping on floor/couches`,
         type: 'warning'
       });
     } else {
       setMoveNotification({
-        message: `${character.name} moved to ${room.name}! Room capacity: ${newCount}/${room.maxCharacters}`,
+        message: `${character.name} moved to ${room.name}! Room capacity: ${newCount}/${roomCapacity}`,
         type: 'success'
       });
     }
@@ -1791,23 +1951,6 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
           </button>
         ))}
         <button
-          onClick={() => setShowCharacterPool(!showCharacterPool)}
-          className={`px-4 py-2 rounded-lg transition-all relative ${
-            showCharacterPool
-              ? 'bg-green-600 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          } ${getUnassignedCharacters().length > 0 ? 'animate-pulse ring-2 ring-blue-400/50' : ''}`}
-          data-tutorial="character-pool-button"
-        >
-          <User className="w-4 h-4 inline mr-2" />
-          Available Fighters ({getUnassignedCharacters().length})
-          {getUnassignedCharacters().length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
-              {getUnassignedCharacters().length}
-            </span>
-          )}
-        </button>
-        <button
           onClick={() => startTutorial(teamHeadquartersTutorialSteps)}
           className="px-4 py-2 rounded-lg transition-all bg-purple-600 text-white hover:bg-purple-500"
           title="Restart Tutorial"
@@ -1857,7 +2000,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                     CRAMPED
                   </div>
                   <div className="text-sm text-orange-200">
-                    {headquarters.rooms.reduce((sum, room) => sum + room.assignedCharacters.length, 0)} team members sharing {headquarters.rooms.reduce((sum, room) => sum + room.maxCharacters, 0)} beds
+                    {headquarters.rooms.reduce((sum, room) => sum + room.assignedCharacters.length, 0)} team members sharing {headquarters.rooms.reduce((sum, room) => sum + calculateRoomCapacity(room), 0)} beds
                   </div>
                 </div>
                 
@@ -1962,6 +2105,73 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                 </div>
               </div>
 
+              {/* Available Fighters Section */}
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-white">Living Quarters</h3>
+                <button
+                  onClick={() => setShowCharacterPool(!showCharacterPool)}
+                  className={`px-4 py-2 rounded-lg transition-all relative ${
+                    showCharacterPool
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  } ${getUnassignedCharacters().length > 0 ? 'animate-pulse ring-2 ring-blue-400/50' : ''}`}
+                  data-tutorial="character-pool-button"
+                >
+                  <User className="w-4 h-4 inline mr-2" />
+                  Available Fighters ({getUnassignedCharacters().length})
+                  {getUnassignedCharacters().length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
+                      {getUnassignedCharacters().length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Character Pool Panel */}
+              {showCharacterPool && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-gray-800/80 rounded-xl p-4 border border-gray-700 mb-6"
+                >
+                  <h4 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    Available Fighters ({getUnassignedCharacters().length})
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {getUnassignedCharacters().map(character => (
+                      <div
+                        key={character.baseName}
+                        className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-move hover:bg-gray-600/50 transition-colors"
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedCharacter(character.baseName);
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragEnd={() => setDraggedCharacter(null)}
+                      >
+                        <div className="text-3xl mb-2">{character.avatar}</div>
+                        <div className="text-sm text-white text-center">
+                          {character.name.split(' ')[0]}
+                        </div>
+                        <div className="text-xs text-gray-400 text-center">
+                          {character.archetype}
+                        </div>
+                      </div>
+                    ))}
+                    {getUnassignedCharacters().length === 0 && (
+                      <div className="col-span-full text-center text-gray-400 py-8">
+                        All fighters are on set!
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-3 text-center">
+                    💡 Drag fighters to room cards below to assign them
+                  </div>
+                </motion.div>
+              )}
+
               {/* Living Quarters Grid */}
               <div 
                 className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
@@ -1970,6 +2180,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
             {headquarters.rooms.map((room) => {
               const theme = room.theme ? ROOM_THEMES.find(t => t.id === room.theme) : null;
               const conflicts = getCharacterConflicts(room.id);
+              const roomCapacity = calculateRoomCapacity(room);
               
               return (
                 <motion.div
@@ -2006,7 +2217,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                       {theme && <span className="text-lg">{theme.icon}</span>}
                     </div>
                     <div className="text-xs text-gray-400">
-                      {room.assignedCharacters.length}/{room.maxCharacters}
+                      {room.assignedCharacters.length}/{calculateRoomCapacity(room)}
                     </div>
                   </div>
 
@@ -2015,6 +2226,28 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                       {theme.name} (+{theme.bonusValue}% {theme.bonus})
                     </div>
                   )}
+
+                  {/* Room Beds */}
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-400 mb-2">Beds & Furniture:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {room.beds.map((bed) => {
+                        // Calculate how many characters are using this bed
+                        const bedStartIndex = room.beds.slice(0, room.beds.indexOf(bed)).reduce((sum, b) => sum + b.capacity, 0);
+                        const bedEndIndex = bedStartIndex + bed.capacity;
+                        const occupiedSlots = Math.max(0, Math.min(bed.capacity, room.assignedCharacters.length - bedStartIndex));
+                        
+                        return (
+                          <BedComponent
+                            key={bed.id}
+                            bed={bed}
+                            occupiedSlots={occupiedSlots}
+                            showDetails={false}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
 
                   {/* Character Avatars with Status */}
                   <div className="flex flex-wrap gap-3 mb-3">
@@ -2079,8 +2312,8 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                       ) : null;
                     })}
                     {/* Empty beds or overcrowding indicator */}
-                    {room.assignedCharacters.length <= room.maxCharacters ? (
-                      Array.from({ length: room.maxCharacters - room.assignedCharacters.length }).map((_, i) => (
+                    {room.assignedCharacters.length <= roomCapacity ? (
+                      Array.from({ length: roomCapacity - room.assignedCharacters.length }).map((_, i) => (
                         <div key={`empty-${i}`} className="flex flex-col items-center opacity-30 hover:opacity-50 transition-opacity cursor-pointer">
                           <Bed className="w-6 h-6 text-gray-500" />
                           <div className="text-xs text-gray-500">Available</div>
@@ -2090,23 +2323,23 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                       <div className="flex flex-col items-center text-red-400">
                         <Sofa className="w-6 h-6" />
                         <div className="text-xs">
-                          +{room.assignedCharacters.length - room.maxCharacters} on couches
+                          +{room.assignedCharacters.length - roomCapacity} on couches
                         </div>
                       </div>
                     )}
                   </div>
 
                   {/* Conflicts and Overcrowding Status */}
-                  {room.assignedCharacters.length > room.maxCharacters && (
+                  {room.assignedCharacters.length > roomCapacity && (
                     <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-2 mb-2">
                       <div className="text-sm text-red-300 font-semibold flex items-center gap-2">
                         🛏️ OVERCROWDED ROOM
                       </div>
                       <div className="text-xs text-red-200">
-                        {room.assignedCharacters.length - room.maxCharacters} fighters sleeping on floor/couches
+                        {room.assignedCharacters.length - roomCapacity} fighters sleeping on floor/couches
                       </div>
                       <div className="text-xs text-red-200 mt-1">
-                        Capacity: {room.assignedCharacters.length}/{room.maxCharacters} (-{Math.round((room.assignedCharacters.length - room.maxCharacters) * 10)}% team morale)
+                        Capacity: {room.assignedCharacters.length}/{roomCapacity} (-{Math.round((room.assignedCharacters.length - roomCapacity) * 10)}% team morale)
                       </div>
                     </div>
                   )}
@@ -2148,6 +2381,21 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                       Click to add theme
                     </div>
                   )}
+
+                  {/* Buy Beds Button */}
+                  <div className="mt-3 pt-3 border-t border-gray-600">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRoomForBeds(room.id);
+                        setShowBedShop(true);
+                      }}
+                      className="w-full px-3 py-2 bg-green-600/20 hover:bg-green-600/40 border border-green-500/50 rounded-lg transition-all text-green-300 text-sm flex items-center justify-center gap-2"
+                    >
+                      <Bed className="w-4 h-4" />
+                      Buy Beds ({room.beds.length} beds)
+                    </button>
+                  </div>
                 </motion.div>
               );
             })}
@@ -2606,47 +2854,92 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
         )}
       </AnimatePresence>
 
-      {/* Character Pool Panel */}
-      {viewMode === 'overview' && showCharacterPool && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="bg-gray-800/80 rounded-xl p-6 border border-gray-700"
-        >
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Available Fighters ({getUnassignedCharacters().length})
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {getUnassignedCharacters().map(character => (
-              <div
-                key={character.baseName}
-                className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-move hover:bg-gray-600/50 transition-colors"
-                draggable
-                onDragStart={(e) => {
-                  setDraggedCharacter(character.baseName);
-                  e.dataTransfer.effectAllowed = 'move';
-                }}
-                onDragEnd={() => setDraggedCharacter(null)}
-              >
-                <div className="text-3xl mb-2">{character.avatar}</div>
-                <div className="text-sm text-white text-center">
-                  {character.name.split(' ')[0]}
-                </div>
-                <div className="text-xs text-gray-400 text-center">
-                  {character.archetype}
+      {/* Bed Shop Modal */}
+      <AnimatePresence>
+        {showBedShop && selectedRoomForBeds && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowBedShop(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-gray-800 rounded-xl p-6 max-w-lg w-full border border-gray-700"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Bed className="w-5 h-5" />
+                  Buy Beds for {headquarters.rooms.find(r => r.id === selectedRoomForBeds)?.name}
+                </h3>
+                <button
+                  onClick={() => setShowBedShop(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="mb-4 text-sm text-gray-300">
+                <div className="flex justify-between">
+                  <span>Your Currency:</span>
+                  <span className="text-yellow-400">
+                    {headquarters.currency.coins.toLocaleString()} coins, {headquarters.currency.gems} gems
+                  </span>
                 </div>
               </div>
-            ))}
-            {getUnassignedCharacters().length === 0 && (
-              <div className="col-span-full text-center text-gray-400 py-8">
-                All fighters are on set!
+
+              <div className="space-y-4">
+                {PURCHASABLE_BEDS.map((bed) => {
+                  const canAfford = headquarters.currency.coins >= bed.cost.coins && 
+                                   headquarters.currency.gems >= bed.cost.gems;
+                  
+                  return (
+                    <div key={bed.id} className="border border-gray-600 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{bed.icon}</span>
+                          <div>
+                            <h4 className="text-white font-semibold">{bed.name}</h4>
+                            <p className="text-sm text-gray-400">{bed.description}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-300">
+                            Sleeps: {bed.capacity} | Comfort: +{bed.comfortBonus}
+                          </div>
+                          <div className="text-sm text-yellow-400">
+                            {bed.cost.coins} coins, {bed.cost.gems} gems
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => {
+                          purchaseBed(selectedRoomForBeds, bed);
+                          setShowBedShop(false);
+                        }}
+                        disabled={!canAfford}
+                        className={`w-full py-2 px-4 rounded-lg transition-all ${
+                          canAfford 
+                            ? 'bg-green-600 hover:bg-green-500 text-white' 
+                            : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        {canAfford ? 'Purchase' : 'Not enough currency'}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
-        </motion.div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Multi-Element Room Theming Modal */}
       <AnimatePresence>
