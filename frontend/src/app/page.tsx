@@ -1,157 +1,257 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Sparkles, LogIn, User, HelpCircle } from 'lucide-react';
-import MainTabSystem from '@/components/MainTabSystem';
-import NewUserOnboarding from '@/components/NewUserOnboarding';
-import AuthModal from '@/components/AuthModal';
-import TutorialSystem from '@/components/TutorialSystem';
-import { useAuth, getCoachDisplayName } from '@/contexts/AuthContext';
+import { motion } from 'framer-motion';
+import { Play, LogIn, UserPlus, BookOpen, Camera, Tv, Drama, Users, Sparkles, Crown, Skull, Rainbow, Brain, HeartHandshake, Home, Target, Sword, Shield, Zap } from 'lucide-react'; // Added new icons for features
 
 export default function HomePage() {
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [forceRender, setForceRender] = useState(false);
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const characters = [
+    { name: 'Sherlock Holmes', avatar: '🕵️', type: 'Historical', quote: 'Elementary, my dear coach.' },
+    { name: 'Dracula', avatar: '🧛', type: 'Mythological', quote: 'I vant to suck... your strategy.' },
+    { name: 'Joan of Arc', avatar: '⚔️', type: 'Historical', quote: 'By God\'s will, we shall clean this kitchen!' },
+    { name: 'Skeleton Mage', avatar: '💀🔮', type: 'Fantastical', quote: 'My spells are bone-chillingly effective.' },
+    { name: 'Rainbow Unicorn', avatar: '🦄🌈', type: 'Fantastical', quote: 'Sparkle and fight, that's my motto!' },
+    { name: 'Genghis Khan', avatar: '🐎', type: 'Historical', quote: 'My horde will conquer... the laundry.' },
+  ];
 
-  // Debug logging
-  console.log('HomePage render:', { user, isAuthenticated, isLoading });
-
-  // Fallback timeout to prevent infinite loading
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.log('Loading timeout reached, forcing render');
-      setForceRender(true);
-    }, 3000);
-
-    return () => clearTimeout(timeout);
-  }, []);
-
-  useEffect(() => {
-    // Check if authenticated user is new (has completed onboarding)
-    if (isAuthenticated && user) {
-      const hasCompletedOnboarding = localStorage.getItem(`onboarding_${user.id}`);
-      if (!hasCompletedOnboarding) {
-        setShowOnboarding(true);
-      }
-    }
-  }, [isAuthenticated, user]);
-
-  const handleOnboardingComplete = () => {
-    if (user) {
-      localStorage.setItem(`onboarding_${user.id}`, 'true');
-    }
-    setShowOnboarding(false);
-  };
-
-  if (isLoading && !forceRender) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading WiseSage...</p>
-          <p className="text-xs text-gray-500 mt-2">If this takes too long, the app will auto-load...</p>
-        </div>
-      </div>
-    );
-  }
+  const features = [
+    {
+      icon: Brain,
+      title: 'Psychology-Driven Combat',
+      description: 'Every decision, every conflict, every victory shapes your team's mental state and performance.',
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-900/20'
+    },
+    {
+      icon: HeartHandshake,
+      title: 'Team Dynamics & Coaching',
+      description: 'Manage egos, resolve disputes, and build unbreakable bonds within your eccentric cast.',
+      color: 'text-pink-400',
+      bgColor: 'bg-pink-900/20'
+    },
+    {
+      icon: Home,
+      title: 'Headquarters & Training',
+      description: 'Upgrade your living conditions, hone skills, and prepare your team for both the arena and the house.',
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-900/20'
+    },
+    {
+      icon: Target,
+      title: 'Strategic Depth',
+      description: 'Formulate game plans, equip your fighters, and adapt on the fly to unpredictable reality show twists.',
+      color: 'text-green-400',
+      bgColor: 'bg-green-900/20'
+    },
+  ];
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <div className="text-center py-8 px-4 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-yellow-400" />
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              _____ WARS
-            </h1>
-            <Sparkles className="w-8 h-8 text-yellow-400" />
-          </div>
-          
-          {/* Authentication UI */}
-          <div className="flex items-center space-x-4">
-            {/* Help Button */}
-            <button
-              onClick={() => setShowTutorial(true)}
-              className="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-700/50"
-              title="Help & Tutorials"
-            >
-              <HelpCircle className="w-6 h-6" />
-            </button>
-            
-            {isAuthenticated && user ? (
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-white font-semibold">{getCoachDisplayName(user)}</p>
-                  <p className="text-sm text-gray-400">{user.total_wins}W/{user.total_battles - user.total_wins}L • {user.rating} Rating</p>
-                </div>
-                <div className="bg-blue-600/20 rounded-full p-2">
-                  <User className="w-6 h-6 text-blue-400" />
-                </div>
-                <button
-                  onClick={logout}
-                  className="text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors flex items-center space-x-2"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Sign In</span>
-              </button>
-            )}
-          </div>
-        </div>
-        
-        <div className="mt-6">
-          <p className="text-xl text-gray-300 mb-4 max-w-2xl mx-auto">
-            A Reality Show about Warriors from _____ time, place or legend living, training, and fighting together in a multiverse team combat league
-          </p>
-          {isAuthenticated && user && (
-            <p className="text-blue-400 font-semibold">
-              Welcome back, {getCoachDisplayName(user)}! Ready for your next battle?
-            </p>
-          )}
-        </div>
+    <div className="min-h-screen bg-gray-950 text-white relative overflow-hidden">
+      {/* Background elements - subtle blend of arena and living quarters */}
+      <div className="absolute inset-0 z-0">
+        {/* Arena-like gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-black/50 to-red-900/30 animate-gradient-shift"></div>
+        {/* Subtle pattern overlay for "cramped living quarters" feel */}
+        <div className="absolute inset-0 bg-[url('/images/cramped_quarters_pattern.png')] opacity-5 pointer-events-none"></div>
+        {/* Optional: Placeholder for a subtle video loop or animation */}
+        {/* <video autoPlay loop muted className="absolute inset-0 w-full h-full object-cover opacity-20">
+          <source src="/videos/homepage_bg_loop.mp4" type="video/mp4" />
+        </video> */}
       </div>
 
-      {/* Main Tab System */}
-      <MainTabSystem />
+      {/* Content */}
+      <main className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        {/* Hero Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="max-w-4xl mx-auto space-y-8 mb-20"
+        >
+          <h1 className="text-6xl md:text-7xl font-extrabold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-orange-400 to-red-500 drop-shadow-lg">
+            Can you win the battle before your team loses their minds?
+          </h1>
+          <h2 className="text-3xl md:text-4xl font-semibold text-gray-200 drop-shadow-md">
+            Welcome to <span className="font-bold text-purple-400">Blank Wars: The Reality Show</span>
+          </h2>
+          <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            Coach a team of legendary figures and fantastical beings as they live, train, and fight for survival in the ultimate team combat challenge.
+          </p>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-800 py-6 px-4 text-center bg-gray-900">
-        <div className="flex items-center justify-center gap-4 text-gray-400">
-          <Sparkles className="w-5 h-5" />
-          <span>_____ Wars - Character Management Gaming v2.0</span>
-          <Sparkles className="w-5 h-5" />
-        </div>
-      </footer>
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-600 text-white font-bold text-xl rounded-lg shadow-lg flex items-center justify-center gap-3 transition-all duration-300"
+            >
+              <Play className="w-6 h-6" /> Start Coaching Now
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xl rounded-lg shadow-md flex items-center justify-center gap-3 transition-all duration-300"
+            >
+              <UserPlus className="w-6 h-6" /> Register
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xl rounded-lg shadow-md flex items-center justify-center gap-3 transition-all duration-300"
+            >
+              <LogIn className="w-6 h-6" /> Login
+            </motion.button>
+          </div>
+        </motion.section>
 
-      {/* New User Onboarding */}
-      {showOnboarding && isAuthenticated && user && (
-        <NewUserOnboarding 
-          username={user.username}
-          onComplete={handleOnboardingComplete}
-        />
-      )}
+        {/* The Premise Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="max-w-5xl mx-auto p-8 bg-gray-900/70 rounded-xl shadow-2xl border border-gray-700 backdrop-blur-sm mb-20"
+        >
+          <h3 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-red-500 drop-shadow-lg">
+            It's Not Just a Battle, It's a Show!
+          </h3>
+          <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-8">
+            Step into the world of <span className="font-bold text-purple-300">Blank Wars</span>, a groundbreaking mockumentary-style reality show where the cameras never stop rolling. You'll follow a diverse cast of characters – from ancient legends to fantastical beings – as they navigate the brutal arena and the even more brutal confines of their shared living quarters.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex flex-col items-center">
+              <Camera className="w-16 h-16 text-yellow-400 mb-4" />
+              <h4 className="text-2xl font-bold text-white mb-2">Behind the Scenes Drama</h4>
+              <p className="text-gray-400">Witness the hilarious and heartbreaking conflicts that arise when larger-than-life personalities are forced to live, train, and cook together.</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <Tv className="w-16 h-16 text-blue-400 mb-4" />
+              <h4 className="text-2xl font-bold text-white mb-2">Life-or-Death Stakes</h4>
+              <p className="text-gray-400">Every battle in the arena carries real consequences. Your characters aren't just fighting for glory; they're fighting for their very existence on the show.</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <Drama className="w-16 h-16 text-green-400 mb-4" />
+              <h4 className="text-2xl font-bold text-white mb-2">Your Role: The Coach</h4>
+              <p className="text-gray-400">As their coach, you'll manage their training, mediate their disputes, and guide their strategies. But beware: their psychological state is as crucial as their combat skills.</p>
+            </div>
+          </div>
+        </motion.section>
 
-      {/* Authentication Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-      />
+        {/* Character Showcase Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="max-w-6xl mx-auto p-8 bg-gray-900/70 rounded-xl shadow-2xl border border-gray-700 backdrop-blur-sm mb-20"
+        >
+          <h3 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-500 drop-shadow-lg">
+            Your Team, Your Drama
+          </h3>
+          <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-12">
+            Assemble an unforgettable cast from across history, myth, and imagination. Each character brings unique skills, personalities, and a whole lot of baggage to the show.
+          </p>
 
-      {/* Tutorial System */}
-      <TutorialSystem
-        isOpen={showTutorial}
-        onClose={() => setShowTutorial(false)}
-      />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {characters.map((char, index) => (
+              <motion.div
+                key={char.name}
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(168, 85, 247, 0.5)" }} // Purple glow
+                className="relative bg-gray-800 rounded-xl p-6 border border-gray-700 overflow-hidden cursor-pointer"
+              >
+                <div className="text-5xl mb-4">{char.avatar}</div>
+                <h4 className="text-2xl font-bold text-white mb-1">{char.name}</h4>
+                <p className="text-sm text-gray-400 mb-4">{char.type}</p>
+                
+                {/* Quote Overlay */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileHover={{ opacity: 1, y: 0 }}
+                  className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 text-center"
+                >
+                  <p className="text-lg italic text-gray-200">"{char.quote}"</p>
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* Features Showcase Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="max-w-6xl mx-auto p-8 bg-gray-900/70 rounded-xl shadow-2xl border border-gray-700 backdrop-blur-sm mb-20"
+        >
+          <h3 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-red-500 drop-shadow-lg">
+            Beyond the Battlefield
+          </h3>
+          <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-12">
+            Blank Wars offers a unique blend of strategic combat and reality show management. Master these key features to lead your team to victory and stardom.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ duration: 0.5, delay: index * 0.15 }}
+                className={`p-6 rounded-xl border ${feature.bgColor} ${feature.color} shadow-lg flex flex-col items-center text-center`}
+              >
+                <feature.icon className="w-16 h-16 mb-4" />
+                <h4 className="text-2xl font-bold text-white mb-2">{feature.title}</h4>
+                <p className="text-gray-300">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* Tutorial Gateway Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="max-w-4xl mx-auto p-8 bg-gray-900/70 rounded-xl shadow-2xl border border-gray-700 backdrop-blur-sm mb-20"
+        >
+          <h3 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500 drop-shadow-lg">
+            Hostmaster's Orientation
+          </h3>
+          <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-8">
+            New to the show? Let the enigmatic Hostmaster guide you through the rules of the Arena and the drama of the House. Get ready for your close-up!
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold text-xl rounded-lg shadow-lg flex items-center justify-center gap-3 transition-all duration-300"
+          >
+            <BookOpen className="w-6 h-6" /> Meet the Hostmaster & Start Tutorial
+          </motion.button>
+        </motion.section>
+
+        {/* Footer */}
+        <motion.footer
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="w-full p-8 bg-gray-900/70 border-t border-gray-700 text-gray-400 text-sm"
+        >
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <p>&copy; {new Date().getFullYear()} Blank Wars. All rights reserved.</p>
+            <div className="flex gap-6">
+              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+              <a href="#" className="hover:text-white transition-colors">Contact Us</a>
+            </div>
+          </div>
+        </motion.footer>
+      </main>
     </div>
   );
 }

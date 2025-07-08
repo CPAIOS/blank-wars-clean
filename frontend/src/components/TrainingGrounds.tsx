@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Dumbbell, 
   Target, 
@@ -12,22 +12,21 @@ import {
   TrendingUp, 
   Play, 
   Pause, 
-  RotateCcw,
   Award,
   Coins,
   Battery,
   Heart,
-  BookOpen,
   Sparkles,
-  Crown,
-  Building
+  BookOpen,
+  MessageCircle,
+  Send,
+  User,
 } from 'lucide-react';
-import SkillTree from './SkillTree';
-import MembershipSelection from './MembershipSelection';
-import TrainingFacilitySelector from './TrainingFacilitySelector';
-import { coreSkills, archetypeSkills, signatureSkills } from '@/data/skills';
 import { memberships, MembershipTier, getTrainingMultipliers, getDailyLimits, FacilityType } from '@/data/memberships';
 import { getBaseStatsForLevel, getLevelData } from '@/data/characterProgression';
+import { TrainingSystemManager } from '@/systems/trainingSystem';
+import { trainingChatService } from '@/services/trainingChatService';
+import { createDemoCharacterCollection } from '@/data/characters';
 
 interface Character {
   id: string;
@@ -56,7 +55,7 @@ interface TrainingActivity {
   id: string;
   name: string;
   description: string;
-  type: 'strength' | 'defense' | 'speed' | 'special' | 'endurance' | 'skill';
+  type: 'strength' | 'defense' | 'speed' | 'special' | 'endurance';
   duration: number; // in seconds
   energyCost: number;
   xpGain: number;
@@ -67,7 +66,6 @@ interface TrainingActivity {
     level: number;
     archetype?: string[];
   };
-  skillId?: string; // For skill learning activities
   trainingPointsGain?: number;
 }
 
@@ -106,13 +104,24 @@ export default function TrainingGrounds() {
   const [currentActivity, setCurrentActivity] = useState<TrainingActivity | null>(null);
   const [trainingProgress, setTrainingProgress] = useState(0);
   const [trainingTimeLeft, setTrainingTimeLeft] = useState(0);
-  const [activeTab, setActiveTab] = useState<'training' | 'skills' | 'facilities' | 'membership'>('training');
-  const [trainingPoints, setTrainingPoints] = useState(10); // Mock training points
-  const [learnedSkills, setLearnedSkills] = useState<string[]>(['power_strike']); // Mock learned skills
-  const [membershipTier, setMembershipTier] = useState<MembershipTier>('free');
-  const [selectedFacility, setSelectedFacility] = useState<FacilityType>('community');
+  // Removed tabs - TrainingGrounds now focuses only on training activities
+  const [membershipTier] = useState<MembershipTier>('free');
+  const [selectedFacility] = useState<FacilityType>('community');
   const [dailyTrainingSessions, setDailyTrainingSessions] = useState(0);
   const [dailyEnergyRefills, setDailyEnergyRefills] = useState(0);
+  const [trainingPoints, setTrainingPoints] = useState(0);
+  
+  // Training chat state
+  const [showTrainingChat, setShowTrainingChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{
+    id: string;
+    sender: 'coach' | 'character';
+    message: string;
+    timestamp: Date;
+    characterName?: string;
+  }>>([]);
+  const [currentChatMessage, setCurrentChatMessage] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   // Training activities
   const trainingActivities: TrainingActivity[] = [
@@ -193,49 +202,6 @@ export default function TrainingGrounds() {
       icon: Award,
       difficulty: 'extreme',
       requirements: { level: 15, archetype: ['warrior', 'leader'] }
-    },
-    // Skill Learning Activities
-    {
-      id: 'skill_learning_basic',
-      name: 'Skill Training: Core',
-      description: 'Learn fundamental combat and survival skills',
-      type: 'skill',
-      duration: 45,
-      energyCost: 25,
-      xpGain: 60,
-      statBonus: 0,
-      trainingPointsGain: 1,
-      icon: BookOpen,
-      difficulty: 'medium',
-      requirements: { level: 5 }
-    },
-    {
-      id: 'skill_learning_advanced',
-      name: 'Advanced Skill Mastery',
-      description: 'Master complex techniques and abilities',
-      type: 'skill',
-      duration: 60,
-      energyCost: 40,
-      xpGain: 100,
-      statBonus: 0,
-      trainingPointsGain: 2,
-      icon: Sparkles,
-      difficulty: 'hard',
-      requirements: { level: 10 }
-    },
-    {
-      id: 'skill_learning_signature',
-      name: 'Signature Skill Development',
-      description: 'Unlock your character\'s unique abilities',
-      type: 'skill',
-      duration: 90,
-      energyCost: 60,
-      xpGain: 150,
-      statBonus: 0,
-      trainingPointsGain: 3,
-      icon: Star,
-      difficulty: 'extreme',
-      requirements: { level: 15 }
     },
     
     // === WARRIOR ARCHETYPE TRAINING ===
@@ -505,9 +471,6 @@ export default function TrainingGrounds() {
     return dailyTrainingSessions < membershipLimits.dailyTrainingSessions;
   };
 
-  const canLearnSkills = () => {
-    return membershipLimits.skillLearningSessions > 0;
-  };
 
   // Available activities based on character and membership
   const availableActivities = trainingActivities.filter(activity => {
@@ -518,18 +481,13 @@ export default function TrainingGrounds() {
     const withinLimits = canTrain();
     
     // Skill activities require membership access
-    if (activity.type === 'skill' && !canLearnSkills()) {
-      return false;
-    }
-    
     return meetsLevel && meetsArchetype && hasEnergy && withinLimits;
   });
 
   // Start training
   const startTraining = async (activity: TrainingActivity) => {
     if (selectedCharacter.energy < activity.energyCost) return;
-    if (!canTrain() && activity.type !== 'skill') return;
-    if (activity.type === 'skill' && !canLearnSkills()) return;
+    if (!canTrain()) return;
     
     try {
       // Get user ID from auth context (you'll need to implement this)
@@ -590,7 +548,7 @@ export default function TrainingGrounds() {
     }
     
     return () => clearInterval(interval);
-  }, [isTraining, trainingTimeLeft]);
+  }, [isTraining, trainingTimeLeft, completeTraining, currentActivity?.duration]);
 
   // Complete training
   const completeTraining = () => {
@@ -692,6 +650,85 @@ export default function TrainingGrounds() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Training chat functions
+  const sendTrainingChatMessage = async () => {
+    if (!currentChatMessage.trim() || isChatLoading) return;
+
+    const messageText = currentChatMessage.trim();
+    setCurrentChatMessage('');
+    setIsChatLoading(true);
+
+    // Add coach message to chat
+    const coachMessage = {
+      id: `coach_${Date.now()}`,
+      sender: 'coach' as const,
+      message: messageText,
+      timestamp: new Date()
+    };
+    setChatMessages(prev => [...prev, coachMessage]);
+
+    try {
+      // Get available characters for context
+      const availableCharacters = createDemoCharacterCollection();
+      const currentCharacter = availableCharacters.find(c => c.name === selectedCharacter.name) || availableCharacters[0];
+      
+      // Prepare training context
+      const trainingContext = {
+        character: currentCharacter,
+        teammates: availableCharacters.filter(c => c.id !== currentCharacter.id).slice(0, 5),
+        coachName: 'Coach',
+        trainingEnvironment: {
+          facilityTier: selectedFacility,
+          equipment: ['Weights', 'Treadmill', 'Combat dummies', 'Resistance bands'],
+          currentActivity: currentActivity?.name || 'Free training',
+          energyLevel: Math.round((selectedCharacter.energy / selectedCharacter.maxEnergy) * 100),
+          trainingProgress: Math.round(trainingProgress)
+        },
+        recentTrainingEvents: [
+          `Completed ${dailyTrainingSessions} training sessions today`,
+          `Current energy: ${selectedCharacter.energy}/${selectedCharacter.maxEnergy}`,
+          `Training points earned: ${trainingPoints}`
+        ]
+      };
+
+      const response = await trainingChatService.startTrainingConversation(
+        currentCharacter,
+        trainingContext,
+        messageText
+      );
+
+      // Add character response to chat
+      const characterMessage = {
+        id: `char_${Date.now()}`,
+        sender: 'character' as const,
+        message: response,
+        timestamp: new Date(),
+        characterName: currentCharacter.name
+      };
+      setChatMessages(prev => [...prev, characterMessage]);
+
+    } catch (error) {
+      console.error('Training chat error:', error);
+      const errorMessage = {
+        id: `error_${Date.now()}`,
+        sender: 'character' as const,
+        message: 'Sorry, I\'m having trouble responding right now. Let\'s focus on training!',
+        timestamp: new Date(),
+        characterName: selectedCharacter.name
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleChatKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendTrainingChatMessage();
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       {/* Header */}
@@ -706,68 +743,8 @@ export default function TrainingGrounds() {
         </p>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex justify-center mb-6">
-        <div className="bg-gray-800/50 rounded-xl p-1 flex gap-1">
-          <button
-            onClick={() => setActiveTab('training')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'training'
-                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Dumbbell className="w-5 h-5" />
-            <span>Training Activities</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('skills')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'skills'
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <BookOpen className="w-5 h-5" />
-            <span>Skill Tree</span>
-            {trainingPoints > 0 && (
-              <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full font-bold">
-                {trainingPoints}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('facilities')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'facilities'
-                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Building className="w-5 h-5" />
-            <span>Facilities</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('membership')}
-            className={`px-6 py-3 rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'membership'
-                ? 'bg-gradient-to-r from-gold-500 to-yellow-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            <Crown className="w-5 h-5" />
-            <span>Membership</span>
-            {membershipTier && membershipTier !== 'free' && memberships[membershipTier] && (
-              <span className="bg-gold-500 text-black text-xs px-2 py-0.5 rounded-full font-bold">
-                {memberships[membershipTier].icon}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
 
-      {activeTab === 'training' ? (
-        <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-4 gap-6">
         {/* Character Info Panel */}
         <div className="lg:col-span-1">
           <motion.div 
@@ -855,6 +832,10 @@ export default function TrainingGrounds() {
               </div>
               <div className="text-sm text-white">
                 Refills: {dailyEnergyRefills}/{membershipLimits.dailyEnergyRefills === 'unlimited' ? '∞' : membershipLimits.dailyEnergyRefills}
+              </div>
+              <div className="text-sm text-yellow-400 flex items-center gap-1">
+                <Star className="w-3 h-3" />
+                Training Points: {trainingPoints}
               </div>
               {membershipLimits.xpMultiplier > 1 && (
                 <div className="text-sm text-green-400 flex items-center gap-1">
@@ -981,9 +962,7 @@ export default function TrainingGrounds() {
                             <div className="flex items-center gap-1">
                               <TrendingUp className="w-3 h-3 text-green-400" />
                               <span className="text-green-400">
-                                {activity.type === 'skill' && activity.trainingPointsGain 
-                                  ? `+${activity.trainingPointsGain} TP` 
-                                  : `+${activity.statBonus} ${activity.type}`}
+                                +{activity.statBonus} {activity.type}
                               </span>
                             </div>
                           </div>
@@ -1014,53 +993,117 @@ export default function TrainingGrounds() {
             )}
           </motion.div>
         </div>
+
+        {/* Training Chat Panel */}
+        <div className="lg:col-span-1">
+          <motion.div 
+            className="bg-gray-900/50 rounded-xl border border-gray-700 p-6 h-fit"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-orange-400" />
+                Training Coach
+              </h2>
+              <button
+                onClick={() => setShowTrainingChat(!showTrainingChat)}
+                className={`p-2 rounded-lg transition-colors ${
+                  showTrainingChat 
+                    ? 'bg-orange-600 text-white' 
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+              </button>
+            </div>
+
+            {showTrainingChat ? (
+              <>
+                {/* Chat Messages */}
+                <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                  {chatMessages.length === 0 ? (
+                    <div className="text-center py-8">
+                      <User className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                      <p className="text-gray-400 text-sm">
+                        Chat with {selectedCharacter.name} about training techniques and workout strategies!
+                      </p>
+                    </div>
+                  ) : (
+                    chatMessages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.sender === 'coach' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-xs px-3 py-2 rounded-lg ${
+                          msg.sender === 'coach'
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-gray-700 text-gray-200'
+                        }`}>
+                          {msg.sender === 'character' && (
+                            <div className="text-xs text-gray-400 mb-1">{msg.characterName}</div>
+                          )}
+                          <div className="text-sm">{msg.message}</div>
+                          <div className="text-xs opacity-70 mt-1">
+                            {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  
+                  {isChatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-700 px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Chat Input */}
+                <div className="border-t border-gray-700 pt-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={currentChatMessage}
+                      onChange={(e) => setCurrentChatMessage(e.target.value)}
+                      onKeyPress={handleChatKeyPress}
+                      placeholder={`Ask ${selectedCharacter.name} about training...`}
+                      className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+                      disabled={isChatLoading}
+                    />
+                    <button
+                      onClick={sendTrainingChatMessage}
+                      disabled={!currentChatMessage.trim() || isChatLoading}
+                      className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    Press Enter to send • Chat with {selectedCharacter.name} about workouts, techniques, and training goals
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <MessageCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 mb-4">
+                  Get training advice and motivation from {selectedCharacter.name}
+                </p>
+                <button
+                  onClick={() => setShowTrainingChat(true)}
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Start Training Chat
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
       </div>
-      ) : activeTab === 'skills' ? (
-        /* Skills Tab */
-        <div className="max-w-full">
-          <SkillTree
-            characterId={selectedCharacter.id}
-            characterName={selectedCharacter.name}
-            characterLevel={selectedCharacter.level}
-            characterArchetype={selectedCharacter.archetype}
-            learnedSkills={learnedSkills}
-            trainingPoints={trainingPoints}
-            onLearnSkill={(skillId) => {
-              // Get skill cost
-              const allSkills = [...coreSkills, ...(archetypeSkills[selectedCharacter.archetype] || []), ...(signatureSkills[selectedCharacter.id] || [])];
-              const skill = allSkills.find(s => s.id === skillId);
-              
-              if (skill && trainingPoints >= skill.requirements.trainingCost) {
-                setLearnedSkills(prev => [...prev, skillId]);
-                setTrainingPoints(prev => prev - skill.requirements.trainingCost);
-              }
-            }}
-          />
-        </div>
-      ) : activeTab === 'facilities' ? (
-        /* Facilities Tab */
-        <div className="max-w-full">
-          <TrainingFacilitySelector
-            membershipTier={membershipTier}
-            selectedFacility={selectedFacility}
-            onSelectFacility={setSelectedFacility}
-            onUpgradeMembership={() => setActiveTab('membership')}
-          />
-        </div>
-      ) : (
-        /* Membership Tab */
-        <div className="max-w-full">
-          <MembershipSelection
-            currentTier={membershipTier}
-            onSelectTier={(tier) => setMembershipTier(tier)}
-            onPurchase={(tier) => {
-              // Handle purchase logic here
-              setMembershipTier(tier);
-              console.log(`Purchasing ${tier} membership`);
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }

@@ -26,6 +26,7 @@ import characterRouter from './routes/characterRoutes';
 import { createBattleRouter } from './routes/battleRoutes';
 import usageRouter from './routes/usage';
 import cardPackRouter from './routes/cardPackRoutes';
+import trainingRouter from './routes/trainingRoutes';
 import jwt from 'jsonwebtoken';
 import { apiLimiter, authLimiter, battleLimiter, wsLimiter } from './middleware/rateLimiter';
 import cookieParser from 'cookie-parser';
@@ -108,6 +109,7 @@ app.use('/api/user', userRouter);
 app.use('/api/characters', characterRouter);
 app.use('/api/usage', usageRouter);
 app.use('/api/packs', cardPackRouter);
+app.use('/api/training', trainingRouter);
 
 // New Card Pack Routes (These are now handled by cardPackRouter)
 // app.post('/api/packs/purchase', authenticateToken, async (req, res) => {
@@ -917,6 +919,69 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         character: data.character,
         characterId: data.characterId,
         error: `OpenAI service error: ${error instanceof Error ? error.message : String(error)}`,
+        details: error instanceof Error ? error.stack : undefined
+      });
+    }
+  });
+
+  // Training chat AI conversations
+  socket.on('training_chat_request', async (data) => {
+    console.log('🏋️ TRAINING CHAT REQUEST:', data.conversationId, 'from socket:', socket.id);
+    
+    // Rate limit training chat (max 30 per minute)
+    if (!checkEventRateLimit('training_chat', 30)) {
+      socket.emit('training_chat_response', {
+        conversationId: data.conversationId,
+        error: 'Rate limit exceeded for training chat.'
+      });
+      return;
+    }
+
+    try {
+      const { conversationId, characterId, characterName, prompt, userMessage, maxTokens } = data;
+      
+      console.log('🤖 Training AI Request:', {
+        characterId,
+        characterName,
+        userMessage: userMessage.substring(0, 50) + '...'
+      });
+
+      // Use existing AI chat service with training-specific context
+      const trainingContext = {
+        characterId,
+        characterName,
+        personality: {
+          traits: ['Focused', 'Determined', 'Training-oriented'],
+          speechStyle: 'Direct and motivational',
+          motivations: ['Physical improvement', 'Combat readiness', 'Team success'],
+          fears: ['Poor performance', 'Letting down the coach', 'Injury']
+        },
+        historicalPeriod: 'Training in modern times',
+        mythology: 'Fighting league',
+        currentBondLevel: 5,
+        previousMessages: []
+      };
+
+      const response = await aiChatService.generateCharacterResponse(
+        prompt,
+        trainingContext,
+        maxTokens || 150
+      );
+
+      socket.emit('training_chat_response', {
+        conversationId,
+        characterResponse: {
+          characterId,
+          message: response.response,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    } catch (error) {
+      console.error('🏋️ Training chat error:', error);
+      socket.emit('training_chat_response', {
+        conversationId: data.conversationId,
+        error: `Training chat service error: ${error instanceof Error ? error.message : String(error)}`,
         details: error instanceof Error ? error.stack : undefined
       });
     }
