@@ -1,6 +1,6 @@
 import express from 'express';
 import { trainingService, trainingActivities } from '../services/trainingService';
-import { db } from '../database/sqlite';
+import { db } from '../database';
 
 const router = express.Router();
 
@@ -59,7 +59,7 @@ router.post('/complete', async (req, res) => {
       });
     }
 
-    const result = await trainingService.completeTraining(sessionId, characterId, db);
+    const result = await trainingService.completeTraining(sessionId, characterId);
     
     res.json({
       success: true,
@@ -85,12 +85,7 @@ router.get('/character/:characterId/state', async (req, res) => {
       WHERE characterId = ?
     `;
     
-    const state = await new Promise((resolve, reject) => {
-      db.get(query, [characterId], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+    const state = db.prepare(query).get(characterId);
 
     res.json({
       success: true,

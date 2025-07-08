@@ -963,16 +963,18 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
       };
 
       const response = await aiChatService.generateCharacterResponse(
-        prompt,
         trainingContext,
-        maxTokens || 150
+        prompt,
+        socket.data?.userId || 'anonymous',
+        db,
+        { isInBattle: false }
       );
 
       socket.emit('training_chat_response', {
         conversationId,
         characterResponse: {
           characterId,
-          message: response.response,
+          message: response.message,
           timestamp: new Date().toISOString()
         }
       });
