@@ -9,7 +9,7 @@ export default function HomePage() {
     { name: 'Dracula', avatar: '🧛', type: 'Mythological', quote: 'I vant to suck... your strategy.' },
     { name: 'Joan of Arc', avatar: '⚔️', type: 'Historical', quote: 'By God\'s will, we shall clean this kitchen!' },
     { name: 'Skeleton Mage', avatar: '💀🔮', type: 'Fantastical', quote: 'My spells are bone-chillingly effective.' },
-    { name: 'Rainbow Unicorn', avatar: '🦄🌈', type: 'Fantastical', quote: 'Sparkle and fight, that's my motto!' },
+    { name: 'Rainbow Unicorn', avatar: '🦄🌈', type: 'Fantastical', quote: 'Sparkle and fight, that\'s my motto!' },
     { name: 'Genghis Khan', avatar: '🐎', type: 'Historical', quote: 'My horde will conquer... the laundry.' },
   ];
 
@@ -17,7 +17,7 @@ export default function HomePage() {
     {
       icon: Brain,
       title: 'Psychology-Driven Combat',
-      description: 'Every decision, every conflict, every victory shapes your team's mental state and performance.',
+      description: 'Every decision, every conflict, every victory shapes your team mental state and performance.',
       color: 'text-purple-400',
       bgColor: 'bg-purple-900/20'
     },

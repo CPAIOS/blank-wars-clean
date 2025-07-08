@@ -269,6 +269,11 @@ class BattleWebSocketService {
   public getCurrentUser(): BattleUser | null {
     return this.currentUser;
   }
+
+  // Get socket instance for advanced usage (e.g., custom chat events)
+  public getSocket(): Socket | null {
+    return this.socket;
+  }
 }
 
 // Singleton instance

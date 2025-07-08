@@ -82,6 +82,7 @@ export function useBattleWebSocket(handlers?: Partial<BattleEventHandlers>) {
     joinBattle: battleWebSocket.joinBattle.bind(battleWebSocket),
     selectStrategy: battleWebSocket.selectStrategy.bind(battleWebSocket),
     sendChat: battleWebSocket.sendChatMessage.bind(battleWebSocket),
+    socket: battleWebSocket.getSocket(), // Expose socket for custom chat functionality
     disconnect: () => {
       battleWebSocket.disconnect();
       isConnected.current = false;
