@@ -53,7 +53,7 @@ export const initializeDatabase = async (): Promise<void> => {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         title TEXT,
-        archetype TEXT CHECK (archetype IN ('warrior', 'scholar', 'trickster', 'beast', 'leader')),
+        archetype TEXT CHECK (archetype IN ('warrior', 'scholar', 'trickster', 'beast', 'leader', 'mage', 'mystic', 'tank', 'assassin')),
         origin_era TEXT,
         rarity TEXT CHECK (rarity IN ('common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic')),
         base_health INTEGER NOT NULL,

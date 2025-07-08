@@ -181,11 +181,14 @@ export class BattleManager extends EventEmitter {
   private async initializeMultiServerCoordination(): Promise<void> {
     try {
       // Subscribe to global battle events
-      await cache.subscribeToBattleEvents('global', (event: any) => {
-        this.handleGlobalBattleEvent(event);
-      });
-      
-      console.log('✅ Multi-server battle coordination initialized');
+      if (cache.isUsingRedis()) {
+        await cache.subscribeToBattleEvents('global', (event: any) => {
+          this.handleGlobalBattleEvent(event);
+        });
+        console.log('✅ Multi-server battle coordination initialized');
+      } else {
+        console.warn('⚠️ Multi-server coordination unavailable (Redis not in use), using single-server mode.');
+      }
     } catch (error) {
       console.warn('⚠️ Multi-server coordination unavailable, using single-server mode:', error instanceof Error ? error.message : String(error));
     }
