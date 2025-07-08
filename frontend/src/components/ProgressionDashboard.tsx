@@ -29,7 +29,10 @@ import {
   Info,
   CheckCircle,
   Lock,
-  Unlock
+  Unlock,
+  MessageCircle,
+  Send,
+  User
 } from 'lucide-react';
 import { Character } from '@/data/characters';
 import { CharacterSkills } from '@/data/characterProgression';
@@ -66,6 +69,18 @@ export default function ProgressionDashboard({
   const [showAllocationModal, setShowAllocationModal] = useState(false);
   const [allocationType, setAllocationType] = useState<'skill' | 'stat'>('skill');
   const [allocationTarget, setAllocationTarget] = useState<string>('');
+  
+  // Performance Chat State
+  const [showPerformanceChat, setShowPerformanceChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{
+    id: number;
+    sender: 'coach' | 'character';
+    message: string;
+    timestamp: Date;
+    characterName?: string;
+  }>>([]);
+  const [currentChatMessage, setCurrentChatMessage] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   // Mock progression data based on character
   const skillData = {
@@ -173,6 +188,47 @@ export default function ProgressionDashboard({
     setShowAllocationModal(false);
   };
 
+  // Performance Chat Functions
+  const sendPerformanceChatMessage = async () => {
+    if (!currentChatMessage.trim() || isChatLoading) return;
+
+    const userMessage = {
+      id: Date.now(),
+      sender: 'coach' as const,
+      message: currentChatMessage,
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setCurrentChatMessage('');
+    setIsChatLoading(true);
+
+    try {
+      // Simulate AI response (in real implementation, this would call the performance coaching chat service)
+      setTimeout(() => {
+        const aiResponse = {
+          id: Date.now() + 1,
+          sender: 'character' as const,
+          message: `Great question! At level ${character.level}, you're making excellent progress. I'd recommend focusing on your combat skills since they're at ${Math.floor(character.level * 0.8)} - that's really strong for your level!`,
+          timestamp: new Date(),
+          characterName: character.name
+        };
+        setChatMessages(prev => [...prev, aiResponse]);
+        setIsChatLoading(false);
+      }, 1500);
+    } catch (error) {
+      console.error('Performance chat error:', error);
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleChatKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendPerformanceChatMessage();
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -230,6 +286,116 @@ export default function ProgressionDashboard({
               }}
             />
           </div>
+        </div>
+      </div>
+
+      {/* Performance Coaching Chat Panel */}
+      <div className="grid lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3">
+          {/* This space reserved for main content tabs */}
+        </div>
+        
+        <div className="lg:col-span-1">
+          <motion.div 
+            className="bg-gray-900/50 rounded-xl border border-gray-700 p-6 h-fit"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-green-400" />
+                Performance Coach
+              </h2>
+              <button
+                onClick={() => setShowPerformanceChat(!showPerformanceChat)}
+                className={`p-2 rounded-lg transition-colors ${
+                  showPerformanceChat 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+              </button>
+            </div>
+
+            {showPerformanceChat ? (
+              <>
+                {/* Chat Messages */}
+                <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                  {chatMessages.length === 0 ? (
+                    <div className="text-center py-8">
+                      <User className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                      <p className="text-gray-400 text-sm">
+                        Chat with {character.name} about progression and performance improvement!
+                      </p>
+                    </div>
+                  ) : (
+                    chatMessages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.sender === 'coach' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-xs px-3 py-2 rounded-lg ${
+                          msg.sender === 'coach'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-700 text-gray-200'
+                        }`}>
+                          {msg.sender === 'character' && (
+                            <div className="text-xs text-gray-400 mb-1">{msg.characterName}</div>
+                          )}
+                          <div className="text-sm">{msg.message}</div>
+                          <div className="text-xs opacity-70 mt-1">
+                            {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  
+                  {isChatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-700 px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Chat Input */}
+                <div className="border-t border-gray-700 pt-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={currentChatMessage}
+                      onChange={(e) => setCurrentChatMessage(e.target.value)}
+                      onKeyPress={handleChatKeyPress}
+                      placeholder={`Ask ${character.name} about progression...`}
+                      className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-green-500"
+                      disabled={isChatLoading}
+                    />
+                    <button
+                      onClick={sendPerformanceChatMessage}
+                      disabled={!currentChatMessage.trim() || isChatLoading}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    Press Enter to send • Chat with {character.name} about progression and performance
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <MessageCircle className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                <p className="text-gray-400 text-sm">
+                  Click to start chatting with {character.name} about progression!
+                </p>
+              </div>
+            )}
+          </motion.div>
         </div>
       </div>
 
