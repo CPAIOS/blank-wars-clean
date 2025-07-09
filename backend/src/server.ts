@@ -335,7 +335,7 @@ io.use((socket, next) => {
 */
 
 // Socket.io handlers with battle system integration
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
   
   // Send immediate connection confirmation
@@ -372,16 +372,75 @@ io.on('connection', (socket) => {
     return true;
   };
 
-  // Authentication
-  socket.on('auth', async (token: string) => {
+  // Helper function to authenticate from cookies or token
+  const authenticateUser = async (tokenOrSocket: string | any): Promise<{ id: string; username: string; rating: number } | null> => {
     try {
-      const user = await authenticateSocket(token);
+      let token: string | null = null;
+      
+      if (typeof tokenOrSocket === 'string') {
+        // Direct token provided
+        token = tokenOrSocket;
+      } else {
+        // Extract from socket cookies
+        const cookies = tokenOrSocket.request?.headers?.cookie;
+        if (cookies) {
+          const cookieParser = require('cookie-parser');
+          const parsedCookies: any = {};
+          cookies.split(';').forEach((cookie: string) => {
+            const [key, value] = cookie.trim().split('=');
+            parsedCookies[key] = decodeURIComponent(value);
+          });
+          token = parsedCookies.accessToken;
+        }
+      }
+      
+      if (!token) {
+        return null;
+      }
+      
+      return await authenticateSocket(token);
+    } catch (error) {
+      console.error('Authentication error:', error);
+      return null;
+    }
+  };
+
+  // Try automatic authentication from cookies on connection
+  const tryAutoAuth = async () => {
+    try {
+      const user = await authenticateUser(socket);
       if (user) {
         authenticatedUser = user;
         (socket as any).userId = user.id;
         battleManager.setUserSocket(user.id, socket.id);
         socket.emit('auth_success', { userId: user.id, username: user.username });
-        console.log(`👤 User authenticated: ${user.username} (${user.id})`);
+        console.log(`👤 User auto-authenticated from cookies: ${user.username} (${user.id})`);
+        // Send current user profile to the client
+        const userProfile = await userService.findUserProfile(user.id);
+        if (userProfile) {
+          socket.emit('user_profile_update', userProfile);
+        }
+        return true;
+      }
+    } catch (error) {
+      console.log('Auto-authentication failed, waiting for manual auth');
+    }
+    return false;
+  };
+  
+  // Try auto-authentication first
+  await tryAutoAuth();
+
+  // Manual authentication (for explicit token-based auth)
+  socket.on('auth', async (token: string) => {
+    try {
+      const user = await authenticateUser(token);
+      if (user) {
+        authenticatedUser = user;
+        (socket as any).userId = user.id;
+        battleManager.setUserSocket(user.id, socket.id);
+        socket.emit('auth_success', { userId: user.id, username: user.username });
+        console.log(`👤 User manually authenticated: ${user.username} (${user.id})`);
         // Send current user profile to the client
         const userProfile = await userService.findUserProfile(user.id);
         if (userProfile) {
@@ -972,7 +1031,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         message,
         userId,
         db,
-        { isInBattle: false, facilitiesContext: facilitiesContext }
+        { isInBattle: false, facilitiesContext: facilitiesContext, isCombatChat: true }
       );
       
       // Check if usage limit was reached

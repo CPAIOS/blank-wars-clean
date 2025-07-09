@@ -131,11 +131,21 @@ export default function EquipmentAdvisorChat({
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
+      withCredentials: true, // Include cookies for authentication
     });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ EquipmentAdvisor Socket connected!');
+      console.log('✅ EquipmentAdvisor Socket connected! Waiting for authentication...');
+    });
+
+    socketRef.current.on('auth_success', (data: { userId: string; username: string }) => {
+      console.log('🔐 EquipmentAdvisor Socket authenticated!', data);
       setConnected(true);
+    });
+
+    socketRef.current.on('auth_error', (error: { error: string }) => {
+      console.error('❌ EquipmentAdvisor Socket authentication failed:', error);
+      setConnected(false);
     });
 
     socketRef.current.on('disconnect', () => {

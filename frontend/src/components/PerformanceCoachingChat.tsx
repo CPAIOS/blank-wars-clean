@@ -120,11 +120,21 @@ export default function PerformanceCoachingChat({
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
+      withCredentials: true, // Include cookies for authentication
     });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ PerformanceCoaching Socket connected!');
+      console.log('✅ PerformanceCoaching Socket connected! Waiting for authentication...');
+    });
+
+    socketRef.current.on('auth_success', (data: { userId: string; username: string }) => {
+      console.log('🔐 PerformanceCoaching Socket authenticated!', data);
       setConnected(true);
+    });
+
+    socketRef.current.on('auth_error', (error: { error: string }) => {
+      console.error('❌ PerformanceCoaching Socket authentication failed:', error);
+      setConnected(false);
     });
 
     socketRef.current.on('disconnect', () => {

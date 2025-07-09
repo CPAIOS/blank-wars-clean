@@ -127,10 +127,15 @@ export default function FacilitiesManager({
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
+      withCredentials: true, // Include cookies for authentication
     });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ FacilitiesManager Socket connected!');
+      console.log('✅ FacilitiesManager Socket connected! Waiting for authentication...');
+    });
+
+    socketRef.current.on('auth_success', (data: { userId: string; username: string }) => {
+      console.log('🔐 FacilitiesManager Socket authenticated!', data);
       setConnected(true);
       // Initial message from the selected agent
       setMessages(prev => [...prev, {
@@ -141,22 +146,38 @@ export default function FacilitiesManager({
       }]);
     });
 
+    socketRef.current.on('auth_error', (error: { error: string }) => {
+      console.error('❌ FacilitiesManager Socket authentication failed:', error);
+      setConnected(false);
+    });
+
     socketRef.current.on('disconnect', () => {
       console.log('❌ FacilitiesManager Socket disconnected');
       setConnected(false);
     });
 
-    socketRef.current.on('facilities_chat_response', (data: { message: string }) => {
+    socketRef.current.on('facilities_chat_response', (data: { message?: string; error?: string; agentId?: string }) => {
       console.log('📨 FacilitiesManager response:', data);
       
-      const agentMessage: Message = {
-        id: Date.now(),
-        type: 'agent',
-        content: data.message || 'Considering your options...',
-        timestamp: new Date(),
-      };
+      if (data.error) {
+        console.error('❌ Facilities chat error received:', data.error);
+        const errorMessage: Message = {
+          id: Date.now(),
+          type: 'system',
+          content: `Error: ${data.error}`,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      } else {
+        const agentMessage: Message = {
+          id: Date.now(),
+          type: 'agent',
+          content: data.message || 'Considering your options...',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, agentMessage]);
+      }
       
-      setMessages(prev => [...prev, agentMessage]);
       setIsTyping(false);
     });
 

@@ -117,14 +117,13 @@ export default function CoachingInterface({
     // Real API call to individual coaching service
     const sendCoachingRequest = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
         const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
         
         const response = await fetch(`${BACKEND_URL}/coaching/individual`, {
           method: 'POST',
+          credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             characterId: character.character.id,

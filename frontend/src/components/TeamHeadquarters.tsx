@@ -42,7 +42,7 @@ import CharacterSlotUpgrade from './CharacterSlotUpgrade';
 import { PURCHASABLE_BEDS, HEADQUARTERS_TIERS, ROOM_THEMES, ROOM_ELEMENTS } from '../data/headquartersData';
 import { HeadquartersTier, RoomTheme, RoomElement, PurchasableBed, Bed, Room, HeadquartersState } from '../types/headquarters';
 import { calculateRoomCapacity, calculateSleepingArrangement } from '../utils/roomCalculations';
-import { purchaseBed } from '../services/bedService';
+import { purchaseBed, loadHeadquarters, saveHeadquarters } from '../services/bedService';
 import { setRoomTheme, addElementToRoom, removeElementFromRoom, generateRoomImage } from '../services/roomService';
 import { assignCharacterToRoom, removeCharacterFromRoom, getUnassignedCharacters } from '../services/characterService';
 import { startNewScene, handleCoachMessage, continueScene, KitchenConversation } from '../services/kitchenChatService';
@@ -124,7 +124,7 @@ export default function TeamHeadquarters() {
         theme: null,
         elements: [],
         assignedCharacters: ['achilles', 'holmes', 'dracula', 'merlin'], // 4 characters: 1 bed + 1 couch + 2 floor
-        maxCharacters: 2, // Base capacity from bed + couch
+        maxCharacters: 2, // Calculated from beds: 1 bed + 1 couch = 2
         beds: [
           {
             id: 'master_bed_1',
@@ -148,7 +148,7 @@ export default function TeamHeadquarters() {
         theme: null,
         elements: [],
         assignedCharacters: ['frankenstein_monster', 'sun_wukong', 'tesla', 'billy_the_kid', 'genghis_khan'], // 5 characters: 2 bunk + 3 floor
-        maxCharacters: 2, // Base capacity from bunk bed
+        maxCharacters: 2, // Calculated from beds: 1 bunk bed = 2
         beds: [
           {
             id: 'bunk_1',
@@ -809,10 +809,8 @@ export default function TeamHeadquarters() {
                       ))
                     ) : (
                       <div className="flex flex-col items-center text-red-400">
-                        <Sofa className="w-6 h-6" />
-                        <div className="text-xs">
-                          +{room.assignedCharacters.length - roomCapacity} on couches
-                        </div>
+                        <div className="text-xs">🛏️ {roomCapacity} in beds</div>
+                        <div className="text-xs">🌗 {room.assignedCharacters.length - roomCapacity} on floor</div>
                       </div>
                     )}
                   </div>
@@ -824,7 +822,7 @@ export default function TeamHeadquarters() {
                         🛏️ OVERCROWDED ROOM
                       </div>
                       <div className="text-xs text-red-200">
-                        {room.assignedCharacters.length - roomCapacity} fighters sleeping on floor/couches
+                        {room.assignedCharacters.length - roomCapacity} fighters sleeping on floor
                       </div>
                       <div className="text-xs text-red-200 mt-1">
                         Capacity: {room.assignedCharacters.length}/{roomCapacity} (-{Math.round((room.assignedCharacters.length - roomCapacity) * 10)}% team morale)
@@ -1418,8 +1416,8 @@ export default function TeamHeadquarters() {
                       </div>
                       
                       <button
-                        onClick={() => {
-                          purchaseBed(selectedRoomForBeds, bed, headquarters, setHeadquarters, setMoveNotification);
+                        onClick={async () => {
+                          await purchaseBed(selectedRoomForBeds, bed, headquarters, setHeadquarters, setMoveNotification);
                           setShowBedShop(false);
                         }}
                         disabled={!canAfford}

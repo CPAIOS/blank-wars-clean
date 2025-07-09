@@ -23,4 +23,56 @@ router.post('/upgrade-character-slots', authenticateToken, async (req: AuthReque
   }
 });
 
+// Get user headquarters
+router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const headquarters = await headquartersService.getHeadquarters(userId);
+
+    return res.json({ success: true, headquarters });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Save user headquarters
+router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { headquarters } = req.body;
+    
+    await headquartersService.saveHeadquarters(userId, headquarters);
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Purchase bed
+router.post('/purchase-bed', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { roomId, bedData } = req.body;
+    
+    await headquartersService.purchaseBed(userId, roomId, bedData);
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

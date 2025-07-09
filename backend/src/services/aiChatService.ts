@@ -186,10 +186,10 @@ export class AIChatService {
       prompt += `\nYour motivations: ${defaultPersonality.motivations.join(', ')}.`;
       prompt += `\nYour fears: ${defaultPersonality.fears.join(', ')}.`;
     } else {
-      prompt += `\n\nYour personality traits: ${personality.traits.join(', ')}.`;
-      prompt += `\nYour speech style: ${personality.speechStyle}.`;
-      prompt += `\nYour motivations: ${personality.motivations.join(', ')}.`;
-      prompt += `\nYour fears: ${personality.fears.join(', ')}.`;
+      prompt += `\n\nYour personality traits: ${personality.traits ? personality.traits.join(', ') : 'brave, determined'}.`;
+      prompt += `\nYour speech style: ${personality.speechStyle || 'confident and direct'}.`;
+      prompt += `\nYour motivations: ${personality.motivations ? personality.motivations.join(', ') : 'victory, honor'}.`;
+      prompt += `\nYour fears: ${personality.fears ? personality.fears.join(', ') : 'defeat, letting allies down'}.`;
     }
     
     if (personality && personality.interests) {
@@ -288,7 +288,8 @@ Examples of authentic responses:
     
     // Increase chance if user message mentions character's motivations
     const lowerMessage = userMessage.toLowerCase();
-    for (const motivation of context.personality.motivations) {
+    const motivations = context.personality.motivations || ['victory', 'honor'];
+    for (const motivation of motivations) {
       if (lowerMessage.includes(motivation.toLowerCase())) {
         bondChance += 0.2;
         break;
