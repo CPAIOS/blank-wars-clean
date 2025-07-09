@@ -1,9 +1,56 @@
 'use client';
 
+import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Play, LogIn, UserPlus, BookOpen, Camera, Tv, Drama, Users, Sparkles, Crown, Skull, Rainbow, Brain, HeartHandshake, Home, Target, Sword, Shield, Zap } from 'lucide-react'; // Added new icons for features
+import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams, useRouter } from 'next/navigation';
+import AuthModal from '@/components/AuthModal';
+import MainTabSystem from '@/components/MainTabSystem';
 
-export default function HomePage() {
+function HomePageContent() {
+  const { user, isLoading } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Handle auth required redirect from middleware
+  useEffect(() => {
+    const authRequired = searchParams.get('authRequired');
+    if (authRequired === 'true') {
+      setAuthMode('login');
+      setIsAuthModalOpen(true);
+    }
+  }, [searchParams]);
+
+  const handleAuthSuccess = () => {
+    setIsAuthModalOpen(false);
+    const redirectTo = searchParams.get('redirectTo');
+    if (redirectTo) {
+      router.push(redirectTo);
+    }
+    // Stay on homepage to show game dashboard
+  };
+
+  const handleStartCoaching = () => {
+    if (user) {
+      router.push('/coach');
+    } else {
+      setAuthMode('login');
+      setIsAuthModalOpen(true);
+    }
+  };
+
+  const handleRegisterClick = () => {
+    setAuthMode('register');
+    setIsAuthModalOpen(true);
+  };
+
+  const handleLoginClick = () => {
+    setAuthMode('login');
+    setIsAuthModalOpen(true);
+  };
   const characters = [
     { name: 'Sherlock Holmes', avatar: '🕵️', type: 'Historical', quote: 'Elementary, my dear coach.' },
     { name: 'Dracula', avatar: '🧛', type: 'Mythological', quote: 'I vant to suck... your strategy.' },
@@ -44,6 +91,11 @@ export default function HomePage() {
     },
   ];
 
+  // If user is logged in, show the actual game interface
+  if (user && !isLoading) {
+    return <MainTabSystem />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-950 text-white relative overflow-hidden">
       {/* Background elements - subtle blend of arena and living quarters */}
@@ -81,24 +133,32 @@ export default function HomePage() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={handleStartCoaching}
               className="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-600 text-white font-bold text-xl rounded-lg shadow-lg flex items-center justify-center gap-3 transition-all duration-300"
             >
-              <Play className="w-6 h-6" /> Start Coaching Now
+              <Play className="w-6 h-6" /> 
+              {user ? 'Continue Coaching' : 'Start Coaching Now'}
             </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xl rounded-lg shadow-md flex items-center justify-center gap-3 transition-all duration-300"
-            >
-              <UserPlus className="w-6 h-6" /> Register
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xl rounded-lg shadow-md flex items-center justify-center gap-3 transition-all duration-300"
-            >
-              <LogIn className="w-6 h-6" /> Login
-            </motion.button>
+            {!user && (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleRegisterClick}
+                  className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xl rounded-lg shadow-md flex items-center justify-center gap-3 transition-all duration-300"
+                >
+                  <UserPlus className="w-6 h-6" /> Register
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleLoginClick}
+                  className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xl rounded-lg shadow-md flex items-center justify-center gap-3 transition-all duration-300"
+                >
+                  <LogIn className="w-6 h-6" /> Login
+                </motion.button>
+              </>
+            )}
           </div>
         </motion.section>
 
@@ -252,6 +312,29 @@ export default function HomePage() {
           </div>
         </motion.footer>
       </main>
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        defaultMode={authMode}
+        onSuccess={handleAuthSuccess}
+      />
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <div className="text-xl">Loading...</div>
+        </div>
+      </div>
+    }>
+      <HomePageContent />
+    </Suspense>
   );
 }

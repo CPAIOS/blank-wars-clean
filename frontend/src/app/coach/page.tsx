@@ -5,6 +5,7 @@ import { useAuth, UserProfile, getCoachDisplayName } from '@/contexts/AuthContex
 import { CampaignProgressionManager, CoachingProgress } from '@/systems/campaignProgression';
 import { motion } from 'framer-motion';
 import { BarChart, LineChart, PieChart } from '@mui/x-charts'; // Placeholder for actual chart library
+import Link from 'next/link';
 
 interface CoachStatsProps {
   user: UserProfile;
@@ -128,6 +129,34 @@ const CoachProgressionPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
+      {/* Navigation Header */}
+      <div className="flex justify-between items-center mb-8">
+        <Link 
+          href="/" 
+          className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+          </svg>
+          Back to Game
+        </Link>
+        
+        <div className="flex space-x-4">
+          <Link 
+            href="/test-chat" 
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
+          >
+            Chat with Characters
+          </Link>
+          <Link 
+            href="/test-kitchen" 
+            className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
+          >
+            Kitchen Chat
+          </Link>
+        </div>
+      </div>
+
       <h1 className="text-4xl font-extrabold text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
         Coach Profile
       </h1>
@@ -143,9 +172,9 @@ const CoachProgressionPage: React.FC = () => {
         className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 mt-8"
       >
         <h3 className="text-2xl font-bold text-white mb-4">Milestones & Achievements</h3>
-        {playerProgress.completedChapters.length > 0 ? (
+        {coachingProgress.completedChapters.length > 0 ? (
           <ul className="list-disc list-inside text-gray-300">
-            {playerProgress.completedChapters.map((chapterId) => (
+            {coachingProgress.completedChapters.map((chapterId) => (
               <li key={chapterId} className="mb-2">
                 <span className="font-semibold text-green-400">Chapter Completed:</span> {chapterId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </li>

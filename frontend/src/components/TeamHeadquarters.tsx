@@ -14,7 +14,7 @@ import {
   Heart,
   Star,
   Crown,
-  Bed,
+  Bed as BedIcon,
   Sofa,
   ArrowUp,
   Building,
@@ -38,6 +38,7 @@ import { teamHeadquartersTutorialSteps } from '../data/tutorialSteps';
 import Tutorial from './Tutorial';
 import { usageService, UsageStatus } from '../data/usageService';
 import BedComponent from './BedComponent';
+import CharacterSlotUpgrade from './CharacterSlotUpgrade';
 import { PURCHASABLE_BEDS, HEADQUARTERS_TIERS, ROOM_THEMES, ROOM_ELEMENTS } from '../data/headquartersData';
 import { HeadquartersTier, RoomTheme, RoomElement, PurchasableBed, Bed, Room, HeadquartersState } from '../types/headquarters';
 import { calculateRoomCapacity, calculateSleepingArrangement } from '../utils/roomCalculations';
@@ -175,7 +176,7 @@ export default function TeamHeadquarters() {
   // purchaseBed function imported from ./services/bedService.ts
   
   // Calculate battle bonuses from room themes
-  const battleBonuses = headquarters.rooms.reduce((bonuses: Record<string, number>, room) => {
+  const battleBonuses = headquarters?.rooms?.reduce((bonuses: Record<string, number>, room) => {
     if (room.theme) {
       const theme = ROOM_THEMES.find(t => t.id === room.theme);
       if (theme && room.assignedCharacters.length > 0) {
@@ -183,7 +184,7 @@ export default function TeamHeadquarters() {
       }
     }
     return bonuses;
-  }, {});
+  }, {}) || {};
   const [currentSceneRound, setCurrentSceneRound] = useState(0);
   const [sceneInitialized, setSceneInitialized] = useState(false);
   const [coachMessage, setCoachMessage] = useState('');
@@ -283,7 +284,16 @@ export default function TeamHeadquarters() {
           theme: null,
           elements: [], // New multi-element system
           assignedCharacters: [],
-          maxCharacters: tier.charactersPerRoom
+          maxCharacters: tier.charactersPerRoom,
+          beds: [
+            {
+              id: `bed_${i + 1}_1`,
+              type: 'bed',
+              position: { x: 0, y: 0 },
+              capacity: 1,
+              comfortBonus: 10
+            }
+          ]
         }))
       }));
     }
@@ -332,6 +342,17 @@ export default function TeamHeadquarters() {
       isLoading: false
     });
   };
+
+  // Add null check for headquarters to prevent runtime errors
+  if (!headquarters || !headquarters.rooms) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="text-center text-gray-400">
+          Loading headquarters...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -782,7 +803,7 @@ export default function TeamHeadquarters() {
                     {room.assignedCharacters.length <= roomCapacity ? (
                       Array.from({ length: roomCapacity - room.assignedCharacters.length }).map((_, i) => (
                         <div key={`empty-${i}`} className="flex flex-col items-center opacity-30 hover:opacity-50 transition-opacity cursor-pointer">
-                          <Bed className="w-6 h-6 text-gray-500" />
+                          <BedIcon className="w-6 h-6 text-gray-500" />
                           <div className="text-xs text-gray-500">Available</div>
                         </div>
                       ))
@@ -859,7 +880,7 @@ export default function TeamHeadquarters() {
                       }}
                       className="w-full px-3 py-2 bg-green-600/20 hover:bg-green-600/40 border border-green-500/50 rounded-lg transition-all text-green-300 text-sm flex items-center justify-center gap-2"
                     >
-                      <Bed className="w-4 h-4" />
+                      <BedIcon className="w-4 h-4" />
                       Buy Beds ({room.beds.length} beds)
                     </button>
                   </div>
@@ -1146,6 +1167,17 @@ export default function TeamHeadquarters() {
                 })}
               </div>
             </div>
+
+            {/* Character Slot Capacity Upgrade Component */}
+            <CharacterSlotUpgrade 
+              currency={headquarters.currency}
+              onCurrencyUpdate={(coins, gems) => {
+                setHeadquarters(prev => ({
+                  ...prev,
+                  currency: { coins, gems }
+                }));
+              }}
+            />
           </motion.div>
         )}
 
@@ -1340,7 +1372,7 @@ export default function TeamHeadquarters() {
             >
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Bed className="w-5 h-5" />
+                  <BedIcon className="w-5 h-5" />
                   Buy Beds for {headquarters.rooms.find(r => r.id === selectedRoomForBeds)?.name}
                 </h3>
                 <button

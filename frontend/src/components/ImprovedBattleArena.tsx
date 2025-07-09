@@ -2,21 +2,21 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import BattleRewards from '../BattleRewards';
-import CombatSkillProgression from '../CombatSkillProgression';
-import AudioSettings from '../AudioSettings';
-import TradingCard from '../TradingCard';
-import CardCollection from '../CardCollection';
-import CardPackOpening from '../CardPackOpening';
-import BattleHUD from '../BattleHUD';
-import StrategyPanel from '../StrategyPanel';
-import CharacterSpecificStrategyPanel from '../CharacterSpecificStrategyPanel';
-import CoachingPanel from '../CoachingPanel';
-import TeamDisplay from '../TeamDisplay';
-import TeamOverview from '../TeamOverview';
-import MatchmakingPanel from '../MatchmakingPanel';
-import ChaosPanel from '../ChaosPanel';
-import TeamChatPanel from '../TeamChatPanel';
+import BattleRewards from './BattleRewards';
+import CombatSkillProgression from './CombatSkillProgression';
+import AudioSettings from './AudioSettings';
+import TradingCard from './TradingCard';
+import CardCollection from './CardCollection';
+import CardPackOpening from './CardPackOpening';
+import BattleHUD from './BattleHUD';
+import StrategyPanel from './StrategyPanel';
+import CharacterSpecificStrategyPanel from './CharacterSpecificStrategyPanel';
+import CoachingPanel from './CoachingPanel';
+import TeamDisplay from './TeamDisplay';
+import TeamOverview from './TeamOverview';
+import MatchmakingPanel from './MatchmakingPanel';
+import ChaosPanel from './ChaosPanel';
+import TeamChatPanel from './TeamChatPanel';
 import { combatRewards, createBattleStats, BattleStats } from '@/data/combatRewards';
 import { BattlePhase } from '@/data/battleFlow';
 import { generateAIResponse } from '@/utils/aiChatResponses';
@@ -374,6 +374,13 @@ export default function ImprovedBattleArena() {
     speak
   });
 
+  // Initialize Battle Rewards Hook (moved here to be available for battleEngineLogic)
+  const battleRewardsHook = useBattleRewards({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout }
+  });
+
   // Initialize Battle Engine Logic Hook 
   const battleEngineLogic = useBattleEngineLogic({
     state,
@@ -419,7 +426,7 @@ export default function ImprovedBattleArena() {
     showBattleCries: uiPresentation.showBattleCries,
     transitionToPhase: uiPresentation.transitionToPhase,
     executeCombatRound: battleSimulation.executeCombatRound,
-    calculateBattleRewards: battleRewards.calculateBattleRewards,
+    calculateBattleRewards: battleRewardsHook.calculateBattleRewards,
     resetBattle: battleFlow.resetBattle,
     startStrategySelection: battleFlow.startStrategySelection,
     // Fast Battle System
@@ -429,13 +436,6 @@ export default function ImprovedBattleArena() {
     resolveFastBattle: battleSimulation.resolveFastBattle,
     calculateFastBattleResult: battleSimulation.calculateFastBattleResult,
     headquartersEffects
-  });
-
-  // Initialize Battle Rewards Hook
-  const battleRewards = useBattleRewards({
-    state,
-    actions,
-    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout }
   });
 
   // Initialize Battle Flow Hook
@@ -457,7 +457,7 @@ export default function ImprovedBattleArena() {
     state,
     actions,
     timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
-    calculateBattleRewards: battleRewards.calculateBattleRewards,
+    calculateBattleRewards: battleRewardsHook.calculateBattleRewards,
     announceAction
   });
 
@@ -695,28 +695,6 @@ export default function ImprovedBattleArena() {
   };
 
   // handleOpponentSelection function moved to useMatchmaking hook
-    
-    // Adjust opponent team stats based on selected level
-    const adjustedOpponentTeam = {
-      ...opponentTeam,
-      characters: opponentTeam.characters.map(char => ({
-        ...char,
-        level: opponent.opponent.teamLevel,
-        // Scale stats based on level difference
-        traditionalStats: {
-          ...char.traditionalStats,
-          strength: Math.max(10, Math.min(100, char.traditionalStats.strength + (opponent.opponent.teamLevel - char.level) * 3)),
-          vitality: Math.max(10, Math.min(100, char.traditionalStats.vitality + (opponent.opponent.teamLevel - char.level) * 3)),
-          speed: Math.max(10, Math.min(100, char.traditionalStats.speed + (opponent.opponent.teamLevel - char.level) * 2)),
-          dexterity: Math.max(10, Math.min(100, char.traditionalStats.dexterity + (opponent.opponent.teamLevel - char.level) * 2)),
-        },
-        maxHp: Math.max(50, char.maxHp + (opponent.opponent.teamLevel - char.level) * 10),
-        currentHp: Math.max(50, char.maxHp + (opponent.opponent.teamLevel - char.level) * 10)
-      }))
-    };
-    
-    setOpponentTeam(adjustedOpponentTeam);
-  };
 
   // Battle functions extracted above - Fast Battle System Functions moved to useBattleSimulation hook
 

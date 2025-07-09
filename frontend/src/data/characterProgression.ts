@@ -283,6 +283,7 @@ export function getLevelFromTotalXP(totalXP: number): { level: number; currentXP
     currentXP: totalXP - accumulatedXP,
     xpToNext: levelProgressionData[currentLevel - 1]?.xpToNext || 0 // Use currentLevel - 1 for array index
   };
+}
 
 export function getNextMilestone(level: number): { level: number; reward: MilestoneReward } | null {
   const milestones = Object.keys(milestoneRewards).map(Number).sort((a, b) => a - b);

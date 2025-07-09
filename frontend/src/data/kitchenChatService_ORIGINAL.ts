@@ -35,20 +35,29 @@ export class KitchenChatService {
   private activeConversations: Map<string, KitchenConversation> = new Map();
 
   constructor() {
-    this.initializeSocket();
+    // Only initialize socket on client side
+    if (typeof window !== 'undefined') {
+      this.initializeSocket();
+    }
   }
 
   private initializeSocket() {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
     // Determine backend URL based on environment
     let socketUrl: string;
     
-    if (process.env.NODE_ENV === 'production') {
-      // Production: use environment variable or blankwars.com backend
-      // For production, backend should be deployed separately 
-      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-backend.railway.app';
-    } else {
-      // Development: use localhost
+    // Check if we're running locally (either in dev or local production build)
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1';
+    
+    if (isLocalhost) {
+      // Local development or local production build
       socketUrl = 'http://localhost:3006';
+    } else {
+      // Deployed production
+      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-backend.railway.app';
     }
     
     console.log('🔧 Kitchen Chat Service initializing with URL:', socketUrl);
@@ -324,6 +333,11 @@ export class KitchenChatService {
    * Wait for socket connection
    */
   async waitForConnection(timeout: number = 5000): Promise<boolean> {
+    // Initialize socket if not already done (for SSR)
+    if (!this.socket && typeof window !== 'undefined') {
+      this.initializeSocket();
+    }
+    
     console.log('🔍 Checking socket connection status...');
     console.log('🔍 Socket exists:', !!this.socket);
     console.log('🔍 Socket connected:', this.socket?.connected);

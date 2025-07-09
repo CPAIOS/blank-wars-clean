@@ -416,7 +416,6 @@ export default function AbilityManager({
           </p>
         </div>
       )}
-          </div>
         </div>
 
         {/* Skill Development Chat Panel */}

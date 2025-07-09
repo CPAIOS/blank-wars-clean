@@ -23,6 +23,7 @@ export interface ChatContext {
   mythology?: string;
   currentBondLevel?: number;
   previousMessages?: { role: 'user' | 'assistant'; content: string }[];
+  conversationContext?: string; // Added for Real Estate Agents
 }
 
 export class AIChatService {
@@ -34,18 +35,19 @@ export class AIChatService {
     userMessage: string,
     userId: string,
     db: any,
-    battleContext?: {
-      isInBattle: boolean;
+    additionalContext?: {
+      isInBattle?: boolean;
       currentHealth?: number;
       maxHealth?: number;
       opponentName?: string;
       battlePhase?: string;
       isCombatChat?: boolean;
+      facilitiesContext?: any;
     }
   ): Promise<{ message: string; bondIncrease: boolean; usageLimitReached?: boolean }> {
     try {
       // Check usage limits before generating AI response (skip for battle combat chat)
-      const isCombatChat = battleContext?.isCombatChat || false;
+      const isCombatChat = additionalContext?.isCombatChat || false;
       
       if (!isCombatChat) {
         const canUseChat = await usageTrackingService.trackChatUsage(userId, db);
@@ -58,8 +60,8 @@ export class AIChatService {
         }
       }
 
-      // Build the system prompt based on character personality
-      const systemPrompt = this.buildCharacterPrompt(context, battleContext);
+      // Build the system prompt based on character personality and additional context
+      const systemPrompt = this.buildCharacterPrompt(context, additionalContext);
       
       // Include previous messages for context (last 5 messages)
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -116,7 +118,7 @@ export class AIChatService {
           await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
           
           // Rebuild messages for retry
-          const systemPrompt = this.buildCharacterPrompt(context, battleContext);
+          const systemPrompt = this.buildCharacterPrompt(context, additionalContext);
           const retryMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
             { role: 'system', content: systemPrompt }
           ];
@@ -153,13 +155,21 @@ export class AIChatService {
   /**
    * Build a character-specific system prompt
    */
-  private buildCharacterPrompt(context: ChatContext, battleContext?: any): string {
-    const { characterName, personality, historicalPeriod, mythology } = context;
+  private buildCharacterPrompt(context: ChatContext, additionalContext?: any): string {
+    const { characterName, personality, historicalPeriod, mythology, conversationContext } = context;
     
-    let prompt = `You are ${characterName}, a character from ${historicalPeriod || 'various times and places'}.`;
-    
-    if (mythology) {
-      prompt += ` You are known in ${mythology} mythology.`;
+    let prompt = '';
+
+    // Use conversationContext if provided (for Real Estate Agents)
+    if (conversationContext) {
+      prompt = conversationContext;
+    } else {
+      // Existing character prompt building logic
+      prompt = `You are ${characterName}, a character from ${historicalPeriod || 'various times and places'}.`;
+      
+      if (mythology) {
+        prompt += ` You are known in ${mythology} mythology.`;
+      }
     }
     
     // Safety check for personality structure
@@ -189,14 +199,62 @@ export class AIChatService {
       prompt += `\nYour unique quirks and mannerisms: ${personality.quirks.join(', ')}.`;
     }
     
-    if (battleContext?.isInBattle) {
-      prompt += `\n\nYou are currently in battle against ${battleContext.opponentName || 'an opponent'}.`;
-      if (battleContext.currentHealth && battleContext.maxHealth) {
-        const healthPercent = (battleContext.currentHealth / battleContext.maxHealth) * 100;
+    if (additionalContext?.isInBattle) {
+      prompt += `\n\nYou are currently in battle against ${additionalContext.opponentName || 'an opponent'}.`;
+      if (additionalContext.currentHealth && additionalContext.maxHealth) {
+        const healthPercent = (additionalContext.currentHealth / additionalContext.maxHealth) * 100;
         if (healthPercent < 30) {
           prompt += ` You are badly wounded but still fighting.`;
         } else if (healthPercent < 60) {
           prompt += ` You have taken some damage but remain strong.`;
+        }
+      }
+    }
+    
+    // Add comprehensive facilities context for Real Estate Agents
+    if (additionalContext?.facilitiesContext) {
+      const facilities = additionalContext.facilitiesContext;
+      
+      prompt += `\n\nTEAM STATUS:
+Team Level: ${facilities.teamLevel} | Budget: ${facilities.currency.coins} coins, ${facilities.currency.gems} gems`;
+
+      if (facilities.headquarters) {
+        const hq = facilities.headquarters;
+        prompt += `\n\nCURRENT HOUSING SITUATION:
+• ${hq.currentTier.replace('_', ' ')} (${hq.currentOccupancy}/${hq.totalCapacity} capacity)
+• OVERCROWDED by ${hq.currentOccupancy - hq.totalCapacity} fighters
+• Current Penalties: ${Object.entries(hq.penalties).map(([k,v]) => `${k}: ${v}%`).join(', ')}
+
+ROOM BREAKDOWN:
+${hq.rooms.map((room: any) => `• ${room.name}: ${room.assignedCharacters.length} fighters, ${room.sleepingArrangement}
+  Conflicts: ${room.conflicts.join(', ') || 'None'}`).join('\n')}`;
+      }
+
+      if (facilities.battleImpact) {
+        prompt += `\n\nBATTLE PERFORMANCE IMPACT:
+CURRENT PENALTIES:
+${facilities.battleImpact.currentPenalties.map((p: any) => `• ${p}`).join('\n')}
+
+FACILITY BONUSES:
+${facilities.battleImpact.facilityBonuses.length > 0 ? 
+  facilities.battleImpact.facilityBonuses.map((b: any) => `• ${b}`).join('\n') : 
+  '• None currently active'}`;
+      }
+
+      if (facilities.selectedFacility) {
+        const selected = facilities.selectedFacility;
+        prompt += `\n\nCURRENTLY VIEWING: ${selected.name}
+• Cost: ${selected.cost.coins} coins, ${selected.cost.gems} gems
+• Category: ${selected.category}
+• Benefits: ${selected.benefits.join(', ')}
+• Battle Impact: ${selected.battleImpact?.map((b: any) => b.description).join(', ') || 'None'}
+• Training Impact: ${selected.trainingImpact?.map((b: any) => b.description).join(', ') || 'None'}`;
+      }
+
+      if (facilities.allFacilities) {
+        const affordable = facilities.allFacilities.filter((f: any) => f.canAfford && f.canUnlock && !f.isOwned);
+        if (affordable.length > 0) {
+          prompt += `\n\nAFFORDABLE FACILITIES: ${affordable.map((f: any) => `${f.name} (${f.cost.coins} coins)`).join(', ')}`;
         }
       }
     }

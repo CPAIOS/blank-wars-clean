@@ -11,6 +11,8 @@ import { getThemeCompatibility, getCharacterSuggestedThemes } from './characterH
 
 // getRoomThemeWarnings function - extracted from TeamHeadquarters.tsx (lines 258-280)
 export const getRoomThemeWarnings = (roomId: string, headquarters: any) => {
+  if (!headquarters?.rooms) return [];
+  
   const room = headquarters.rooms.find(r => r.id === roomId);
   if (!room || !room.theme) return [];
   
@@ -37,6 +39,8 @@ export const getRoomThemeWarnings = (roomId: string, headquarters: any) => {
 
 // calculateMissedBonuses function - extracted from TeamHeadquarters.tsx (lines 257-281)
 export const calculateMissedBonuses = (roomId: string, headquarters: any) => {
+  if (!headquarters?.rooms) return [];
+  
   const room = headquarters.rooms.find(r => r.id === roomId);
   if (!room) return [];
   
@@ -64,6 +68,8 @@ export const calculateMissedBonuses = (roomId: string, headquarters: any) => {
 
 // calculateRoomBonuses function - extracted from TeamHeadquarters.tsx (lines 338-368)
 export const calculateRoomBonuses = (roomId: string, headquarters: any) => {
+  if (!headquarters?.rooms) return {};
+  
   const room = headquarters.rooms.find(r => r.id === roomId);
   if (!room) return {};
 

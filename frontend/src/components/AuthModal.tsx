@@ -22,9 +22,10 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultMode?: 'login' | 'register';
+  onSuccess?: () => void;
 }
 
-export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onSuccess }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register'>(defaultMode);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -66,9 +67,12 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
         });
       }
       
-      // Success - close modal
+      // Success - close modal and call success callback
       onClose();
       setFormData({ username: '', email: '', password: '' });
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
     }

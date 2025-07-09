@@ -120,23 +120,37 @@ class InMemoryCache implements CacheInterface {
 class CacheService {
   private redis: CacheInterface;
   private fallback: CacheInterface;
-  private useRedis: boolean = true;
+  private useRedis: boolean = false;
 
   constructor() {
     this.redis = redisService;
     this.fallback = new InMemoryCache();
     
-    // Check Redis health on startup
-    setTimeout(() => {
-      this.checkRedisHealth();
-    }, 1000);
+    // Start with in-memory cache for development
+    this.useRedis = false;
+    
+    // Skip Redis health check for development
+    if (process.env.NODE_ENV === 'production' && process.env.REDIS_URL) {
+      setTimeout(() => {
+        this.checkRedisHealth();
+      }, 100);
+    }
   }
 
   private async checkRedisHealth(): Promise<void> {
     try {
-      await this.redis.set('health_check', 'ok', 10);
-      const result = await this.redis.get('health_check');
-      this.useRedis = result === 'ok';
+      // Add timeout to prevent hanging
+      const healthCheckPromise = (async () => {
+        await this.redis.set('health_check', 'ok', 10);
+        const result = await this.redis.get('health_check');
+        return result === 'ok';
+      })();
+      
+      const timeoutPromise = new Promise<boolean>((_, reject) => {
+        setTimeout(() => reject(new Error('Redis health check timeout')), 5000);
+      });
+      
+      this.useRedis = await Promise.race([healthCheckPromise, timeoutPromise]);
       
       if (this.useRedis) {
         console.log('✅ Redis health check passed - using Redis cache');

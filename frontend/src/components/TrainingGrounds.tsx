@@ -918,18 +918,18 @@ export default function TrainingGrounds() {
             <div className="grid gap-4">
               {availableActivities.map((activity) => {
                 const Icon = activity.icon;
-                const canTrain = !isTraining && selectedCharacter.energy >= activity.energyCost;
+                const canStartTraining = !isTraining && selectedCharacter.energy >= activity.energyCost;
                 
                 return (
                   <motion.div
                     key={activity.id}
                     className={`border rounded-xl p-4 transition-all ${
-                      canTrain 
+                      canStartTraining 
                         ? 'border-gray-600 hover:border-blue-500 cursor-pointer' 
                         : 'border-gray-700 opacity-50 cursor-not-allowed'
                     }`}
-                    whileHover={canTrain ? { scale: 1.02 } : {}}
-                    onClick={() => canTrain && startTraining(activity)}
+                    whileHover={canStartTraining ? { scale: 1.02 } : {}}
+                    onClick={() => canStartTraining && startTraining(activity)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4 flex-1">
@@ -969,7 +969,7 @@ export default function TrainingGrounds() {
                         </div>
                       </div>
                       
-                      {canTrain && (
+                      {canStartTraining && (
                         <div className="ml-4">
                           <button className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors">
                             <Play className="w-4 h-4" />

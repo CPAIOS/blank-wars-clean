@@ -14,6 +14,9 @@ import CoachProgressionPage from '@/app/coach/page';
 
 // Import stable components
 import TeamHeadquarters from './TeamHeadquarters';
+import PerformanceCoachingChat from './PerformanceCoachingChat';
+import EquipmentAdvisorChat from './EquipmentAdvisorChat';
+import SkillDevelopmentChat from './SkillDevelopmentChat';
 import TeamBuildingActivities from './TeamBuildingActivities';
 
 // Import components directly to fix crashes
@@ -205,6 +208,7 @@ export default function MainTabSystem() {
 
   // Component wrappers
   const ProgressionDashboardWrapper = () => {
+    const [showPerformanceChat, setShowPerformanceChat] = useState(false);
     
     // Get the real 17 characters from the game
     const availableCharacters = createDemoCharacterCollection().map(char => {
@@ -227,7 +231,37 @@ export default function MainTabSystem() {
     
     return (
     <div className="space-y-6">
-      <div className="flex gap-6">
+      {/* Toggle between Progression Dashboard and Performance Chat */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setShowPerformanceChat(false)}
+          className={`px-4 py-2 rounded-lg transition-all ${
+            !showPerformanceChat 
+              ? 'bg-green-600 text-white' 
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          Progression Dashboard
+        </button>
+        <button
+          onClick={() => setShowPerformanceChat(true)}
+          className={`px-4 py-2 rounded-lg transition-all ${
+            showPerformanceChat 
+              ? 'bg-green-600 text-white' 
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          Performance Coaching Chat
+        </button>
+      </div>
+
+      {showPerformanceChat ? (
+        <PerformanceCoachingChat 
+          selectedCharacterId={globalSelectedCharacterId}
+          onCharacterChange={setGlobalSelectedCharacterId}
+        />
+      ) : (
+        <div className="flex gap-6">
           {/* Character Sidebar */}
           <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -310,12 +344,14 @@ export default function MainTabSystem() {
             />
           </div>
         </div>
+      )}
     </div>
     );
   };
 
   const EquipmentManagerWrapper = () => {
     const [characterEquipment, setCharacterEquipment] = useState<Record<string, any>>({});
+    const [showEquipmentChat, setShowEquipmentChat] = useState(false);
     
     // Get the real 17 characters from the game
     const availableCharacters = createDemoCharacterCollection().map(char => {
@@ -367,7 +403,37 @@ export default function MainTabSystem() {
     
     return (
     <div className="space-y-6">
-      <div className="flex gap-6">
+      {/* Toggle between Equipment Manager and Equipment Chat */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setShowEquipmentChat(false)}
+          className={`px-4 py-2 rounded-lg transition-all ${
+            !showEquipmentChat 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          Equipment Manager
+        </button>
+        <button
+          onClick={() => setShowEquipmentChat(true)}
+          className={`px-4 py-2 rounded-lg transition-all ${
+            showEquipmentChat 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          Equipment Advisor Chat
+        </button>
+      </div>
+
+      {showEquipmentChat ? (
+        <EquipmentAdvisorChat 
+          selectedCharacterId={globalSelectedCharacterId}
+          onCharacterChange={setGlobalSelectedCharacterId}
+        />
+      ) : (
+        <div className="flex gap-6">
           {/* Character Sidebar */}
           <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -453,12 +519,14 @@ export default function MainTabSystem() {
           />
           </div>
         </div>
+      )}
     </div>
     );
   };
 
   const AbilityManagerWrapper = () => {
     const [characterAbilities, setCharacterAbilities] = useState<Record<string, any>>({});
+    const [showSkillDevelopmentChat, setShowSkillDevelopmentChat] = useState(false);
     
     // Get the real 17 characters from the game
     const availableCharacters = createDemoCharacterCollection().map(char => {
@@ -481,7 +549,37 @@ export default function MainTabSystem() {
     
     return (
     <div className="space-y-6">
-      <div className="flex gap-6">
+      {/* Toggle between Ability Manager and Skill Development Chat */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setShowSkillDevelopmentChat(false)}
+          className={`px-4 py-2 rounded-lg transition-all ${
+            !showSkillDevelopmentChat 
+              ? 'bg-purple-600 text-white' 
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          Ability Manager
+        </button>
+        <button
+          onClick={() => setShowSkillDevelopmentChat(true)}
+          className={`px-4 py-2 rounded-lg transition-all ${
+            showSkillDevelopmentChat 
+              ? 'bg-purple-600 text-white' 
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          Skill Development Chat
+        </button>
+      </div>
+
+      {showSkillDevelopmentChat ? (
+        <SkillDevelopmentChat 
+          selectedCharacterId={globalSelectedCharacterId}
+          onCharacterChange={setGlobalSelectedCharacterId}
+        />
+      ) : (
+        <div className="flex gap-6">
           {/* Character Sidebar */}
           <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -600,6 +698,7 @@ export default function MainTabSystem() {
             </div>
           </div>
         </div>
+      )}
     </div>
     );
   };

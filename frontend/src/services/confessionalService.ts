@@ -75,8 +75,9 @@ export const startConfessional = async (
  * Pause confessional interview
  */
 export const pauseConfessional = (
-  setConfessionalData: (updater: (prev: ConfessionalData) => ConfessionalData) => void
+  setConfessionalData: (updater: (prev: any) => any) => void
 ) => {
+  console.log('⏸️ Pausing confessional interview');
   setConfessionalData(prev => ({
     ...prev,
     isPaused: true
@@ -95,6 +96,7 @@ export const continueConfessional = (
 ) => {
   if (!confessionalData.activeCharacter) return;
   
+  console.log('▶️ Continuing confessional interview');
   setConfessionalData(prev => ({
     ...prev,
     isPaused: false

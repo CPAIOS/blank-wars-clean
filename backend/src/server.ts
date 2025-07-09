@@ -869,7 +869,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         personality: characterData?.personality || {
           traits: [characterData?.archetype || 'Mysterious'],
           speechStyle: characterData?.personality?.speechStyle || 'Thoughtful and measured',
-          motivations: characterData?.personality?.motivations || ['Victory', 'Team success'],
+          motivations: ['Victory', 'Team success'],
           fears: ['Defeat', 'Letting the team down']
         },
         historicalPeriod: characterData?.historicalPeriod,
@@ -927,6 +927,80 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         character: data.character,
         characterId: data.characterId,
         error: `OpenAI service error: ${error instanceof Error ? error.message : String(error)}`,
+        details: error instanceof Error ? error.stack : undefined
+      });
+    }
+  });
+
+  // Facilities chat with Real Estate Agents
+  socket.on('facilities_chat_message', async (data) => {
+    console.log('🏢 FACILITIES CHAT MESSAGE:', data.agentId, 'from socket:', socket.id);
+    
+    // Rate limit facilities chat (max 30 per minute)
+    if (!checkEventRateLimit('facilities_chat_message', 30)) {
+      console.log('❌ Facilities chat rate limited');
+      socket.emit('facilities_chat_response', {
+        error: 'Rate limit exceeded. Please slow down your messages.'
+      });
+      return;
+    }
+
+    try {
+      const { message, agentId, agentData, facilitiesContext, previousMessages } = data;
+      
+      console.log('🤖 Processing facilities chat for agent:', agentId, 'Message:', message);
+      
+      // Prepare chat context for AI service
+      const chatContext = {
+        characterId: agentId,
+        characterName: agentData?.name || agentId,
+        personality: agentData?.personality || {
+          traits: ['Professional', 'Helpful'],
+          speechStyle: 'Formal',
+          motivations: ['Client satisfaction'],
+          fears: ['Unsatisfied customers']
+        },
+        conversationContext: agentData?.conversationContext,
+        previousMessages: previousMessages || []
+      };
+      
+      // Get user ID from socket for usage tracking
+      const userId = (socket as any).userId || 'anonymous';
+      
+      const response = await aiChatService.generateCharacterResponse(
+        chatContext,
+        message,
+        userId,
+        db,
+        { isInBattle: false, facilitiesContext: facilitiesContext }
+      );
+      
+      // Check if usage limit was reached
+      if (response.usageLimitReached) {
+        socket.emit('facilities_chat_response', {
+          message: response.message,
+          error: true,
+          usageLimitReached: true
+        });
+        return;
+      }
+      
+      console.log('✅ AI Facilities Chat Response:', {
+        agentId,
+        messageLength: response.message.length,
+      });
+      
+      // Send response back to the frontend
+      socket.emit('facilities_chat_response', {
+        agentId: agentId,
+        message: response.message,
+      });
+      
+    } catch (error) {
+      console.error('❌ Facilities chat error:', error);
+      socket.emit('facilities_chat_response', {
+        agentId: data.agentId,
+        error: `AI service error: ${error instanceof Error ? error.message : String(error)}`,
         details: error instanceof Error ? error.stack : undefined
       });
     }

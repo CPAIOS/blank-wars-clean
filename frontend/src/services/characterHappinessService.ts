@@ -10,6 +10,8 @@ import { calculateRoomCapacity } from '../utils/roomCalculations';
 
 // getCharacterConflicts function - extracted from TeamHeadquarters.tsx (lines 246-266)
 export const getCharacterConflicts = (roomId: string, headquarters: any) => {
+  if (!headquarters?.rooms) return [];
+  
   const room = headquarters.rooms.find(r => r.id === roomId);
   if (!room || room.assignedCharacters.length < 2) return [];
 
@@ -33,6 +35,8 @@ export const getCharacterConflicts = (roomId: string, headquarters: any) => {
 
 // getCharacterHappiness function - extracted from TeamHeadquarters.tsx (lines 269-311)
 export const getCharacterHappiness = (charName: string, roomId: string, headquarters: any) => {
+  if (!headquarters?.rooms) return { level: 3, status: 'Content', emoji: '😐' };
+  
   const room = headquarters.rooms.find(r => r.id === roomId);
   if (!room) return { level: 3, status: 'Content', emoji: '😐' };
 

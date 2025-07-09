@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building, Crown, Sparkles, TrendingUp, 
   CheckCircle, Lock, AlertCircle, Coins, 
-  Gem, Star, ChevronRight, Info
+  Gem, Star, ChevronRight, Info, Send, User
 } from 'lucide-react';
 import { 
   FACILITIES, 
@@ -15,6 +15,19 @@ import {
   getFacilityUpgradeCost, 
   canUnlockFacility 
 } from '@/data/facilities';
+
+// New imports for Real Estate Agent chat
+import { io, Socket } from 'socket.io-client';
+import { realEstateAgents } from '../data/realEstateAgents';
+import { RealEstateAgent } from '../data/realEstateAgentTypes';
+
+// Message interface for chat
+interface Message {
+  id: number;
+  type: 'player' | 'agent' | 'system';
+  content: string;
+  timestamp: Date;
+}
 
 interface FacilitiesManagerProps {
   teamLevel: number;
@@ -38,6 +51,16 @@ export default function FacilitiesManager({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  // New state for Real Estate Agent chat
+  const [selectedAgentId, setSelectedAgentId] = useState(realEstateAgents[0].id);
+  const selectedAgent = realEstateAgents.find(agent => agent.id === selectedAgentId) || realEstateAgents[0];
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const categories = [
     { id: 'all', label: 'All Facilities', icon: Building },
@@ -95,6 +118,218 @@ export default function FacilitiesManager({
     onUpgradeFacility(facilityId);
     setShowDetailsModal(false);
   };
+
+  // --- Real Estate Agent Chat Logic ---
+  useEffect(() => {
+    const socketUrl = 'http://localhost:3006';
+    console.log('🔌 [FacilitiesManager] Connecting to local backend:', socketUrl);
+    
+    socketRef.current = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+    });
+
+    socketRef.current.on('connect', () => {
+      console.log('✅ FacilitiesManager Socket connected!');
+      setConnected(true);
+      // Initial message from the selected agent
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'agent',
+        content: `Greetings, Coach! ${selectedAgent.name} at your service. How can I assist you in optimizing your team's real estate portfolio today?`,
+        timestamp: new Date(),
+      }]);
+    });
+
+    socketRef.current.on('disconnect', () => {
+      console.log('❌ FacilitiesManager Socket disconnected');
+      setConnected(false);
+    });
+
+    socketRef.current.on('facilities_chat_response', (data: { message: string }) => {
+      console.log('📨 FacilitiesManager response:', data);
+      
+      const agentMessage: Message = {
+        id: Date.now(),
+        type: 'agent',
+        content: data.message || 'Considering your options...',
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, agentMessage]);
+      setIsTyping(false);
+    });
+
+    socketRef.current.on('chat_error', (error: { message: string }) => {
+      console.error('❌ FacilitiesManager error:', error);
+      setIsTyping(false);
+    });
+
+    return () => {
+      socketRef.current?.disconnect();
+    };
+  }, [selectedAgent.id]); // Reconnect if agent changes
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = (content: string) => {
+    if (!content.trim() || isTyping || !connected || !socketRef.current) {
+      return;
+    }
+
+    const playerMessage: Message = {
+      id: Date.now(),
+      type: 'player',
+      content,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, playerMessage]);
+    setInputMessage('');
+    setIsTyping(true);
+
+    console.log('📤 FacilitiesManager message:', content);
+
+    // Prepare comprehensive facilities context data
+    const facilitiesContext = {
+      teamLevel,
+      currency,
+      unlockedAchievements,
+      
+      // Detailed owned facilities with current benefits
+      ownedFacilities: ownedFacilities.map(f => {
+        const facilityData = FACILITIES.find(facility => facility.id === f.id);
+        return {
+          id: f.id,
+          name: facilityData?.name || f.id,
+          category: facilityData?.category || 'unknown',
+          level: f.level,
+          maxLevel: facilityData?.maxLevel || 1,
+          maintenancePaid: f.maintenancePaid,
+          currentBonuses: facilityData?.bonuses || [],
+          description: facilityData?.description || '',
+          benefits: facilityData?.benefits || [],
+          upgradeCost: facilityData && f.level < facilityData.maxLevel ? 
+            getFacilityUpgradeCost(facilityData, f.level) : null
+        };
+      }),
+      
+      // Currently selected facility details
+      selectedFacility: selectedFacility ? {
+        id: selectedFacility.id,
+        name: selectedFacility.name,
+        category: selectedFacility.category,
+        description: selectedFacility.description,
+        cost: selectedFacility.cost,
+        benefits: selectedFacility.benefits,
+        bonuses: selectedFacility.bonuses,
+        unlockRequirements: selectedFacility.unlockRequirements,
+        upgradeCosts: selectedFacility.upgradeCosts,
+        maxLevel: selectedFacility.maxLevel,
+        maintenanceCost: selectedFacility.maintenanceCost,
+        battleImpact: selectedFacility.bonuses.filter(b => b.type === 'battle'),
+        trainingImpact: selectedFacility.bonuses.filter(b => b.type === 'training'),
+        recoveryImpact: selectedFacility.bonuses.filter(b => b.type === 'recovery')
+      } : null,
+      
+      // All available facilities with unlock status
+      allFacilities: FACILITIES.map(f => ({
+        id: f.id,
+        name: f.name,
+        category: f.category,
+        description: f.description,
+        cost: f.cost,
+        benefits: f.benefits,
+        bonuses: f.bonuses,
+        unlockRequirements: f.unlockRequirements,
+        isOwned: ownedFacilities.some(owned => owned.id === f.id),
+        canAfford: currency.coins >= f.cost.coins && currency.gems >= f.cost.gems,
+        canUnlock: canUnlockFacility(f, teamLevel, unlockedAchievements, ownedFacilities.map(o => o.id))
+      })),
+      
+      // Strategic headquarters context (mock data - should come from actual HQ state)
+      headquarters: {
+        currentTier: 'spartan_apartment', // 2 rooms, 4 characters per room max
+        totalCapacity: 8,
+        currentOccupancy: 10, // Overcrowded!
+        rooms: [
+          {
+            id: 'room1',
+            name: 'Main Room',
+            theme: null, // Unthemed = -3 morale penalty
+            assignedCharacters: ['achilles', 'holmes', 'dracula', 'joan', 'tesla'],
+            beds: [
+              { type: 'bunk_bed', capacity: 2, comfortBonus: 5 },
+              { type: 'couch', capacity: 1, comfortBonus: 0 }
+            ],
+            sleepingArrangement: '2 in bunks, 1 on couch, 2 on floor (-10 comfort)',
+            conflicts: ['dracula vs holmes (-15% teamwork)', 'achilles vs joan (-8% teamwork)']
+          },
+          {
+            id: 'room2', 
+            name: 'Side Room',
+            theme: 'greek_classical', // +15 Strength for Achilles if he was here
+            assignedCharacters: ['cleopatra', 'genghis_khan', 'merlin', 'sun_wukong', 'billy_the_kid'],
+            beds: [
+              { type: 'bunk_bed', capacity: 2, comfortBonus: 5 }
+            ],
+            sleepingArrangement: '2 in bunks, 3 on floor (-10 comfort)',
+            conflicts: ['cleopatra vs genghis_khan (-12% teamwork)']
+          }
+        ],
+        penalties: {
+          'All Stats': -23, // -8 from spartan apartment, -15 from overcrowding
+          'Morale': -20, // -15 from tier, -5 from overcrowding  
+          'Teamwork': -35 // -10 from tier, -25 from conflicts
+        },
+        bonuses: {
+          // None currently - no characters in themed rooms that suit them
+        }
+      },
+      
+      // Battle performance insights
+      battleImpact: {
+        currentPenalties: [
+          'Spartan Apartment: -8% All Stats, -15% Morale, -10% Teamwork',
+          'Overcrowding (10 in 8 capacity): -15% All Stats, -10% Teamwork',
+          'Character Conflicts: -35% Teamwork total',
+          'Poor Sleep (6 fighters on floor): -10 comfort affecting stamina/vitality',
+          'Unthemed Rooms: -3% Morale'
+        ],
+        facilityBonuses: ownedFacilities.map(f => {
+          const facilityData = FACILITIES.find(facility => facility.id === f.id);
+          return facilityData?.bonuses.map(b => `${facilityData.name}: ${b.description}`) || [];
+        }).flat(),
+        strategicRecommendations: [
+          'URGENT: Upgrade to Basic House (25,000 coins, 50 gems) to reduce overcrowding penalties',
+          'Purchase beds to get fighters off the floor - each floor sleeper loses -10 comfort',
+          'Separate conflicting characters (Dracula/Holmes, Achilles/Joan, Cleopatra/Genghis)',
+          'Theme rooms for character bonuses - Greek Classical room would give Achilles +15 Strength',
+          'Training facilities provide XP bonuses but housing affects base performance'
+        ]
+      }
+    };
+
+    socketRef.current.emit('facilities_chat_message', {
+      message: content,
+      agentId: selectedAgent.id,
+      agentData: selectedAgent, // Pass the full agent data
+      facilitiesContext: facilitiesContext,
+      previousMessages: messages.slice(-5).map(m => ({
+        role: m.type === 'player' ? 'user' : 'assistant',
+        content: m.content
+      }))
+    });
+
+    setTimeout(() => {
+      if (isTyping) {
+        setIsTyping(false);
+      }
+    }, 15000);
+  };
+  // --- End Real Estate Agent Chat Logic ---
 
   const FacilityCard = ({ facility }: { facility: Facility }) => {
     const status = getFacilityStatus(facility);
@@ -427,6 +662,113 @@ export default function FacilitiesManager({
       <AnimatePresence>
         {showDetailsModal && <FacilityDetailsModal />}
       </AnimatePresence>
+
+      {/* Real Estate Agent Chat Interface */}
+      <motion.div
+        className="bg-gradient-to-br from-gray-900/20 to-gray-800/20 rounded-xl backdrop-blur-sm border border-gray-700/30 overflow-hidden p-6 space-y-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <User className="w-6 h-6 text-gray-400" />
+          Real Estate Agent Advisory
+        </h2>
+        <p className="text-gray-300">
+          Consult with a specialized Real Estate Agent to optimize your team's facilities.
+        </p>
+
+        {/* Agent Selection */}
+        <div className="mb-4">
+          <label htmlFor="agent-select" className="block text-sm font-medium text-gray-400 mb-2">
+            Choose your Agent:
+          </label>
+          <select
+            id="agent-select"
+            value={selectedAgentId}
+            onChange={(e) => setSelectedAgentId(e.target.value)}
+            className="block w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white focus:ring-blue-500 focus:border-blue-500"
+          >
+            {realEstateAgents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name} ({agent.archetype})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Chat Display */}
+        <div className="flex flex-col h-[400px] bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((message) => (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${message.type === 'player' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                  message.type === 'player'
+                    ? 'bg-blue-600 text-white'
+                    : message.type === 'agent'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-yellow-600 text-white text-sm'
+                }`}>
+                  <p>{message.content}</p>
+                </div>
+              </motion.div>
+            ))}
+            {isTyping && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex justify-start"
+              >
+                <div className="bg-green-600 text-white px-4 py-2 rounded-lg">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Chat Input */}
+          <div className="p-4 border-t border-gray-700 bg-gray-800/70">
+            <div className="text-xs text-gray-400 mb-2">
+              Status: {connected ? '🟢 Connected' : '🔴 Disconnected'} |
+              {isTyping ? ` ⏳ ${selectedAgent.name} is contemplating a deal...` : ' ✅ Ready for your next inquiry'}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage(inputMessage);
+                  }
+                }}
+                placeholder={isTyping ? 'Agent is typing...' : `Ask ${selectedAgent.name} about facilities...`}
+                disabled={isTyping || !connected}
+                className="flex-1 bg-gray-700 border border-gray-600 rounded-full px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                autoComplete="off"
+              />
+              <button
+                onClick={() => sendMessage(inputMessage)}
+                disabled={!inputMessage.trim() || isTyping || !connected}
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:from-gray-600 disabled:to-gray-500 text-white p-2 rounded-full transition-all"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

@@ -173,7 +173,13 @@ export const initializeDatabase = async (): Promise<void> => {
     
     if (characterCount.count === 0) {
       console.log('📚 Seeding initial character data...');
-      await seedCharacters();
+      try {
+        await seedCharacters();
+        console.log('✅ Character seeding completed successfully');
+      } catch (error) {
+        console.error('❌ Character seeding failed:', error);
+        throw error;
+      }
     }
 
     // Add training columns if they don't exist (migration)
@@ -625,19 +631,24 @@ const seedCharacters = async (): Promise<void> => {
     }
   ];
 
-  const insertMany = db.transaction((characters) => {
-    for (const char of characters) {
-      insertCharacter.run(
-        char.id, char.name, char.title, char.archetype, char.origin_era, char.rarity,
-        char.base_health, char.base_attack, char.base_defense, char.base_speed, char.base_special,
-        char.personality_traits, char.conversation_style, char.backstory, char.conversation_topics,
-        char.avatar_emoji, char.abilities
-      );
-    }
-  });
+  try {
+    const insertMany = db.transaction((characters) => {
+      for (const char of characters) {
+        insertCharacter.run(
+          char.id, char.name, char.title, char.archetype, char.origin_era, char.rarity,
+          char.base_health, char.base_attack, char.base_defense, char.base_speed, char.base_special,
+          char.personality_traits, char.conversation_style, char.backstory, char.conversation_topics,
+          char.avatar_emoji, char.abilities
+        );
+      }
+    });
 
-  insertMany(characters);
-  console.log(`✅ Seeded ${characters.length} characters with complete frontend data preserved`);
+    insertMany(characters);
+    console.log(`✅ Seeded ${characters.length} characters with complete frontend data preserved`);
+  } catch (error) {
+    console.error('❌ Character seeding transaction failed:', error);
+    throw error;
+  }
 };
 
 // Database query helper

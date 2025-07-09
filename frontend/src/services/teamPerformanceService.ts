@@ -11,6 +11,10 @@ import { calculateRoomCapacity } from '../utils/roomCalculations';
 
 // calculateTeamChemistry function - extracted from TeamHeadquarters.tsx (lines 260-273)
 export const calculateTeamChemistry = (headquarters: any) => {
+  if (!headquarters?.rooms) {
+    return { teamCoordination: 0 };
+  }
+  
   const totalCharacters = headquarters.rooms.reduce((sum, room) => sum + room.assignedCharacters.length, 0);
   const totalCapacity = headquarters.rooms.reduce((sum, room) => sum + calculateRoomCapacity(room), 0);
   
@@ -27,6 +31,10 @@ export const calculateTeamChemistry = (headquarters: any) => {
 
 // calculateBattleEffects function - extracted from TeamHeadquarters.tsx (lines 276-303)
 export const calculateBattleEffects = (headquarters: any) => {
+  if (!headquarters?.rooms) {
+    return {};
+  }
+  
   const effects: Record<string, number> = {};
   
   // Positive bonuses from room themes
