@@ -152,20 +152,59 @@ export default function AbilityManager({
     setIsChatLoading(true);
 
     try {
-      // Simulate AI response (in real implementation, this would call the skill development chat service)
-      setTimeout(() => {
-        const aiResponse = {
-          id: Date.now() + 1,
-          sender: 'character' as const,
-          message: `Great question about skill development! With your current abilities and level ${characterLevel}, I'd recommend focusing on ${filterType === 'all' ? 'active' : filterType} abilities first. They'll give you the biggest impact in battle!`,
-          timestamp: new Date(),
-          characterName: characterName
-        };
-        setChatMessages(prev => [...prev, aiResponse]);
-        setIsChatLoading(false);
-      }, 1500);
+      // Real API call to skills coaching service
+      const token = localStorage.getItem('accessToken');
+      const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+      
+      const response = await fetch(`${BACKEND_URL}/coaching/skills`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          characterId: characterName.toLowerCase().replace(' ', '_'), // Convert name to ID format
+          userMessage: currentChatMessage,
+          context: {
+            level: characterLevel,
+            currentSkills: selectedAbilities,
+            skillFocus: filterType,
+            skillPoints: availableSkillPoints || 0,
+            bondLevel: 50,
+            previousMessages: chatMessages.slice(-5).map(msg => ({
+              role: msg.sender === 'user' ? 'user' : 'assistant',
+              content: msg.message
+            }))
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      const aiResponse = {
+        id: Date.now() + 1,
+        sender: 'character' as const,
+        message: data.message,
+        timestamp: new Date(),
+        characterName: data.character || characterName
+      };
+      
+      setChatMessages(prev => [...prev, aiResponse]);
+      setIsChatLoading(false);
     } catch (error) {
       console.error('Skill chat error:', error);
+      const errorResponse = {
+        id: Date.now() + 1,
+        sender: 'character' as const,
+        message: 'I apologize, but I\'m having trouble responding right now. Please try again.',
+        timestamp: new Date(),
+        characterName: characterName
+      };
+      setChatMessages(prev => [...prev, errorResponse]);
       setIsChatLoading(false);
     }
   };

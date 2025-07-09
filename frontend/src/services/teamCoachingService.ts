@@ -1,10 +1,4 @@
-import OpenAI from 'openai';
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY!,
-  dangerouslyAllowBrowser: true
-});
+// OpenAI client removed for security - all AI calls now go through backend API
 
 export interface TeamCoachingContext {
   sessionType: 'conflict_resolution' | 'performance_analysis' | 'team_meeting' | 'strategy_review';
@@ -228,27 +222,59 @@ Respond with a JSON object containing:
 - sessionSummary: Only if session ends`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: "Generate the coaching session response." }
-      ],
-      temperature: 0.8,
-      max_tokens: 800,
-      response_format: { type: "json_object" }
+    // Use backend API instead of direct OpenAI call
+    const token = localStorage.getItem('accessToken');
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+    
+    const apiResponse = await fetch(`${BACKEND_URL}/coaching/team-management`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        characterId: 'coach',
+        issue: {
+          type: request.context.sessionType,
+          description: `Team coaching session - ${request.context.sessionType}`,
+          involvedCharacters: request.context.involvedCharacters.map(char => char.name)
+        },
+        choice: request.coachAction,
+        context: {
+          sessionType: request.context.sessionType,
+          currentPhase: request.context.currentPhase,
+          teamMetrics: request.context.teamMetrics,
+          recentEvents: request.context.recentEvents
+        }
+      })
     });
 
-    const response = JSON.parse(completion.choices[0].message.content || '{}');
+    if (!apiResponse.ok) {
+      throw new Error(`HTTP error! status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
     
+    // Return structured response that matches expected interface
     return {
-      coachMessage: response.coachMessage || "Let's continue working on this together.",
-      characterResponses: response.characterResponses || [],
-      phaseAdvancement: response.phaseAdvancement || false,
-      sessionContinues: response.sessionContinues ?? true,
-      metricsImpact: response.metricsImpact || {},
-      suggestedNextActions: response.suggestedNextActions || [],
-      sessionSummary: response.sessionSummary
+      coachMessage: data.message || "Let's continue working on this together.",
+      characterResponses: request.context.involvedCharacters.map(char => ({
+        characterId: char.id,
+        response: `${char.name} nods thoughtfully.`,
+        moodChange: 'neutral' as const
+      })),
+      phaseAdvancement: request.context.currentPhase < request.context.totalPhases,
+      sessionContinues: true,
+      metricsImpact: {
+        overallMorale: 2,
+        teamChemistry: 1,
+        communicationScore: 3
+      },
+      suggestedNextActions: [
+        { action: 'Continue discussion', description: 'Keep the conversation going' },
+        { action: 'Set team goals', description: 'Establish clear objectives' }
+      ],
+      sessionSummary: undefined
     };
   } catch (error) {
     console.error('Error generating coaching response:', error);

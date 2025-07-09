@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from 'dotenv';
 import { query, cache } from '../database';
 import { User, AuthRequest } from '../types';
+import { PackService } from './packService'; // Import the new PackService
 
 // Load environment variables
 config();
@@ -16,6 +17,7 @@ const SALT_ROUNDS = 12;
 export class AuthService {
   private accessSecret: string;
   private refreshSecret: string;
+  private packService: PackService; // Instance of PackService
 
   constructor() {
     // SECURITY: Never use default JWT secrets
@@ -25,6 +27,7 @@ export class AuthService {
     
     this.accessSecret = process.env.JWT_ACCESS_SECRET;
     this.refreshSecret = process.env.JWT_REFRESH_SECRET;
+    this.packService = new PackService(); // Initialize PackService
     
     // Ensure secrets are strong enough
     if (this.accessSecret.length < 32 || this.refreshSecret.length < 32) {
@@ -60,8 +63,9 @@ export class AuthService {
     username: string;
     email: string;
     password: string;
+    claimToken?: string; // Optional claim token for gifted packs
   }): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string } }> {
-    const { username, email, password } = userData;
+    const { username, email, password, claimToken } = userData;
 
     // Validate input
     if (!username || !email || !password) {
@@ -74,7 +78,7 @@ export class AuthService {
 
     // Check if user exists
     const existingUser = await query(
-      'SELECT id FROM users WHERE email = ? OR username = ?',
+      'SELECT id FROM users WHERE email = $1 OR username = $2',
       [email, username]
     );
 
@@ -88,22 +92,42 @@ export class AuthService {
     // Create user
     const userId = uuidv4();
     await query(
-      `INSERT INTO users (id, username, email, password_hash, subscription_tier, level, experience, total_battles, total_wins, rating)
-       VALUES (?, ?, ?, ?, 'free', 1, 0, 0, 0, 1000)`,
+      `INSERT INTO users (id, username, email, password_hash, subscription_tier, level, experience, total_battles, total_wins, rating, character_slot_capacity)
+       VALUES ($1, $2, $3, $4, 'free', 1, 0, 0, 0, 1000, 12)`,
       [userId, username, email, passwordHash]
     );
 
     // Get the created user
     const result = await query(
-      'SELECT id, username, email, subscription_tier, level, experience, total_battles, total_wins, rating, created_at, updated_at FROM users WHERE id = ?',
+      'SELECT id, username, email, subscription_tier, level, experience, total_battles, total_wins, rating, created_at, updated_at FROM users WHERE id = $1',
       [userId]
     );
 
     const user = result.rows[0];
     const tokens = this.generateTokens(userId);
 
-    // Assign starter character (Robin Hood) to new user
-    await this.assignStarterCharacter(userId);
+    // --- NEW CHARACTER ASSIGNMENT LOGIC ---
+    // 1. Always assign a standard starter pack
+    try {
+      const starterPackId = await this.packService.generatePack('standard_starter');
+      await this.packService.claimPack(userId, starterPackId);
+      console.log(`Assigned standard starter pack to new user ${userId}`);
+    } catch (error) {
+      console.error('Failed to assign standard starter pack:', error);
+      // Do not block registration if starter pack fails
+    }
+
+    // 2. If a claimToken is provided, apply it as a bonus
+    if (claimToken) {
+      try {
+        const { grantedCharacters, echoesGained } = await this.packService.claimPack(userId, claimToken);
+        console.log(`Claimed gifted pack for user ${userId}. Granted: ${grantedCharacters.length}, Echoes: ${echoesGained.length}`);
+      } catch (error) {
+        console.error('Failed to claim gifted pack:', error);
+        // Log error but allow registration to continue without gift
+      }
+    }
+    // --- END NEW CHARACTER ASSIGNMENT LOGIC ---
 
     // Cache user session
     await cache.set(`user:${userId}`, JSON.stringify(user), 900); // 15 minutes
@@ -196,41 +220,6 @@ export class AuthService {
     await cache.set(`user:${userId}`, JSON.stringify(user), 900);
     
     return user;
-  }
-
-  // Assign starter character (Robin Hood) to new user
-  private async assignStarterCharacter(userId: string): Promise<void> {
-    const robinHoodId = 'char_003'; // Robin Hood
-    const userCharacterId = uuidv4();
-    
-    try {
-      await query(
-        `INSERT INTO user_characters (
-          id, user_id, character_id, level, experience, bond_level,
-          total_battles, total_wins, current_health, max_health,
-          is_injured, acquired_at, acquired_from
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`,
-        [
-          userCharacterId,
-          userId,
-          robinHoodId,
-          1,              // level
-          0,              // experience
-          0,              // bond_level
-          0,              // total_battles
-          0,              // total_wins
-          85,             // current_health (Robin Hood's base health)
-          85,             // max_health
-          false,          // is_injured
-          'starter'       // acquired_from
-        ]
-      );
-      
-      console.log(`Assigned starter character Robin Hood to user ${userId}`);
-    } catch (error) {
-      console.error('Failed to assign starter character:', error);
-      // Don't throw here to avoid breaking registration flow
-    }
   }
 
   // Logout (invalidate tokens)

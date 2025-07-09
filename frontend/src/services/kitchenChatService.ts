@@ -1,366 +1,421 @@
-import { io, Socket } from 'socket.io-client';
+import { HeadquartersState } from '../types/headquarters';
 import { Character } from '../data/characters';
-import { PromptTemplateService } from './promptTemplateService';
+import { kitchenChatService } from '../data/kitchenChatService_ORIGINAL';
+import { PromptTemplateService } from '../services/promptTemplateService';
+import { usageService, UsageStatus } from '../services/usageService';
+import { calculateSleepingArrangement, calculateRoomCapacity } from '../utils/roomCalculations';
 
-interface KitchenChatContext {
-  character: Character;
-  teammates: Character[];
-  coachName: string;
-  livingConditions: {
-    apartmentTier: string;
-    roomTheme: string | null;
-    sleepsOnCouch: boolean;
-    sleepsOnFloor: boolean;
-    sleepsUnderTable: boolean;
-    roomOvercrowded: boolean;
-    floorSleeperCount: number;
-    roommateCount: number;
-  };
-  recentEvents: string[];
-}
+// Re-export the original service for backwards compatibility
+export { kitchenChatService };
 
-interface KitchenConversation {
+export interface KitchenConversation {
   id: string;
-  initiator: string;
-  trigger: string;
-  responses: {
-    characterId: string;
-    message: string;
-    timestamp: Date;
-  }[];
+  avatar: string;
+  speaker: string;
+  message: string;
+  isComplaint: boolean;
+  timestamp: Date;
+  isAI: boolean;
+  round: number;
 }
 
-export class KitchenChatService {
-  private socket: Socket | null = null;
-  private activeConversations: Map<string, KitchenConversation> = new Map();
-
-  constructor() {
-    this.initializeSocket();
-  }
-
-  private initializeSocket() {
-    // Determine backend URL based on environment
-    let socketUrl: string;
-    
-    if (process.env.NODE_ENV === 'production') {
-      // Production: use environment variable or blankwars.com backend
-      // For production, backend should be deployed separately 
-      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-backend.railway.app';
-    } else {
-      // Development: use localhost
-      socketUrl = 'http://localhost:3006';
-    }
-    
-    console.log('🔧 Kitchen Chat Service initializing with URL:', socketUrl);
-    console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
-    console.log('🔧 NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-    console.log('🔧 Current hostname:', typeof window !== 'undefined' ? window.location.hostname : 'SSR');
-    
-    this.socket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      timeout: 20000,
-      forceNew: true,
-    });
-
-    this.socket.on('connect', () => {
-      console.log('✅ Kitchen Chat Service connected to:', socketUrl, 'with ID:', this.socket?.id);
-    });
-
-    this.socket.on('connect_error', (error) => {
-      console.error('❌ Kitchen Chat Service connection error:', error);
-      console.error('❌ Attempted URL:', socketUrl);
-      console.error('❌ Error details:', {
-        message: error.message,
-        description: error.description,
-        context: error.context,
-        type: error.type
-      });
-    });
-
-    this.socket.on('disconnect', (reason) => {
-      console.warn('🔌 Kitchen Chat Service disconnected:', reason);
-    });
-
-    this.socket.on('kitchen_conversation_response', (data) => {
-      console.log('📥 Kitchen conversation response received:', {
-        conversationId: data.conversationId,
-        hasMessage: !!data.message,
-        hasError: !!data.error,
-        messageLength: data.message?.length || 0
-      });
-      this.handleConversationResponse(data);
-    });
-  }
-
-  /**
-   * Generate AI-powered kitchen conversation
-   */
-  async generateKitchenConversation(
-    context: KitchenChatContext,
-    trigger: string
-  ): Promise<string> {
-    const prompt = this.buildCharacterKitchenPrompt(context, trigger);
-    
-    console.log('🎭 Kitchen Chat Request:', {
-      character: context.character.name,
-      socketConnected: this.socket?.connected,
-      socketId: this.socket?.id
-    });
-    
-    if (!this.socket?.connected) {
-      throw new Error('Socket not connected to backend. Please refresh the page and try again.');
-    }
-
-    return new Promise((resolve, reject) => {
-      const conversationId = `kitchen_${Date.now()}_${context.character.id}`;
-      
-      // Send request to backend
-      const requestData = {
-        conversationId,
-        characterId: context.character.id,
-        prompt,
-        trigger,
-        context: {
-          teammates: context.teammates.map(t => t.name),
-          coach: context.coachName,
-          livingConditions: context.livingConditions
-        }
-      };
-      
-      console.log('📤 Sending kitchen chat request:', {
-        conversationId,
-        characterId: context.character.id,
-        characterName: context.character.name,
-        trigger: trigger.substring(0, 50) + '...',
-        promptLength: prompt.length,
-        socketId: this.socket!.id
-      });
-      
-      this.socket!.emit('kitchen_chat_request', requestData);
-
-      // Set timeout for response
-      const timeout = setTimeout(() => {
-        console.warn('⏰ Kitchen chat timeout for:', conversationId);
-        reject(new Error('Kitchen chat timeout'));
-      }, 30000);
-
-      // Listen for response
-      const responseHandler = (data: any) => {
-        console.log('📥 Received kitchen response:', data);
-        if (data.conversationId === conversationId) {
-          clearTimeout(timeout);
-          this.socket!.off('kitchen_conversation_response', responseHandler);
-          if (data.error) {
-            if (data.usageLimitReached) {
-              reject(new Error('USAGE_LIMIT_REACHED'));
-            } else {
-              reject(new Error(data.error));
-            }
-          } else {
-            resolve(data.message || 'AI response unavailable');
-          }
-        }
-      };
-
-      this.socket!.on('kitchen_conversation_response', responseHandler);
-    });
-  }
-
-  /**
-   * Build character-specific prompt using modular template system
-   */
-  private buildCharacterKitchenPrompt(context: KitchenChatContext, trigger: string): string {
-    const { character, teammates, coachName, livingConditions } = context;
-    
-    // Determine scene type based on trigger content
-    let sceneType: 'mundane' | 'conflict' | 'chaos' = 'mundane';
-    if (trigger.toLowerCase().includes('argument') || trigger.toLowerCase().includes('fight') || 
-        trigger.toLowerCase().includes('angry') || trigger.toLowerCase().includes('conflict')) {
-      sceneType = 'conflict';
-    } else if (trigger.toLowerCase().includes('emergency') || trigger.toLowerCase().includes('chaos') ||
-               trigger.toLowerCase().includes('alarm') || trigger.toLowerCase().includes('broke')) {
-      sceneType = 'chaos';
-    }
-    
-    // Build the prompt context
-    const promptContext = {
-      character: {
-        name: character.name,
-        title: character.title || '',
-        personality: character.personality,
-        historicalPeriod: character.historicalPeriod,
-        mythology: character.mythology
-      },
-      hqTier: livingConditions.apartmentTier,
-      roommates: teammates.map(t => t.name),
-      coachName,
-      sceneType,
-      trigger,
-      timeOfDay: PromptTemplateService.selectTimeOfDay(),
-      sleepingContext: {
-        sleepsOnFloor: livingConditions.sleepsOnFloor,
-        sleepsOnCouch: livingConditions.sleepsOnCouch,
-        sleepsUnderTable: livingConditions.sleepsUnderTable,
-        roomOvercrowded: livingConditions.roomOvercrowded,
-        floorSleeperCount: livingConditions.floorSleeperCount,
-        roommateCount: livingConditions.roommateCount
-      }
-    };
-    
-    return PromptTemplateService.generatePrompt(promptContext);
-  }
-
-  /**
-   * Generate conversation triggers based on daily activities
-   */
-  generateDailyTriggers(apartmentTier: string): string[] {
-    const baseTriggers = [
-      'Morning coffee brewing (loud noises)',
-      'Someone cooking breakfast',
-      'Bathroom queue forming',
-      'TV remote argument',
-      'Thermostat disagreement',
-      'Loud phone conversation',
-      'Exercise routine in common area',
-      'Late night snacking',
-      'Alarm clocks going off',
-      'Shower time disputes'
-    ];
-
-    if (apartmentTier === 'spartan_apartment') {
-      return [
-        ...baseTriggers,
-        'Tripping over coffin under table',
-        'Fighting for counter space',
-        'Bunk bed disputes',
-        'Only one bathroom crisis',
-        'Thin walls complaints',
-        'Space heater battles'
-      ];
-    }
-
-    return baseTriggers;
-  }
-
-  /**
-   * Generate character interactions based on personality conflicts
-   */
-  generatePersonalityConflicts(characters: Character[]): Array<{trigger: string, involved: string[]}> {
-    const conflicts = [];
-    
-    for (let i = 0; i < characters.length; i++) {
-      for (let j = i + 1; j < characters.length; j++) {
-        const char1 = characters[i];
-        const char2 = characters[j];
-        
-        // Generate specific conflicts based on personality traits
-        if (char1.personality.traits.includes('Analytical') && char2.personality.traits.includes('Aggressive')) {
-          conflicts.push({
-            trigger: `${char1.name} is analyzing ${char2.name}'s behavior patterns out loud`,
-            involved: [char1.id, char2.id]
-          });
-        }
-        
-        if (char1.name.includes('Dracula') && char2.personality.traits.includes('Charismatic')) {
-          conflicts.push({
-            trigger: `${char2.name} is being very social during ${char1.name}'s sleep time`,
-            involved: [char1.id, char2.id]
-          });
-        }
-        
-        if (char1.personality.traits.includes('Honorable') && char2.personality.traits.includes('Eccentric')) {
-          conflicts.push({
-            trigger: `${char2.name}'s unusual habits are disrupting ${char1.name}'s sense of order`,
-            involved: [char1.id, char2.id]
-          });
-        }
-      }
-    }
-    
-    return conflicts;
-  }
-
-  // Removed getFallbackResponse method - we now properly handle connection errors instead of hiding them
-
-  /**
-   * Handle conversation responses from backend
-   */
-  private handleConversationResponse(data: any) {
-    const conversation = this.activeConversations.get(data.conversationId);
-    if (conversation) {
-      conversation.responses.push({
-        characterId: data.characterId,
-        message: data.message,
-        timestamp: new Date()
-      });
-    }
-  }
-
-  /**
-   * Get conversation history for context
-   */
-  getConversationHistory(limit: number = 10): KitchenConversation[] {
-    return Array.from(this.activeConversations.values())
-      .sort((a, b) => b.responses[0]?.timestamp.getTime() - a.responses[0]?.timestamp.getTime())
-      .slice(0, limit);
-  }
-
-  /**
-   * Cleanup old conversations
-   */
-  cleanupOldConversations() {
-    const now = Date.now();
-    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-    
-    for (const [id, conversation] of this.activeConversations.entries()) {
-      const lastResponse = conversation.responses[conversation.responses.length - 1];
-      if (lastResponse && now - lastResponse.timestamp.getTime() > maxAge) {
-        this.activeConversations.delete(id);
-      }
-    }
-  }
-
-  /**
-   * Wait for socket connection
-   */
-  async waitForConnection(timeout: number = 5000): Promise<boolean> {
-    console.log('🔍 Checking socket connection status...');
-    console.log('🔍 Socket exists:', !!this.socket);
-    console.log('🔍 Socket connected:', this.socket?.connected);
-    console.log('🔍 Socket connecting:', this.socket?.connecting);
-    
-    if (this.socket?.connected) {
-      console.log('✅ Already connected');
-      return true;
-    }
-    
-    return new Promise((resolve) => {
-      let attempts = 0;
-      const maxAttempts = timeout / 100;
-      
-      const checkInterval = setInterval(() => {
-        attempts++;
-        console.log(`🔍 Connection attempt ${attempts}/${maxAttempts} - Connected: ${this.socket?.connected}`);
-        
-        if (this.socket?.connected) {
-          clearInterval(checkInterval);
-          console.log('✅ Connection established');
-          resolve(true);
-        }
-        
-        if (attempts >= maxAttempts) {
-          clearInterval(checkInterval);
-          console.log('❌ Connection timeout');
-          resolve(false);
-        }
-      }, 100);
-    });
-  }
+/**
+ * Start a new kitchen scene with opening conversations
+ */
+export const startNewScene = async (
+  headquarters: HeadquartersState,
+  availableCharacters: Character[],
+  setIsGeneratingConversation: (generating: boolean) => void,
+  setCurrentSceneRound: (round: number) => void,
+  setKitchenConversations: (conversations: KitchenConversation[]) => void
+) => {
+  setIsGeneratingConversation(true);
+  setCurrentSceneRound(1);
+  setKitchenConversations([]);
   
-  disconnect() {
-    this.socket?.disconnect();
+  try {
+    // Wait for socket connection
+    const isConnected = await kitchenChatService.waitForConnection();
+    if (!isConnected) {
+      console.warn('Could not establish socket connection for kitchen chat');
+    }
+    const sceneType = PromptTemplateService.selectSceneType();
+    const allRoommates = headquarters.rooms[0].assignedCharacters;
+    const participants = PromptTemplateService.selectSceneParticipants(allRoommates, 3);
+    const trigger = PromptTemplateService.generateSceneTrigger(sceneType, headquarters.currentTier, headquarters);
+    
+    console.log('🎬 Starting new scene:', { sceneType, participants, trigger });
+    
+    const openingConversations = [];
+    
+    for (const charName of participants) {
+      const character = availableCharacters.find(c => c.baseName === charName);
+      if (!character) continue;
+      
+      const teammates = availableCharacters.filter(c => 
+        allRoommates.includes(c.baseName) && c.baseName !== charName
+      );
+      
+      // Calculate sleeping arrangement for this character
+      const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
+      const sleepingArrangement = calculateSleepingArrangement(room, charName);
+      const roomCapacity = calculateRoomCapacity(room);
+      const isOvercrowded = room.assignedCharacters.length > roomCapacity;
+      
+      const context = {
+        character,
+        teammates,
+        coachName: 'Coach',
+        livingConditions: {
+          apartmentTier: headquarters.currentTier,
+          roomTheme: room.theme,
+          sleepsOnCouch: sleepingArrangement.sleepsOnCouch,
+          sleepsOnFloor: sleepingArrangement.sleepsOnFloor,
+          sleepsInBed: sleepingArrangement.sleepsInBed,
+          bedType: sleepingArrangement.bedType,
+          comfortBonus: sleepingArrangement.comfortBonus,
+          sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
+          roomOvercrowded: isOvercrowded,
+          floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
+          roommateCount: room.assignedCharacters.length
+        },
+        recentEvents: [trigger]
+      };
+      
+      try {
+        const response = await kitchenChatService.generateKitchenConversation(context, trigger);
+        openingConversations.push({
+          id: `scene1_${Date.now()}_${charName}`,
+          avatar: character.avatar,
+          speaker: character.name.split(' ')[0],
+          message: response,
+          isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
+          timestamp: new Date(),
+          isAI: true,
+          round: 1
+        });
+      } catch (error: any) {
+        console.error(`Scene generation failed for ${charName}:`, error);
+        
+        // More informative error handling
+        let errorMessage = `*${character.name.split(' ')[0]} seems lost in thought*`;
+        
+        if (error.message === 'Socket not connected to backend. Please refresh the page and try again.') {
+          errorMessage = `*${character.name.split(' ')[0]} is waiting for the connection to establish...*`;
+          console.log('🔌 Socket connection issue detected. Waiting for connection...');
+          
+          // Try to wait for connection
+          const connected = await kitchenChatService.waitForConnection(3000);
+          if (connected) {
+            console.log('✅ Socket connected! Retrying...');
+            // Retry once after connection
+            try {
+              const response = await kitchenChatService.generateKitchenConversation(context, trigger);
+              openingConversations.push({
+                id: `scene1_${Date.now()}_${charName}`,
+                avatar: character.avatar,
+                speaker: character.name.split(' ')[0],
+                message: response,
+                isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
+                timestamp: new Date(),
+                isAI: true,
+                round: 1
+              });
+              continue; // Skip the fallback
+            } catch (retryError) {
+              console.error(`Retry failed for ${charName}:`, retryError);
+            }
+          }
+        } else if (error.message === 'USAGE_LIMIT_REACHED') {
+          errorMessage = `*${character.name.split(' ')[0]} is conserving energy for later battles*`;
+        } else if (error.message?.includes('timeout')) {
+          errorMessage = `*${character.name.split(' ')[0]} pauses, gathering their thoughts*`;
+        }
+        
+        openingConversations.push({
+          id: `fallback_${Date.now()}_${charName}`,
+          avatar: character.avatar,
+          speaker: character.name.split(' ')[0],
+          message: errorMessage,
+          isComplaint: false,
+          timestamp: new Date(),
+          isAI: false,
+          round: 1
+        });
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+    
+    setKitchenConversations(openingConversations);
+  } finally {
+    setIsGeneratingConversation(false);
   }
-}
+};
 
-// Export singleton instance
-export const kitchenChatService = new KitchenChatService();
+/**
+ * Handle coach message input and generate character responses
+ */
+export const handleCoachMessage = async (
+  coachMessage: string,
+  headquarters: HeadquartersState,
+  availableCharacters: Character[],
+  currentSceneRound: number,
+  setKitchenConversations: (fn: (prev: KitchenConversation[]) => KitchenConversation[]) => void,
+  setCoachMessage: (message: string) => void,
+  setIsGeneratingConversation: (generating: boolean) => void,
+  setCurrentSceneRound: (round: number) => void
+) => {
+  if (!coachMessage.trim()) return;
+  
+  // Add coach message to conversation
+  const coachConversation = {
+    id: `coach_${Date.now()}`,
+    avatar: '👨‍💼',
+    speaker: 'Coach',
+    message: coachMessage.trim(),
+    isComplaint: false,
+    timestamp: new Date(),
+    isAI: false,
+    round: currentSceneRound
+  };
+  
+  setKitchenConversations(prev => [coachConversation, ...prev]);
+  const userMessage = coachMessage.trim();
+  setCoachMessage('');
+  
+  // Wait a bit to ensure coach message is visible before generating responses
+  await new Promise(resolve => setTimeout(resolve, 500));
+  setIsGeneratingConversation(true);
+  
+  try {
+    // Get characters to respond to the coach's message
+    const allRoommates = headquarters.rooms[0].assignedCharacters;
+    const participants = PromptTemplateService.selectSceneParticipants(allRoommates, 2); // Just 2 characters respond
+    
+    const responses = [];
+    
+    for (const charName of participants) {
+      const character = availableCharacters.find(c => c.baseName === charName);
+      if (!character) continue;
+      
+      const teammates = availableCharacters.filter(c => 
+        allRoommates.includes(c.baseName) && c.baseName !== charName
+      );
+      
+      // Calculate sleeping arrangement for this character
+      const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
+      const sleepingArrangement = calculateSleepingArrangement(room, charName);
+      const roomCapacity = calculateRoomCapacity(room);
+      const isOvercrowded = room.assignedCharacters.length > roomCapacity;
+      
+      const context = {
+        character,
+        teammates,
+        coachName: 'Coach',
+        livingConditions: {
+          apartmentTier: headquarters.currentTier,
+          roomTheme: room.theme,
+          sleepsOnCouch: sleepingArrangement.sleepsOnCouch,
+          sleepsOnFloor: sleepingArrangement.sleepsOnFloor,
+          sleepsInBed: sleepingArrangement.sleepsInBed,
+          bedType: sleepingArrangement.bedType,
+          comfortBonus: sleepingArrangement.comfortBonus,
+          sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
+          roomOvercrowded: isOvercrowded,
+          floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
+          roommateCount: room.assignedCharacters.length
+        },
+        recentEvents: [userMessage]
+      };
+      
+      try {
+        const response = await kitchenChatService.generateKitchenConversation(
+          context, 
+          `Your coach just said to everyone: "${userMessage}". React and respond directly to them.`
+        );
+        responses.push({
+          id: `response_${Date.now()}_${charName}`,
+          avatar: character.avatar,
+          speaker: character.name.split(' ')[0],
+          message: response,
+          isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
+          timestamp: new Date(),
+          isAI: true,
+          round: currentSceneRound + 1
+        });
+        
+        // Add delay between responses for natural flow
+        await new Promise(resolve => setTimeout(resolve, 800));
+      } catch (error) {
+        console.error(`Response generation failed for ${charName}:`, error);
+      }
+    }
+    
+    setKitchenConversations(prev => [...responses, ...prev]);
+    setCurrentSceneRound(prev => prev + 1);
+  } finally {
+    setIsGeneratingConversation(false);
+  }
+};
+
+
+// continueScene function - extracted from TeamHeadquarters.tsx (lines 232-374)
+export const continueScene = async (
+  isGeneratingConversation: boolean,
+  setIsGeneratingConversation: React.Dispatch<React.SetStateAction<boolean>>,
+  currentSceneRound: number,
+  setCurrentSceneRound: React.Dispatch<React.SetStateAction<number>>,
+  kitchenConversations: KitchenConversation[],
+  setKitchenConversations: React.Dispatch<React.SetStateAction<KitchenConversation[]>>,
+  headquarters: any,
+  availableCharacters: any[],
+  calculateSleepingArrangement: (room: any, charName: string) => any,
+  calculateRoomCapacity: (room: any) => number,
+  kitchenChatService: any,
+  usageService: any,
+  setUsageStatus: React.Dispatch<React.SetStateAction<any>>,
+  PromptTemplateService: any
+) => {
+  if (isGeneratingConversation) return;
+  
+  setIsGeneratingConversation(true);
+  setCurrentSceneRound(prev => prev + 1);
+  
+  try {
+    const newRound = currentSceneRound + 1;
+    let trigger = '';
+    let participants: string[] = [];
+    
+    if (newRound <= 3) {
+      // Non-sequential response selection
+      const lastParticipants = [...new Set(kitchenConversations.slice(0, 3).map(c => c.speaker))];
+      const availableResponders = headquarters.rooms[0].assignedCharacters.filter(name => {
+        const char = availableCharacters.find(c => c.baseName === name);
+        return char && lastParticipants.includes(char.name.split(' ')[0]);
+      });
+      
+      // Randomly select 1-2 characters (non-sequential)
+      const numResponders = Math.min(Math.random() > 0.5 ? 2 : 1, availableResponders.length);
+      participants = availableResponders.sort(() => Math.random() - 0.5).slice(0, numResponders);
+      
+      const lastMessage = kitchenConversations[0];
+      trigger = `Someone responds to ${lastMessage.speaker}'s comment: "${lastMessage.message}". Keep the conversation natural and build on what was said.`;
+    } else if (newRound <= 6) {
+      const currentParticipants = [...new Set(kitchenConversations.map(c => c.speaker))];
+      const availableNewChars = headquarters.rooms[0].assignedCharacters.filter(name => {
+        const char = availableCharacters.find(c => c.baseName === name);
+        return char && !currentParticipants.includes(char.name.split(' ')[0]);
+      });
+      
+      if (availableNewChars.length > 0) {
+        // Random selection of new character
+        participants = [availableNewChars[Math.floor(Math.random() * availableNewChars.length)]];
+        trigger = `${availableCharacters.find(c => c.baseName === participants[0])?.name.split(' ')[0]} walks into the kitchen and reacts to what's happening`;
+      } else {
+        // Random selection from all characters
+        participants = headquarters.rooms[0].assignedCharacters.sort(() => Math.random() - 0.5).slice(0, 2);
+        trigger = 'The conversation takes a new turn';
+      }
+    } else {
+      participants = PromptTemplateService.selectSceneParticipants(headquarters.rooms[0].assignedCharacters, 2);
+      const chaosEvents = [
+        'Coach suddenly walks in and interrupts',
+        'The fire alarm starts going off',
+        'There is a loud crash from another room',
+        'Someone spills something all over the floor'
+      ];
+      trigger = chaosEvents[Math.floor(Math.random() * chaosEvents.length)];
+    }
+    
+    const newConversations = [];
+    
+    for (const charName of participants) {
+      const character = availableCharacters.find(c => c.baseName === charName);
+      if (!character) continue;
+      
+      // Calculate sleeping arrangement for this character
+      const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
+      const sleepingArrangement = calculateSleepingArrangement(room, charName);
+      const roomCapacity = calculateRoomCapacity(room);
+      const isOvercrowded = room.assignedCharacters.length > roomCapacity;
+      
+      const context = {
+        character,
+        teammates: availableCharacters.filter(c => 
+          headquarters.rooms[0].assignedCharacters.includes(c.baseName) && c.baseName !== charName
+        ),
+        coachName: 'Coach',
+        livingConditions: {
+          apartmentTier: headquarters.currentTier,
+          roomTheme: room.theme,
+          sleepsOnCouch: sleepingArrangement.sleepsOnCouch,
+          sleepsOnFloor: sleepingArrangement.sleepsOnFloor,
+          sleepsInBed: sleepingArrangement.sleepsInBed,
+          bedType: sleepingArrangement.bedType,
+          comfortBonus: sleepingArrangement.comfortBonus,
+          sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
+          roomOvercrowded: isOvercrowded,
+          floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
+          roommateCount: room.assignedCharacters.length
+        },
+        recentEvents: kitchenConversations.slice(0, 3).map(c => `${c.speaker}: ${c.message}`)
+      };
+      
+      try {
+        // Enhanced context with conversation history
+        const conversationHistory = kitchenConversations.slice(0, 5).map(c => `${c.speaker}: ${c.message}`).join('\n');
+        const enhancedContext = {
+          ...context,
+          conversationHistory,
+          recentEvents: [trigger, ...context.recentEvents]
+        };
+        
+        const response = await kitchenChatService.generateKitchenConversation(enhancedContext, trigger);
+        
+        // Duplicate detection to prevent repetitive responses
+        const recentMessages = kitchenConversations.slice(0, 3).map(c => c.message.toLowerCase());
+        const isUnique = response && response.length > 10 && 
+          !recentMessages.some(msg => {
+            const similarity = msg.includes(response.toLowerCase().substring(0, 15)) || 
+                             response.toLowerCase().includes(msg.substring(0, 15));
+            return similarity;
+          });
+        
+        if (isUnique) {
+          newConversations.push({
+            id: `scene${newRound}_${Date.now()}_${charName}`,
+            avatar: character.avatar,
+            speaker: character.name.split(' ')[0],
+            message: response,
+            isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
+            timestamp: new Date(),
+            isAI: true,
+            round: newRound
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to continue scene for ${charName}:`, error);
+        if (error instanceof Error && error.message === 'USAGE_LIMIT_REACHED') {
+          // Stop trying more characters and refresh usage status
+          const loadUsageStatus = async () => {
+            try {
+              const status = await usageService.getUserUsageStatus();
+              setUsageStatus(status);
+            } catch (error) {
+              console.error('Failed to refresh usage status:', error);
+            }
+          };
+          loadUsageStatus();
+          break; // Stop generating more conversations
+        }
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    setKitchenConversations(prev => [...newConversations, ...prev].slice(0, 25));
+  } finally {
+    setIsGeneratingConversation(false);
+  }
+};

@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TradingCard from './TradingCard';
 import { TeamCharacter } from '@/data/teamBattleSystem';
-import { Sparkles, Gift, X, Star } from 'lucide-react';
+import { Sparkles, Gift, X, Star, Zap } from 'lucide-react';
+import { packService, PackClaimResult } from '@/services/packService';
+import { characterTemplates } from '@/data/characters';
 
 interface CardPack {
   id: string;
@@ -24,6 +26,7 @@ interface CardPackOpeningProps {
   availableCards: TeamCharacter[];
   playerCurrency: number;
   onCurrencySpent: (amount: number) => void;
+  onEchoesReceived?: (echoes: { character_id: string; count: number }[]) => void;
 }
 
 const CARD_PACKS: CardPack[] = [
@@ -83,101 +86,92 @@ export default function CardPackOpening({
   onCardsReceived,
   availableCards,
   playerCurrency,
-  onCurrencySpent
+  onCurrencySpent,
+  onEchoesReceived
 }: CardPackOpeningProps) {
   const [selectedPack, setSelectedPack] = useState<CardPack | null>(null);
   const [isOpening, setIsOpening] = useState(false);
   const [revealedCards, setRevealedCards] = useState<TeamCharacter[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showPackAnimation, setShowPackAnimation] = useState(false);
+  const [echoesGained, setEchoesGained] = useState<{ character_id: string; count: number }[]>([]);
+  const [showingEchoes, setShowingEchoes] = useState(false);
 
-  const generateRandomCards = (pack: CardPack): TeamCharacter[] => {
-    const cards: TeamCharacter[] = [];
-    const usedCards = new Set<string>();
-
-    // Helper function to get random card by rarity
-    const getRandomCardByRarity = (targetRarity: string): TeamCharacter | null => {
-      const cardsOfRarity = availableCards.filter(card => 
-        card.rarity === targetRarity && !usedCards.has(card.id)
-      );
-      if (cardsOfRarity.length === 0) return null;
-      return cardsOfRarity[Math.floor(Math.random() * cardsOfRarity.length)];
+  const getCharacterFromTemplate = (characterId: string): TeamCharacter | null => {
+    const template = characterTemplates[characterId];
+    if (!template) return null;
+    
+    return {
+      id: characterId,
+      name: template.name,
+      archetype: template.archetype,
+      rarity: template.rarity,
+      health: template.baseStats.health,
+      attack: template.baseStats.attack,
+      defense: template.baseStats.defense,
+      speed: template.baseStats.speed,
+      abilities: template.abilities,
+      psychologyProfile: template.psychologyProfile,
+      equipment: template.equipment || [],
+      level: 1,
+      experience: 0
     };
-
-    // Helper function to get random card by weight
-    const getRandomCardByWeight = (): TeamCharacter | null => {
-      const totalWeight = Object.values(RARITY_WEIGHTS).reduce((sum, weight) => sum + weight, 0);
-      let random = Math.random() * totalWeight;
-      
-      for (const [rarity, weight] of Object.entries(RARITY_WEIGHTS)) {
-        random -= weight;
-        if (random <= 0) {
-          return getRandomCardByRarity(rarity);
-        }
-      }
-      return null;
-    };
-
-    // First, add guaranteed rarity card
-    if (pack.guaranteedRarity) {
-      const guaranteedCard = getRandomCardByRarity(pack.guaranteedRarity);
-      if (guaranteedCard) {
-        cards.push(guaranteedCard);
-        usedCards.add(guaranteedCard.id);
-      }
-    }
-
-    // Add special rules for mythic packs
-    if (pack.id === 'mythic') {
-      // Mythic packs get 2-3 legendary cards
-      const legendaryCount = Math.floor(Math.random() * 2) + 2;
-      for (let i = 0; i < legendaryCount - 1; i++) { // -1 because we already added one guaranteed
-        const legendaryCard = getRandomCardByRarity('legendary');
-        if (legendaryCard) {
-          cards.push(legendaryCard);
-          usedCards.add(legendaryCard.id);
-        }
-      }
-    }
-
-    // Fill remaining slots with weighted random cards
-    while (cards.length < pack.cardCount) {
-      const randomCard = getRandomCardByWeight();
-      if (randomCard && !usedCards.has(randomCard.id)) {
-        cards.push(randomCard);
-        usedCards.add(randomCard.id);
-      } else if (availableCards.length <= usedCards.size) {
-        // If we've used all available cards, allow duplicates
-        const anyCard = availableCards[Math.floor(Math.random() * availableCards.length)];
-        cards.push(anyCard);
-      }
-    }
-
-    return cards;
   };
 
-  const handlePackPurchase = (pack: CardPack) => {
+  const handlePackPurchase = async (pack: CardPack) => {
     if (playerCurrency < pack.price) return;
     
     setSelectedPack(pack);
     setShowPackAnimation(true);
     onCurrencySpent(pack.price);
     
-    // Generate cards after purchase
-    const newCards = generateRandomCards(pack);
-    setRevealedCards(newCards);
-    
-    setTimeout(() => {
-      setIsOpening(true);
+    try {
+      // Generate pack via backend
+      const packType = packService.mapPackIdToType(pack.id);
+      const generateResult = await packService.generatePack(packType);
+      
+      // Claim the pack immediately
+      const claimResult = await packService.claimPack(generateResult.claimToken);
+      
+      // Convert character IDs to TeamCharacter objects
+      const newCards: TeamCharacter[] = [];
+      for (const charId of claimResult.grantedCharacters) {
+        const character = getCharacterFromTemplate(charId);
+        if (character) {
+          newCards.push(character);
+        }
+      }
+      
+      setRevealedCards(newCards);
+      setEchoesGained(claimResult.echoesGained);
+      
+      // If we received echoes, show them after cards
+      if (claimResult.echoesGained.length > 0 && onEchoesReceived) {
+        onEchoesReceived(claimResult.echoesGained);
+      }
+      
+      setTimeout(() => {
+        setIsOpening(true);
+        setShowPackAnimation(false);
+      }, 1500);
+    } catch (error) {
+      console.error('Error purchasing pack:', error);
+      // On error, reset the purchase
+      setSelectedPack(null);
       setShowPackAnimation(false);
-    }, 1500);
+      // Refund the currency (this is a simple approach)
+      onCurrencySpent(-pack.price);
+    }
   };
 
   const handleCardReveal = () => {
     if (currentCardIndex < revealedCards.length - 1) {
       setCurrentCardIndex(currentCardIndex + 1);
+    } else if (echoesGained.length > 0 && !showingEchoes) {
+      // Show echoes after all cards are revealed
+      setShowingEchoes(true);
     } else {
-      // All cards revealed
+      // All cards and echoes revealed
       onCardsReceived(revealedCards);
       handleClose();
     }
@@ -189,6 +183,8 @@ export default function CardPackOpening({
     setRevealedCards([]);
     setCurrentCardIndex(0);
     setShowPackAnimation(false);
+    setEchoesGained([]);
+    setShowingEchoes(false);
     onClose();
   };
 
@@ -270,7 +266,7 @@ export default function CardPackOpening({
 
           {/* Card Reveal */}
           <AnimatePresence>
-            {isOpening && revealedCards.length > 0 && (
+            {isOpening && revealedCards.length > 0 && !showingEchoes && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -324,12 +320,98 @@ export default function CardPackOpening({
                       onClick={handleCardReveal}
                       className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105"
                     >
-                      {currentCardIndex < revealedCards.length - 1 ? 'Next Card' : 'Finish'}
+                      {currentCardIndex < revealedCards.length - 1 ? 'Next Card' : 
+                       echoesGained.length > 0 ? 'View Echoes' : 'Finish'}
                     </button>
                   </div>
 
                   <div className="mt-4 text-gray-400">
                     Card {currentCardIndex + 1} of {revealedCards.length}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Echo Display */}
+          <AnimatePresence>
+            {isOpening && showingEchoes && echoesGained.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-gradient-to-br from-amber-900 via-orange-900 to-red-900 flex items-center justify-center z-60"
+              >
+                <div className="text-center max-w-2xl mx-auto p-8">
+                  <motion.div
+                    initial={{ scale: 0, y: 50 }}
+                    animate={{ 
+                      scale: 1, 
+                      y: 0,
+                      transition: { type: "spring", stiffness: 100 }
+                    }}
+                    className="mb-8"
+                  >
+                    <div className="flex items-center justify-center mb-4">
+                      <Zap className="w-16 h-16 text-yellow-400 animate-pulse" />
+                    </div>
+                    <h2 className="text-4xl font-bold text-white mb-4">
+                      Character Echoes Received!
+                    </h2>
+                    <p className="text-xl text-amber-200 mb-8">
+                      You already own these characters, so they've been converted to powerful Echoes!
+                    </p>
+                  </motion.div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    {echoesGained.map((echo, index) => {
+                      const character = getCharacterFromTemplate(echo.character_id);
+                      return (
+                        <motion.div
+                          key={echo.character_id}
+                          initial={{ scale: 0, rotateX: 90 }}
+                          animate={{ 
+                            scale: 1, 
+                            rotateX: 0,
+                            transition: { 
+                              delay: index * 0.2,
+                              type: "spring", 
+                              stiffness: 100 
+                            }
+                          }}
+                          className="bg-gradient-to-br from-yellow-400/20 to-orange-500/20 backdrop-blur-sm border border-yellow-400/30 rounded-xl p-6"
+                        >
+                          <div className="flex items-center justify-center mb-3">
+                            <Zap className="w-8 h-8 text-yellow-400 mr-2" />
+                            <span className="text-2xl font-bold text-white">
+                              {echo.count}x
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-semibold text-white mb-2">
+                            {character?.name || 'Unknown Character'}
+                          </h3>
+                          <p className="text-amber-200 text-sm">
+                            {character?.archetype} Echo{echo.count > 1 ? 's' : ''}
+                          </p>
+                          <div className="mt-3 text-xs text-amber-300">
+                            Use to ascend or upgrade abilities!
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-center gap-4">
+                    <button
+                      onClick={handleCardReveal}
+                      className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105"
+                    >
+                      Finish
+                    </button>
+                  </div>
+
+                  <div className="mt-4 text-amber-300">
+                    Echoes gained from duplicate characters
                   </div>
                 </div>
               </motion.div>

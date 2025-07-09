@@ -241,11 +241,53 @@ export default function TeamManagementCoaching() {
     
     setMessages([openingMessage]);
     
-    // Add initial coach message based on issue type
-    setTimeout(() => {
-      const coachMessage = generateInitialCoachMessage(issue);
-      setMessages(prev => [...prev, coachMessage]);
-    }, 1000);
+    // Add initial coach message based on issue type using real AI
+    const getInitialCoachMessage = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+        
+        const response = await fetch(`${BACKEND_URL}/coaching/team-management`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            characterId: 'coach', // Use coach as the character giving guidance
+            issue,
+            choice: 'initial_assessment',
+            context: {
+              teamMembers: issue.involvedCharacters,
+              issueType: issue.type
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        const coachMessage: CoachingMessage = {
+          id: Date.now(),
+          sender: 'coach',
+          content: data.message,
+          type: 'guidance',
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, coachMessage]);
+      } catch (error) {
+        console.error('Team management coaching error:', error);
+        // Fallback message
+        const fallbackMessage = generateInitialCoachMessage(issue);
+        setMessages(prev => [...prev, fallbackMessage]);
+      }
+    };
+
+    setTimeout(getInitialCoachMessage, 1000);
   };
 
   const generateInitialCoachMessage = (issue: TeamIssue): CoachingMessage => {
@@ -303,11 +345,58 @@ export default function TeamManagementCoaching() {
     
     setMessages(prev => [...prev, coachResponse]);
 
-    // Generate character response based on choice
-    setTimeout(() => {
-      const characterResponse = generateCharacterResponse(choice, selectedIssue!);
-      setMessages(prev => [...prev, characterResponse]);
-    }, 2000);
+    // Generate real AI character response based on choice
+    const getCharacterResponse = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+        
+        // Use the first involved character for response
+        const respondingCharacter = selectedIssue!.involvedCharacters[0];
+        
+        const response = await fetch(`${BACKEND_URL}/coaching/team-management`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            characterId: respondingCharacter.toLowerCase().replace(' ', '_'),
+            issue: selectedIssue,
+            choice: choice.action,
+            context: {
+              coachingApproach: choice.action,
+              teamDynamics: selectedIssue!.description,
+              otherCharacters: selectedIssue!.involvedCharacters.slice(1)
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        const characterResponse: CoachingMessage = {
+          id: Date.now(),
+          sender: 'character',
+          content: data.message,
+          type: 'response',
+          timestamp: new Date(),
+          characterName: data.character || respondingCharacter
+        };
+        
+        setMessages(prev => [...prev, characterResponse]);
+      } catch (error) {
+        console.error('Character response error:', error);
+        // Fallback to hardcoded response
+        const fallbackResponse = generateCharacterResponse(choice, selectedIssue!);
+        setMessages(prev => [...prev, fallbackResponse]);
+      }
+    };
+
+    setTimeout(getCharacterResponse, 2000);
   };
 
   const generateCharacterResponse = (choice: CoachingChoice, issue: TeamIssue): CoachingMessage => {

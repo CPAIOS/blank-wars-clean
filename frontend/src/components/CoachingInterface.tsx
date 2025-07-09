@@ -114,18 +114,57 @@ export default function CoachingInterface({
 
     setIsCharacterTyping(true);
 
-    // Simulate character response delay
-    setTimeout(() => {
-      const response = generateCharacterResponse(type, message, selectedIntensity);
-      
-      setSessionData(prev => ({
-        ...prev,
-        characterResponses: [...prev.characterResponses, response],
-        effectiveness: calculateEffectiveness(type, selectedIntensity, character)
-      }));
+    // Real API call to individual coaching service
+    const sendCoachingRequest = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+        
+        const response = await fetch(`${BACKEND_URL}/coaching/individual`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            characterId: character.character.id,
+            message,
+            type,
+            intensity: selectedIntensity,
+            context: {
+              mentalState: character.mentalState,
+              bondLevel: character.bondLevel || 50,
+              previousMessages: sessionData.characterResponses.slice(-3)
+            }
+          })
+        });
 
-      setIsCharacterTyping(false);
-    }, 1500 + Math.random() * 2000); // 1.5-3.5 second delay
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        setSessionData(prev => ({
+          ...prev,
+          characterResponses: [...prev.characterResponses, data.message],
+          effectiveness: calculateEffectiveness(type, selectedIntensity, character)
+        }));
+
+        setIsCharacterTyping(false);
+      } catch (error) {
+        console.error('Individual coaching error:', error);
+        // Fallback to ensure UI doesn't break
+        setSessionData(prev => ({
+          ...prev,
+          characterResponses: [...prev.characterResponses, "I'm having trouble responding right now. Please try again."],
+          effectiveness: calculateEffectiveness(type, selectedIntensity, character)
+        }));
+        setIsCharacterTyping(false);
+      }
+    };
+
+    sendCoachingRequest();
 
     // Trigger parent callback
     onCoachingAction({

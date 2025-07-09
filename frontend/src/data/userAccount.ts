@@ -15,20 +15,12 @@ export interface UserProfile {
   totalXP: number;
   joinDate: Date;
   lastActive: Date;
+  characterSlotCapacity: number; // New: Dynamic character slot capacity
   
   // Subscription info
   subscriptionTier: SubscriptionTier;
   subscriptionExpiry?: Date;
   isActive: boolean;
-  
-  // Game statistics
-  stats: PlayerStats;
-  achievements: Achievement[];
-  
-  // Collection info
-  charactersOwned: OwnedCharacter[];
-  characterSlots: number;
-  maxCharacterSlots: number;
   
   // Currency and resources
   currency: PlayerCurrency;
@@ -182,7 +174,6 @@ export const subscriptionTiers: Record<SubscriptionTier, {
   name: string;
   displayName: string;
   price: number; // monthly USD
-  characterSlots: number;
   benefits: string[];
   color: string;
   icon: string;
@@ -192,7 +183,6 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     name: 'free',
     displayName: 'Free Player',
     price: 0,
-    characterSlots: 3,
     benefits: [
       '3 character slots',
       'Basic training facilities',
@@ -207,9 +197,7 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     name: 'bronze',
     displayName: 'Bronze Warrior',
     price: 4.99,
-    characterSlots: 6,
     benefits: [
-      '6 character slots',
       'Access to Bronze training facilities',
       '+25% XP and gold rewards',
       '50% more daily energy',
@@ -223,9 +211,7 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     name: 'silver',
     displayName: 'Silver Champion',
     price: 9.99,
-    characterSlots: 10,
     benefits: [
-      '10 character slots',
       'Access to Silver training facilities',
       '+50% XP and gold rewards',
       'Double daily energy',
@@ -240,9 +226,7 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     name: 'gold',
     displayName: 'Gold Gladiator',
     price: 19.99,
-    characterSlots: 15,
     benefits: [
-      '15 character slots',
       'Access to Gold training facilities',
       '+100% XP and gold rewards',
       'Triple daily energy',
@@ -258,9 +242,7 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     name: 'platinum',
     displayName: 'Platinum Master',
     price: 39.99,
-    characterSlots: 25,
     benefits: [
-      '25 character slots',
       'Access to Elite training facilities',
       '+200% XP and gold rewards',
       'Unlimited daily energy',
@@ -277,9 +259,8 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     name: 'legendary',
     displayName: 'Legendary Hero',
     price: 99.99,
-    characterSlots: 50,
+    
     benefits: [
-      '50 character slots',
       'Access to Legendary facilities',
       '+500% XP and gold rewards',
       'Unlimited everything',
@@ -470,7 +451,7 @@ export const achievements: Achievement[] = [
   // Progression achievements
   {
     id: 'level_50_character',
-    name: 'Maximum Power',
+    name: 'Master Warrior',
     description: 'Reach level 50 with any character',
     icon: '⭐',
     rarity: 'epic',
@@ -482,6 +463,52 @@ export const achievements: Achievement[] = [
       { type: 'character', characterId: 'ascended_variant' },
       { type: 'gold', amount: 10000 }
     ]
+  },
+  {
+    id: 'level_75_character',
+    name: 'Legendary Hero',
+    description: 'Reach level 75 with any character',
+    icon: '🌟',
+    rarity: 'legendary',
+    category: 'progression',
+    progress: 0,
+    maxProgress: 1,
+    isCompleted: false,
+    rewards: [
+      { type: 'gold', amount: 25000 },
+      { type: 'gems', amount: 100 }
+    ]
+  },
+  {
+    id: 'level_100_character',
+    name: 'Mythic Ascendant',
+    description: 'Reach level 100 with any character',
+    icon: '🔥',
+    rarity: 'mythic',
+    category: 'progression',
+    progress: 0,
+    maxProgress: 1,
+    isCompleted: false,
+    rewards: [
+      { type: 'gold', amount: 50000 },
+      { type: 'gems', amount: 250 },
+      { type: 'character', characterId: 'mythic_variant' }
+    ]
+  },
+  {
+    id: 'level_150_character',
+    name: 'Transcendent Being',
+    description: 'Reach level 150 with any character',
+    icon: '⚡',
+    rarity: 'legendary',
+    category: 'progression',
+    progress: 0,
+    maxProgress: 1,
+    isCompleted: false,
+    rewards: [
+      { type: 'gold', amount: 100000 },
+      { type: 'gems', amount: 500 }
+    ]
   }
 ];
 
@@ -490,9 +517,7 @@ export function getSubscriptionBenefits(tier: SubscriptionTier): string[] {
   return subscriptionTiers[tier].benefits;
 }
 
-export function getCharacterSlotLimit(tier: SubscriptionTier): number {
-  return subscriptionTiers[tier].characterSlots;
-}
+
 
 export function canUpgradeSubscription(currentTier: SubscriptionTier, targetTier: SubscriptionTier): boolean {
   return subscriptionTiers[targetTier].priority > subscriptionTiers[currentTier].priority;

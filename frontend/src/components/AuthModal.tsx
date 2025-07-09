@@ -16,6 +16,7 @@ import {
   Loader
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams } from 'next/navigation';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -34,6 +35,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
   const [error, setError] = useState<string | null>(null);
 
   const { login, register, isLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const claimToken = searchParams.get('claimToken');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -58,7 +61,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
         await register({
           username: formData.username,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          claimToken: claimToken || undefined // Pass the claimToken if it exists
         });
       }
       

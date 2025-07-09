@@ -1,10 +1,4 @@
-import OpenAI from 'openai';
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY!,
-  dangerouslyAllowBrowser: true
-});
+// OpenAI client removed for security - all AI calls now go through backend API
 
 export interface LoungeContext {
   currentTopic: string;

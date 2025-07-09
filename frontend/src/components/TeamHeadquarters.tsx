@@ -30,524 +30,47 @@ import {
   Mic
 } from 'lucide-react';
 import { createDemoCharacterCollection, Character } from '../data/characters';
-import { kitchenChatService } from '../services/kitchenChatService';
-import { PromptTemplateService } from '../services/promptTemplateService';
-import { roomImageService } from '../services/roomImageService';
-import { useTutorial } from '../hooks/useTutorial';
+import { kitchenChatService } from '../data/kitchenChatService_ORIGINAL';
+import { PromptTemplateService } from '../data/promptTemplateService';
+import { roomImageService } from '../data/roomImageService';
+import { useTutorial } from '../data/useTutorial';
 import { teamHeadquartersTutorialSteps } from '../data/tutorialSteps';
 import Tutorial from './Tutorial';
-import { usageService, UsageStatus } from '../services/usageService';
+import { usageService, UsageStatus } from '../data/usageService';
 import BedComponent from './BedComponent';
+import { PURCHASABLE_BEDS, HEADQUARTERS_TIERS, ROOM_THEMES, ROOM_ELEMENTS } from '../data/headquartersData';
+import { HeadquartersTier, RoomTheme, RoomElement, PurchasableBed, Bed, Room, HeadquartersState } from '../types/headquarters';
+import { calculateRoomCapacity, calculateSleepingArrangement } from '../utils/roomCalculations';
+import { purchaseBed } from '../services/bedService';
+import { setRoomTheme, addElementToRoom, removeElementFromRoom, generateRoomImage } from '../services/roomService';
+import { assignCharacterToRoom, removeCharacterFromRoom, getUnassignedCharacters } from '../services/characterService';
+import { startNewScene, handleCoachMessage, continueScene, KitchenConversation } from '../services/kitchenChatService';
+import { clearAllConfessionalTimeouts, startConfessional, pauseConfessional, continueConfessional, generateCharacterResponse, ConfessionalData, ConfessionalMessage } from '../services/confessionalService';
+import { getCharacterConflicts, getCharacterHappiness, getThemeCompatibility, getCharacterSuggestedThemes } from '../services/characterHappinessService';
+import { getRoomThemeWarnings, calculateMissedBonuses, calculateRoomBonuses } from '../services/roomAnalysisService';
+import { calculateTeamChemistry, calculateBattleEffects } from '../services/teamPerformanceService';
+import { getElementCapacity } from '../services/headquartersService';
 
-// Headquarters progression tiers
-interface HeadquartersTier {
-  id: string;
-  name: string;
-  description: string;
-  maxRooms: number;
-  charactersPerRoom: number;
-  cost: { coins: number; gems: number };
-  unlockLevel: number;
-  roomUpgrades: string[];
-}
 
-// Room themes with battle bonuses
-interface RoomTheme {
-  id: string;
-  name: string;
-  description: string;
-  bonus: string;
-  bonusValue: number;
-  suitableCharacters: string[];
-  cost: { coins: number; gems: number };
-  backgroundColor: string;
-  textColor: string;
-  icon: string;
-}
 
-// Room element categories for multi-element theming
-interface RoomElement {
-  id: string;
-  name: string;
-  category: 'wallDecor' | 'furniture' | 'lighting' | 'accessories' | 'flooring';
-  description: string;
-  bonus: string;
-  bonusValue: number;
-  suitableCharacters: string[];
-  cost: { coins: number; gems: number };
-  backgroundColor: string;
-  textColor: string;
-  icon: string;
-  compatibleWith: string[]; // Other element IDs that synergize well
-  incompatibleWith: string[]; // Other element IDs that clash
-}
 
-// Bed types and sleep quality
-interface Bed {
-  id: string;
-  type: 'bed' | 'bunk_bed' | 'couch' | 'air_mattress';
-  position: { x: number; y: number }; // For future positioning
-  capacity: number; // 1 for bed/couch, 2 for bunk bed
-  comfortBonus: number; // Sleep quality bonus
-  cost?: { coins: number; gems: number }; // For purchasable beds
-}
+// Bed types and sleep quality - imported from ./types/headquarters.ts
 
-// Purchasable bed options
-interface PurchasableBed {
-  id: string;
-  name: string;
-  type: 'bunk_bed' | 'air_mattress';
-  description: string;
-  capacity: number;
-  comfortBonus: number;
-  cost: { coins: number; gems: number };
-  icon: string;
-}
+// Purchasable bed options - imported from ./types/headquarters.ts
 
-// Room instance with bed system
-interface Room {
-  id: string;
-  name: string;
-  theme: string | null; // Legacy single theme support
-  elements: string[]; // New multi-element system
-  assignedCharacters: string[];
-  maxCharacters: number;
-  beds: Bed[]; // New bed system
-  customImageUrl?: string; // DALL-E generated image
-}
+// Room instance with bed system - imported from ./types/headquarters.ts
 
-// User headquarters state
-interface HeadquartersState {
-  currentTier: string;
-  rooms: Room[];
-  currency: { coins: number; gems: number };
-  unlockedThemes: string[];
-}
+// User headquarters state - imported from ./types/headquarters.ts
 
 // Available beds for purchase
-const PURCHASABLE_BEDS: PurchasableBed[] = [
-  {
-    id: 'additional_bunk',
-    name: 'Additional Bunk Bed',
-    type: 'bunk_bed',
-    description: 'A sturdy metal bunk bed that sleeps 2 fighters. Decent comfort for the price.',
-    capacity: 2,
-    comfortBonus: 10,
-    cost: { coins: 15000, gems: 25 },
-    icon: '🛏️'
-  },
-  {
-    id: 'air_mattress',
-    name: 'Air Mattress',
-    type: 'air_mattress',
-    description: 'Inflatable mattress for emergency sleeping. Better than the floor, barely.',
-    capacity: 1,
-    comfortBonus: 2,
-    cost: { coins: 5000, gems: 5 },
-    icon: '🛌'
-  }
-];
+// PURCHASABLE_BEDS imported from ./data/headquartersData.ts
 
-const HEADQUARTERS_TIERS: HeadquartersTier[] = [
-  {
-    id: 'spartan_apartment',
-    name: 'Spartan Apartment',
-    description: 'A cramped 2-room apartment where legendary warriors share bunk beds. Not ideal, but everyone starts somewhere!',
-    maxRooms: 2,
-    charactersPerRoom: 4,
-    cost: { coins: 0, gems: 0 },
-    unlockLevel: 1,
-    roomUpgrades: ['basic_furniture']
-  },
-  {
-    id: 'basic_house',
-    name: 'Basic House',
-    description: 'A modest house with individual rooms. Characters finally get some privacy and better sleep!',
-    maxRooms: 6,
-    charactersPerRoom: 3,
-    cost: { coins: 25000, gems: 50 },
-    unlockLevel: 10,
-    roomUpgrades: ['basic_furniture', 'private_rooms']
-  },
-  {
-    id: 'team_mansion',
-    name: 'Team Mansion',
-    description: 'A luxurious mansion with themed rooms. Characters can customize their living spaces for battle bonuses!',
-    maxRooms: 10,
-    charactersPerRoom: 2,
-    cost: { coins: 100000, gems: 200 },
-    unlockLevel: 25,
-    roomUpgrades: ['luxury_furniture', 'themed_rooms', 'common_areas']
-  },
-  {
-    id: 'elite_compound',
-    name: 'Elite Compound',
-    description: 'The ultimate headquarters with specialized facilities, training rooms, and maximum theme bonuses!',
-    maxRooms: 15,
-    charactersPerRoom: 1,
-    cost: { coins: 500000, gems: 1000 },
-    unlockLevel: 50,
-    roomUpgrades: ['elite_furniture', 'specialized_facilities', 'max_bonuses']
-  }
-];
+// HEADQUARTERS_TIERS imported from ./data/headquartersData.ts
 
-const ROOM_THEMES: RoomTheme[] = [
-  {
-    id: 'gothic',
-    name: 'Gothic Chamber',
-    description: 'Dark stone walls, candles, and an ominous atmosphere perfect for creatures of the night',
-    bonus: 'Magic Damage',
-    bonusValue: 15,
-    suitableCharacters: ['dracula', 'frankenstein_monster'],
-    cost: { coins: 5000, gems: 10 },
-    backgroundColor: 'bg-purple-900/20',
-    textColor: 'text-purple-300',
-    icon: '🦇'
-  },
-  {
-    id: 'medieval',
-    name: 'Medieval Hall',
-    description: 'Stone walls, banners, and weapon racks - a warriors paradise',
-    bonus: 'Physical Damage',
-    bonusValue: 15,
-    suitableCharacters: ['achilles', 'joan', 'robin_hood'],
-    cost: { coins: 5000, gems: 10 },
-    backgroundColor: 'bg-amber-900/20',
-    textColor: 'text-amber-300',
-    icon: '⚔️'
-  },
-  {
-    id: 'victorian',
-    name: 'Victorian Study',
-    description: 'Elegant furniture, books, and scientific instruments for the intellectual mind',
-    bonus: 'Critical Chance',
-    bonusValue: 12,
-    suitableCharacters: ['holmes'],
-    cost: { coins: 7000, gems: 15 },
-    backgroundColor: 'bg-emerald-900/20',
-    textColor: 'text-emerald-300',
-    icon: '🔍'
-  },
-  {
-    id: 'egyptian',
-    name: 'Pharaoh\'s Chamber',
-    description: 'Golden decorations, hieroglyphs, and royal splendor fit for a pharaoh',
-    bonus: 'Defense',
-    bonusValue: 20,
-    suitableCharacters: ['cleopatra'],
-    cost: { coins: 8000, gems: 20 },
-    backgroundColor: 'bg-yellow-900/20',
-    textColor: 'text-yellow-300',
-    icon: '👑'
-  },
-  {
-    id: 'mystical',
-    name: 'Mystical Sanctuary',
-    description: 'Magical crystals, ancient symbols, and ethereal energy',
-    bonus: 'Mana Regeneration',
-    bonusValue: 25,
-    suitableCharacters: ['merlin', 'sun_wukong'],
-    cost: { coins: 6000, gems: 12 },
-    backgroundColor: 'bg-blue-900/20',
-    textColor: 'text-blue-300',
-    icon: '🔮'
-  },
-  {
-    id: 'wild_west',
-    name: 'Saloon Room',
-    description: 'Wooden furniture, spittoons, and the spirit of the frontier',
-    bonus: 'Speed',
-    bonusValue: 18,
-    suitableCharacters: ['billy_the_kid'],
-    cost: { coins: 4000, gems: 8 },
-    backgroundColor: 'bg-orange-900/20',
-    textColor: 'text-orange-300',
-    icon: '🤠'
-  },
-  {
-    id: 'futuristic',
-    name: 'Tech Lab',
-    description: 'Holographic displays, advanced equipment, and cutting-edge technology',
-    bonus: 'Accuracy',
-    bonusValue: 20,
-    suitableCharacters: ['tesla', 'space_cyborg', 'agent_x'],
-    cost: { coins: 10000, gems: 25 },
-    backgroundColor: 'bg-cyan-900/20',
-    textColor: 'text-cyan-300',
-    icon: '🤖'
-  },
-  {
-    id: 'sports_den',
-    name: 'Sports Den',
-    description: 'Baseball memorabilia, trophies, and all-American spirit',
-    bonus: 'Stamina',
-    bonusValue: 15,
-    suitableCharacters: ['sammy_slugger'],
-    cost: { coins: 3000, gems: 5 },
-    backgroundColor: 'bg-green-900/20',
-    textColor: 'text-green-300',
-    icon: '⚾'
-  },
-  {
-    id: 'mongolian',
-    name: 'Khan\'s Yurt',
-    description: 'Traditional Mongolian decorations and symbols of conquest',
-    bonus: 'Leadership',
-    bonusValue: 20,
-    suitableCharacters: ['genghis_khan'],
-    cost: { coins: 6000, gems: 15 },
-    backgroundColor: 'bg-red-900/20',
-    textColor: 'text-red-300',
-    icon: '🏹'
-  },
-  {
-    id: 'alien_lab',
-    name: 'Research Pod',
-    description: 'Advanced alien technology and experimental equipment',
-    bonus: 'Experience Gain',
-    bonusValue: 30,
-    suitableCharacters: ['alien_grey'],
-    cost: { coins: 15000, gems: 50 },
-    backgroundColor: 'bg-indigo-900/20',
-    textColor: 'text-indigo-300',
-    icon: '🛸'
-  },
-  {
-    id: 'nordic',
-    name: 'Viking Lodge',
-    description: 'Wooden halls, fur pelts, and the spirit of the wild hunt',
-    bonus: 'Berserker Rage',
-    bonusValue: 25,
-    suitableCharacters: ['fenrir'],
-    cost: { coins: 5000, gems: 10 },
-    backgroundColor: 'bg-slate-900/20',
-    textColor: 'text-slate-300',
-    icon: '🐺'
-  }
-];
+// ROOM_THEMES imported from ./data/headquartersData.ts
 
 // Multi-element room decoration system
-const ROOM_ELEMENTS: RoomElement[] = [
-  // Wall Decor
-  {
-    id: 'gothic_tapestries',
-    name: 'Gothic Tapestries',
-    category: 'wallDecor',
-    description: 'Dark velvet tapestries with mysterious symbols',
-    bonus: 'Magic Damage',
-    bonusValue: 8,
-    suitableCharacters: ['dracula', 'frankenstein_monster'],
-    cost: { coins: 2000, gems: 5 },
-    backgroundColor: 'bg-purple-900/20',
-    textColor: 'text-purple-300',
-    icon: '🪶',
-    compatibleWith: ['gothic_chandelier', 'stone_floors'],
-    incompatibleWith: ['neon_strips', 'holographic_panels']
-  },
-  {
-    id: 'weapon_displays',
-    name: 'Weapon Displays',
-    category: 'wallDecor',
-    description: 'Mounted swords, shields, and battle trophies',
-    bonus: 'Physical Damage',
-    bonusValue: 8,
-    suitableCharacters: ['achilles', 'joan', 'robin_hood'],
-    cost: { coins: 2500, gems: 4 },
-    backgroundColor: 'bg-amber-900/20',
-    textColor: 'text-amber-300',
-    icon: '⚔️',
-    compatibleWith: ['wooden_furniture', 'torch_lighting'],
-    incompatibleWith: ['crystal_displays', 'tech_panels']
-  },
-  {
-    id: 'holographic_panels',
-    name: 'Holographic Panels',
-    category: 'wallDecor',
-    description: 'Advanced tech displays with data streams',
-    bonus: 'Accuracy',
-    bonusValue: 10,
-    suitableCharacters: ['tesla', 'space_cyborg', 'agent_x'],
-    cost: { coins: 4000, gems: 12 },
-    backgroundColor: 'bg-cyan-900/20',
-    textColor: 'text-cyan-300',
-    icon: '📱',
-    compatibleWith: ['led_lighting', 'metal_floors'],
-    incompatibleWith: ['gothic_tapestries', 'wooden_furniture']
-  },
-
-  // Furniture
-  {
-    id: 'throne_chair',
-    name: 'Royal Throne',
-    category: 'furniture',
-    description: 'Ornate golden throne for true royalty',
-    bonus: 'Leadership',
-    bonusValue: 12,
-    suitableCharacters: ['cleopatra', 'genghis_khan'],
-    cost: { coins: 3000, gems: 8 },
-    backgroundColor: 'bg-yellow-900/20',
-    textColor: 'text-yellow-300',
-    icon: '👑',
-    compatibleWith: ['golden_accents', 'marble_floors'],
-    incompatibleWith: ['wooden_furniture', 'tech_stations']
-  },
-  {
-    id: 'wooden_furniture',
-    name: 'Rustic Wood Set',
-    category: 'furniture',
-    description: 'Handcrafted wooden tables and chairs',
-    bonus: 'Stamina',
-    bonusValue: 8,
-    suitableCharacters: ['billy_the_kid', 'robin_hood'],
-    cost: { coins: 1500, gems: 3 },
-    backgroundColor: 'bg-orange-900/20',
-    textColor: 'text-orange-300',
-    icon: '🪑',
-    compatibleWith: ['weapon_displays', 'torch_lighting'],
-    incompatibleWith: ['throne_chair', 'tech_stations']
-  },
-  {
-    id: 'tech_stations',
-    name: 'Tech Workstations',
-    category: 'furniture',
-    description: 'Advanced computer terminals and lab equipment',
-    bonus: 'Critical Chance',
-    bonusValue: 10,
-    suitableCharacters: ['tesla', 'holmes', 'alien_grey'],
-    cost: { coins: 5000, gems: 15 },
-    backgroundColor: 'bg-blue-900/20',
-    textColor: 'text-blue-300',
-    icon: '💻',
-    compatibleWith: ['holographic_panels', 'led_lighting'],
-    incompatibleWith: ['throne_chair', 'wooden_furniture']
-  },
-
-  // Lighting
-  {
-    id: 'gothic_chandelier',
-    name: 'Gothic Chandelier',
-    category: 'lighting',
-    description: 'Ornate iron chandelier with flickering candles',
-    bonus: 'Magic Damage',
-    bonusValue: 6,
-    suitableCharacters: ['dracula', 'frankenstein_monster'],
-    cost: { coins: 2000, gems: 6 },
-    backgroundColor: 'bg-purple-900/20',
-    textColor: 'text-purple-300',
-    icon: '🕯️',
-    compatibleWith: ['gothic_tapestries', 'stone_floors'],
-    incompatibleWith: ['led_lighting', 'neon_strips']
-  },
-  {
-    id: 'led_lighting',
-    name: 'LED Strip System',
-    category: 'lighting',
-    description: 'Color-changing LED lights with smart controls',
-    bonus: 'Speed',
-    bonusValue: 8,
-    suitableCharacters: ['tesla', 'space_cyborg'],
-    cost: { coins: 3500, gems: 10 },
-    backgroundColor: 'bg-cyan-900/20',
-    textColor: 'text-cyan-300',
-    icon: '💡',
-    compatibleWith: ['holographic_panels', 'tech_stations'],
-    incompatibleWith: ['gothic_chandelier', 'torch_lighting']
-  },
-  {
-    id: 'torch_lighting',
-    name: 'Medieval Torches',
-    category: 'lighting',
-    description: 'Classic wall-mounted torches for authentic ambiance',
-    bonus: 'Physical Damage',
-    bonusValue: 6,
-    suitableCharacters: ['achilles', 'joan'],
-    cost: { coins: 1000, gems: 2 },
-    backgroundColor: 'bg-amber-900/20',
-    textColor: 'text-amber-300',
-    icon: '🔥',
-    compatibleWith: ['weapon_displays', 'wooden_furniture'],
-    incompatibleWith: ['led_lighting', 'gothic_chandelier']
-  },
-
-  // Accessories
-  {
-    id: 'crystal_displays',
-    name: 'Mystical Crystals',
-    category: 'accessories',
-    description: 'Glowing crystals with magical properties',
-    bonus: 'Mana Regeneration',
-    bonusValue: 15,
-    suitableCharacters: ['merlin', 'sun_wukong'],
-    cost: { coins: 2500, gems: 8 },
-    backgroundColor: 'bg-blue-900/20',
-    textColor: 'text-blue-300',
-    icon: '🔮',
-    compatibleWith: ['gothic_chandelier', 'stone_floors'],
-    incompatibleWith: ['weapon_displays', 'tech_stations']
-  },
-  {
-    id: 'golden_accents',
-    name: 'Golden Decorations',
-    category: 'accessories',
-    description: 'Luxurious gold trim and ornamental pieces',
-    bonus: 'Defense',
-    bonusValue: 10,
-    suitableCharacters: ['cleopatra', 'genghis_khan'],
-    cost: { coins: 4000, gems: 12 },
-    backgroundColor: 'bg-yellow-900/20',
-    textColor: 'text-yellow-300',
-    icon: '✨',
-    compatibleWith: ['throne_chair', 'marble_floors'],
-    incompatibleWith: ['wooden_furniture', 'metal_floors']
-  },
-
-  // Flooring
-  {
-    id: 'stone_floors',
-    name: 'Ancient Stone',
-    category: 'flooring',
-    description: 'Weathered stone blocks with mystical runes',
-    bonus: 'Defense',
-    bonusValue: 8,
-    suitableCharacters: ['dracula', 'merlin'],
-    cost: { coins: 3000, gems: 7 },
-    backgroundColor: 'bg-gray-900/20',
-    textColor: 'text-gray-300',
-    icon: '🗿',
-    compatibleWith: ['gothic_tapestries', 'crystal_displays'],
-    incompatibleWith: ['metal_floors', 'tech_stations']
-  },
-  {
-    id: 'marble_floors',
-    name: 'Royal Marble',
-    category: 'flooring',
-    description: 'Polished marble with golden veins',
-    bonus: 'Leadership',
-    bonusValue: 8,
-    suitableCharacters: ['cleopatra', 'achilles'],
-    cost: { coins: 5000, gems: 15 },
-    backgroundColor: 'bg-yellow-900/20',
-    textColor: 'text-yellow-300',
-    icon: '⬜',
-    compatibleWith: ['throne_chair', 'golden_accents'],
-    incompatibleWith: ['wooden_furniture', 'stone_floors']
-  },
-  {
-    id: 'metal_floors',
-    name: 'Tech Flooring',
-    category: 'flooring',
-    description: 'Reinforced metal grating with LED strips',
-    bonus: 'Speed',
-    bonusValue: 8,
-    suitableCharacters: ['tesla', 'space_cyborg'],
-    cost: { coins: 4000, gems: 10 },
-    backgroundColor: 'bg-cyan-900/20',
-    textColor: 'text-cyan-300',
-    icon: '🔲',
-    compatibleWith: ['holographic_panels', 'led_lighting'],
-    incompatibleWith: ['stone_floors', 'marble_floors']
-  }
-];
+// ROOM_ELEMENTS imported from ./data/headquartersData.ts
 
 
 export default function TeamHeadquarters() {
@@ -647,81 +170,9 @@ export default function TeamHeadquarters() {
   const [selectedRoomForBeds, setSelectedRoomForBeds] = useState<string | null>(null);
   const [showBedShop, setShowBedShop] = useState(false);
 
-  // Calculate total bed capacity for a room
-  const calculateRoomCapacity = (room: Room) => {
-    return room.beds.reduce((total, bed) => total + bed.capacity, 0);
-  };
+  // calculateRoomCapacity and calculateSleepingArrangement imported from ./utils/roomCalculations.ts
 
-  // Calculate sleeping arrangement based on bed system
-  const calculateSleepingArrangement = (room: Room, characterName: string) => {
-    const charIndex = room.assignedCharacters.indexOf(characterName);
-    if (charIndex === -1) return { sleepsOnFloor: true, bedType: 'floor', comfortBonus: 0 };
-
-    let assignedSlot = 0;
-    for (const bed of room.beds) {
-      if (charIndex < assignedSlot + bed.capacity) {
-        // Character gets this bed
-        return {
-          sleepsOnFloor: false,
-          bedType: bed.type,
-          comfortBonus: bed.comfortBonus,
-          sleepsOnCouch: bed.type === 'couch',
-          sleepsInBed: bed.type === 'bed' || bed.type === 'bunk_bed'
-        };
-      }
-      assignedSlot += bed.capacity;
-    }
-
-    // Character sleeps on floor (overcrowded)
-    return {
-      sleepsOnFloor: true,
-      bedType: 'floor',
-      comfortBonus: -10, // Penalty for floor sleeping
-      sleepsOnCouch: false,
-      sleepsInBed: false
-    };
-  };
-
-  // Purchase bed function
-  const purchaseBed = (roomId: string, bedType: PurchasableBed) => {
-    const room = headquarters.rooms.find(r => r.id === roomId);
-    if (!room) return;
-
-    // Check if player has enough currency
-    if (headquarters.currency.coins < bedType.cost.coins || headquarters.currency.gems < bedType.cost.gems) {
-      alert(`Not enough currency! Need ${bedType.cost.coins} coins and ${bedType.cost.gems} gems.`);
-      return;
-    }
-
-    // Generate unique bed ID
-    const newBedId = `${bedType.type}_${Date.now()}`;
-    const newBed: Bed = {
-      id: newBedId,
-      type: bedType.type,
-      position: { x: room.beds.length, y: 0 }, // Simple positioning
-      capacity: bedType.capacity,
-      comfortBonus: bedType.comfortBonus
-    };
-
-    // Update headquarters state
-    setHeadquarters(prev => ({
-      ...prev,
-      currency: {
-        coins: prev.currency.coins - bedType.cost.coins,
-        gems: prev.currency.gems - bedType.cost.gems
-      },
-      rooms: prev.rooms.map(r => 
-        r.id === roomId 
-          ? { ...r, beds: [...r.beds, newBed] }
-          : r
-      )
-    }));
-
-    setMoveNotification({
-      message: `${bedType.name} purchased for ${room.name}! +${bedType.capacity} sleeping capacity`,
-      type: 'success'
-    });
-  };
+  // purchaseBed function imported from ./services/bedService.ts
   
   // Calculate battle bonuses from room themes
   const battleBonuses = headquarters.rooms.reduce((bonuses: Record<string, number>, room) => {
@@ -780,564 +231,39 @@ export default function TeamHeadquarters() {
   const currentTier = HEADQUARTERS_TIERS.find(tier => tier.id === headquarters.currentTier)!;
   const nextTier = HEADQUARTERS_TIERS.find(tier => HEADQUARTERS_TIERS.indexOf(tier) === HEADQUARTERS_TIERS.indexOf(currentTier) + 1);
 
-  const startNewScene = async () => {
-    setIsGeneratingConversation(true);
-    setCurrentSceneRound(1);
-    setKitchenConversations([]);
-    
-    try {
-      // Wait for socket connection
-      const isConnected = await kitchenChatService.waitForConnection();
-      if (!isConnected) {
-        console.warn('Could not establish socket connection for kitchen chat');
-      }
-      const sceneType = PromptTemplateService.selectSceneType();
-      const allRoommates = headquarters.rooms[0].assignedCharacters;
-      const participants = PromptTemplateService.selectSceneParticipants(allRoommates, 3);
-      const trigger = PromptTemplateService.generateSceneTrigger(sceneType, headquarters.currentTier, headquarters);
-      
-      console.log('🎬 Starting new scene:', { sceneType, participants, trigger });
-      
-      const openingConversations = [];
-      
-      for (const charName of participants) {
-        const character = availableCharacters.find(c => c.baseName === charName);
-        if (!character) continue;
-        
-        const teammates = availableCharacters.filter(c => 
-          allRoommates.includes(c.baseName) && c.baseName !== charName
-        );
-        
-        // Calculate sleeping arrangement for this character
-        const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
-        const sleepingArrangement = calculateSleepingArrangement(room, charName);
-        const roomCapacity = calculateRoomCapacity(room);
-        const isOvercrowded = room.assignedCharacters.length > roomCapacity;
-        
-        const context = {
-          character,
-          teammates,
-          coachName: 'Coach',
-          livingConditions: {
-            apartmentTier: headquarters.currentTier,
-            roomTheme: room.theme,
-            sleepsOnCouch: sleepingArrangement.sleepsOnCouch,
-            sleepsOnFloor: sleepingArrangement.sleepsOnFloor,
-            sleepsInBed: sleepingArrangement.sleepsInBed,
-            bedType: sleepingArrangement.bedType,
-            comfortBonus: sleepingArrangement.comfortBonus,
-            sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
-            roomOvercrowded: isOvercrowded,
-            floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
-            roommateCount: room.assignedCharacters.length
-          },
-          recentEvents: [trigger]
-        };
-        
-        try {
-          const response = await kitchenChatService.generateKitchenConversation(context, trigger);
-          openingConversations.push({
-            id: `scene1_${Date.now()}_${charName}`,
-            avatar: character.avatar,
-            speaker: character.name.split(' ')[0],
-            message: response,
-            isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
-            timestamp: new Date(),
-            isAI: true,
-            round: 1
-          });
-        } catch (error: any) {
-          console.error(`Scene generation failed for ${charName}:`, error);
-          
-          // More informative error handling
-          let errorMessage = `*${character.name.split(' ')[0]} seems lost in thought*`;
-          
-          if (error.message === 'Socket not connected to backend. Please refresh the page and try again.') {
-            errorMessage = `*${character.name.split(' ')[0]} is waiting for the connection to establish...*`;
-            console.log('🔌 Socket connection issue detected. Waiting for connection...');
-            
-            // Try to wait for connection
-            const connected = await kitchenChatService.waitForConnection(3000);
-            if (connected) {
-              console.log('✅ Socket connected! Retrying...');
-              // Retry once after connection
-              try {
-                const response = await kitchenChatService.generateKitchenConversation(context, trigger);
-                openingConversations.push({
-                  id: `scene1_${Date.now()}_${charName}`,
-                  avatar: character.avatar,
-                  speaker: character.name.split(' ')[0],
-                  message: response,
-                  isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
-                  timestamp: new Date(),
-                  isAI: true,
-                  round: 1
-                });
-                continue; // Skip the fallback
-              } catch (retryError) {
-                console.error(`Retry failed for ${charName}:`, retryError);
-              }
-            }
-          } else if (error.message === 'USAGE_LIMIT_REACHED') {
-            errorMessage = `*${character.name.split(' ')[0]} is conserving energy for later battles*`;
-          } else if (error.message?.includes('timeout')) {
-            errorMessage = `*${character.name.split(' ')[0]} pauses, gathering their thoughts*`;
-          }
-          
-          openingConversations.push({
-            id: `fallback_${Date.now()}_${charName}`,
-            avatar: character.avatar,
-            speaker: character.name.split(' ')[0],
-            message: errorMessage,
-            isComplaint: false,
-            timestamp: new Date(),
-            isAI: false,
-            round: 1
-          });
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
-      
-      setKitchenConversations(openingConversations);
-    } finally {
-      setIsGeneratingConversation(false);
-    }
-  };
+  // startNewScene function imported from ./services/kitchenChatService.ts
 
-  const continueScene = async () => {
-    if (isGeneratingConversation) return;
-    
-    setIsGeneratingConversation(true);
-    setCurrentSceneRound(prev => prev + 1);
-    
-    try {
-      const newRound = currentSceneRound + 1;
-      let trigger = '';
-      let participants: string[] = [];
-      
-      if (newRound <= 3) {
-        // Non-sequential response selection
-        const lastParticipants = [...new Set(kitchenConversations.slice(0, 3).map(c => c.speaker))];
-        const availableResponders = headquarters.rooms[0].assignedCharacters.filter(name => {
-          const char = availableCharacters.find(c => c.baseName === name);
-          return char && lastParticipants.includes(char.name.split(' ')[0]);
-        });
-        
-        // Randomly select 1-2 characters (non-sequential)
-        const numResponders = Math.min(Math.random() > 0.5 ? 2 : 1, availableResponders.length);
-        participants = availableResponders.sort(() => Math.random() - 0.5).slice(0, numResponders);
-        
-        const lastMessage = kitchenConversations[0];
-        trigger = `Someone responds to ${lastMessage.speaker}'s comment: "${lastMessage.message}". Keep the conversation natural and build on what was said.`;
-      } else if (newRound <= 6) {
-        const currentParticipants = [...new Set(kitchenConversations.map(c => c.speaker))];
-        const availableNewChars = headquarters.rooms[0].assignedCharacters.filter(name => {
-          const char = availableCharacters.find(c => c.baseName === name);
-          return char && !currentParticipants.includes(char.name.split(' ')[0]);
-        });
-        
-        if (availableNewChars.length > 0) {
-          // Random selection of new character
-          participants = [availableNewChars[Math.floor(Math.random() * availableNewChars.length)]];
-          trigger = `${availableCharacters.find(c => c.baseName === participants[0])?.name.split(' ')[0]} walks into the kitchen and reacts to what's happening`;
-        } else {
-          // Random selection from all characters
-          participants = headquarters.rooms[0].assignedCharacters.sort(() => Math.random() - 0.5).slice(0, 2);
-          trigger = 'The conversation takes a new turn';
-        }
-      } else {
-        participants = PromptTemplateService.selectSceneParticipants(headquarters.rooms[0].assignedCharacters, 2);
-        const chaosEvents = [
-          'Coach suddenly walks in and interrupts',
-          'The fire alarm starts going off',
-          'There is a loud crash from another room',
-          'Someone spills something all over the floor'
-        ];
-        trigger = chaosEvents[Math.floor(Math.random() * chaosEvents.length)];
-      }
-      
-      const newConversations = [];
-      
-      for (const charName of participants) {
-        const character = availableCharacters.find(c => c.baseName === charName);
-        if (!character) continue;
-        
-        // Calculate sleeping arrangement for this character
-        const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
-        const sleepingArrangement = calculateSleepingArrangement(room, charName);
-        const roomCapacity = calculateRoomCapacity(room);
-        const isOvercrowded = room.assignedCharacters.length > roomCapacity;
-        
-        const context = {
-          character,
-          teammates: availableCharacters.filter(c => 
-            headquarters.rooms[0].assignedCharacters.includes(c.baseName) && c.baseName !== charName
-          ),
-          coachName: 'Coach',
-          livingConditions: {
-            apartmentTier: headquarters.currentTier,
-            roomTheme: room.theme,
-            sleepsOnCouch: sleepingArrangement.sleepsOnCouch,
-            sleepsOnFloor: sleepingArrangement.sleepsOnFloor,
-            sleepsInBed: sleepingArrangement.sleepsInBed,
-            bedType: sleepingArrangement.bedType,
-            comfortBonus: sleepingArrangement.comfortBonus,
-            sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
-            roomOvercrowded: isOvercrowded,
-            floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
-            roommateCount: room.assignedCharacters.length
-          },
-          recentEvents: kitchenConversations.slice(0, 3).map(c => `${c.speaker}: ${c.message}`)
-        };
-        
-        try {
-          // Enhanced context with conversation history
-          const conversationHistory = kitchenConversations.slice(0, 5).map(c => `${c.speaker}: ${c.message}`).join('\n');
-          const enhancedContext = {
-            ...context,
-            conversationHistory,
-            recentEvents: [trigger, ...context.recentEvents]
-          };
-          
-          const response = await kitchenChatService.generateKitchenConversation(enhancedContext, trigger);
-          
-          // Duplicate detection to prevent repetitive responses
-          const recentMessages = kitchenConversations.slice(0, 3).map(c => c.message.toLowerCase());
-          const isUnique = response && response.length > 10 && 
-            !recentMessages.some(msg => {
-              const similarity = msg.includes(response.toLowerCase().substring(0, 15)) || 
-                               response.toLowerCase().includes(msg.substring(0, 15));
-              return similarity;
-            });
-          
-          if (isUnique) {
-            newConversations.push({
-              id: `scene${newRound}_${Date.now()}_${charName}`,
-              avatar: character.avatar,
-              speaker: character.name.split(' ')[0],
-              message: response,
-              isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
-              timestamp: new Date(),
-              isAI: true,
-              round: newRound
-            });
-          }
-        } catch (error) {
-          console.error(`Failed to continue scene for ${charName}:`, error);
-          if (error instanceof Error && error.message === 'USAGE_LIMIT_REACHED') {
-            // Stop trying more characters and refresh usage status
-            const loadUsageStatus = async () => {
-              try {
-                const status = await usageService.getUserUsageStatus();
-                setUsageStatus(status);
-              } catch (error) {
-                console.error('Failed to refresh usage status:', error);
-              }
-            };
-            loadUsageStatus();
-            break; // Stop generating more conversations
-          }
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
-      setKitchenConversations(prev => [...newConversations, ...prev].slice(0, 25));
-    } finally {
-      setIsGeneratingConversation(false);
-    }
-  };
+  // continueScene function imported from ./services/kitchenChatService.ts
 
-  const handleCoachMessage = async () => {
-    if (!coachMessage.trim()) return;
-    
-    // Add coach message to conversation
-    const coachConversation = {
-      id: `coach_${Date.now()}`,
-      avatar: '👨‍💼',
-      speaker: 'Coach',
-      message: coachMessage.trim(),
-      isComplaint: false,
-      timestamp: new Date(),
-      isAI: false,
-      round: currentSceneRound
-    };
-    
-    setKitchenConversations(prev => [coachConversation, ...prev]);
-    const userMessage = coachMessage.trim();
-    setCoachMessage('');
-    
-    // Wait a bit to ensure coach message is visible before generating responses
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsGeneratingConversation(true);
-    
-    try {
-      // Get characters to respond to the coach's message
-      const allRoommates = headquarters.rooms[0].assignedCharacters;
-      const participants = PromptTemplateService.selectSceneParticipants(allRoommates, 2); // Just 2 characters respond
-      
-      const responses = [];
-      
-      for (const charName of participants) {
-        const character = availableCharacters.find(c => c.baseName === charName);
-        if (!character) continue;
-        
-        const teammates = availableCharacters.filter(c => 
-          allRoommates.includes(c.baseName) && c.baseName !== charName
-        );
-        
-        // Calculate sleeping arrangement for this character
-        const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
-        const sleepingArrangement = calculateSleepingArrangement(room, charName);
-        const roomCapacity = calculateRoomCapacity(room);
-        const isOvercrowded = room.assignedCharacters.length > roomCapacity;
-        
-        const context = {
-          character,
-          teammates,
-          coachName: 'Coach',
-          livingConditions: {
-            apartmentTier: headquarters.currentTier,
-            roomTheme: room.theme,
-            sleepsOnCouch: sleepingArrangement.sleepsOnCouch,
-            sleepsOnFloor: sleepingArrangement.sleepsOnFloor,
-            sleepsInBed: sleepingArrangement.sleepsInBed,
-            bedType: sleepingArrangement.bedType,
-            comfortBonus: sleepingArrangement.comfortBonus,
-            sleepsUnderTable: charName === 'dracula' && headquarters.currentTier === 'spartan_apartment',
-            roomOvercrowded: isOvercrowded,
-            floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
-            roommateCount: room.assignedCharacters.length
-          },
-          recentEvents: [userMessage]
-        };
-        
-        try {
-          const response = await kitchenChatService.generateKitchenConversation(
-            context, 
-            `Your coach just said to everyone: "${userMessage}". React and respond directly to them.`
-          );
-          responses.push({
-            id: `response_${Date.now()}_${charName}`,
-            avatar: character.avatar,
-            speaker: character.name.split(' ')[0],
-            message: response,
-            isComplaint: response.includes('!') || response.toLowerCase().includes('annoying'),
-            timestamp: new Date(),
-            isAI: true,
-            round: currentSceneRound + 1
-          });
-          
-          // Add delay between responses for natural flow
-          await new Promise(resolve => setTimeout(resolve, 800));
-        } catch (error) {
-          console.error(`Response generation failed for ${charName}:`, error);
-        }
-      }
-      
-      setKitchenConversations(prev => [...responses, ...prev]);
-      setCurrentSceneRound(prev => prev + 1);
-    } finally {
-      setIsGeneratingConversation(false);
-    }
-  };
+  // handleCoachMessage function imported from ./services/kitchenChatService.ts
 
   // Auto-start scene when kitchen chat is opened
   useEffect(() => {
     if (viewMode === 'kitchen_chat' && !sceneInitialized) {
-      startNewScene();
+      startNewScene(headquarters, availableCharacters, setIsGeneratingConversation, setCurrentSceneRound, setKitchenConversations);
       setSceneInitialized(true);
     }
   }, [viewMode, sceneInitialized]);
 
   // Get character conflicts (for humor)
-  const getCharacterConflicts = (roomId: string) => {
-    const room = headquarters.rooms.find(r => r.id === roomId);
-    if (!room || room.assignedCharacters.length < 2) return [];
+  // getCharacterConflicts function imported from ./services/characterHappinessService.ts
 
-    const conflicts = [];
-    
-    if (room.assignedCharacters.includes('holmes') && room.assignedCharacters.includes('dracula')) {
-      conflicts.push('Holmes keeps analyzing Dracula\'s sleeping patterns');
-    }
-    if (room.assignedCharacters.includes('achilles') && room.assignedCharacters.includes('merlin')) {
-      conflicts.push('Achilles thinks Merlin\'s midnight spell practice is too loud');
-    }
-    if (room.assignedCharacters.includes('cleopatra') && room.assignedCharacters.includes('joan')) {
-      conflicts.push('Cleopatra insists on royal treatment, Joan prefers humble quarters');
-    }
-    if (room.assignedCharacters.includes('frankenstein_monster') && room.assignedCharacters.includes('sun_wukong')) {
-      conflicts.push('Sun Wukong\'s energy annoys the contemplative Monster');
-    }
+  // getCharacterHappiness function imported from ./services/characterHappinessService.ts
 
-    return conflicts;
-  };
+  // getThemeCompatibility function imported from ./services/characterHappinessService.ts
 
-  // Calculate character happiness in room
-  const getCharacterHappiness = (charName: string, roomId: string) => {
-    const room = headquarters.rooms.find(r => r.id === roomId);
-    if (!room) return { level: 3, status: 'Content', emoji: '😐' };
+  // getRoomThemeWarnings function imported from ./services/roomAnalysisService.ts
 
-    let happiness = 3; // Base happiness (1-5 scale)
-    
-    // Theme compatibility
-    const compatibility = getThemeCompatibility(charName, room.theme);
-    if (compatibility.type === 'compatible') {
-      happiness += 1;
-    } else if (compatibility.type === 'incompatible') {
-      happiness -= 1; // Penalty for wrong theme
-    }
-    
-    // Overcrowding penalty
-    const roomCapacity = calculateRoomCapacity(room);
-    if (room.assignedCharacters.length > roomCapacity) {
-      happiness -= 1;
-    }
-    
-    // Character conflicts
-    const conflicts = getCharacterConflicts(roomId);
-    if (conflicts.length > 0) {
-      happiness -= 1;
-    }
-    
-    // Tier bonus
-    const tierIndex = HEADQUARTERS_TIERS.findIndex(t => t.id === headquarters.currentTier);
-    happiness += Math.floor(tierIndex / 2);
-    
-    // Clamp between 1-5
-    happiness = Math.max(1, Math.min(5, happiness));
-    
-    const statusMap = {
-      1: { status: 'Miserable', emoji: '😫' },
-      2: { status: 'Unhappy', emoji: '😒' },
-      3: { status: 'Content', emoji: '😐' },
-      4: { status: 'Happy', emoji: '😊' },
-      5: { status: 'Ecstatic', emoji: '🤩' }
-    };
-    
-    return { level: happiness, ...statusMap[happiness as keyof typeof statusMap] };
-  };
+  // getCharacterSuggestedThemes function imported from ./services/characterHappinessService.ts
 
-  // Theme compatibility helper functions
-  const getThemeCompatibility = (charName: string, themeId: string | null) => {
-    if (!themeId) return { compatible: true, type: 'no_theme' };
-    
-    const theme = ROOM_THEMES.find(t => t.id === themeId);
-    if (!theme) return { compatible: true, type: 'no_theme' };
-    
-    const isCompatible = theme.suitableCharacters.includes(charName);
-    return {
-      compatible: isCompatible,
-      type: isCompatible ? 'compatible' : 'incompatible',
-      theme,
-      bonusValue: isCompatible ? theme.bonusValue : 0,
-      penalty: isCompatible ? 0 : -5 // Small happiness penalty for wrong theme
-    };
-  };
-
-  const getRoomThemeWarnings = (roomId: string) => {
-    const room = headquarters.rooms.find(r => r.id === roomId);
-    if (!room || !room.theme) return [];
-    
-    const theme = ROOM_THEMES.find(t => t.id === room.theme);
-    if (!theme) return [];
-    
-    const warnings = [];
-    const incompatibleCharacters = room.assignedCharacters.filter(charName => 
-      !theme.suitableCharacters.includes(charName)
-    );
-    
-    if (incompatibleCharacters.length > 0) {
-      warnings.push({
-        type: 'theme_mismatch',
-        severity: 'warning',
-        characters: incompatibleCharacters,
-        message: `${incompatibleCharacters.length} fighter(s) clash with ${theme.name} training environment`,
-        suggestion: `Consider moving to ${getCharacterSuggestedThemes(incompatibleCharacters[0]).map(t => t.name).join(' or ')}`
-      });
-    }
-    
-    return warnings;
-  };
-
-  const getCharacterSuggestedThemes = (charName: string) => {
-    return ROOM_THEMES.filter(theme => theme.suitableCharacters.includes(charName));
-  };
-
-  const calculateMissedBonuses = (roomId: string) => {
-    const room = headquarters.rooms.find(r => r.id === roomId);
-    if (!room) return [];
-    
-    const missedBonuses = [];
-    
-    room.assignedCharacters.forEach(charName => {
-      const compatibility = getThemeCompatibility(charName, room.theme);
-      
-      // Only show missed bonuses if character is incompatible or room has no theme
-      if (compatibility.type === 'incompatible' || compatibility.type === 'no_theme') {
-        const suggestedThemes = getCharacterSuggestedThemes(charName);
-        suggestedThemes.forEach(theme => {
-          missedBonuses.push({
-            character: charName,
-            theme: theme.name,
-            bonus: `+${theme.bonusValue}% ${theme.bonus}`,
-            themeId: theme.id
-          });
-        });
-      }
-    });
-    
-    return missedBonuses;
-  };
+  // calculateMissedBonuses function imported from ./services/roomAnalysisService.ts
 
   // Calculate team chemistry penalties from overcrowding
-  const calculateTeamChemistry = () => {
-    const totalCharacters = headquarters.rooms.reduce((sum, room) => sum + room.assignedCharacters.length, 0);
-    const totalCapacity = headquarters.rooms.reduce((sum, room) => sum + calculateRoomCapacity(room), 0);
-    
-    let chemistryPenalty = 0;
-    if (totalCharacters > totalCapacity) {
-      const overflow = totalCharacters - totalCapacity;
-      if (overflow >= 4) chemistryPenalty = -35; // 12+ characters in 8-capacity apartment
-      else if (overflow >= 2) chemistryPenalty = -25; // 10+ characters
-      else chemistryPenalty = -15; // 8+ characters
-    }
-    
-    return { teamCoordination: chemistryPenalty };
-  };
+  // calculateTeamChemistry function imported from ./services/teamPerformanceService.ts
 
-  // Calculate total battle bonuses and penalties
-  const calculateBattleEffects = () => {
-    const effects: Record<string, number> = {};
-    
-    // Positive bonuses from room themes
-    headquarters.rooms.forEach(room => {
-      if (room.theme) {
-        const theme = ROOM_THEMES.find(t => t.id === room.theme);
-        if (theme) {
-          room.assignedCharacters.forEach(charName => {
-            if (theme.suitableCharacters.includes(charName)) {
-              if (!effects[theme.bonus]) effects[theme.bonus] = 0;
-              effects[theme.bonus] += theme.bonusValue;
-            }
-          });
-        }
-      }
-    });
-    
-    // Negative penalties from overcrowding
-    const chemistry = calculateTeamChemistry();
-    Object.entries(chemistry).forEach(([key, value]) => {
-      if (value !== 0) {
-        effects[key] = value;
-      }
-    });
+  // calculateBattleEffects function imported from ./services/teamPerformanceService.ts
 
-    return effects;
-  };
-
-  const battleEffects = calculateBattleEffects();
+  const battleEffects = calculateBattleEffects(headquarters);
 
   const upgradeHeadquarters = (tierId: string) => {
     const tier = HEADQUARTERS_TIERS.find(t => t.id === tierId);
@@ -1363,506 +289,47 @@ export default function TeamHeadquarters() {
     }
   };
 
-  const setRoomTheme = (roomId: string, themeId: string) => {
-    const theme = ROOM_THEMES.find(t => t.id === themeId);
-    if (!theme) return;
+  // setRoomTheme function imported from ./services/roomService.ts
 
-    if (headquarters.currency.coins >= theme.cost.coins && headquarters.currency.gems >= theme.cost.gems) {
-      setHeadquarters(prev => ({
-        ...prev,
-        currency: {
-          coins: prev.currency.coins - theme.cost.coins,
-          gems: prev.currency.gems - theme.cost.gems
-        },
-        rooms: prev.rooms.map(room => 
-          room.id === roomId ? { ...room, theme: themeId } : room
-        ),
-        unlockedThemes: [...prev.unlockedThemes, themeId]
-      }));
-    }
-  };
+  // addElementToRoom function imported from ./services/roomService.ts
 
-  // Room element management functions
-  const addElementToRoom = (roomId: string, elementId: string) => {
-    const element = ROOM_ELEMENTS.find(e => e.id === elementId);
-    const room = headquarters.rooms.find(r => r.id === roomId);
-    
-    if (!element || !room) return;
-
-    // Check element capacity based on tier
-    const tierCapacity = {
-      'spartan_apartment': 2,
-      'basic_house': 3,
-      'team_mansion': 5,
-      'elite_compound': 10
-    };
-    
-    const maxElements = tierCapacity[headquarters.currentTier as keyof typeof tierCapacity] || 2;
-    
-    if (room.elements.length >= maxElements) {
-      console.warn(`Room is at element capacity (${maxElements})`);
-      return;
-    }
-
-    // Check if player can afford
-    if (headquarters.currency.coins >= element.cost.coins && headquarters.currency.gems >= element.cost.gems) {
-      setHeadquarters(prev => ({
-        ...prev,
-        currency: {
-          coins: prev.currency.coins - element.cost.coins,
-          gems: prev.currency.gems - element.cost.gems
-        },
-        rooms: prev.rooms.map(room => 
-          room.id === roomId 
-            ? { ...room, elements: [...room.elements, elementId] }
-            : room
-        )
-      }));
-    }
-  };
-
-  const removeElementFromRoom = (roomId: string, elementId: string) => {
-    setHeadquarters(prev => ({
-      ...prev,
-      rooms: prev.rooms.map(room => 
-        room.id === roomId 
-          ? { ...room, elements: room.elements.filter(id => id !== elementId) }
-          : room
-      )
-    }));
-  };
+  // removeElementFromRoom function imported from ./services/roomService.ts
 
   // Calculate bonuses from room elements (including synergy bonuses)
-  const calculateRoomBonuses = (roomId: string) => {
-    const room = headquarters.rooms.find(r => r.id === roomId);
-    if (!room) return {};
-
-    const bonuses: Record<string, number> = {};
-    
-    // Base element bonuses
-    room.elements.forEach(elementId => {
-      const element = ROOM_ELEMENTS.find(e => e.id === elementId);
-      if (element) {
-        bonuses[element.bonus] = (bonuses[element.bonus] || 0) + element.bonusValue;
-      }
-    });
-
-    // Synergy bonuses for compatible elements
-    room.elements.forEach(elementId => {
-      const element = ROOM_ELEMENTS.find(e => e.id === elementId);
-      if (element) {
-        const compatibleInRoom = element.compatibleWith.filter(compatId => 
-          room.elements.includes(compatId)
-        );
-        
-        // Add 25% bonus for each compatible element
-        compatibleInRoom.forEach(() => {
-          bonuses[element.bonus] = (bonuses[element.bonus] || 0) + Math.floor(element.bonusValue * 0.25);
-        });
-      }
-    });
-
-    return bonuses;
-  };
+  // calculateRoomBonuses function imported from ./services/roomAnalysisService.ts
 
   // Get element capacity for current tier
-  const getElementCapacity = () => {
-    const tierCapacity = {
-      'spartan_apartment': 2,
-      'basic_house': 3,
-      'team_mansion': 5,
-      'elite_compound': 10
-    };
-    return tierCapacity[headquarters.currentTier as keyof typeof tierCapacity] || 2;
-  };
+  // getElementCapacity function imported from ./services/headquartersService.ts
 
-  // Generate custom room image using DALL-E
-  const generateRoomImage = async (roomId: string) => {
-    const room = headquarters.rooms.find(r => r.id === roomId);
-    if (!room || room.elements.length === 0) {
-      console.warn('Cannot generate image: room not found or no elements selected');
-      return;
-    }
+  // generateRoomImage function imported from ./services/roomService.ts
 
-    setIsGeneratingRoomImage(true);
+  // Character assignment functions imported from ./services/characterService.ts
 
-    try {
-      const roomElements = room.elements.map(elementId => {
-        const element = ROOM_ELEMENTS.find(e => e.id === elementId);
-        return element ? {
-          id: element.id,
-          name: element.name,
-          category: element.category,
-          description: element.description
-        } : null;
-      }).filter(Boolean) as any[];
+  // removeCharacterFromRoom function imported from ./services/characterService.ts
 
-      const imageUrl = await roomImageService.generateRoomImage({
-        roomName: room.name,
-        elements: roomElements,
-        style: 'photorealistic reality TV set',
-        size: 'medium'
-      });
+  // getUnassignedCharacters function imported from ./services/characterService.ts
 
-      // Update room with generated image
-      setHeadquarters(prev => ({
-        ...prev,
-        rooms: prev.rooms.map(r => 
-          r.id === roomId ? { ...r, customImageUrl: imageUrl } : r
-        )
-      }));
-
-    } catch (error) {
-      console.error('Failed to generate room image:', error);
-    } finally {
-      setIsGeneratingRoomImage(false);
-    }
-  };
-
-  // Character assignment functions
-  const assignCharacterToRoom = (characterId: string, roomId: string) => {
-    const character = availableCharacters.find(c => c.baseName === characterId);
-    const room = headquarters.rooms.find(r => r.id === roomId);
-    
-    if (!character || !room) return;
-    
-    // Check if already in this room
-    if (room.assignedCharacters.includes(characterId)) {
-      // Clear previous notification timeout
-      if (notificationTimeout.current) {
-        clearTimeout(notificationTimeout.current);
-      }
-      
-      setMoveNotification({message: `${character.name} is already in ${room.name}`, type: 'warning'});
-      notificationTimeout.current = setTimeout(() => {
-        setMoveNotification(null);
-        setHighlightedRoom(null);
-      }, 3000);
-      return;
-    }
-    
-    setHeadquarters(prev => ({
-      ...prev,
-      rooms: prev.rooms.map(room => {
-        if (room.id === roomId) {
-          const newAssignments = [...room.assignedCharacters, characterId];
-          // Check for overcrowding after the move
-          const roomCapacity = calculateRoomCapacity(room);
-          const willBeOvercrowded = newAssignments.length > roomCapacity;
-          
-          return {
-            ...room,
-            assignedCharacters: newAssignments
-          };
-        } else {
-          // Remove character from other rooms
-          return {
-            ...room,
-            assignedCharacters: room.assignedCharacters.filter(id => id !== characterId)
-          };
-        }
-        return room;
-      })
-    }));
-    
-    // Enhanced visual feedback
-    const newCount = room.assignedCharacters.length + 1;
-    const roomCapacity = calculateRoomCapacity(room);
-    const isOvercrowded = newCount > roomCapacity;
-    
-    if (isOvercrowded) {
-      const sleepingOnFloor = newCount - roomCapacity;
-      setMoveNotification({
-        message: `${character.name} moved to ${room.name}! ⚠️ ${sleepingOnFloor} fighter(s) now sleeping on floor/couches`,
-        type: 'warning'
-      });
-    } else {
-      setMoveNotification({
-        message: `${character.name} moved to ${room.name}! Room capacity: ${newCount}/${roomCapacity}`,
-        type: 'success'
-      });
-    }
-    
-    // Clear previous notification timeout
-    if (notificationTimeout.current) {
-      clearTimeout(notificationTimeout.current);
-    }
-    
-    // Highlight the room briefly
-    setHighlightedRoom(roomId);
-    notificationTimeout.current = setTimeout(() => {
-      setHighlightedRoom(null);
-      setMoveNotification(null);
-    }, 3000);
-  };
-
-  const removeCharacterFromRoom = (characterId: string, roomId: string) => {
-    setHeadquarters(prev => ({
-      ...prev,
-      rooms: prev.rooms.map(room => 
-        room.id === roomId
-          ? { ...room, assignedCharacters: room.assignedCharacters.filter(id => id !== characterId) }
-          : room
-      )
-    }));
-  };
-
-  // Get unassigned characters for the pool
-  const getUnassignedCharacters = () => {
-    const assignedCharacters = headquarters.rooms.flatMap(room => room.assignedCharacters);
-    return availableCharacters.filter(char => !assignedCharacters.includes(char.baseName));
-  };
-
-  // Helper function to clear all confessional timeouts
-  const clearAllConfessionalTimeouts = () => {
-    confessionalTimeouts.current.forEach(timeout => clearTimeout(timeout));
-    confessionalTimeouts.current.clear();
-    console.log('🧹 Cleared all confessional timeouts');
-  };
+  // clearAllConfessionalTimeouts function imported from ./services/confessionalService.ts
 
   // Confessional Interview Functions
-  const startConfessional = async (characterName: string) => {
-    console.log('🎬 Starting confessional for:', characterName);
-    
-    // Immediately clear any existing interviews and timeouts
-    clearAllConfessionalTimeouts();
-    
-    const character = availableCharacters.find(c => c.baseName === characterName);
-    console.log('🎭 Found character:', character?.name, 'ID:', character?.id);
-    if (!character) return;
+  // startConfessional function imported from ./services/confessionalService.ts
 
-    const initialQuestion = `the living arrangements and how you're adjusting to sharing space with the other fighters`;
+  // generateCharacterResponse function imported from ./services/confessionalService.ts
 
-    // Set new interview data (complete replacement, not updating previous state)
-    setConfessionalData({
-      activeCharacter: characterName,
-      isInterviewing: true,
-      isPaused: false,
-      questionCount: 1,
-      messages: [],
-      isLoading: false
-    });
+  // pauseConfessional function imported from ./services/confessionalService.ts
 
-    // Automatically generate character's response to the initial question
-    const timeoutId = setTimeout(() => {
-      generateCharacterResponse(characterName, initialQuestion);
-    }, 1500);
-    
-    confessionalTimeouts.current.add(timeoutId);
-  };
-
-  const generateCharacterResponse = async (characterName: string, hostmasterQuestion: string) => {
-    console.log('🎪 Generating response for characterName:', characterName);
-    const character = availableCharacters.find(c => c.baseName === characterName);
-    console.log('🎨 Character found:', character?.name, 'ID:', character?.id);
-    if (!character) return;
-
-    // Check if interview is paused or stopped
-    if (confessionalData.isPaused || !confessionalData.isInterviewing) {
-      return;
-    }
-
-    try {
-      // First, generate the character's response to the HOSTMASTER question
-      const characterContext = {
-        characterId: character.id,
-        characterName: character.name,
-        personality: character.personality,
-        historicalPeriod: character.historicalPeriod,
-        mythology: character.mythology,
-        currentBondLevel: character.bondLevel,
-        previousMessages: []
-      };
-
-      // Get other characters for context
-      const allHousemates = headquarters.rooms.flatMap(room => room.assignedCharacters);
-      const otherCharacters = availableCharacters
-        .filter(c => allHousemates.includes(c.baseName) && c.baseName !== characterName)
-        .map(c => c.name)
-        .slice(0, 4); // Limit to 4 for prompt length
-
-      const characterPrompt = `You are ${character.name} in the BLANK WARS reality show confessional booth. An invisible director behind the camera just asked you an inaudible question about: "${hostmasterQuestion}"
-
-🎬 CONFESSIONAL BOOTH SETUP:
-- You're alone in the confessional booth, speaking directly to the camera
-- The director's voice is inaudible to viewers - only your responses are heard
-- You react to their unheard question/prompt and address it naturally
-- This creates authentic reality TV confessional footage
-
-🎬 BLANK WARS REALITY SHOW CONTEXT:
-- You're competing in a gladiator-style fighting tournament reality show
-- Famous warriors/legends from different eras are forced to live together
-- You all sleep in cramped ${headquarters.currentTier} quarters with limited privacy
-- Current housemates: ${otherCharacters.join(', ')} (and others)
-- There's constant drama about who gets the good bed, bathroom time, food, etc.
-- Everyone's competing for prize money and trying to avoid elimination
-- Alliances form and break constantly - trust no one
-- The cameras are always rolling, capturing every argument and breakdown
-
-YOUR CHARACTER ESSENCE:
-- Name: ${character.name}
-- Personality: ${character.personality.traits.join(', ')}
-- Background: ${character.historicalPeriod} - ${character.mythology}
-- Speech Style: ${character.personality.speechStyle}
-- Core Motivations: ${character.personality.motivations.join(', ')}
-
-INVISIBLE DIRECTOR RESPONSE STYLE:
-- Begin your response as if reacting to their inaudible question
-- Use phrases like "You want to know about..." or "That's an interesting question..." 
-- Reference the topic naturally as if they just asked you about it
-- Stay in character with authentic reactions to the invisible prompt
-- Keep responses 1-2 sentences but make them memorable and revealing
-- Show your historical personality clashing with reality TV dynamics
-
-EXAMPLE RESPONSE PATTERNS:
-- "You're asking about the living arrangements? Well, let me tell you..."
-- "That's a good question about [topic]. From my perspective..."
-- "You want the truth about [situation]? Here's what really happened..."
-- "Interesting that you'd ask about that. The reality is..."
-
-Remember: Only YOUR voice is heard. React to the invisible director's question naturally while staying true to your legendary character!`;
-
-      // Generate character response via API
-      console.log('🎤 Generating character response for:', character.name);
-      console.log('📦 Sending characterContext:', characterContext);
-      
-      // Set loading state
-      setConfessionalData(prev => ({ ...prev, isLoading: true }));
-      
-      const response = await fetch('http://localhost:3006/api/confessional-character-response', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          characterContext,
-          prompt: characterPrompt
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const characterResponse = await response.json();
-      console.log('✅ Character response received:', characterResponse.message?.substring(0, 100) + '...');
-
-      // Add character response to messages
-      setConfessionalData(prev => ({
-        ...prev,
-        messages: [...prev.messages, {
-          id: Date.now(),
-          type: 'character',
-          content: characterResponse.message,
-          timestamp: new Date()
-        }],
-        isLoading: false
-      }));
-
-      // After character responds, generate next HOSTMASTER question
-      const hostmasterTimeoutId = setTimeout(async () => {
-        try {
-          const interviewContext = {
-            characterName: character.name,
-            characterPersonality: character.personality,
-            livingConditions: headquarters.currentTier,
-            previousQuestions: confessionalData.messages.filter(m => m.type === 'hostmaster').map(m => m.content),
-            characterResponses: [...confessionalData.messages.filter(m => m.type === 'character').map(m => m.content), characterResponse.message]
-          };
-
-          // Set loading state for hostmaster question generation
-          setConfessionalData(prev => ({ ...prev, isLoading: true }));
-          
-          const response = await fetch('http://localhost:3006/api/confessional-interview', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              context: interviewContext,
-              userResponse: characterResponse.message
-            })
-          });
-
-          const data = await response.json();
-          
-          // Increment question count and clear loading state
-          setConfessionalData(prev => ({
-            ...prev,
-            questionCount: prev.questionCount + 1,
-            isLoading: false
-          }));
-
-          // Only continue automatically for first 3 questions, then pause for user control
-          if (confessionalData.questionCount < 3) {
-            const continueTimeoutId = setTimeout(() => {
-              generateCharacterResponse(characterName, data.hostmasterResponse);
-            }, 3000);
-            confessionalTimeouts.current.add(continueTimeoutId);
-          } else {
-            // Pause after 3 questions
-            setConfessionalData(prev => ({
-              ...prev,
-              isPaused: true
-            }));
-          }
-
-        } catch (error) {
-          console.error('Director prompt error:', error);
-          const fallbackQuestion = "your thoughts on team dynamics and how you think your teammates would describe your role in the house";
-          setConfessionalData(prev => ({
-            ...prev,
-            isLoading: false
-          }));
-
-          const fallbackTimeoutId = setTimeout(() => {
-            generateCharacterResponse(characterName, fallbackQuestion);
-          }, 3000);
-          confessionalTimeouts.current.add(fallbackTimeoutId);
-        }
-      }, 2000);
-      
-      confessionalTimeouts.current.add(hostmasterTimeoutId);
-
-    } catch (error) {
-      console.error('Character response error:', error);
-      setConfessionalData(prev => ({ ...prev, isLoading: false }));
-    }
-  };
-
-  const pauseConfessional = () => {
-    setConfessionalData(prev => ({
-      ...prev,
-      isPaused: true
-    }));
-  };
-
-  const continueConfessional = () => {
-    if (!confessionalData.activeCharacter) return;
-    
-    setConfessionalData(prev => ({
-      ...prev,
-      isPaused: false
-    }));
-
-    // Find the last HOSTMASTER question and continue from there
-    const lastHostmasterMessage = confessionalData.messages
-      .filter(m => m.type === 'hostmaster')
-      .pop();
-    
-    if (lastHostmasterMessage) {
-      const continueTimeoutId = setTimeout(() => {
-        generateCharacterResponse(confessionalData.activeCharacter!, lastHostmasterMessage.content);
-      }, 1000);
-      confessionalTimeouts.current.add(continueTimeoutId);
-    }
-  };
+  // continueConfessional function imported from ./services/confessionalService.ts
 
   const endConfessional = () => {
     console.log('🏁 Ending confessional interview');
-    clearAllConfessionalTimeouts();
+    clearAllConfessionalTimeouts(confessionalTimeouts);
     setConfessionalData({
       activeCharacter: null,
-      messages: [],
       isInterviewing: false,
       isPaused: false,
-      questionCount: 0
+      questionCount: 0,
+      messages: [],
+      isLoading: false
     });
   };
 
@@ -2022,8 +489,8 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
 
             {/* Set Design Opportunities Summary */}
             {(() => {
-              const allWarnings = headquarters.rooms.flatMap(room => getRoomThemeWarnings(room.id));
-              const allMissedBonuses = headquarters.rooms.flatMap(room => calculateMissedBonuses(room.id));
+              const allWarnings = headquarters.rooms.flatMap(room => getRoomThemeWarnings(room.id, headquarters));
+              const allMissedBonuses = headquarters.rooms.flatMap(room => calculateMissedBonuses(room.id, headquarters));
               const incompatibleCount = headquarters.rooms.reduce((count, room) => {
                 return count + room.assignedCharacters.filter(char => {
                   const compat = getThemeCompatibility(char, room.theme);
@@ -2114,14 +581,14 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                     showCharacterPool
                       ? 'bg-green-600 text-white'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  } ${getUnassignedCharacters().length > 0 ? 'animate-pulse ring-2 ring-blue-400/50' : ''}`}
+                  } ${getUnassignedCharacters(availableCharacters, headquarters).length > 0 ? 'animate-pulse ring-2 ring-blue-400/50' : ''}`}
                   data-tutorial="character-pool-button"
                 >
                   <User className="w-4 h-4 inline mr-2" />
-                  Available Fighters ({getUnassignedCharacters().length})
-                  {getUnassignedCharacters().length > 0 && (
+                  Available Fighters ({getUnassignedCharacters(availableCharacters, headquarters).length})
+                  {getUnassignedCharacters(availableCharacters, headquarters).length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
-                      {getUnassignedCharacters().length}
+                      {getUnassignedCharacters(availableCharacters, headquarters).length}
                     </span>
                   )}
                 </button>
@@ -2137,10 +604,10 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                 >
                   <h4 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                     <User className="w-5 h-5" />
-                    Available Fighters ({getUnassignedCharacters().length})
+                    Available Fighters ({getUnassignedCharacters(availableCharacters, headquarters).length})
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {getUnassignedCharacters().map(character => (
+                    {getUnassignedCharacters(availableCharacters, headquarters).map(character => (
                       <div
                         key={character.baseName}
                         className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-move hover:bg-gray-600/50 transition-colors"
@@ -2160,7 +627,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                         </div>
                       </div>
                     ))}
-                    {getUnassignedCharacters().length === 0 && (
+                    {getUnassignedCharacters(availableCharacters, headquarters).length === 0 && (
                       <div className="col-span-full text-center text-gray-400 py-8">
                         All fighters are on set!
                       </div>
@@ -2179,7 +646,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
               >
             {headquarters.rooms.map((room) => {
               const theme = room.theme ? ROOM_THEMES.find(t => t.id === room.theme) : null;
-              const conflicts = getCharacterConflicts(room.id);
+              const conflicts = getCharacterConflicts(room.id, headquarters);
               const roomCapacity = calculateRoomCapacity(room);
               
               return (
@@ -2205,7 +672,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                     e.preventDefault();
                     e.currentTarget.classList.remove('border-green-400');
                     if (draggedCharacter) {
-                      assignCharacterToRoom(draggedCharacter, room.id);
+                      assignCharacterToRoom(draggedCharacter, room.id, availableCharacters, headquarters, setHeadquarters, setMoveNotification, setHighlightedRoom, notificationTimeout);
                       setDraggedCharacter(null);
                     }
                   }}
@@ -2253,7 +720,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                   <div className="flex flex-wrap gap-3 mb-3">
                     {room.assignedCharacters.map(charName => {
                       const character = availableCharacters.find(c => c.baseName === charName);
-                      const happiness = getCharacterHappiness(charName, room.id);
+                      const happiness = getCharacterHappiness(charName, room.id, headquarters);
                       const themeCompatibility = getThemeCompatibility(charName, room.theme);
                       
                       return character ? (
@@ -2302,7 +769,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              removeCharacterFromRoom(charName, room.id);
+                              removeCharacterFromRoom(charName, room.id, setHeadquarters);
                             }}
                             className="absolute -top-1 -left-1 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
                           >
@@ -2351,8 +818,8 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                   
                   {/* Theme Compatibility Warnings */}
                   {(() => {
-                    const warnings = getRoomThemeWarnings(room.id);
-                    const missedBonuses = calculateMissedBonuses(room.id);
+                    const warnings = getRoomThemeWarnings(room.id, headquarters);
+                    const missedBonuses = calculateMissedBonuses(room.id, headquarters);
                     
                     if (warnings.length === 0 && missedBonuses.length === 0) return null;
                     
@@ -2461,7 +928,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                 </div>
               )}
               <button
-                onClick={continueScene}
+                onClick={() => continueScene(isGeneratingConversation, setIsGeneratingConversation, currentSceneRound, setCurrentSceneRound, kitchenConversations, setKitchenConversations, headquarters, availableCharacters, calculateSleepingArrangement, calculateRoomCapacity, kitchenChatService, usageService, setUsageStatus, PromptTemplateService)}
                 disabled={isGeneratingConversation || (usageStatus && !usageStatus.canChat)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors font-semibold"
               >
@@ -2558,11 +1025,11 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                       className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                       value={coachMessage}
                       onChange={(e) => setCoachMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleCoachMessage()}
+                      onKeyPress={(e) => e.key === 'Enter' && handleCoachMessage(coachMessage, headquarters, availableCharacters, currentSceneRound, setKitchenConversations, setCoachMessage, setIsGeneratingConversation, setCurrentSceneRound)}
                       disabled={isGeneratingConversation}
                     />
                     <button
-                      onClick={handleCoachMessage}
+                      onClick={() => handleCoachMessage(coachMessage, headquarters, availableCharacters, currentSceneRound, setKitchenConversations, setCoachMessage, setIsGeneratingConversation, setCurrentSceneRound)}
                       disabled={!coachMessage.trim() || isGeneratingConversation}
                       className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
                     >
@@ -2738,7 +1205,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                       <div
                         key={character.baseName}
                         className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-pointer hover:bg-purple-600/30 transition-colors"
-                        onClick={() => startConfessional(character.baseName)}
+                        onClick={() => startConfessional(character.baseName, availableCharacters, confessionalTimeouts, setConfessionalData, headquarters)}
                       >
                         <div className="text-2xl mb-1">{character.avatar}</div>
                         <div className="text-xs text-white text-center">
@@ -2783,14 +1250,14 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                     <div className="flex gap-2">
                       {confessionalData.isPaused ? (
                         <button
-                          onClick={continueConfessional}
+                          onClick={() => continueConfessional(confessionalData, confessionalTimeouts, availableCharacters, headquarters, setConfessionalData)}
                           className="text-green-400 hover:text-white px-3 py-1 rounded bg-gray-700 hover:bg-green-600 transition-colors"
                         >
                           Continue
                         </button>
                       ) : (
                         <button
-                          onClick={pauseConfessional}
+                          onClick={() => pauseConfessional(setConfessionalData)}
                           className="text-yellow-400 hover:text-white px-3 py-1 rounded bg-gray-700 hover:bg-yellow-600 transition-colors"
                         >
                           Pause
@@ -2920,7 +1387,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                       
                       <button
                         onClick={() => {
-                          purchaseBed(selectedRoomForBeds, bed);
+                          purchaseBed(selectedRoomForBeds, bed, headquarters, setHeadquarters, setMoveNotification);
                           setShowBedShop(false);
                         }}
                         disabled={!canAfford}
@@ -2962,8 +1429,8 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                 const room = headquarters.rooms.find(r => r.id === selectedRoom);
                 if (!room) return null;
 
-                const elementCapacity = getElementCapacity();
-                const roomBonuses = calculateRoomBonuses(selectedRoom);
+                const elementCapacity = getElementCapacity(headquarters.currentTier);
+                const roomBonuses = calculateRoomBonuses(selectedRoom, headquarters);
 
                 return (
                   <>
@@ -2996,7 +1463,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                               <div className="text-6xl mb-2">🏠</div>
                               <div className="text-gray-400">Preview Room Design</div>
                               <button
-                                onClick={() => generateRoomImage(selectedRoom)}
+                                onClick={() => generateRoomImage(selectedRoom, headquarters, setHeadquarters, setIsGeneratingRoomImage)}
                                 disabled={isGeneratingRoomImage || room.elements.length === 0}
                                 className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded-lg transition-colors"
                               >
@@ -3064,7 +1531,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                                     </div>
                                   </div>
                                   <button
-                                    onClick={() => removeElementFromRoom(selectedRoom, elementId)}
+                                    onClick={() => removeElementFromRoom(selectedRoom, elementId, setHeadquarters)}
                                     className="text-red-400 hover:text-red-300 text-lg"
                                   >
                                     ×
@@ -3128,7 +1595,7 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
                                     }`}
                                     onClick={() => {
                                       if (!isOwned && canAfford && !atCapacity) {
-                                        addElementToRoom(selectedRoom, element.id);
+                                        addElementToRoom(selectedRoom, element.id, headquarters, setHeadquarters);
                                       }
                                     }}
                                   >

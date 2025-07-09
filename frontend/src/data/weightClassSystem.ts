@@ -48,10 +48,26 @@ export const weightClasses: WeightClass[] = [
   {
     id: 'legendary',
     name: 'Legendary Masters',
-    levelRange: [36, 50],
+    levelRange: [36, 60],
     color: 'from-red-400 to-red-500',
-    description: 'The absolute pinnacle of combat',
+    description: 'Master-level fighters',
     rank: 5
+  },
+  {
+    id: 'mythic',
+    name: 'Mythic Champions',
+    levelRange: [61, 100],
+    color: 'from-purple-500 to-pink-500',
+    description: 'Legendary warriors transcending limits',
+    rank: 6
+  },
+  {
+    id: 'transcendent',
+    name: 'Transcendent Beings',
+    levelRange: [101, 200],
+    color: 'from-yellow-400 to-orange-500',
+    description: 'God-tier combatants beyond mortal comprehension',
+    rank: 7
   }
 ];
 

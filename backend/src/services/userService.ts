@@ -35,7 +35,8 @@ export class UserService {
         avatarUrl: undefined, // Not in database schema yet
         bio: undefined, // Not in database schema yet
         level: dbUser.level || 1,
-        xp: dbUser.experience || 0
+        xp: dbUser.experience || 0,
+        character_slot_capacity: dbUser.character_slot_capacity || 12
       };
     } catch (error) {
       console.error('Error finding user profile:', error);

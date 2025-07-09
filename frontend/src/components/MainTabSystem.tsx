@@ -35,7 +35,7 @@ import TeamManagementCoaching from './TeamManagementCoaching';
 import { createDemoCharacterCollection } from '@/data/characters';
 
 // Lazy load non-critical components
-const ImprovedBattleArena = lazy(() => import('./temp/ImprovedBattleArena_REAL'));
+const ImprovedBattleArena = lazy(() => import('./ImprovedBattleArena'));
 const TeamBuilder = lazy(() => import('./TeamBuilder'));
 
 // Placeholder components for debugging

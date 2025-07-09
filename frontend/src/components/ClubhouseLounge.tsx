@@ -314,32 +314,158 @@ export default function ClubhouseLounge() {
     });
   };
 
-  const generateAIMessage = (character: LoungeCharacter) => {
-    // This would normally call your AI service
-    const sampleResponses = [
-      `I've been thinking about ${currentTopic.topic}. What's everyone's take?`,
-      'Anyone up for some practice matches later? I need to test a new strategy.',
-      'Just saw the leaderboard update. Congrats to everyone who climbed!',
-      `@${characters[0].name} That last battle was intense! GG!`,
-      'The devs really need to nerf that combo... it\'s getting ridiculous.',
-      'Who else is excited for the weekend tournament? Prize pool is huge!',
-      'I heard rumors about a secret character unlock. Anyone know more?'
-    ];
-    
-    const content = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
-    
-    const aiMessage: LoungeMessage = {
-      id: `msg_${Date.now()}`,
-      characterId: character.id,
-      characterName: character.name,
-      characterAvatar: character.avatar,
-      teamOwner: character.teamOwner,
-      content,
-      type: 'chat',
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, aiMessage]);
+  const generateAIMessage = async (character: LoungeCharacter) => {
+    try {
+      // Get auth token from localStorage
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('No auth token found for AI message generation');
+        return;
+      }
+
+      // Build context for the AI conversation
+      const conversationContext = {
+        currentTopic: currentTopic.topic,
+        recentMessages: messages.slice(-5).map(msg => ({
+          character: msg.characterName,
+          content: msg.content,
+          timestamp: msg.timestamp
+        })),
+        loungeParticipants: characters.map(c => c.name),
+        characterMood: character.mood,
+        characterStatus: character.status
+      };
+
+      // Call backend API for social lounge conversation
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/social/lounge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          characterId: character.id,
+          conversationType: 'character_interaction',
+          context: {
+            ...conversationContext,
+            situation: `The current topic is "${currentTopic.topic}". Generate a natural conversation contribution that fits your character's personality.`
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Social Lounge API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Create AI message from API response
+      const aiMessage: LoungeMessage = {
+        id: `msg_${Date.now()}`,
+        characterId: character.id,
+        characterName: character.name,
+        characterAvatar: character.avatar,
+        teamOwner: character.teamOwner,
+        content: data.message,
+        type: 'chat',
+        timestamp: new Date(data.timestamp)
+      };
+      
+      setMessages(prev => [...prev, aiMessage]);
+      
+    } catch (error) {
+      console.error('Failed to generate AI lounge message:', error);
+      // Fallback to prevent broken experience
+      const fallbackMessage: LoungeMessage = {
+        id: `msg_${Date.now()}`,
+        characterId: character.id,
+        characterName: character.name,
+        characterAvatar: character.avatar,
+        teamOwner: character.teamOwner,
+        content: 'AI service is temporarily unavailable. Please check back later.',
+        type: 'chat',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, fallbackMessage]);
+    }
+  };
+
+  const generateAIUserResponse = async (character: LoungeCharacter, userMessage: string) => {
+    try {
+      // Get auth token from localStorage
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('No auth token found for AI user response');
+        return;
+      }
+
+      // Build context for the AI conversation
+      const conversationContext = {
+        currentTopic: currentTopic.topic,
+        recentMessages: messages.slice(-5).map(msg => ({
+          character: msg.characterName,
+          content: msg.content,
+          timestamp: msg.timestamp
+        })),
+        loungeParticipants: characters.map(c => c.name),
+        characterMood: character.mood,
+        characterStatus: character.status,
+        bondLevel: 50 // Default bond level
+      };
+
+      // Call backend API for social lounge conversation
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/social/lounge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          characterId: character.id,
+          conversationType: 'user_chat',
+          userMessage: userMessage,
+          context: {
+            ...conversationContext,
+            situation: `A user just said: "${userMessage}". Respond naturally to their message in character.`
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Social Lounge API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Create AI message from API response
+      const aiMessage: LoungeMessage = {
+        id: `msg_${Date.now()}`,
+        characterId: character.id,
+        characterName: character.name,
+        characterAvatar: character.avatar,
+        teamOwner: character.teamOwner,
+        content: data.message,
+        type: 'chat',
+        timestamp: new Date(data.timestamp)
+      };
+      
+      setMessages(prev => [...prev, aiMessage]);
+      
+    } catch (error) {
+      console.error('Failed to generate AI user response:', error);
+      // Fallback to prevent broken experience
+      const fallbackMessage: LoungeMessage = {
+        id: `msg_${Date.now()}`,
+        characterId: character.id,
+        characterName: character.name,
+        characterAvatar: character.avatar,
+        teamOwner: character.teamOwner,
+        content: 'AI service is temporarily unavailable. Please check back later.',
+        type: 'chat',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, fallbackMessage]);
+    }
   };
 
   const handleSendMessage = () => {
@@ -362,12 +488,12 @@ export default function ClubhouseLounge() {
     setMessages(prev => [...prev, newMessage]);
     setUserInput('');
     
-    // Chance for AI response
-    setTimeout(() => {
-      if (Math.random() > 0.5) {
+    // Generate AI response to user message
+    setTimeout(async () => {
+      if (Math.random() > 0.3) { // 70% chance of AI response
         const responder = characters.filter(c => !c.isYourCharacter && c.status === 'active')[0];
         if (responder) {
-          generateAIMessage(responder);
+          await generateAIUserResponse(responder, userInput);
         }
       }
     }, 2000 + Math.random() * 3000);

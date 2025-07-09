@@ -127,7 +127,7 @@ export default function CharacterProgression({
             />
           </div>
           <div className="text-center text-sm text-gray-400 mt-1">
-            {currentLevel < 50 ? `${(100 - xpProgress).toFixed(1)}% to next level` : 'Maximum Level Reached!'}
+            {currentLevel < 200 ? `${(100 - xpProgress).toFixed(1)}% to next level` : 'Legendary Status - Continue Growing!'}
           </div>
         </div>
 

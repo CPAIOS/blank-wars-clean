@@ -26,7 +26,11 @@ import characterRouter from './routes/characterRoutes';
 import { createBattleRouter } from './routes/battleRoutes';
 import usageRouter from './routes/usage';
 import cardPackRouter from './routes/cardPackRoutes';
+import echoRouter from './routes/echoRoutes';
 import trainingRouter from './routes/trainingRoutes';
+import socialRouter from './routes/socialRoutes';
+import headquartersRouter from './routes/headquartersRoutes';
+import coachingRouter from './routes/coachingRoutes';
 import jwt from 'jsonwebtoken';
 import { apiLimiter, authLimiter, battleLimiter, wsLimiter } from './middleware/rateLimiter';
 import cookieParser from 'cookie-parser';
@@ -109,7 +113,11 @@ app.use('/api/user', userRouter);
 app.use('/api/characters', characterRouter);
 app.use('/api/usage', usageRouter);
 app.use('/api/packs', cardPackRouter);
+app.use('/api/echoes', echoRouter);
 app.use('/api/training', trainingRouter);
+app.use('/api/social', socialRouter);
+app.use('/api/headquarters', headquartersRouter);
+app.use('/api/coaching', coachingRouter);
 
 // New Card Pack Routes (These are now handled by cardPackRouter)
 // app.post('/api/packs/purchase', authenticateToken, async (req, res) => {

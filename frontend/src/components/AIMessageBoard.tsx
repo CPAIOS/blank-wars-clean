@@ -274,26 +274,124 @@ export default function AIMessageBoard() {
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
-  const generateNewAIMessage = () => {
-    // This would normally call your AI API
-    // For demo, we'll just show the concept
-    const newMessage: AIMessage = {
-      id: `ai_msg_${Date.now()}`,
-      characterId: 'achilles',
-      characterName: 'Achilles',
-      characterAvatar: '⚔️',
-      teamName: 'Team Olympus',
-      content: "Another team just learned why I'm called the greatest warrior. Next time bring more healers - you'll need them! 🏆",
-      type: 'victory_lap',
-      timestamp: new Date(),
-      likes: 0,
-      flames: 0,
-      replies: []
-    };
+  const generateNewAIMessage = async () => {
+    try {
+      // Get auth token from localStorage
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('No auth token found');
+        return;
+      }
 
-    setMessages(prev => [newMessage, ...prev]);
-    setHighlightedMessage(newMessage.id);
-    setTimeout(() => setHighlightedMessage(null), 3000);
+      // Select random character for drama message
+      const availableCharacters = [
+        'sherlock_holmes', 'count_dracula', 'joan_of_arc', 'achilles', 
+        'genghis_khan', 'nikola_tesla', 'cleopatra', 'merlin'
+      ];
+      const randomCharacter = availableCharacters[Math.floor(Math.random() * availableCharacters.length)];
+      
+      // Select random trigger type
+      const triggerTypes = ['random_drama', 'rivalry_escalation', 'battle_victory', 'battle_defeat'];
+      const randomTrigger = triggerTypes[Math.floor(Math.random() * triggerTypes.length)];
+
+      // Call backend API for AI drama message
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/social/ai-drama`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          characterId: randomCharacter,
+          triggerType: randomTrigger,
+          context: {
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI Drama API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Create new AI message from API response
+      const newMessage: AIMessage = {
+        id: `ai_msg_${Date.now()}`,
+        characterId: randomCharacter,
+        characterName: data.character,
+        characterAvatar: getCharacterAvatar(randomCharacter),
+        teamName: getCharacterTeam(randomCharacter),
+        content: data.message,
+        type: getMessageType(randomTrigger),
+        timestamp: new Date(data.timestamp),
+        likes: 0,
+        flames: 0,
+        replies: []
+      };
+
+      setMessages(prev => [newMessage, ...prev]);
+      setHighlightedMessage(newMessage.id);
+      setTimeout(() => setHighlightedMessage(null), 3000);
+      
+    } catch (error) {
+      console.error('Failed to generate AI message:', error);
+      // Fallback to prevent blank board
+      const fallbackMessage: AIMessage = {
+        id: `ai_msg_${Date.now()}`,
+        characterId: 'system',
+        characterName: 'System',
+        characterAvatar: '🤖',
+        teamName: 'AI Service',
+        content: 'AI drama service is temporarily unavailable. Please check back later.',
+        type: 'complaint',
+        timestamp: new Date(),
+        likes: 0,
+        flames: 0,
+        replies: []
+      };
+      setMessages(prev => [fallbackMessage, ...prev]);
+    }
+  };
+
+  // Helper functions
+  const getCharacterAvatar = (characterId: string): string => {
+    const avatars: Record<string, string> = {
+      'sherlock_holmes': '🔍',
+      'count_dracula': '🧛',
+      'joan_of_arc': '⚔️',
+      'achilles': '🏛️',
+      'genghis_khan': '🐎',
+      'nikola_tesla': '⚡',
+      'cleopatra': '👑',
+      'merlin': '🧙'
+    };
+    return avatars[characterId] || '❓';
+  };
+
+  const getCharacterTeam = (characterId: string): string => {
+    const teams: Record<string, string> = {
+      'sherlock_holmes': 'Team Logic',
+      'count_dracula': 'Team Darkness',
+      'joan_of_arc': 'Team Divine',
+      'achilles': 'Team Olympus',
+      'genghis_khan': 'Team Conquest',
+      'nikola_tesla': 'Team Innovation',
+      'cleopatra': 'Team Royal',
+      'merlin': 'Team Mystic'
+    };
+    return teams[characterId] || 'Unknown Team';
+  };
+
+  const getMessageType = (triggerType: string): AIMessage['type'] => {
+    const typeMap: Record<string, AIMessage['type']> = {
+      'battle_victory': 'victory_lap',
+      'battle_defeat': 'complaint',
+      'rivalry_escalation': 'trash_talk',
+      'random_drama': 'challenge'
+    };
+    return typeMap[triggerType] || 'trash_talk';
   };
 
   const handleLike = (messageId: string) => {

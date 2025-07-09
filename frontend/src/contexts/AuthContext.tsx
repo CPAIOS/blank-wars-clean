@@ -14,6 +14,7 @@ export interface UserProfile {
   total_wins: number;
   rating: number;
   created_at: string;
+  character_slot_capacity: number; // Added for dynamic character slots
 }
 
 // Coach progression system
@@ -42,6 +43,7 @@ export interface RegisterCredentials {
   username: string;
   email: string;
   password: string;
+  claimToken?: string;
 }
 
 export interface AuthTokens {

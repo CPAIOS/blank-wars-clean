@@ -1,0 +1,424 @@
+import express from 'express';
+import { authenticateToken } from '../services/auth';
+import { aiChatService } from '../services/aiChatService';
+import { db } from '../database/index';
+
+// Character psychology data (same as social routes)
+const characterPsychologyData: Record<string, any> = {
+  'sherlock_holmes': {
+    name: 'Sherlock Holmes',
+    personality: {
+      traits: ['Analytical', 'Brilliant', 'Observant', 'Arrogant'],
+      speechStyle: 'Precise and condescending',
+      motivations: ['Truth', 'Intellectual challenge', 'Justice'],
+      fears: ['Boredom', 'Mediocrity', 'Unsolved mysteries']
+    },
+    historicalPeriod: 'Victorian Era',
+    mythology: 'Literary detective fiction'
+  },
+  'count_dracula': {
+    name: 'Count Dracula',
+    personality: {
+      traits: ['Aristocratic', 'Manipulative', 'Charismatic', 'Ruthless'],
+      speechStyle: 'Formal and theatrical',
+      motivations: ['Power', 'Survival', 'Domination'],
+      fears: ['Holy symbols', 'Sunlight', 'Wooden stakes']
+    },
+    historicalPeriod: 'Medieval/Victorian',
+    mythology: 'Gothic horror'
+  },
+  'joan_of_arc': {
+    name: 'Joan of Arc',
+    personality: {
+      traits: ['Devout', 'Courageous', 'Determined', 'Inspirational'],
+      speechStyle: 'Passionate and righteous',
+      motivations: ['Divine mission', 'French victory', 'Faith'],
+      fears: ['Failing God', 'English victory', 'Betrayal']
+    },
+    historicalPeriod: 'Medieval France',
+    mythology: 'Historical saint'
+  },
+  'achilles': {
+    name: 'Achilles',
+    personality: {
+      traits: ['Prideful', 'Fierce', 'Loyal', 'Wrathful'],
+      speechStyle: 'Bold and dramatic',
+      motivations: ['Glory', 'Honor', 'Revenge'],
+      fears: ['Dishonor', 'Being forgotten', 'Cowardice']
+    },
+    historicalPeriod: 'Ancient Greece',
+    mythology: 'Greek mythology'
+  },
+  'genghis_khan': {
+    name: 'Genghis Khan',
+    personality: {
+      traits: ['Strategic', 'Ruthless', 'Adaptive', 'Ambitious'],
+      speechStyle: 'Commanding and direct',
+      motivations: ['Conquest', 'Empire building', 'Unity'],
+      fears: ['Weakness', 'Betrayal', 'Defeat']
+    },
+    historicalPeriod: 'Medieval Mongolia',
+    mythology: 'Historical conqueror'
+  },
+  'nikola_tesla': {
+    name: 'Nikola Tesla',
+    personality: {
+      traits: ['Brilliant', 'Eccentric', 'Visionary', 'Obsessive'],
+      speechStyle: 'Technical and passionate',
+      motivations: ['Scientific discovery', 'Innovation', 'Progress'],
+      fears: ['Failure', 'Theft of ideas', 'Mediocrity']
+    },
+    historicalPeriod: 'Industrial Revolution',
+    mythology: 'Historical inventor'
+  },
+  'cleopatra': {
+    name: 'Cleopatra',
+    personality: {
+      traits: ['Intelligent', 'Charming', 'Cunning', 'Regal'],
+      speechStyle: 'Elegant and commanding',
+      motivations: ['Power', 'Egypt\'s glory', 'Legacy'],
+      fears: ['Rome\'s conquest', 'Betrayal', 'Obscurity']
+    },
+    historicalPeriod: 'Ancient Egypt',
+    mythology: 'Historical queen'
+  },
+  'merlin': {
+    name: 'Merlin',
+    personality: {
+      traits: ['Wise', 'Mysterious', 'Powerful', 'Cryptic'],
+      speechStyle: 'Mystical and knowing',
+      motivations: ['Knowledge', 'Guidance', 'Balance'],
+      fears: ['Misuse of power', 'Prophecy', 'Corruption']
+    },
+    historicalPeriod: 'Arthurian Legend',
+    mythology: 'Celtic/Arthurian mythology'
+  },
+  'loki': {
+    name: 'Loki',
+    personality: {
+      traits: ['Cunning', 'Charismatic', 'Unpredictable', 'Intelligent'],
+      speechStyle: 'Witty and mischievous',
+      motivations: ['Change', 'Recognition', 'Freedom'],
+      fears: ['Being bound', 'Rejection', 'Stagnation']
+    },
+    historicalPeriod: 'Norse Mythology',
+    mythology: 'Norse mythology'
+  },
+  'einstein': {
+    name: 'Albert Einstein',
+    personality: {
+      traits: ['Brilliant', 'Curious', 'Imaginative', 'Pacifist'],
+      speechStyle: 'Thoughtful and philosophical',
+      motivations: ['Understanding', 'Peace', 'Knowledge'],
+      fears: ['Ignorance', 'Violence', 'Waste of potential']
+    },
+    historicalPeriod: 'Modern Era',
+    mythology: 'Historical scientist'
+  }
+};
+
+const router = express.Router();
+
+// POST /api/coaching/performance - Character performance coaching
+router.post('/performance', authenticateToken, async (req: any, res) => {
+  try {
+    const { characterId, userMessage, context } = req.body;
+    
+    // Get character personality data
+    const characterData = characterPsychologyData[characterId];
+    if (!characterData) {
+      return res.status(400).json({ error: 'Character not found' });
+    }
+
+    // Build performance coaching prompt with character's perspective
+    const coachingPrompt = `You are acting as a performance coach to help the user improve their abilities and mindset. The user said: "${userMessage}"
+
+    Based on your personality and experiences, provide coaching advice that:
+    - Reflects your unique perspective and wisdom
+    - Addresses their specific concern or question
+    - Offers practical guidance they can apply
+    - Shows your character's coaching style (analytical, inspiring, strategic, etc.)
+    - Stays true to your historical background and personality traits
+    
+    Keep your response focused, actionable, and in character (2-3 sentences max).`;
+
+    // Use existing AI service with coaching context
+    const response = await aiChatService.generateCharacterResponse(
+      {
+        characterId,
+        characterName: characterData.name,
+        personality: characterData.personality,
+        historicalPeriod: characterData.historicalPeriod,
+        mythology: characterData.mythology,
+        currentBondLevel: context?.bondLevel || 50,
+        previousMessages: context?.previousMessages || []
+      },
+      coachingPrompt,
+      req.user.id,
+      db,
+      { isInBattle: false }
+    );
+
+    res.json({
+      message: response.message,
+      character: characterData.name,
+      characterId,
+      timestamp: new Date().toISOString(),
+      bondIncrease: response.bondIncrease
+    });
+
+  } catch (error) {
+    console.error('Performance coaching error:', error);
+    res.status(500).json({ error: 'Failed to generate coaching response' });
+  }
+});
+
+// POST /api/coaching/individual - Individual coaching sessions
+router.post('/individual', authenticateToken, async (req: any, res) => {
+  try {
+    const { characterId, message, type, intensity, context } = req.body;
+    
+    // Get character personality data
+    const characterData = characterPsychologyData[characterId];
+    if (!characterData) {
+      return res.status(400).json({ error: 'Character not found' });
+    }
+
+    // Build individual coaching prompt based on session type
+    let coachingPrompt = '';
+    switch (type) {
+      case 'motivation':
+        coachingPrompt = `The user needs motivational coaching. They said: "${message}". Provide encouragement and motivation that fits your personality and background. Be inspiring but authentic to your character.`;
+        break;
+      case 'strategy':
+        coachingPrompt = `The user wants strategic advice. They said: "${message}". Share strategic insights based on your experience and personality. Give them tactical guidance they can use.`;
+        break;
+      case 'mindset':
+        coachingPrompt = `The user needs mindset coaching. They said: "${message}". Help them develop the right mental approach using your unique perspective and wisdom.`;
+        break;
+      case 'skills':
+        coachingPrompt = `The user wants to improve their skills. They said: "${message}". Provide specific guidance for skill development based on your expertise and character traits.`;
+        break;
+      default:
+        coachingPrompt = `The user is seeking individual coaching guidance. They said: "${message}". Provide helpful coaching advice that reflects your personality and experience.`;
+    }
+
+    // Add intensity context
+    if (intensity) {
+      coachingPrompt += ` The coaching intensity should be ${intensity} - adjust your approach accordingly.`;
+    }
+
+    coachingPrompt += ` Keep your response conversational and practical (2-3 sentences).`;
+
+    // Use existing AI service
+    const response = await aiChatService.generateCharacterResponse(
+      {
+        characterId,
+        characterName: characterData.name,
+        personality: characterData.personality,
+        historicalPeriod: characterData.historicalPeriod,
+        mythology: characterData.mythology,
+        currentBondLevel: context?.bondLevel || 50,
+        previousMessages: context?.previousMessages || []
+      },
+      coachingPrompt,
+      req.user.id,
+      db,
+      { isInBattle: false }
+    );
+
+    res.json({
+      message: response.message,
+      character: characterData.name,
+      characterId,
+      type,
+      intensity,
+      timestamp: new Date().toISOString(),
+      bondIncrease: response.bondIncrease
+    });
+
+  } catch (error) {
+    console.error('Individual coaching error:', error);
+    res.status(500).json({ error: 'Failed to generate individual coaching response' });
+  }
+});
+
+// POST /api/coaching/team-management - Team conflict resolution
+router.post('/team-management', authenticateToken, async (req: any, res) => {
+  try {
+    const { characterId, issue, choice, context } = req.body;
+    
+    // Get character personality data
+    const characterData = characterPsychologyData[characterId];
+    if (!characterData) {
+      return res.status(400).json({ error: 'Character not found' });
+    }
+
+    // Build team management coaching prompt
+    let coachingPrompt = `You are helping with team management and conflict resolution. 
+
+    Issue: ${issue?.title || 'Team dynamics challenge'}
+    User's approach: "${choice}"
+    
+    Based on your leadership experience and personality, provide guidance on:
+    - Whether this approach will be effective
+    - What potential consequences to consider  
+    - Alternative strategies that might work better
+    - How to handle team dynamics based on your experience
+    
+    Give practical advice that reflects your leadership style and wisdom (2-3 sentences).`;
+
+    // Use existing AI service with team management context
+    const response = await aiChatService.generateCharacterResponse(
+      {
+        characterId,
+        characterName: characterData.name,
+        personality: characterData.personality,
+        historicalPeriod: characterData.historicalPeriod,
+        mythology: characterData.mythology,
+        currentBondLevel: context?.bondLevel || 50,
+        previousMessages: context?.previousMessages || []
+      },
+      coachingPrompt,
+      req.user.id,
+      db,
+      { isInBattle: false }
+    );
+
+    res.json({
+      message: response.message,
+      character: characterData.name,
+      characterId,
+      issue: issue?.title,
+      choice,
+      timestamp: new Date().toISOString(),
+      bondIncrease: response.bondIncrease
+    });
+
+  } catch (error) {
+    console.error('Team management coaching error:', error);
+    res.status(500).json({ error: 'Failed to generate team management response' });
+  }
+});
+
+// POST /api/coaching/equipment - Equipment advisor coaching
+router.post('/equipment', authenticateToken, async (req: any, res) => {
+  try {
+    const { characterId, userMessage, context } = req.body;
+    
+    // Get character personality data
+    const characterData = characterPsychologyData[characterId];
+    if (!characterData) {
+      return res.status(400).json({ error: 'Character not found' });
+    }
+
+    // Build equipment advisor prompt with character's perspective
+    const equipmentPrompt = `You are acting as an equipment advisor to help the user choose and optimize their gear. The user said: "${userMessage}"
+
+    Context: 
+    - Character Level: ${context?.level || 1}
+    - Character Archetype: ${context?.archetype || 'warrior'}
+    - Current Equipment: ${context?.currentEquipment ? JSON.stringify(context.currentEquipment) : 'None specified'}
+    - Available Equipment: ${context?.availableEquipment ? 'Multiple options available' : 'Standard options'}
+
+    Based on your personality and expertise, provide equipment advice that:
+    - Reflects your unique perspective on gear and combat
+    - Addresses their specific equipment question or concern
+    - Offers practical recommendations for their level and archetype
+    - Shows your character's approach to equipment strategy
+    - Stays true to your historical background and personality traits
+    
+    Keep your response focused, actionable, and in character (2-3 sentences max).`;
+
+    // Use existing AI service with equipment context
+    const response = await aiChatService.generateCharacterResponse(
+      {
+        characterId,
+        characterName: characterData.name,
+        personality: characterData.personality,
+        historicalPeriod: characterData.historicalPeriod,
+        mythology: characterData.mythology,
+        currentBondLevel: context?.bondLevel || 50,
+        previousMessages: context?.previousMessages || []
+      },
+      equipmentPrompt,
+      req.user.id,
+      db,
+      { isInBattle: false }
+    );
+
+    res.json({
+      message: response.message,
+      character: characterData.name,
+      characterId,
+      timestamp: new Date().toISOString(),
+      bondIncrease: response.bondIncrease
+    });
+
+  } catch (error) {
+    console.error('Equipment coaching error:', error);
+    res.status(500).json({ error: 'Failed to generate equipment advice' });
+  }
+});
+
+// POST /api/coaching/skills - Skill development coaching
+router.post('/skills', authenticateToken, async (req: any, res) => {
+  try {
+    const { characterId, userMessage, context } = req.body;
+    
+    // Get character personality data
+    const characterData = characterPsychologyData[characterId];
+    if (!characterData) {
+      return res.status(400).json({ error: 'Character not found' });
+    }
+
+    // Build skill development prompt with character's perspective
+    const skillsPrompt = `You are acting as a skill development coach to help the user improve their abilities and combat techniques. The user said: "${userMessage}"
+
+    Context:
+    - Character Level: ${context?.level || 1}
+    - Current Skills: ${context?.currentSkills ? JSON.stringify(context.currentSkills) : 'Basic abilities'}
+    - Skill Focus: ${context?.skillFocus || 'general development'}
+    - Available Skill Points: ${context?.skillPoints || 0}
+
+    Based on your personality and combat experience, provide skill advice that:
+    - Reflects your unique approach to abilities and skill development
+    - Addresses their specific skill question or learning goal
+    - Offers practical guidance for skill progression
+    - Shows your character's philosophy on training and abilities
+    - Stays true to your historical background and combat style
+    
+    Keep your response focused, actionable, and in character (2-3 sentences max).`;
+
+    // Use existing AI service with skills context
+    const response = await aiChatService.generateCharacterResponse(
+      {
+        characterId,
+        characterName: characterData.name,
+        personality: characterData.personality,
+        historicalPeriod: characterData.historicalPeriod,
+        mythology: characterData.mythology,
+        currentBondLevel: context?.bondLevel || 50,
+        previousMessages: context?.previousMessages || []
+      },
+      skillsPrompt,
+      req.user.id,
+      db,
+      { isInBattle: false }
+    );
+
+    res.json({
+      message: response.message,
+      character: characterData.name,
+      characterId,
+      timestamp: new Date().toISOString(),
+      bondIncrease: response.bondIncrease
+    });
+
+  } catch (error) {
+    console.error('Skills coaching error:', error);
+    res.status(500).json({ error: 'Failed to generate skill development advice' });
+  }
+});
+
+export default router;

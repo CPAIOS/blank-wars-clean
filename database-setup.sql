@@ -53,6 +53,7 @@ CREATE TABLE users (
     last_login TIMESTAMP,
     is_banned BOOLEAN DEFAULT FALSE,
     ban_reason TEXT,
+    character_slot_capacity INTEGER DEFAULT 12, -- Default capacity for characters
     
     -- Indexes
     INDEX idx_users_email (email),
@@ -127,7 +128,6 @@ CREATE TABLE user_characters (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     character_id VARCHAR(20) NOT NULL REFERENCES characters(id),
-    serial_number VARCHAR(20) UNIQUE,
     nickname VARCHAR(50),
     
     -- Progression
@@ -161,11 +161,10 @@ CREATE TABLE user_characters (
     
     -- Indexes
     INDEX idx_user_characters_user (user_id),
-    INDEX idx_user_characters_serial (serial_number),
     INDEX idx_user_characters_bond (bond_level),
     
     -- Constraints
-    UNIQUE(user_id, character_id, serial_number)
+    UNIQUE(user_id, character_id)
 );
 
 -- =====================================================
@@ -321,6 +320,42 @@ CREATE TABLE qr_codes (
     INDEX idx_qr_unredeemed (is_redeemed) WHERE is_redeemed = FALSE,
     INDEX idx_qr_serial (serial_number),
     INDEX idx_qr_batch (batch_id)
+);
+
+-- =====================================================
+-- CARD PACK & GIFTING SYSTEM TABLES
+-- =====================================================
+
+-- Claimable Packs (for gifts, special offers, etc.)
+CREATE TABLE claimable_packs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pack_type VARCHAR(50) NOT NULL, -- e.g., 'standard_starter', 'premium_starter', 'gift_pack_common'
+    is_claimed BOOLEAN DEFAULT FALSE,
+    claimed_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    claimed_at TIMESTAMP
+);
+
+-- Contents of Claimable Packs
+CREATE TABLE claimable_pack_contents (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pack_id UUID NOT NULL REFERENCES claimable_packs(id) ON DELETE CASCADE,
+    character_id VARCHAR(20) NOT NULL REFERENCES characters(id),
+    is_granted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- CHARACTER ECHO SYSTEM TABLES
+-- =====================================================
+
+-- User's Character Echoes (for duplicate characters)
+CREATE TABLE user_character_echoes (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    character_template_id VARCHAR(20) NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+    echo_count INTEGER DEFAULT 0 CHECK (echo_count >= 0),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, character_template_id)
 );
 
 -- =====================================================

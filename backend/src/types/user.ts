@@ -15,6 +15,7 @@ export interface UserProfile {
   bio?: string;
   level: number;
   xp: number;
+  character_slot_capacity: number;
 }
 
 export interface Friendship {

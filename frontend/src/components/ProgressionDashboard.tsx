@@ -82,13 +82,13 @@ export default function ProgressionDashboard({
   const [currentChatMessage, setCurrentChatMessage] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
 
-  // Mock progression data based on character
+  // Mock progression data based on character - unlimited levels
   const skillData = {
-    combat: { level: Math.floor(character.level * 0.8), experience: 450, maxExperience: 800, maxLevel: 100 },
-    survival: { level: Math.floor(character.level * 0.6), experience: 320, maxExperience: 600, maxLevel: 100 },
-    mental: { level: Math.floor(character.level * 0.7), experience: 380, maxExperience: 700, maxLevel: 100 },
-    social: { level: Math.floor(character.level * 0.5), experience: 210, maxExperience: 500, maxLevel: 100 },
-    spiritual: { level: Math.floor(character.level * 0.4), experience: 150, maxExperience: 400, maxLevel: 100 }
+    combat: { level: Math.floor(character.level * 0.8), experience: 450, maxExperience: 800, maxLevel: 999 },
+    survival: { level: Math.floor(character.level * 0.6), experience: 320, maxExperience: 600, maxLevel: 999 },
+    mental: { level: Math.floor(character.level * 0.7), experience: 380, maxExperience: 700, maxLevel: 999 },
+    social: { level: Math.floor(character.level * 0.5), experience: 210, maxExperience: 500, maxLevel: 999 },
+    spiritual: { level: Math.floor(character.level * 0.4), experience: 150, maxExperience: 400, maxLevel: 999 }
   };
 
   const milestones: ProgressionMilestone[] = [
@@ -204,20 +204,57 @@ export default function ProgressionDashboard({
     setIsChatLoading(true);
 
     try {
-      // Simulate AI response (in real implementation, this would call the performance coaching chat service)
-      setTimeout(() => {
-        const aiResponse = {
-          id: Date.now() + 1,
-          sender: 'character' as const,
-          message: `Great question! At level ${character.level}, you're making excellent progress. I'd recommend focusing on your combat skills since they're at ${Math.floor(character.level * 0.8)} - that's really strong for your level!`,
-          timestamp: new Date(),
-          characterName: character.name
-        };
-        setChatMessages(prev => [...prev, aiResponse]);
-        setIsChatLoading(false);
-      }, 1500);
+      // Real API call to performance coaching service
+      const token = localStorage.getItem('accessToken');
+      const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+      
+      const response = await fetch(`${BACKEND_URL}/coaching/performance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          characterId: character.id,
+          userMessage: currentChatMessage,
+          context: {
+            level: character.level,
+            stats: character.stats,
+            bondLevel: character.bondLevel || 50,
+            previousMessages: chatMessages.slice(-5).map(msg => ({
+              role: msg.sender === 'user' ? 'user' : 'assistant',
+              content: msg.message
+            }))
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      const aiResponse = {
+        id: Date.now() + 1,
+        sender: 'character' as const,
+        message: data.message,
+        timestamp: new Date(),
+        characterName: data.character
+      };
+      
+      setChatMessages(prev => [...prev, aiResponse]);
+      setIsChatLoading(false);
     } catch (error) {
       console.error('Performance chat error:', error);
+      const errorResponse = {
+        id: Date.now() + 1,
+        sender: 'character' as const,
+        message: 'I apologize, but I\'m having trouble responding right now. Please try again.',
+        timestamp: new Date(),
+        characterName: character.name
+      };
+      setChatMessages(prev => [...prev, errorResponse]);
       setIsChatLoading(false);
     }
   };

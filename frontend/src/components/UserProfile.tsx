@@ -29,6 +29,8 @@ import {
   Save,
   Image as ImageIcon // Renamed to avoid conflict with HTML ImageElement
 } from 'lucide-react';
+import CharacterEchoManager from './CharacterEchoManager';
+import { echoService, CharacterEcho } from '@/services/echoService';
 import { 
   UserProfile as IUserProfile, 
   SubscriptionTier,
@@ -53,7 +55,7 @@ export default function UserProfile({
   onUpgradeSubscription,
   onUpdatePreferences
 }: UserProfileProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'achievements' | 'subscription' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'achievements' | 'subscription' | 'settings' | 'echoes'>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState({
     displayName: userProfile.displayName || userProfile.username, // Use displayName if available
@@ -62,10 +64,25 @@ export default function UserProfile({
     bio: userProfile.bio || '',
   });
   const [localPreferences, setLocalPreferences] = useState(userProfile.preferences);
+  const [echoes, setEchoes] = useState<CharacterEcho[]>([]);
+  const [isEchoManagerOpen, setIsEchoManagerOpen] = useState(false);
 
   const playerLevel = calculatePlayerLevel(userProfile.totalXP);
   const xpRequiredForNext = getXPRequiredForLevel(playerLevel + 1);
   const xpProgress = userProfile.totalXP - getXPRequiredForLevel(playerLevel);
+
+  // Fetch user echoes
+  useEffect(() => {
+    const fetchEchoes = async () => {
+      try {
+        const userEchoes = await echoService.getUserEchoes();
+        setEchoes(userEchoes);
+      } catch (error) {
+        console.error('Error fetching echoes:', error);
+      }
+    };
+    fetchEchoes();
+  }, []);
 
   const handleSaveProfile = () => {
     onUpdateProfile?.({
@@ -249,6 +266,7 @@ export default function UserProfile({
             { id: 'overview', label: 'Overview', icon: User },
             { id: 'stats', label: 'Statistics', icon: TrendingUp },
             { id: 'achievements', label: 'Achievements', icon: Trophy },
+            { id: 'echoes', label: 'Echoes', icon: Zap },
             { id: 'subscription', label: 'Subscription', icon: Crown },
             { id: 'settings', label: 'Settings', icon: Settings }
           ].map(({ id, label, icon: Icon }) => (
@@ -411,6 +429,108 @@ export default function UserProfile({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'echoes' && (
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-white mb-4 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-600">Character Echoes</h2>
+            
+            {/* Echo Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-gray-700/70 rounded-lg p-6 text-center shadow-md border border-gray-600">
+                <Zap className="w-10 h-10 text-yellow-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-white">{echoes.reduce((sum, echo) => sum + echo.count, 0)}</div>
+                <div className="text-gray-400 text-lg">Total Echoes</div>
+              </div>
+              <div className="bg-gray-700/70 rounded-lg p-6 text-center shadow-md border border-gray-600">
+                <Users className="w-10 h-10 text-purple-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-white">{echoes.length}</div>
+                <div className="text-gray-400 text-lg">Characters with Echoes</div>
+              </div>
+              <div className="bg-gray-700/70 rounded-lg p-6 text-center shadow-md border border-gray-600">
+                <Star className="w-10 h-10 text-blue-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-white">
+                  {Math.floor(echoes.reduce((sum, echo) => sum + echo.count, 0) / 3)}
+                </div>
+                <div className="text-gray-400 text-lg">Potential Ascensions</div>
+              </div>
+            </div>
+
+            {/* Echo Description */}
+            <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-lg p-6 border border-yellow-600/30">
+              <div className="flex items-start gap-4">
+                <Zap className="w-8 h-8 text-yellow-400 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold text-white mb-2">What are Character Echoes?</h3>
+                  <p className="text-gray-300 leading-relaxed">
+                    When you acquire a character you already own, it transforms into a powerful Echo. 
+                    Echoes can be used to ascend your characters, rank up abilities, and unlock new potential. 
+                    Each Echo represents the accumulated experience and power of that character.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Manage Echoes Button */}
+            <div className="text-center">
+              <button
+                onClick={() => setIsEchoManagerOpen(true)}
+                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center gap-3 mx-auto"
+              >
+                <Zap className="w-6 h-6" />
+                Manage Character Echoes
+                {echoes.length > 0 && (
+                  <span className="bg-white/20 px-2 py-1 rounded-full text-sm">
+                    {echoes.reduce((sum, echo) => sum + echo.count, 0)}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Recent Echo Activity */}
+            {echoes.length > 0 && (
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-4">Your Echo Collection</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {echoes.slice(0, 6).map((echo) => (
+                    <div key={echo.character_id} className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Zap className="w-6 h-6 text-yellow-400" />
+                          <div>
+                            <div className="text-white font-medium">Character #{echo.character_id}</div>
+                            <div className="text-gray-400 text-sm">{echo.count} Echoes</div>
+                          </div>
+                        </div>
+                        <div className="text-yellow-400 font-bold text-lg">{echo.count}x</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {echoes.length > 6 && (
+                  <div className="text-center mt-4">
+                    <button
+                      onClick={() => setIsEchoManagerOpen(true)}
+                      className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                    >
+                      View all {echoes.length} characters with echoes
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {echoes.length === 0 && (
+              <div className="text-center py-12">
+                <Zap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-300 mb-2">No Echoes Yet</h3>
+                <p className="text-gray-400 max-w-md mx-auto">
+                  Open card packs and acquire duplicate characters to start earning powerful Echoes. 
+                  Echoes can be used to enhance your existing characters in amazing ways!
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -580,6 +700,25 @@ export default function UserProfile({
           </div>
         )}
       </div>
+
+      {/* Character Echo Manager Modal */}
+      <CharacterEchoManager
+        echoes={echoes}
+        isOpen={isEchoManagerOpen}
+        onClose={() => setIsEchoManagerOpen(false)}
+        onSpendEchoes={async (characterId: string, amount: number, action: 'ascend' | 'rankUp') => {
+          try {
+            const result = await echoService.spendEchoes(characterId, amount, action);
+            if (result.success) {
+              // Refresh echoes
+              const updatedEchoes = await echoService.getUserEchoes();
+              setEchoes(updatedEchoes);
+            }
+          } catch (error) {
+            console.error('Error spending echoes:', error);
+          }
+        }}
+      />
     </div>
   );
 }

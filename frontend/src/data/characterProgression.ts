@@ -100,7 +100,7 @@ export const progressionTiers: Record<ProgressionTier, ProgressionTierInfo> = {
   master: {
     tier: 'master',
     name: 'Master',
-    levelRange: [41, 45],
+    levelRange: [41, 50],
     color: 'gold',
     description: 'Transcending normal limitations',
     icon: '⭐',
@@ -113,14 +113,15 @@ export const progressionTiers: Record<ProgressionTier, ProgressionTierInfo> = {
   legend: {
     tier: 'legend',
     name: 'Legend',
-    levelRange: [46, 50],
+    levelRange: [51, 200],
     color: 'rainbow',
-    description: 'Achieving mythical status',
+    description: 'Achieving mythical status - unlimited potential',
     icon: '🌟',
     benefits: [
       'Mythical abilities',
       'Reality-bending powers',
-      'Godlike presence'
+      'Godlike presence',
+      'Infinite growth potential'
     ]
   }
 };
@@ -138,7 +139,6 @@ function calculateXPRequired(level: number): number {
 }
 
 function calculateXPToNext(level: number): number {
-  if (level >= 50) return 0;
   return calculateXPRequired(level + 1) - calculateXPRequired(level);
 }
 
@@ -147,8 +147,8 @@ function getTierForLevel(level: number): ProgressionTier {
   if (level <= 20) return 'apprentice';
   if (level <= 30) return 'adept';
   if (level <= 40) return 'expert';
-  if (level <= 45) return 'master';
-  return 'legend';
+  if (level <= 50) return 'master'; // Master tier now extends to level 50
+  return 'legend'; // Legend tier for levels above 50
 }
 
 function getTitle(level: number): string {
@@ -160,8 +160,8 @@ function getTitle(level: number): string {
     apprentice: ['Apprentice', 'Warrior-in-Training', 'Combatant', 'Fighter', 'Soldier', 'Guardian', 'Defender', 'Protector', 'Sentinel', 'Champion-to-be'],
     adept: ['Adept', 'Skilled Fighter', 'Battle-tested', 'Veteran', 'Elite', 'Advanced Warrior', 'Combat Expert', 'Tactical Fighter', 'Seasoned Hero', 'Proven Champion'],
     expert: ['Expert', 'Master Fighter', 'Combat Specialist', 'Elite Warrior', 'Legendary Fighter', 'Battle Master', 'War Veteran', 'Combat Legend', 'Heroic Champion', 'Renowned Warrior'],
-    master: ['Master', 'Grandmaster', 'Legendary Hero', 'Mythic Warrior', 'Ultimate Champion'],
-    legend: ['Legend', 'Mythic Legend', 'Godlike Being', 'Transcendent Hero', 'Omnipotent Champion']
+    master: ['Master', 'Grandmaster', 'Legendary Hero', 'Mythic Warrior', 'Ultimate Champion', 'Transcendent Master', 'Cosmic Champion', 'Eternal Paragon', 'Divine Ascendant', 'Omni-Leveler'],
+    legend: ['Legend', 'Mythic Legend', 'Godlike Being', 'Transcendent Hero', 'Omnipotent Champion', 'Infinite Legend', 'Cosmic Deity', 'Absolute Apex', 'Universal Force', 'Beyond Omega']
   };
   
   const tierTitles = titles[tier];
@@ -238,7 +238,7 @@ const milestoneRewards: Record<number, MilestoneReward> = {
 };
 
 // Generate complete level progression data
-export const levelProgressionData: LevelData[] = Array.from({ length: 50 }, (_, i) => {
+export const levelProgressionData: LevelData[] = Array.from({ length: 200 }, (_, i) => {
   const level = i + 1;
   return {
     level,
@@ -277,13 +277,12 @@ export function getLevelFromTotalXP(totalXP: number): { level: number; currentXP
     currentLevel++;
   }
   
-  // Max level reached
+  // Max level reached (no longer capped at 50)
   return {
-    level: 50,
-    currentXP: 0,
-    xpToNext: 0
+    level: currentLevel,
+    currentXP: totalXP - accumulatedXP,
+    xpToNext: levelProgressionData[currentLevel - 1]?.xpToNext || 0 // Use currentLevel - 1 for array index
   };
-}
 
 export function getNextMilestone(level: number): { level: number; reward: MilestoneReward } | null {
   const milestones = Object.keys(milestoneRewards).map(Number).sort((a, b) => a - b);

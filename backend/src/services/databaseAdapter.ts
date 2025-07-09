@@ -16,6 +16,7 @@ interface User {
   subscription_tier: string;
   level: number;
   experience: number;
+  character_slot_capacity: number; // Added for dynamic character slots
 }
 
 interface UserCharacter {
@@ -54,7 +55,12 @@ interface UserCharacter {
   personality_traits?: string[];
   conversation_style?: string;
   backstory?: string;
+  emotional_range?: string[];
   conversation_topics?: string[];
+  dialogue_intro?: string;
+  dialogue_victory?: string;
+  dialogue_defeat?: string;
+  dialogue_bonding?: string;
   avatar_emoji?: string;
   artwork_url?: string;
   abilities?: any[];
@@ -88,6 +94,7 @@ interface Character {
   title?: string;
   archetype: string;
   origin_era?: string;
+  origin_location?: string;
   rarity: string;
   base_health: number;
   base_attack: number;
@@ -97,7 +104,12 @@ interface Character {
   personality_traits: string[];
   conversation_style?: string;
   backstory?: string;
+  emotional_range?: string[];
   conversation_topics: string[];
+  dialogue_intro?: string;
+  dialogue_victory?: string;
+  dialogue_defeat?: string;
+  dialogue_bonding?: string;
   avatar_emoji?: string;
   artwork_url?: string;
   abilities: any[];
@@ -111,7 +123,7 @@ export const dbAdapter = {
   users: {
     async findById(id: string): Promise<User | null> {
       try {
-        const result = await query('SELECT * FROM users WHERE id = ?', [id]);
+        const result = await query('SELECT *, character_slot_capacity FROM users WHERE id = ?', [id]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error finding user by ID:', error);
@@ -123,7 +135,7 @@ export const dbAdapter = {
       try {
         // SECURITY: Whitelist allowed fields to prevent SQL injection
         const allowedFields = ['username', 'email', 'rating', 'total_battles', 'total_wins', 
-          'subscription_tier', 'level', 'experience'];
+          'subscription_tier', 'level', 'experience', 'character_slot_capacity'];
         
         const updates = Object.entries(data)
           .filter(([key]) => allowedFields.includes(key))
@@ -148,7 +160,7 @@ export const dbAdapter = {
 
     async findByEmail(email: string): Promise<User | null> {
       try {
-        const result = await query('SELECT * FROM users WHERE email = ?', [email]);
+        const result = await query('SELECT *, character_slot_capacity FROM users WHERE email = ?', [email]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error finding user by email:', error);
@@ -161,8 +173,8 @@ export const dbAdapter = {
         await query(`
           INSERT INTO users (
             id, username, email, subscription_tier, level, experience,
-            total_battles, total_wins, rating
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            total_battles, total_wins, rating, character_slot_capacity
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           data.id,
           data.username,
@@ -172,7 +184,8 @@ export const dbAdapter = {
           data.experience || 0,
           data.total_battles || 0,
           data.total_wins || 0,
-          data.rating || 1000
+          data.rating || 1000,
+          data.character_slot_capacity || 12
         ]);
 
         const result = await query('SELECT * FROM users WHERE id = ?', [data.id]);
@@ -190,7 +203,8 @@ export const dbAdapter = {
         const result = await query(`
           SELECT uc.*, c.name, c.title, c.archetype, c.origin_era, c.rarity,
                  c.base_health, c.base_attack, c.base_defense, c.base_speed, c.base_special,
-                 c.personality_traits, c.conversation_style, c.backstory, c.conversation_topics,
+                 c.personality_traits, c.conversation_style, c.backstory, c.emotional_range, c.conversation_topics,
+                 c.dialogue_intro, c.dialogue_victory, c.dialogue_defeat, c.dialogue_bonding,
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc
           JOIN characters c ON uc.character_id = c.id
@@ -208,6 +222,11 @@ export const dbAdapter = {
             personality_drift: JSON.parse(row.personality_drift || '{}'),
             personality_traits: JSON.parse(row.personality_traits || '[]'),
             conversation_topics: JSON.parse(row.conversation_topics || '[]'),
+            emotional_range: JSON.parse(row.emotional_range || '[]'),
+            dialogue_intro: row.dialogue_intro,
+            dialogue_victory: row.dialogue_victory,
+            dialogue_defeat: row.dialogue_defeat,
+            dialogue_bonding: row.dialogue_bonding,
             abilities: JSON.parse(row.abilities || '[]')
           };
         }
@@ -263,7 +282,8 @@ export const dbAdapter = {
         const result = await query(`
           SELECT uc.*, c.name, c.title, c.archetype, c.origin_era, c.rarity,
                  c.base_health, c.base_attack, c.base_defense, c.base_speed, c.base_special,
-                 c.personality_traits, c.conversation_style, c.backstory, c.conversation_topics,
+                 c.personality_traits, c.conversation_style, c.backstory, c.emotional_range, c.conversation_topics,
+                 c.dialogue_intro, c.dialogue_victory, c.dialogue_defeat, c.dialogue_bonding,
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc
           JOIN characters c ON uc.character_id = c.id
@@ -276,10 +296,15 @@ export const dbAdapter = {
           equipment: JSON.parse(row.equipment || '[]'),
           enhancements: JSON.parse(row.enhancements || '[]'),
           conversation_memory: JSON.parse(row.conversation_memory || '[]'),
-          significant_memories: JSON.parse(row.significant_memories || '[]'),
+          significant_memories: JSON.parse(row.significant_memories || '{}'),
           personality_drift: JSON.parse(row.personality_drift || '{}'),
           personality_traits: JSON.parse(row.personality_traits || '[]'),
           conversation_topics: JSON.parse(row.conversation_topics || '[]'),
+          emotional_range: JSON.parse(row.emotional_range || '[]'),
+          dialogue_intro: row.dialogue_intro,
+          dialogue_victory: row.dialogue_victory,
+          dialogue_defeat: row.dialogue_defeat,
+          dialogue_bonding: row.dialogue_bonding,
           abilities: JSON.parse(row.abilities || '[]')
         }));
       } catch (error) {
@@ -331,6 +356,44 @@ export const dbAdapter = {
         return await this.findById(id);
       } catch (error) {
         console.error('Error creating user character:', error);
+        return null;
+      }
+    },
+
+    async findByUserIdAndCharacterId(userId: string, characterId: string): Promise<UserCharacter | null> {
+      try {
+        const result = await query(`
+          SELECT uc.*, c.name, c.title, c.archetype, c.origin_era, c.rarity,
+                 c.base_health, c.base_attack, c.base_defense, c.base_speed, c.base_special,
+                 c.emotional_range, c.dialogue_intro, c.dialogue_victory, c.dialogue_defeat,
+                 c.dialogue_bonding, c.abilities
+          FROM user_characters uc 
+          JOIN characters c ON uc.character_id = c.id
+          WHERE uc.user_id = ? AND uc.character_id = ?
+        `, [userId, characterId]);
+        
+        if (result.rows[0]) {
+          const row = result.rows[0];
+          return {
+            ...row,
+            equipment: JSON.parse(row.equipment || '[]'),
+            enhancements: JSON.parse(row.enhancements || '[]'),
+            conversation_memory: JSON.parse(row.conversation_memory || '[]'),
+            significant_memories: JSON.parse(row.significant_memories || '[]'),
+            personality_drift: JSON.parse(row.personality_drift || '{}'),
+            personality_traits: JSON.parse(row.personality_traits || '[]'),
+            conversation_topics: JSON.parse(row.conversation_topics || '[]'),
+            emotional_range: JSON.parse(row.emotional_range || '[]'),
+            dialogue_intro: row.dialogue_intro,
+            dialogue_victory: row.dialogue_victory,
+            dialogue_defeat: row.dialogue_defeat,
+            dialogue_bonding: row.dialogue_bonding,
+            abilities: JSON.parse(row.abilities || '[]')
+          };
+        }
+        return null;
+      } catch (error) {
+        console.error('Error finding user character by user and character ID:', error);
         return null;
       }
     }
@@ -450,13 +513,14 @@ export const dbAdapter = {
   characters: {
     async findById(id: string): Promise<Character | null> {
       try {
-        const result = await query('SELECT * FROM characters WHERE id = ?', [id]);
+        const result = await query('SELECT *, emotional_range, dialogue_intro, dialogue_victory, dialogue_defeat, dialogue_bonding FROM characters WHERE id = ?', [id]);
         if (result.rows[0]) {
           const row = result.rows[0];
           return {
             ...row,
             personality_traits: JSON.parse(row.personality_traits || '[]'),
             conversation_topics: JSON.parse(row.conversation_topics || '[]'),
+            emotional_range: JSON.parse(row.emotional_range || '[]'),
             abilities: JSON.parse(row.abilities || '[]')
           };
         }
@@ -469,11 +533,12 @@ export const dbAdapter = {
 
     async findAll(): Promise<Character[]> {
       try {
-        const result = await query('SELECT * FROM characters ORDER BY rarity DESC, name ASC');
+        const result = await query('SELECT *, emotional_range, dialogue_intro, dialogue_victory, dialogue_defeat, dialogue_bonding FROM characters ORDER BY rarity DESC, name ASC');
         return result.rows.map((row: any) => ({
           ...row,
           personality_traits: JSON.parse(row.personality_traits || '[]'),
           conversation_topics: JSON.parse(row.conversation_topics || '[]'),
+          emotional_range: JSON.parse(row.emotional_range || '[]'),
           abilities: JSON.parse(row.abilities || '[]')
         }));
       } catch (error) {

@@ -71,7 +71,7 @@ export default function Clubhouse({
     return () => clearInterval(interval);
   }, []);
 
-  const handleNewMessage = (content: string, type: string, tags: string[]) => {
+  const handleNewMessage = async (content: string, type: string, tags: string[]) => {
     const newMessage: CommunityMessage = {
       id: `msg_${Date.now()}`,
       authorId: currentUserId,
@@ -89,6 +89,101 @@ export default function Clubhouse({
 
     setMessages(prev => [newMessage, ...prev]);
     setStats(prev => ({ ...prev, messagesPosted: prev.messagesPosted + 1 }));
+
+    // Generate AI character responses to user post
+    setTimeout(async () => {
+      await generateAIResponsesForUserPost(newMessage);
+    }, 2000 + Math.random() * 3000); // Delay AI responses by 2-5 seconds
+  };
+
+  const generateAIResponsesForUserPost = async (userMessage: CommunityMessage) => {
+    try {
+      // Get auth token from localStorage
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('No auth token found for AI responses');
+        return;
+      }
+
+      // Call backend API to generate AI responses
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/social/message-board`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userMessage: userMessage.content,
+          context: {
+            messageType: userMessage.type,
+            tags: userMessage.tags,
+            authorName: userMessage.authorName,
+            timestamp: userMessage.timestamp
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Message Board API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Add AI responses to the user's message
+      if (data.responses && data.responses.length > 0) {
+        const aiReplies = data.responses.map((aiResponse: any) => ({
+          id: `reply_${Date.now()}_${Math.random()}`,
+          authorId: aiResponse.characterId,
+          authorName: aiResponse.character,
+          authorAvatar: getCharacterAvatar(aiResponse.characterId),
+          authorLevel: getCharacterLevel(aiResponse.characterId),
+          content: aiResponse.message,
+          timestamp: new Date(aiResponse.timestamp),
+          likes: 0,
+          isAI: true
+        }));
+
+        // Update the original message with AI replies
+        setMessages(prev => prev.map(msg => 
+          msg.id === userMessage.id 
+            ? { ...msg, replies: [...msg.replies, ...aiReplies] }
+            : msg
+        ));
+      }
+      
+    } catch (error) {
+      console.error('Failed to generate AI responses for user post:', error);
+    }
+  };
+
+  // Helper functions for AI character data
+  const getCharacterAvatar = (characterId: string): string => {
+    const avatars: Record<string, string> = {
+      'sherlock_holmes': '🔍',
+      'count_dracula': '🧛',
+      'joan_of_arc': '⚔️',
+      'achilles': '🏛️',
+      'genghis_khan': '🐎',
+      'nikola_tesla': '⚡',
+      'cleopatra': '👑',
+      'merlin': '🧙'
+    };
+    return avatars[characterId] || '🤖';
+  };
+
+  const getCharacterLevel = (characterId: string): number => {
+    // Return level based on character power/fame
+    const levels: Record<string, number> = {
+      'sherlock_holmes': 85,
+      'count_dracula': 92,
+      'joan_of_arc': 88,
+      'achilles': 95,
+      'genghis_khan': 94,
+      'nikola_tesla': 82,
+      'cleopatra': 90,
+      'merlin': 99
+    };
+    return levels[characterId] || 75;
   };
 
   const handleLikeMessage = (messageId: string) => {

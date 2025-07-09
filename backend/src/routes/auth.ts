@@ -10,10 +10,10 @@ const authService = new AuthService();
 // Register new user - matches server.ts exactly
 router.post('/register', authLimiter, async (req: Request, res: Response) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, claimToken } = req.body;
     
     // Use real authentication service
-    const { user, tokens } = await authService.register({ username, email, password });
+    const { user, tokens } = await authService.register({ username, email, password, claimToken });
     
     // SECURITY: Set httpOnly cookies instead of returning tokens in response
     res.cookie('accessToken', tokens.accessToken, {
@@ -30,23 +30,9 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
-    // Give new user a starter character (Robin Hood)
-    const starterCharacter = await dbAdapter.userCharacters.create({
-      user_id: user.id,
-      character_id: 'char_003', // Robin Hood
-      nickname: 'My Robin Hood'
-    });
-    
     return res.status(201).json({
       success: true,
-      user,
-      starterCharacter: starterCharacter ? {
-        id: starterCharacter.id,
-        name: starterCharacter.name,
-        title: starterCharacter.title,
-        nickname: starterCharacter.nickname,
-        level: starterCharacter.level
-      } : null
+      user
       // SECURITY: Don't return tokens in response body
     });
   } catch (error: any) {
