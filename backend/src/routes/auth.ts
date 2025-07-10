@@ -7,16 +7,9 @@ import { authLimiter } from '../middleware/rateLimiter';
 const router = Router();
 const authService = new AuthService();
 
-// Simple test POST register
-router.post('/register-simple', (req: Request, res: Response) => {
-  res.json({ message: 'Simple POST register works!' });
-});
-
 // Register new user - matches server.ts exactly
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    res.json({ message: 'Register POST route reached!' });
-    /*
     const { username, email, password, claimToken } = req.body;
     
     // Use real authentication service
@@ -42,7 +35,6 @@ router.post('/register', async (req: Request, res: Response) => {
       user
       // SECURITY: Don't return tokens in response body
     });
-    */
   } catch (error: any) {
     return res.status(400).json({
       success: false,
@@ -51,7 +43,7 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
-// Login user - matches server.ts exactly
+// Login user - matches server.ts exactly  
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -172,21 +164,6 @@ router.get('/profile', authenticateToken, async (req: any, res: Response) => {
       error: error.message
     });
   }
-});
-
-// Test route to verify auth router is working
-router.get('/test', (req: Request, res: Response) => {
-  res.json({ message: 'Auth router is working!' });
-});
-
-// Test register route
-router.post('/test-register', (req: Request, res: Response) => {
-  res.json({ message: 'Test register route is working!' });
-});
-
-// Test GET version of register to see if it's a method issue
-router.get('/register', (req: Request, res: Response) => {
-  res.json({ message: 'Register GET route is working!' });
 });
 
 export default router;
