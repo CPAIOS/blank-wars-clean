@@ -29,12 +29,15 @@ import EquipmentManager from './EquipmentManager';
 import AbilityManager from './AbilityManager';
 import MembershipSelection from './MembershipSelection';
 import TrainingFacilitySelector from './TrainingFacilitySelector';
-import FacilitiesManager from './FacilitiesManager';
+import RealEstateAgentChat from './RealEstateAgentChat';
 import SkillTree from './SkillTree';
 import AICoach from './AICoach';
 import CharacterDatabase from './CharacterDatabase';
 // CoachingInterface is lazy-loaded below
 import TeamManagementCoaching from './TeamManagementCoaching';
+import IndividualSessionsWrapper from './IndividualSessionsWrapper';
+import TeamBuildingWrapper from './TeamBuildingWrapper';
+import GroupActivitiesWrapper from './GroupActivitiesWrapper';
 import { createDemoCharacterCollection } from '@/data/characters';
 
 // Lazy load non-critical components
@@ -883,78 +886,6 @@ export default function MainTabSystem() {
     </div>
   );
 
-  const TeamBuildingWrapper = () => {
-    const sampleTeamMembers = [
-      { id: 'char1', name: 'Achilles', avatar: '🛡️', mood: 'Motivated' },
-      { id: 'char2', name: 'Joan of Arc', avatar: '⚔️', mood: 'Focused' },
-      { id: 'char3', name: 'Tesla', avatar: '⚡', mood: 'Curious' }
-    ];
-
-    return (
-      <TeamBuildingActivities
-        teamBudget={1500}
-        teamMembers={sampleTeamMembers}
-        onActivityComplete={(result) => {
-          console.log('Activity completed:', result);
-          // In real implementation, update team stats here
-        }}
-      />
-    );
-  };
-
-  const IndividualSessionsWrapper = () => {
-    const demoCharacters = createDemoCharacterCollection();
-    const baseCharacter = demoCharacters[0];
-    
-    // Create a BattleCharacter wrapper for the CoachingInterface
-    const battleCharacter = {
-      character: baseCharacter,
-      currentHealth: baseCharacter.hp,
-      currentMana: 100,
-      physicalDamageDealt: 0,
-      physicalDamageTaken: 0,
-      statusEffects: [],
-      mentalState: {
-        stress: 25,
-        confidence: 75,
-        teamTrust: 80,
-        strategicFocus: 'balanced'
-      },
-      gameplanAdherence: 85,
-      teamRole: 'damage',
-      performanceRating: 'good',
-      keyMoments: []
-    };
-    
-    return (
-      <CoachingInterface
-        character={battleCharacter}
-        isTimeoutActive={false}
-        timeRemaining={0}
-        onCoachingAction={(action) => console.log('Coaching action:', action)}
-        onCloseCoaching={() => console.log('Coaching session closed')}
-      />
-    );
-  };
-
-  const GroupActivitiesWrapper = () => {
-    const sampleTeamMembers = [
-      { id: 'char1', name: 'Achilles', avatar: '🛡️', mood: 'Motivated' },
-      { id: 'char2', name: 'Joan of Arc', avatar: '⚔️', mood: 'Focused' },
-      { id: 'char3', name: 'Tesla', avatar: '⚡', mood: 'Curious' }
-    ];
-
-    return (
-      <TeamBuildingActivities
-        teamBudget={1500}
-        teamMembers={sampleTeamMembers}
-        onActivityComplete={(result) => {
-          console.log('Group activity completed:', result);
-          // In real implementation, update team stats here
-        }}
-      />
-    );
-  };
 
   const FacilitiesManagerWrapper = () => {
     // Demo facilities state
@@ -1005,6 +936,20 @@ export default function MainTabSystem() {
     );
   };
 
+  const TrainingGroundsWrapper = () => {
+    const availableCharacters = createDemoCharacterCollection();
+    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    
+    return (
+      <TrainingGrounds 
+        globalSelectedCharacterId={globalSelectedCharacterId}
+        setGlobalSelectedCharacterId={setGlobalSelectedCharacterId}
+        selectedCharacter={selectedCharacter}
+        availableCharacters={availableCharacters}
+      />
+    );
+  };
+
   const mainTabs: MainTab[] = [
     {
       id: 'characters',
@@ -1024,6 +969,7 @@ export default function MainTabSystem() {
       color: 'amber',
       subTabs: [
         { id: 'overview', label: 'Team Base', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space and facilities' },
+        { id: 'facilities', label: 'Facilities', icon: Building, component: FacilitiesManagerWrapper, description: 'Manage team facilities and upgrades' },
       ]
     },
     {
@@ -1032,9 +978,8 @@ export default function MainTabSystem() {
       icon: Dumbbell,
       color: 'green',
       subTabs: [
-        { id: 'activities', label: 'Activities', icon: Target, component: TrainingGrounds, description: 'Daily training sessions' },
+        { id: 'activities', label: 'Activities', icon: Target, component: TrainingGroundsWrapper, description: 'Daily training sessions' },
         { id: 'progress', label: 'Progress', icon: Trophy, component: TrainingProgressComponent, description: 'Training limits & daily progress' },
-        { id: 'facilities', label: 'Facilities', icon: Building, component: FacilitiesManagerWrapper, description: 'Manage team facilities and upgrades' },
         { id: 'membership', label: 'Membership', icon: Crown, component: MembershipSelection, description: 'Training tier subscriptions' },
         { id: 'trainer', label: 'Personal Trainer', icon: Brain, component: PersonalTrainerWrapper, description: 'Training recommendations & guidance' },
       ]

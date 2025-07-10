@@ -392,7 +392,7 @@ export default function ImprovedBattleArena() {
     announceDefeat,
     announceRoundStart,
     announceAction,
-    announceMessage,
+    announceMessage: uiPresentation.announceMessage,
     conductTeamHuddle: coachingSystem.conductTeamHuddle,
     convertToBattleCharacter,
     checkForChaos: psychologySystem.checkForChaos,
@@ -413,7 +413,6 @@ export default function ImprovedBattleArena() {
     handleCardDeselect: cardCollectionSystem.handleCardDeselect,
     handleCardsReceived: cardCollectionSystem.handleCardsReceived,
     handleCurrencySpent: cardCollectionSystem.handleCurrencySpent,
-    announceMessage: uiPresentation.announceMessage,
     handleSelectChatCharacter: uiPresentation.handleSelectChatCharacter,
     getCurrentPlayerFighter: uiPresentation.getCurrentPlayerFighter,
     getCurrentOpponentFighter: uiPresentation.getCurrentOpponentFighter,
@@ -427,8 +426,6 @@ export default function ImprovedBattleArena() {
     transitionToPhase: uiPresentation.transitionToPhase,
     executeCombatRound: battleSimulation.executeCombatRound,
     calculateBattleRewards: battleRewardsHook.calculateBattleRewards,
-    resetBattle: battleFlow.resetBattle,
-    startStrategySelection: battleFlow.startStrategySelection,
     // Fast Battle System
     isOpponentAI: battleSimulation.isOpponentAI,
     handleFastBattleRequest: battleSimulation.handleFastBattleRequest,
@@ -486,7 +483,6 @@ export default function ImprovedBattleArena() {
     proceedToRoundCombat,
     handleRoundEnd,
     calculateBattleOutcome,
-    resetBattle,
     // Fast Battle System
     isOpponentAI,
     handleFastBattleRequest,

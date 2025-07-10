@@ -17,7 +17,8 @@ import {
   Hash,
   Plus,
   X,
-  Coffee
+  Coffee,
+  Eye
 } from 'lucide-react';
 import CommunityBoard from './CommunityBoard';
 import AIMessageBoard from './AIMessageBoard';
