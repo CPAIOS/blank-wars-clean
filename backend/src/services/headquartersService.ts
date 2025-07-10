@@ -23,6 +23,16 @@ export interface Room {
   customImageUrl?: string;
 }
 
+export interface BedDbRow {
+  id: string;
+  bed_id: string;
+  bed_type: string;
+  position_x: number;
+  position_y: number;
+  capacity: number;
+  comfort_bonus: number;
+}
+
 export interface Bed {
   id: string;
   bedId: string;
@@ -89,7 +99,7 @@ export class HeadquartersService {
         [roomRow.id]
       );
 
-      const beds: Bed[] = bedsResult.rows.map(bed => ({
+      const beds: Bed[] = bedsResult.rows.map((bed: BedDbRow) => ({
         id: bed.id,
         bedId: bed.bed_id,
         bedType: bed.bed_type,
@@ -123,7 +133,7 @@ export class HeadquartersService {
     };
   }
 
-  async saveHeadquarters(userId: string, headquarters: any): Promise<void> {
+  async saveHeadquarters(userId: string, headquarters: HeadquartersState): Promise<void> {
     // Start transaction
     await query('BEGIN TRANSACTION');
 

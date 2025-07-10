@@ -23,6 +23,14 @@ export interface User {
   is_banned: boolean;
   ban_reason?: string;
   character_slot_capacity: number;
+  daily_chat_reset_date?: string;
+  daily_chat_count?: number;
+  daily_image_reset_date?: string;
+  daily_image_count?: number;
+  daily_battle_reset_date?: string;
+  daily_battle_count?: number;
+  daily_training_reset_date?: string;
+  daily_training_count?: number;
 }
 
 export interface Character {
@@ -134,6 +142,7 @@ export interface SocketUser {
 }
 
 export interface UsageLimits {
+  [key: string]: any; // Allow dynamic access for subscription tiers
   free: {
     dailyChatLimit: number;
     dailyImageLimit: number;
