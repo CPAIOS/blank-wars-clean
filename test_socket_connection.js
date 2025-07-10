@@ -2,7 +2,7 @@ const io = require('socket.io-client');
 
 console.log('🔌 Testing socket connection to backend...');
 
-const socket = io('http://localhost:4000', {
+const socket = io('http://localhost:3006', {
   transports: ['websocket', 'polling'],
   timeout: 20000,
 });
