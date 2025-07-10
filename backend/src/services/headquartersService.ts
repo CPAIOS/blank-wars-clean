@@ -23,6 +23,16 @@ export interface Room {
   customImageUrl?: string;
 }
 
+export interface BedDbRow {
+  id: string;
+  bed_id: string;
+  bed_type: string;
+  position_x: number;
+  position_y: number;
+  capacity: number;
+  comfort_bonus: number;
+}
+
 export interface Bed {
   id: string;
   bedId: string;
@@ -89,7 +99,7 @@ export class HeadquartersService {
         [roomRow.id]
       );
 
-      const beds: Bed[] = bedsResult.rows.map((bed: any) => ({
+      const beds: Bed[] = bedsResult.rows.map((bed: BedDbRow) => ({
         id: bed.id,
         bedId: bed.bed_id,
         bedType: bed.bed_type,
@@ -123,7 +133,7 @@ export class HeadquartersService {
     };
   }
 
-  async saveHeadquarters(userId: string, headquarters: any): Promise<void> {
+  async saveHeadquarters(userId: string, headquarters: HeadquartersState): Promise<void> {
     // Start transaction
     await query('BEGIN TRANSACTION');
 
@@ -138,8 +148,10 @@ export class HeadquartersService {
           hqId,
           userId,
           headquarters.tierId || 'spartan_apartment',
-          headquarters.currency?.coins || 50000,
-          headquarters.currency?.gems || 100,
+          // TODO: For non-demo uses, implement a robust currency system.
+          // Currently, coins and gems are directly on HeadquartersState.
+          headquarters.coins || 50000,
+          headquarters.gems || 100,
           JSON.stringify(headquarters.unlockedThemes || [])
         ]
       );
@@ -178,9 +190,9 @@ export class HeadquartersService {
               `${roomDbId}_${bed.id}`,
               roomDbId,
               bed.id,
-              bed.type,
-              bed.position?.x || 0,
-              bed.position?.y || 0,
+              bed.bedType,
+              bed.positionX || 0,
+              bed.positionY || 0,
               bed.capacity,
               bed.comfortBonus
             ]
@@ -233,9 +245,9 @@ export class HeadquartersService {
         bedDbId,
         roomDbId,
         bedData.id,
-        bedData.type,
-        bedData.position?.x || 0,
-        bedData.position?.y || 0,
+        bedData.bedType,
+        bedData.positionX || 0,
+        bedData.positionY || 0,
         bedData.capacity,
         bedData.comfortBonus
       ]

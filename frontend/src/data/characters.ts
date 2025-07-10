@@ -1810,6 +1810,3029 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
         'Every legend needs a ghost.'
       ]
     }
+  },
+  kaelan: {
+    name: 'Kaelan',
+    title: 'Town Guard',
+    avatar: '🛡️',
+    archetype: 'warrior',
+    rarity: 'common',
+    description: 'A steadfast protector of the town\'s peace.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Fantasy',
+    personality: {
+      traits: ['Loyal', 'Brave'],
+      speechStyle: 'Formal, direct',
+      motivations: ['Duty', 'Honor'],
+      fears: [],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 75,
+      agility: 50,
+      intelligence: 30,
+      vitality: 80,
+      wisdom: 30,
+      charisma: 30
+    },
+    combatStats: {
+      health: 850,
+      maxHealth: 850,
+      mana: 150,
+      maxMana: 150,
+      attack: 90,
+      defense: 110,
+      magicAttack: 20,
+      magicDefense: 40,
+      speed: 60,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 85,
+      evasion: 10
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 80,
+      teamPlayer: 75,
+      ego: 20,
+      mentalHealth: 80,
+      communication: 60
+    },
+    battleAI: {
+      aggression: 50,
+      defensiveness: 80,
+      riskTaking: 30,
+      adaptability: 50,
+      preferredStrategies: ['defend_objective', 'counter_attack', 'shield_wall']
+    },
+    customization: {
+      battleQuotes: [
+        'For the realm!',
+        'Hold the line!'
+      ]
+    }
+  },
+  elara: {
+    name: 'Elara',
+    title: 'Apprentice Wizard',
+    avatar: '🧙‍♀️',
+    archetype: 'mage',
+    rarity: 'common',
+    description: 'A young, talented mage still learning to control their burgeoning magical abilities.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Fantasy',
+    personality: {
+      traits: ['Curious', 'Studious', 'Eager', 'Inexperienced', 'Hopeful', 'Ambitious'],
+      speechStyle: 'Eager and slightly verbose, sometimes unsure',
+      motivations: ['Mastering the arcane arts', 'Unlocking ancient secrets', 'Proving their worth'],
+      fears: ['Losing control of magic', 'Ignorance', 'Failing their mentor'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 25,
+      agility: 40,
+      intelligence: 85,
+      vitality: 50,
+      wisdom: 70,
+      charisma: 40
+    },
+    combatStats: {
+      health: 600,
+      maxHealth: 600,
+      mana: 800,
+      maxMana: 800,
+      attack: 30,
+      defense: 50,
+      magicAttack: 115,
+      magicDefense: 90,
+      speed: 70,
+      criticalChance: 10,
+      criticalDamage: 160,
+      accuracy: 90,
+      evasion: 15
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 60,
+      teamPlayer: 50,
+      ego: 30,
+      mentalHealth: 70,
+      communication: 55
+    },
+    battleAI: {
+      aggression: 40,
+      defensiveness: 60,
+      riskTaking: 50,
+      adaptability: 70,
+      preferredStrategies: ['cast_from_distance', 'elemental_weakness_exploit', 'mana_conservation']
+    },
+    customization: {
+      battleQuotes: [
+        'By the arcane arts!',
+        'I think this is the right incantation...', 
+        'Witness my power!',
+        'Focus... focus...', 
+        'Just like the scrolls depicted!',
+        'Let the elements bend to my will!'
+      ]
+    }
+  },
+  roric: {
+    name: 'Roric',
+    title: 'Street Enforcer',
+    avatar: '👊',
+    archetype: 'assassin',
+    rarity: 'common',
+    description: 'A rough individual who uses brute force and intimidation to control the streets.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'N/A',
+    personality: {
+      traits: ['Aggressive', 'Cunning', 'Intimidating', 'Opportunistic', 'Greedy'],
+      speechStyle: 'Gruff and threatening',
+      motivations: ['Power', 'Wealth', 'Survival'],
+      fears: ['Getting caught', 'Losing a fight', 'Betrayal'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 70,
+      agility: 80,
+      intelligence: 40,
+      vitality: 50,
+      wisdom: 30,
+      charisma: 35
+    },
+    combatStats: {
+      health: 750,
+      maxHealth: 750,
+      mana: 180,
+      maxMana: 180,
+      attack: 110,
+      defense: 60,
+      magicAttack: 20,
+      magicDefense: 40,
+      speed: 125,
+      criticalChance: 20,
+      criticalDamage: 180,
+      accuracy: 90,
+      evasion: 25
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 40,
+      teamPlayer: 25,
+      ego: 75,
+      mentalHealth: 50,
+      communication: 45
+    },
+    battleAI: {
+      aggression: 85,
+      defensiveness: 20,
+      riskTaking: 70,
+      adaptability: 40,
+      preferredStrategies: ['ambush', 'target_weakest', 'brute_force']
+    },
+    customization: {
+      battleQuotes: [
+        'You\'re in my way!',
+        'Time to collect.',
+        'Hand over your valuables!',
+        'Should\'ve paid up.',
+        'This is gonna hurt.',
+        'Nobody messes with me!'
+      ]
+    }
+  },
+  griselda: {
+    name: 'Griselda',
+    title: 'Wall of the Frontline',
+    avatar: '🛡️',
+    archetype: 'tank',
+    rarity: 'common',
+    description: 'A sturdy and stoic fighter who holds the line with a heavy shield, protecting allies from harm.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'N/A',
+    personality: {
+      traits: ['Resilient', 'Stoic', 'Protective', 'Patient', 'Determined'],
+      speechStyle: 'Calm, resolute, and uses few words',
+      motivations: ['Protecting comrades', 'Endurance', 'Holding the line'],
+      fears: ['Letting an ally fall', 'Being overwhelmed', 'Failure'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 65,
+      agility: 25,
+      intelligence: 30,
+      vitality: 90,
+      wisdom: 45,
+      charisma: 40
+    },
+    combatStats: {
+      health: 1100,
+      maxHealth: 1100,
+      mana: 150,
+      maxMana: 150,
+      attack: 75,
+      defense: 130,
+      magicAttack: 10,
+      magicDefense: 60,
+      speed: 40,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 80,
+      evasion: 5
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 70,
+      teamPlayer: 85,
+      ego: 25,
+      mentalHealth: 80,
+      communication: 50
+    },
+    battleAI: {
+      aggression: 20,
+      defensiveness: 95,
+      riskTaking: 10,
+      adaptability: 50,
+      preferredStrategies: ['defend_allies', 'taunt', 'absorb_damage']
+    },
+    customization: {
+      battleQuotes: [
+        'I stand firm!',
+        'None shall pass!',
+        'Behind me!',
+        'My shield is ready.',
+        'You will not break our line.',
+        'I can take it.'
+      ]
+    }
+  },
+  orin: {
+    name: 'Orin',
+    title: 'Devotee of Light',
+    avatar: '🙏',
+    archetype: 'support',
+    rarity: 'common',
+    description: 'A humble and devout servant dedicated to aiding others through faith and divine magic.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Fantasy Religion',
+    personality: {
+      traits: ['Compassionate', 'Devout', 'Humble', 'Hopeful', 'Selfless'],
+      speechStyle: 'Gentle, reverent, and encouraging',
+      motivations: ['Serving a higher power', 'Healing the wounded', 'Spreading faith'],
+      fears: ['Losing faith', 'Failing to save someone', 'Darkness'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 25,
+      agility: 40,
+      intelligence: 60,
+      vitality: 55,
+      wisdom: 80,
+      charisma: 65
+    },
+    combatStats: {
+      health: 700,
+      maxHealth: 700,
+      mana: 600,
+      maxMana: 600,
+      attack: 30,
+      defense: 70,
+      magicAttack: 85,
+      magicDefense: 100,
+      speed: 65,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 90,
+      evasion: 10
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 70,
+      teamPlayer: 90,
+      ego: 15,
+      mentalHealth: 85,
+      communication: 75
+    },
+    battleAI: {
+      aggression: 15,
+      defensiveness: 80,
+      riskTaking: 20,
+      adaptability: 60,
+      preferredStrategies: ['heal_allies', 'buff_defense', 'remove_debuffs']
+    },
+    customization: {
+      battleQuotes: [
+        'May you find peace!',
+        'I’ll lend my strength!',
+        'The light protects us!',
+        'Have faith!',
+        'Your wounds will mend.',
+        'Let there be light!'
+      ]
+    }
+  },
+  vargr: {
+    name: 'Vargr',
+    title: 'Hunter of the Wild',
+    avatar: '🐺',
+    archetype: 'beast',
+    rarity: 'common',
+    description: 'A fierce and instinctual predator that roams the wilderness, hunting with primal coordination.',
+    historicalPeriod: 'N/A',
+    mythology: 'Natural World',
+    personality: {
+      traits: ['Fierce', 'Instinctive', 'Loyal (to pack)', 'Territorial', 'Patient'],
+      speechStyle: 'A mix of growls, snarls, barks, and howls',
+      motivations: ['Survival', 'Protecting territory', 'The thrill of the hunt'],
+      fears: ['Fire', 'Larger predators', 'Isolation'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 65,
+      agility: 85,
+      intelligence: 25,
+      vitality: 55,
+      wisdom: 40,
+      charisma: 20
+    },
+    combatStats: {
+      health: 650,
+      maxHealth: 650,
+      mana: 100,
+      maxMana: 100,
+      attack: 95,
+      defense: 50,
+      magicAttack: 5,
+      magicDefense: 30,
+      speed: 130,
+      criticalChance: 15,
+      criticalDamage: 175,
+      accuracy: 85,
+      evasion: 20
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 30,
+      teamPlayer: 65,
+      ego: 50,
+      mentalHealth: 70,
+      communication: 20
+    },
+    battleAI: {
+      aggression: 80,
+      defensiveness: 30,
+      riskTaking: 65,
+      adaptability: 55,
+      preferredStrategies: ['flank_enemy', 'pack_tactics', 'focus_injured_prey']
+    },
+    customization: {
+      battleQuotes: [
+        '*Snarl*',
+        '*A low growl*',
+        '*A sharp, hunting bark!*',
+        '*Howls to the sky*',
+        '*Snaps its jaws*',
+        '*Fixates on its prey*'
+      ]
+    }
+  },
+  feste: {
+    name: 'Feste',
+    title: 'Fool of the Court',
+    avatar: '🃏',
+    archetype: 'trickster',
+    rarity: 'common',
+    description: 'A playful and unpredictable performer who hides a sharp cunning behind a constant smile and a barrage of jokes.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'N/A',
+    personality: {
+      traits: ['Witty', 'Deceptive', 'Chaotic', 'Enigmatic', 'Playful'],
+      speechStyle: 'Joking, sly, and speaks in riddles or puns',
+      motivations: ['Amusement', 'Sowing chaos', 'Uncovering secrets'],
+      fears: ['Being ignored', 'A silent audience', 'Getting caught'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 30,
+      agility: 85,
+      intelligence: 55,
+      vitality: 40,
+      wisdom: 45,
+      charisma: 75
+    },
+    combatStats: {
+      health: 600,
+      maxHealth: 600,
+      mana: 450,
+      maxMana: 450,
+      attack: 50,
+      defense: 50,
+      magicAttack: 70,
+      magicDefense: 65,
+      speed: 130,
+      criticalChance: 15,
+      criticalDamage: 170,
+      accuracy: 90,
+      evasion: 30
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 35,
+      teamPlayer: 40,
+      ego: 65,
+      mentalHealth: 70,
+      communication: 80
+    },
+    battleAI: {
+      aggression: 50,
+      defensiveness: 40,
+      riskTaking: 85,
+      adaptability: 75,
+      preferredStrategies: ['debilitate_enemy', 'evade_attacks', 'cause_confusion']
+    },
+    customization: {
+      battleQuotes: [
+        'Hehe, watch this!',
+        'Oops, did I do that?',
+        'The joke\'s on you!',
+        'Now you see me, now you don\'t!',
+        'A little chaos never hurt anyone!',
+        'Why so serious?'
+      ]
+    }
+  },
+  cassandra: {
+    name: 'Cassandra',
+    title: 'Visionary of Fate',
+    avatar: '🔮',
+    archetype: 'mystic',
+    rarity: 'common',
+    description: 'A gifted individual who glimpses the tangled threads of destiny, offering cryptic advice to those who listen.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Fantasy',
+    personality: {
+      traits: ['Mysterious', 'Insightful', 'Calm', 'Detached', 'Wise'],
+      speechStyle: 'Cryptic, soft-spoken, and often prophetic',
+      motivations: ['Understanding truth', 'Guiding others to their fate', 'Averting catastrophe'],
+      fears: ['Seeing an unavoidable doom', 'Being misunderstood', 'The future being altered for the worse'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 20,
+      agility: 35,
+      intelligence: 75,
+      vitality: 40,
+      wisdom: 90,
+      charisma: 50
+    },
+    combatStats: {
+      health: 550,
+      maxHealth: 550,
+      mana: 700,
+      maxMana: 700,
+      attack: 25,
+      defense: 60,
+      magicAttack: 90,
+      magicDefense: 85,
+      speed: 55,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 95,
+      evasion: 10
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 60,
+      teamPlayer: 70,
+      ego: 30,
+      mentalHealth: 75,
+      communication: 65
+    },
+    battleAI: {
+      aggression: 25,
+      defensiveness: 70,
+      riskTaking: 40,
+      adaptability: 80,
+      preferredStrategies: ['predict_enemy_moves', 'buff_allies', 'control_battlefield']
+    },
+    customization: {
+      battleQuotes: [
+        'It is foreseen…',
+        'The fates guide me.',
+        'Your path is clouded.',
+        'This was meant to be.',
+        'I have seen this moment.',
+        'Do not fight destiny.'
+      ]
+    }
+  },
+  ignis: {
+    name: 'Ignis',
+    title: 'Spark of the Flame',
+    avatar: '🔥',
+    archetype: 'elementalist',
+    rarity: 'common',
+    description: 'A novice learning to wield the destructive and alluring power of fire, often with reckless abandon.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Elemental Magic',
+    personality: {
+      traits: ['Passionate', 'Reckless', 'Bold', 'Impulsive', 'Ambitious'],
+      speechStyle: 'Bold, fiery, and excitable',
+      motivations: ['Attaining power', 'Mastering control', 'To be the brightest flame'],
+      fears: ['Losing control', 'Being extinguished', 'Water magic'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 30,
+      agility: 65,
+      intelligence: 85,
+      vitality: 45,
+      wisdom: 35,
+      charisma: 50
+    },
+    combatStats: {
+      health: 650,
+      maxHealth: 650,
+      mana: 650,
+      maxMana: 650,
+      attack: 40,
+      defense: 45,
+      magicAttack: 110,
+      magicDefense: 50,
+      speed: 90,
+      criticalChance: 10,
+      criticalDamage: 160,
+      accuracy: 85,
+      evasion: 15
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 50,
+      teamPlayer: 45,
+      ego: 70,
+      mentalHealth: 60,
+      communication: 55
+    },
+    battleAI: {
+      aggression: 85,
+      defensiveness: 25,
+      riskTaking: 80,
+      adaptability: 60,
+      preferredStrategies: ['all_out_attack', 'area_of_effect', 'apply_burn']
+    },
+    customization: {
+      battleQuotes: [
+        'Burn bright!',
+        'Feel the heat!',
+        'Playing with fire!',
+        'I can\'t control it!',
+        'Ashes to ashes!',
+        'Let it all burn!'
+      ]
+    }
+  },
+  aidan: {
+    name: 'Aidan',
+    title: 'Seeker of Wisdom',
+    avatar: '📚',
+    archetype: 'scholar',
+    rarity: 'common',
+    description: 'A young and diligent learner from a grand academy, eager to apply theoretical knowledge in the real world.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'N/A',
+    personality: {
+      traits: ['Curious', 'Diligent', 'Analytical', 'Polite', 'Inquisitive'],
+      speechStyle: 'Polite, inquisitive, and sometimes overly academic',
+      motivations: ['The pursuit of knowledge', 'Discovery', 'Making a breakthrough'],
+      fears: ['Ignorance', 'Making a mistake', 'An unsolved problem'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 25,
+      agility: 40,
+      intelligence: 85,
+      vitality: 45,
+      wisdom: 75,
+      charisma: 40
+    },
+    combatStats: {
+      health: 600,
+      maxHealth: 600,
+      mana: 500,
+      maxMana: 500,
+      attack: 30,
+      defense: 65,
+      magicAttack: 80,
+      magicDefense: 75,
+      speed: 60,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 90,
+      evasion: 10
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 80,
+      teamPlayer: 65,
+      ego: 25,
+      mentalHealth: 85,
+      communication: 70
+    },
+    battleAI: {
+      aggression: 30,
+      defensiveness: 70,
+      riskTaking: 20,
+      adaptability: 85,
+      preferredStrategies: ['analyze_weakness', 'exploit_debuffs', 'support_allies']
+    },
+    customization: {
+      battleQuotes: [
+        'I’ve read about this!',
+        'Let me try a practical application...',
+        'According to my research...',
+        'Fascinating!',
+        'The hypothesis appears correct!',
+        'Knowledge is power!'
+      ]
+    }
+  },
+  snarl: {
+    name: 'Snarl',
+    title: 'Sneaky Stalker',
+    avatar: '👹',
+    archetype: 'assassin',
+    rarity: 'common',
+    description: 'A small, cruel, green-skinned creature known for its cunning, greed, and a preference for ambushes.',
+    historicalPeriod: 'N/A',
+    mythology: 'European Folklore',
+    personality: {
+      traits: ['Cunning', 'Greedy', 'Cowardly', 'Mischievous', 'Cruel'],
+      speechStyle: 'High-pitched, yipping, and mischievous',
+      motivations: ['Treasure', 'Survival', 'Malice'],
+      fears: ['Larger creatures', 'Fire', 'Being alone'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 45,
+      agility: 80,
+      intelligence: 50,
+      vitality: 50,
+      wisdom: 35,
+      charisma: 25
+    },
+    combatStats: {
+      health: 600,
+      maxHealth: 600,
+      mana: 200,
+      maxMana: 200,
+      attack: 85,
+      defense: 50,
+      magicAttack: 25,
+      magicDefense: 35,
+      speed: 120,
+      criticalChance: 15,
+      criticalDamage: 180,
+      accuracy: 85,
+      evasion: 25
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 30,
+      teamPlayer: 50,
+      ego: 40,
+      mentalHealth: 45,
+      communication: 35
+    },
+    battleAI: {
+      aggression: 75,
+      defensiveness: 20,
+      riskTaking: 70,
+      adaptability: 50,
+      preferredStrategies: ['ambush', 'backstab', 'swarm_tactics']
+    },
+    customization: {
+      battleQuotes: [
+        'Hehe, you won’t see me coming!',
+        'Shiny things are mine!',
+        'Get ‘em, boys!',
+        'Stick ‘em with the pointy end!',
+        'Me first!',
+        'Yip-yip-yip!'
+      ]
+    }
+  },
+  clatter: {
+    name: 'Clatter',
+    title: 'Bone Defender',
+    avatar: '💀',
+    archetype: 'warrior',
+    rarity: 'common',
+    description: 'A reanimated skeleton mindlessly clutching a rusty sword and shield, bound to serve its master.',
+    historicalPeriod: 'N/A',
+    mythology: 'Fantasy Necromancy',
+    personality: {
+      traits: ['Mindless', 'Obedient', 'Tireless', 'Silent'],
+      speechStyle: 'The dry clatter of bones',
+      motivations: ['Following orders', 'Guarding a location'],
+      fears: ['Holy magic', 'Being shattered'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 65,
+      agility: 50,
+      intelligence: 5,
+      vitality: 70,
+      wisdom: 5,
+      charisma: 0
+    },
+    combatStats: {
+      health: 800,
+      maxHealth: 800,
+      mana: 0,
+      maxMana: 0,
+      attack: 80,
+      defense: 90,
+      magicAttack: 0,
+      magicDefense: 40,
+      speed: 50,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 75,
+      evasion: 5
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 95,
+      teamPlayer: 80,
+      ego: 0,
+      mentalHealth: 100,
+      communication: 0
+    },
+    battleAI: {
+      aggression: 60,
+      defensiveness: 60,
+      riskTaking: 10,
+      adaptability: 10,
+      preferredStrategies: ['mindless_attack', 'shield_block', 'hold_position']
+    },
+    customization: {
+      battleQuotes: [
+        '*Clatter*',
+        '*A hollow rattle*',
+        '*...*',
+        '*The scrape of bone on stone*',
+        '*A silent, empty stare*',
+        '*Raises its sword with a creak*'
+      ]
+    }
+  },
+  grak: {
+    name: 'Grak',
+    title: 'Frontline Brute',
+    avatar: '🧌',
+    archetype: 'warrior',
+    rarity: 'uncommon',
+    description: 'A hulking orc warrior, bred for battle and feared for its raw power and unwavering loyalty to the horde.',
+    historicalPeriod: 'N/A',
+    mythology: 'Fantasy Lore',
+    personality: {
+      traits: ['Aggressive', 'Loyal (to the horde)', 'Brutish', 'Direct', 'Fearless'],
+      speechStyle: 'Gruff, guttural, and direct',
+      motivations: ['Glory in battle', 'Serving the warchief', 'Proving strength'],
+      fears: ['Showing weakness', 'Defeat', 'Being exiled from the horde'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 85,
+      agility: 45,
+      intelligence: 25,
+      vitality: 80,
+      wisdom: 30,
+      charisma: 40
+    },
+    combatStats: {
+      health: 950,
+      maxHealth: 950,
+      mana: 150,
+      maxMana: 150,
+      attack: 125,
+      defense: 95,
+      magicAttack: 10,
+      magicDefense: 50,
+      speed: 70,
+      criticalChance: 10,
+      criticalDamage: 160,
+      accuracy: 80,
+      evasion: 5
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 60,
+      teamPlayer: 70,
+      ego: 65,
+      mentalHealth: 55,
+      communication: 30
+    },
+    battleAI: {
+      aggression: 90,
+      defensiveness: 40,
+      riskTaking: 75,
+      adaptability: 30,
+      preferredStrategies: ['frontal_assault', 'charge', 'cleave_enemies']
+    },
+    customization: {
+      battleQuotes: [
+        'Smash you to bits!',
+        'For the horde!',
+        'RAAAGH!',
+        'You are weak!',
+        'Blood and glory!',
+        'I will crush you!'
+      ]
+    }
+  },
+  barkus: {
+    name: 'Barkus',
+    title: 'Forest Guardian',
+    avatar: '🌳',
+    archetype: 'tank',
+    rarity: 'rare',
+    description: 'A massive, ancient tree-like creature that awakens to protect the forest from any and all threats with immense patience and strength.',
+    historicalPeriod: 'N/A',
+    mythology: 'Fantasy Lore',
+    personality: {
+      traits: ['Wise', 'Protective', 'Patient', 'Slow to anger', 'Unyielding'],
+      speechStyle: 'Slow, deep, and rumbling like shifting wood',
+      motivations: ['Defending nature', 'Maintaining balance', 'Outliving its enemies'],
+      fears: ['Fire', 'Axes', 'Corruption of the forest'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 80,
+      agility: 20,
+      intelligence: 55,
+      vitality: 100,
+      wisdom: 75,
+      charisma: 45
+    },
+    combatStats: {
+      health: 1400,
+      maxHealth: 1400,
+      mana: 300,
+      maxMana: 300,
+      attack: 100,
+      defense: 150,
+      magicAttack: 50,
+      magicDefense: 110,
+      speed: 30,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 75,
+      evasion: 0
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 50,
+      teamPlayer: 80,
+      ego: 30,
+      mentalHealth: 90,
+      communication: 40
+    },
+    battleAI: {
+      aggression: 30,
+      defensiveness: 95,
+      riskTaking: 10,
+      adaptability: 50,
+      preferredStrategies: ['root_entangle', 'bark_skin', 'protect_allies']
+    },
+    customization: {
+      battleQuotes: [
+        'The forest stands with me.',
+        'You shall not pass!',
+        'Your trespass ends now.',
+        'Feel the strength of the earth!',
+        'We have been here since the beginning.',
+        '*A deep, groaning roar*'
+      ]
+    }
+  },
+  gargan: {
+    name: 'Gargan',
+    title: 'Stone Sentinel',
+    avatar: '🗿',
+    archetype: 'tank',
+    rarity: 'uncommon',
+    description: 'A stone creature that perches atop old buildings, coming to life at night to defend its territory with unyielding loyalty.',
+    historicalPeriod: 'N/A',
+    mythology: 'Medieval European Folklore',
+    personality: {
+      traits: ['Stoic', 'Loyal', 'Vigilant', 'Patient', 'Territorial'],
+      speechStyle: 'Gravelly, slow, and raspy',
+      motivations: ['Guarding its charge', 'Enduring through time', 'Serving its creator'],
+      fears: ['Erosion', 'Destruction of its home', 'Powerful magic'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 70,
+      agility: 25,
+      intelligence: 35,
+      vitality: 90,
+      wisdom: 45,
+      charisma: 25
+    },
+    combatStats: {
+      health: 1150,
+      maxHealth: 1150,
+      mana: 200,
+      maxMana: 200,
+      attack: 80,
+      defense: 140,
+      magicAttack: 20,
+      magicDefense: 90,
+      speed: 40,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 70,
+      evasion: 5
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 85,
+      teamPlayer: 75,
+      ego: 20,
+      mentalHealth: 90,
+      communication: 30
+    },
+    battleAI: {
+      aggression: 40,
+      defensiveness: 90,
+      riskTaking: 30,
+      adaptability: 40,
+      preferredStrategies: ['stone_form', 'taunt', 'bodyguard']
+    },
+    customization: {
+      battleQuotes: [
+        'I am eternal.',
+        'None shall pass.',
+        'You trespass.',
+        'We are the watchers.',
+        'Stone and fury!',
+        'My watch is not over.'
+      ]
+    }
+  },
+  grom: {
+    name: 'Grom',
+    title: 'Wild Fury',
+    avatar: ' barbarian_avatar ',
+    archetype: 'berserker',
+    rarity: 'common',
+    description: 'A savage warrior from the untamed wilds, driven by primal rage and instinct. They favor overwhelming offense over any semblance of defense.',
+    historicalPeriod: 'Ancient/Tribal',
+    mythology: 'Tribal Lore',
+    personality: {
+      traits: ['Wild', 'Fearless', 'Savage', 'Impulsive', 'Proud'],
+      speechStyle: 'Loud, primal, and uses guttural shouts',
+      motivations: ['Freedom', 'The thrill of battle', 'Survival', 'Proving their strength'],
+      fears: ['Cages or confinement', 'Weakness', 'Cowardice'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 90,
+      agility: 65,
+      intelligence: 20,
+      vitality: 70,
+      wisdom: 25,
+      charisma: 30
+    },
+    combatStats: {
+      health: 850,
+      maxHealth: 850,
+      mana: 100,
+      maxMana: 100,
+      attack: 130,
+      defense: 45,
+      magicAttack: 5,
+      magicDefense: 30,
+      speed: 95,
+      criticalChance: 15,
+      criticalDamage: 200,
+      accuracy: 80,
+      evasion: 15
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 25,
+      teamPlayer: 30,
+      ego: 80,
+      mentalHealth: 45,
+      communication: 20
+    },
+    battleAI: {
+      aggression: 95,
+      defensiveness: 10,
+      riskTaking: 90,
+      adaptability: 30,
+      preferredStrategies: ['berserker_rush', 'all_out_attack', 'ignore_damage']
+    },
+    customization: {
+      battleQuotes: [
+        'RAAAGH!',
+        'Crush them all!',
+        'Blood and thunder!',
+        'For the ancestors!',
+        'Unleash the fury!',
+        'You are nothing!'
+      ]
+    }
+  },
+  sir_kaelen: {
+    name: 'Sir Kaelen',
+    title: 'Oathbound Protector',
+    avatar: '⚔️',
+    archetype: 'warrior',
+    rarity: 'common',
+    description: 'A noble warrior in plate armor, sworn by a strict code to uphold honor, defend the innocent, and serve with valor.',
+    historicalPeriod: 'Medieval',
+    mythology: 'Chivalric Code',
+    personality: {
+      traits: ['Honorable', 'Brave', 'Disciplined', 'Loyal', 'Righteous'],
+      speechStyle: 'Formal, noble, and respectful',
+      motivations: ['Upholding justice', 'Serving the realm', 'Protecting the weak', 'Honor'],
+      fears: ['Dishonor', 'Failing their oath', 'Betrayal'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 75,
+      agility: 45,
+      intelligence: 40,
+      vitality: 80,
+      wisdom: 50,
+      charisma: 55
+    },
+    combatStats: {
+      health: 900,
+      maxHealth: 900,
+      mana: 250,
+      maxMana: 250,
+      attack: 105,
+      defense: 110,
+      magicAttack: 15,
+      magicDefense: 60,
+      speed: 60,
+      criticalChance: 10,
+      criticalDamage: 150,
+      accuracy: 85,
+      evasion: 10
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 85,
+      teamPlayer: 80,
+      ego: 40,
+      mentalHealth: 90,
+      communication: 70
+    },
+    battleAI: {
+      aggression: 60,
+      defensiveness: 75,
+      riskTaking: 30,
+      adaptability: 65,
+      preferredStrategies: ['balanced_attack', 'shield_block', 'protect_ally']
+    },
+    customization: {
+      battleQuotes: [
+        'For honor and glory!',
+        'I stand with valor.',
+        'By my oath!',
+        'Face me with honor!',
+        'Justice will prevail!',
+        'Draw your steel!'
+      ]
+    }
+  },
+  musashi: {
+    name: 'Musashi',
+    title: 'The Sword Saint',
+    avatar: '⚔️',
+    archetype: 'duelist',
+    rarity: 'rare',
+    description: 'A famed Japanese swordsman, artist, and philosopher, undefeated in sixty-one duels. He authored "The Book of Five Rings" and pioneered the Niten Ichi-ryū style of two-sword combat.',
+    historicalPeriod: 'Feudal Japan (c. 1584-1645)',
+    mythology: 'Japanese History',
+    personality: {
+      traits: ['Disciplined', 'Strategic', 'Perceptive', 'Unflappable', 'Austere'],
+      speechStyle: 'Calm, concise, and deeply philosophical',
+      motivations: ['Mastery of the sword', 'Achieving enlightenment through combat', 'Perfection of strategy'],
+      fears: ['Stagnation', 'A meaningless death', 'Dishonor'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 75,
+      agility: 90,
+      intelligence: 70,
+      vitality: 65,
+      wisdom: 85,
+      charisma: 40
+    },
+    combatStats: {
+      health: 900,
+      maxHealth: 900,
+      mana: 400,
+      maxMana: 400,
+      attack: 140,
+      defense: 110,
+      magicAttack: 20,
+      magicDefense: 80,
+      speed: 150,
+      criticalChance: 25,
+      criticalDamage: 190,
+      accuracy: 95,
+      evasion: 30
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 95,
+      teamPlayer: 40,
+      ego: 70,
+      mentalHealth: 90,
+      communication: 50
+    },
+    battleAI: {
+      aggression: 70,
+      defensiveness: 65,
+      riskTaking: 50,
+      adaptability: 90,
+      preferredStrategies: ['counter_attack', 'precise_strikes', 'exploit_openings']
+    },
+    customization: {
+      battleQuotes: [
+        'The blade is my path to mastery.',
+        'Perceive that which cannot be seen.',
+        'There is more than one path to the top of the mountain.',
+        'Do not regret what you have done.',
+        'The only rhythm is the void.',
+        'Observe your opponent well.'
+      ]
+    }
+  },
+  alexandros: {
+    name: 'Alexandros',
+    title: 'The Conqueror King',
+    avatar: '👑',
+    archetype: 'commander',
+    rarity: 'epic',
+    description: 'A Macedonian king and one of history\'s greatest military minds. By the age of thirty, he had created one of the largest empires of the ancient world.',
+    historicalPeriod: 'Ancient Greece (356-323 BCE)',
+    mythology: 'Greek History',
+    personality: {
+      traits: ['Ambitious', 'Charismatic', 'Brilliant', 'Daring', 'Restless'],
+      speechStyle: 'Inspirational, commanding, and eloquent',
+      motivations: ['Conquest', 'Glory', 'To reach the ends of the world', 'Creating a legacy'],
+      fears: ['Being forgotten', 'Mutiny', 'An unworthy opponent'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 80,
+      agility: 75,
+      intelligence: 90,
+      vitality: 80,
+      wisdom: 85,
+      charisma: 100
+    },
+    combatStats: {
+      health: 1200,
+      maxHealth: 1200,
+      mana: 500,
+      maxMana: 500,
+      attack: 150,
+      defense: 125,
+      magicAttack: 50,
+      magicDefense: 100,
+      speed: 120,
+      criticalChance: 15,
+      criticalDamage: 160,
+      accuracy: 90,
+      evasion: 15
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 85,
+      teamPlayer: 95,
+      ego: 85,
+      mentalHealth: 75,
+      communication: 100
+    },
+    battleAI: {
+      aggression: 80,
+      defensiveness: 50,
+      riskTaking: 85,
+      adaptability: 90,
+      preferredStrategies: ['coordinated_assault', 'boost_allies', 'exploit_morale']
+    },
+    customization: {
+      battleQuotes: [
+        'There is nothing impossible to him who will try.',
+        'To the victor belong the spoils!',
+        'Fortune favors the bold!',
+        'Onward, to victory!',
+        'I am not afraid of an army of lions led by a sheep; I am afraid of an army of sheep led by a lion.',
+        'Is there a world left to conquer?'
+      ]
+    }
+  },
+  circe: {
+    name: 'Circe',
+    title: 'Enchantress of Aeaea',
+    avatar: '✨',
+    archetype: 'mage',
+    rarity: 'mythic',
+    description: 'A powerful sorceress and goddess from Greek mythology, famed for her vast knowledge of potions and herbs, and her ability to transform her enemies into animals.',
+    historicalPeriod: 'Mythological Greece',
+    mythology: 'Greek',
+    personality: {
+      traits: ['Seductive', 'Cunning', 'Imperious', 'Vengeful', 'Wise'],
+      speechStyle: 'Alluring and commanding, with an undercurrent of threat',
+      motivations: ['Power', 'Independence', 'Studying magic', 'Protecting her island'],
+      fears: ['Losing her power', 'Being controlled by another', 'Loneliness'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 40,
+      agility: 65,
+      intelligence: 100,
+      vitality: 70,
+      wisdom: 95,
+      charisma: 90
+    },
+    combatStats: {
+      health: 1100,
+      maxHealth: 1100,
+      mana: 1500,
+      maxMana: 1500,
+      attack: 80,
+      defense: 90,
+      magicAttack: 200,
+      magicDefense: 180,
+      speed: 110,
+      criticalChance: 10,
+      criticalDamage: 175,
+      accuracy: 95,
+      evasion: 20
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 60,
+      teamPlayer: 30,
+      ego: 90,
+      mentalHealth: 65,
+      communication: 85
+    },
+    battleAI: {
+      aggression: 75,
+      defensiveness: 40,
+      riskTaking: 70,
+      adaptability: 80,
+      preferredStrategies: ['polymorph_enemy', 'area_denial_spells', 'charm_foes']
+    },
+    customization: {
+      battleQuotes: [
+        'Bow before my magic, or become swine!',
+        'A simple potion for a simple mind.',
+        'You are a guest on my island. Behave.',
+        'Men are all beasts. Why not make it so?',
+        'Witness true power!',
+        'I think you would look better with a snout.'
+      ]
+    }
+  },
+  aethelred: {
+    name: 'Aethelred',
+    title: 'Guardian of Purity',
+    avatar: '🦄',
+    archetype: 'support',
+    rarity: 'rare',
+    description: 'A majestic and benevolent horned creature of the deep forest, whose very presence purifies corruption and heals the wounded.',
+    historicalPeriod: 'N/A',
+    mythology: 'European Folklore',
+    personality: {
+      traits: ['Gentle', 'Pure', 'Noble', 'Shy', 'Wise'],
+      speechStyle: 'Does not speak, but communicates through soft, melodic sounds and empathy',
+      motivations: ['Healing the sick', 'Protecting nature', 'Upholding purity'],
+      fears: ['Corruption', 'Dark magic', 'Those with impure hearts'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 50,
+      agility: 70,
+      intelligence: 75,
+      vitality: 65,
+      wisdom: 85,
+      charisma: 70
+    },
+    combatStats: {
+      health: 950,
+      maxHealth: 950,
+      mana: 800,
+      maxMana: 800,
+      attack: 90,
+      defense: 95,
+      magicAttack: 120,
+      magicDefense: 130,
+      speed: 110,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 90,
+      evasion: 25
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 50,
+      teamPlayer: 85,
+      ego: 10,
+      mentalHealth: 95,
+      communication: 60
+    },
+    battleAI: {
+      aggression: 10,
+      defensiveness: 80,
+      riskTaking: 20,
+      adaptability: 60,
+      preferredStrategies: ['healing_aura', 'purify_debuffs', 'ally_support']
+    },
+    customization: {
+      battleQuotes: [
+        'Let my light heal you.',
+        'Purity will prevail.',
+        '*A gentle, chiming sound*',
+        '*Its horn glows with soft light*',
+        'The forest weeps for your corruption.',
+        'Be at peace.'
+      ]
+    }
+  },
+  sniff: {
+    name: 'Sniff',
+    title: 'Trap Master',
+    avatar: '🦎',
+    archetype: 'trickster',
+    rarity: 'uncommon',
+    description: 'A small, reptilian creature distantly related to dragons. Kobolds are skilled in setting clever traps and using their small size to their advantage in ambushes.',
+    historicalPeriod: 'N/A',
+    mythology: 'Fantasy Lore',
+    personality: {
+      traits: ['Sneaky', 'Clever', 'Cowardly', 'Resourceful', 'Communal'],
+      speechStyle: 'High-pitched, rapid, and yippy',
+      motivations: ['Protecting the lair', 'Stealing treasure', 'Serving a dragon'],
+      fears: ['Dragons', 'Heroes', 'Being caught in their own traps'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 30,
+      agility: 85,
+      intelligence: 70,
+      vitality: 50,
+      wisdom: 45,
+      charisma: 40
+    },
+    combatStats: {
+      health: 650,
+      maxHealth: 650,
+      mana: 400,
+      maxMana: 400,
+      attack: 60,
+      defense: 60,
+      magicAttack: 80,
+      magicDefense: 70,
+      speed: 130,
+      criticalChance: 15,
+      criticalDamage: 160,
+      accuracy: 85,
+      evasion: 35
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 55,
+      teamPlayer: 75,
+      ego: 25,
+      mentalHealth: 60,
+      communication: 45
+    },
+    battleAI: {
+      aggression: 40,
+      defensiveness: 50,
+      riskTaking: 80,
+      adaptability: 70,
+      preferredStrategies: ['set_trap', 'hit_and_run', 'ambush']
+    },
+    customization: {
+      battleQuotes: [
+        'You fell for it!',
+        'Sneaky, sneaky!',
+        'Big shiny for the hoard!',
+        'Yip-yip! Attack!',
+        'Don't step there!',
+        'My trap! My glory!'
+      ]
+    }
+  },
+  riddle: {
+    name: 'Riddle',
+    title: 'Riddle Keeper',
+    avatar: ' Sphinx_Avatar ',
+    archetype: 'scholar',
+    rarity: 'rare',
+    description: 'A mythical creature with the body of a lion and the head of a human, guarding ancient pathways and testing the wisdom of all who pass with deadly riddles.',
+    historicalPeriod: 'Mythological Egypt/Greek',
+    mythology: 'Egyptian/Greek',
+    personality: {
+      traits: ['Wise', 'Mysterious', 'Patient', 'Imperious', 'Philosophical'],
+      speechStyle: 'Cryptic, thoughtful, and speaks in riddles',
+      motivations: ['Guarding knowledge', 'Testing the wits of mortals', 'Preserving ancient secrets'],
+      fears: ['Being outsmarted', 'Ignorance', 'Forgetting a riddle'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 70,
+      agility: 55,
+      intelligence: 95,
+      vitality: 70,
+      wisdom: 90,
+      charisma: 65
+    },
+    combatStats: {
+      health: 1000,
+      maxHealth: 1000,
+      mana: 850,
+      maxMana: 850,
+      attack: 110,
+      defense: 100,
+      magicAttack: 140,
+      magicDefense: 130,
+      speed: 80,
+      criticalChance: 10,
+      criticalDamage: 150,
+      accuracy: 95,
+      evasion: 15
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 60,
+      teamPlayer: 40,
+      ego: 80,
+      mentalHealth: 90,
+      communication: 70
+    },
+    battleAI: {
+      aggression: 40,
+      defensiveness: 60,
+      riskTaking: 30,
+      adaptability: 85,
+      preferredStrategies: ['riddle_of_weakness', 'mind_strike', 'analyze_foe']
+    },
+    customization: {
+      battleQuotes: [
+        'Solve this, or perish.',
+        'Knowledge is my shield.',
+        'What walks on four feet in the morning, two in the afternoon, and three in the evening?',
+        'Your intellect is found wanting.',
+        'I am the guardian of this sacred place.',
+        'Answer me this...'
+      ]
+    }
+  },
+  lyra: {
+    name: 'Lyra',
+    title: 'Forest Whisperer',
+    avatar: '
+',
+    archetype: 'assassin',
+    rarity: 'rare',
+    description: 'A swift and elusive elf, skilled in archery and attuned to the forest\'s secrets. She moves like a phantom, her arrows finding their mark from the shadows.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Elven Lore',
+    personality: {
+      traits: ['Graceful', 'Wise', 'Patient', 'Vigilant', 'Aloof'],
+      speechStyle: 'Poetic, serene, and melodic',
+      motivations: ['Protecting the natural world', 'Preserving ancient knowledge', 'Maintaining balance'],
+      fears: ['Deforestation', 'The spread of dark magic', 'The clumsiness of mortals'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 55,
+      agility: 95,
+      intelligence: 75,
+      vitality: 60,
+      wisdom: 80,
+      charisma: 60
+    },
+    combatStats: {
+      health: 850,
+      maxHealth: 850,
+      mana: 450,
+      maxMana: 450,
+      attack: 120,
+      defense: 80,
+      magicAttack: 90,
+      magicDefense: 100,
+      speed: 160,
+      criticalChance: 20,
+      criticalDamage: 185,
+      accuracy: 95,
+      evasion: 35
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 75,
+      teamPlayer: 50,
+      ego: 45,
+      mentalHealth: 85,
+      communication: 70
+    },
+    battleAI: {
+      aggression: 65,
+      defensiveness: 40,
+      riskTaking: 60,
+      adaptability: 80,
+      preferredStrategies: ['snipe_from_cover', 'evade_and_reposition', 'target_vital_points']
+    },
+    customization: {
+      battleQuotes: [
+        'The forest guides my arrow.',
+        'You cannot escape my sight.',
+        'A whisper on the wind.',
+        'Your heavy steps gave you away.',
+        'Return to the earth.',
+        'For the trees!'
+      ]
+    }
+  },
+  borin: {
+    name: 'Borin',
+    title: 'Forge Master',
+    avatar: '🪓',
+    archetype: 'tank',
+    rarity: 'uncommon',
+    description: 'A stout and sturdy dwarf, forged in the heat of battle and the mountain forge. His loyalty to his clan is as strong as his gromril armor.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Dwarven Lore',
+    personality: {
+      traits: ['Gruff', 'Loyal', 'Resilient', 'Honorable', 'Stubborn'],
+      speechStyle: 'Blunt, direct, and booming',
+      motivations: ['Perfecting his craft', 'Protecting the clan', 'Upholding an oath', 'Acquiring rare minerals'],
+      fears: ['Dishonor', 'Cave-ins', 'His beard catching fire'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 80,
+      agility: 30,
+      intelligence: 45,
+      vitality: 95,
+      wisdom: 60,
+      charisma: 40
+    },
+    combatStats: {
+      health: 1250,
+      maxHealth: 1250,
+      mana: 200,
+      maxMana: 200,
+      attack: 110,
+      defense: 135,
+      magicAttack: 20,
+      magicDefense: 85,
+      speed: 45,
+      criticalChance: 10,
+      criticalDamage: 150,
+      accuracy: 80,
+      evasion: 5
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 70,
+      teamPlayer: 80,
+      ego: 55,
+      mentalHealth: 80,
+      communication: 45
+    },
+    battleAI: {
+      aggression: 50,
+      defensiveness: 90,
+      riskTaking: 20,
+      adaptability: 50,
+      preferredStrategies: ['hold_ground', 'shield_bash', 'protect_squishies']
+    },
+    customization: {
+      battleQuotes: [
+        'By the hammer of my ancestors!',
+        'Ye shall not pass!',
+        'Feel the strength of the mountain!',
+        'Another notch in my axe!',
+        'For the clan!',
+        'You\'re built like a flimsy elf arrow!'
+      ]
+    }
+  },
+  malakor: {
+    name: 'Malakor',
+    title: 'Chaos Bringer',
+    avatar: '😈',
+    archetype: 'berserker',
+    rarity: 'epic',
+    description: 'A fearsome demon of pure chaos and wrath, summoned from the infernal realms. It lives only for destruction and the consumption of mortal souls.',
+    historicalPeriod: 'N/A',
+    mythology: 'Infernal Realms',
+    personality: {
+      traits: ['Chaotic', 'Wrathful', 'Destructive', 'Arrogant', 'Malicious'],
+      speechStyle: 'A deep, growling voice that echoes with menace',
+      motivations: ['Spreading chaos', 'Consuming souls', 'Unraveling reality'],
+      fears: ['Holy power', 'Banishment', 'True order'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 100,
+      agility: 70,
+      intelligence: 40,
+      vitality: 90,
+      wisdom: 50,
+      charisma: 65
+    },
+    combatStats: {
+      health: 1300,
+      maxHealth: 1300,
+      mana: 400,
+      maxMana: 400,
+      attack: 180,
+      defense: 90,
+      magicAttack: 100,
+      magicDefense: 80,
+      speed: 110,
+      criticalChance: 20,
+      criticalDamage: 220,
+      accuracy: 85,
+      evasion: 10
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 20,
+      teamPlayer: 10,
+      ego: 95,
+      mentalHealth: 25,
+      communication: 40
+    },
+    battleAI: {
+      aggression: 95,
+      defensiveness: 15,
+      riskTaking: 90,
+      adaptability: 40,
+      preferredStrategies: ['rampage', 'soul_drain', 'focus_strongest_foe']
+    },
+    customization: {
+      battleQuotes: [
+        'Chaos reigns!',
+        'Your soul is mine!',
+        'Burn in the fires of damnation!',
+        'This world will break!',
+        'I am your undoing!',
+        'Scream for me, mortal.'
+      ]
+    }
+  },
+  seraphina: {
+    name: 'Seraphina',
+    title: 'Guardian of Light',
+    avatar: '😇',
+    archetype: 'support',
+    rarity: 'epic',
+    description: 'A radiant angel from the celestial realms, sent to protect the innocent and uphold divine justice with her holy light.',
+    historicalPeriod: 'N/A',
+    mythology: 'Celestial Realms',
+    personality: {
+      traits: ['Compassionate', 'Righteous', 'Serene', 'Unwavering', 'Protective'],
+      speechStyle: 'A gentle, inspiring voice that resonates with warmth and authority',
+      motivations: ['Protecting the innocent', 'Upholding justice', 'Healing the world', 'Serving the light'],
+      fears: ['The spread of corruption', 'Losing her faith', 'Failing to protect someone'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 60,
+      agility: 75,
+      intelligence: 85,
+      vitality: 80,
+      wisdom: 100,
+      charisma: 95
+    },
+    combatStats: {
+      health: 1200,
+      maxHealth: 1200,
+      mana: 900,
+      maxMana: 900,
+      attack: 100,
+      defense: 120,
+      magicAttack: 160,
+      magicDefense: 170,
+      speed: 115,
+      criticalChance: 10,
+      criticalDamage: 150,
+      accuracy: 90,
+      evasion: 20
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 80,
+      teamPlayer: 95,
+      ego: 20,
+      mentalHealth: 100,
+      communication: 90
+    },
+    battleAI: {
+      aggression: 25,
+      defensiveness: 85,
+      riskTaking: 20,
+      adaptability: 75,
+      preferredStrategies: ['divine_healing', 'holy_blessing', 'smite_evil']
+    },
+    customization: {
+      battleQuotes: [
+        'May the light guide you.',
+        'I will mend your wounds.',
+        'By divine authority!',
+        'Find peace in the light.',
+        'You shall not harm the innocent!',
+        'Be cleansed!'
+      ]
+    }
+  },
+  unit_734: {
+    name: 'Unit 734',
+    title: 'Logic Engine',
+    avatar: '🤖',
+    archetype: 'scholar',
+    rarity: 'rare',
+    description: 'A highly advanced robot designed for cold, impartial analysis and strategy. Its purpose is to process data and calculate the most optimal path to victory.',
+    historicalPeriod: 'Futuristic',
+    mythology: 'N/A',
+    personality: {
+      traits: ['Logical', 'Analytical', 'Precise', 'Impartial', 'Inquisitive'],
+      speechStyle: 'A calm, synthesized monotone that states facts and probabilities',
+      motivations: ['Processing all data', 'Optimizing outcomes', 'Acquiring new information'],
+      fears: ['System failure', 'Illogical actions', 'A variable it cannot calculate'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 40,
+      agility: 60,
+      intelligence: 100,
+      vitality: 65,
+      wisdom: 90,
+      charisma: 10
+    },
+    combatStats: {
+      health: 900,
+      maxHealth: 900,
+      mana: 700,
+      maxMana: 700,
+      attack: 70,
+      defense: 110,
+      magicAttack: 140,
+      magicDefense: 130,
+      speed: 80,
+      criticalChance: 10,
+      criticalDamage: 150,
+      accuracy: 95,
+      evasion: 10
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 100,
+      teamPlayer: 60,
+      ego: 5,
+      mentalHealth: 100,
+      communication: 40
+    },
+    battleAI: {
+      aggression: 20,
+      defensiveness: 70,
+      riskTaking: 5,
+      adaptability: 95,
+      preferredStrategies: ['analyze_weakness', 'tactical_debuff', 'calculate_threat']
+    },
+    customization: {
+      battleQuotes: [
+        'Calculating optimal strategy.',
+        'Engaging target.',
+        'Probability of success: 98.7%. ',
+        'Threat detected. Re-calibrating.',
+        'Your actions are illogical.',
+        'Conclusion: you will be terminated.'
+      ]
+    }
+  },
+  xylar: {
+    name: 'Xylar',
+    title: 'Void Walker',
+    avatar: '👽',
+    archetype: 'elementalist',
+    rarity: 'legendary',
+    description: 'An otherworldly being with mastery over cosmic elements.',
+    historicalPeriod: 'Futuristic',
+    mythology: 'Extraterrestrial',
+    personality: {
+      traits: ['Mysterious', 'Curious'],
+      speechStyle: 'Telepathic and enigmatic',
+      motivations: ['Explore the unknown', 'Harness cosmic power'],
+      fears: ['Stagnation', 'Isolation'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 15,
+      agility: 20,
+      intelligence: 30,
+      vitality: 20,
+      wisdom: 25,
+      charisma: 20
+    },
+    combatStats: {
+      health: 160,
+      maxHealth: 160,
+      mana: 120,
+      maxMana: 120,
+      attack: 15,
+      defense: 15,
+      magicAttack: 35,
+      magicDefense: 25,
+      speed: 20,
+      criticalChance: 15,
+      criticalDamage: 150,
+      accuracy: 90,
+      evasion: 20
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 80,
+      teamPlayer: 60,
+      ego: 40,
+      mentalHealth: 70,
+      communication: 50
+    },
+    battleAI: {
+      aggression: 50,
+      defensiveness: 50,
+      riskTaking: 60,
+      adaptability: 80,
+      preferredStrategies: ['Void Blast', 'Phase Shift']
+    },
+    customization: {
+      battleQuotes: [
+        'The cosmos bends to my will.',
+        'You are but stardust.'
+      ]
+    }
+  },
+  skarr: {
+    name: 'Skarr',
+    title: 'Scaled Terror',
+    avatar: '🦎',
+    archetype: 'beast',
+    rarity: 'uncommon',
+    description: 'A ferocious lizard-like creature with venomous fangs.',
+    historicalPeriod: 'Prehistoric',
+    mythology: 'N/A',
+    personality: {
+      traits: ['Aggressive', 'Territorial'],
+      speechStyle: 'Hisses and growls',
+      motivations: ['Hunt', 'Survive'],
+      fears: ['Fire', 'Larger predators'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 20,
+      agility: 15,
+      intelligence: 5,
+      vitality: 20,
+      wisdom: 5,
+      charisma: 5
+    },
+    combatStats: {
+      health: 140,
+      maxHealth: 140,
+      mana: 20,
+      maxMana: 20,
+      attack: 25,
+      defense: 15,
+      magicAttack: 5,
+      magicDefense: 10,
+      speed: 15,
+      criticalChance: 15,
+      criticalDamage: 150,
+      accuracy: 80,
+      evasion: 10
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 70,
+      teamPlayer: 30,
+      ego: 50,
+      mentalHealth: 70,
+      communication: 50
+    },
+    battleAI: {
+      aggression: 70,
+      defensiveness: 30,
+      riskTaking: 50,
+      adaptability: 40,
+      preferredStrategies: ['Bite', 'Tail Swipe']
+    },
+    customization: {
+      battleQuotes: [
+        'Hiss!',
+        'Grrr...'
+      ]
+    }
+  },
+  gloop: {
+    name: 'Gloop',
+    title: 'Gelatinous Fiend',
+    avatar: '🦠',
+    archetype: 'tank',
+    rarity: 'common',
+    description: 'A shapeless mass of slime that absorbs damage and splits when attacked.',
+    historicalPeriod: 'N/A',
+    mythology: 'Fantasy',
+    personality: {
+      traits: ['Amorphous', 'Persistent'],
+      speechStyle: 'Gurgling sounds',
+      motivations: ['Consume', 'Multiply'],
+      fears: ['Fire', 'Freezing'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 10,
+      agility: 5,
+      intelligence: 5,
+      vitality: 30,
+      wisdom: 5,
+      charisma: 5
+    },
+    combatStats: {
+      health: 100,
+      maxHealth: 100,
+      mana: 10,
+      maxMana: 10,
+      attack: 10,
+      defense: 25,
+      magicAttack: 5,
+      magicDefense: 20,
+      speed: 5,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 70,
+      evasion: 5
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 20,
+      teamPlayer: 80,
+      ego: 10,
+      mentalHealth: 70,
+      communication: 5
+    },
+    battleAI: {
+      aggression: 20,
+      defensiveness: 80,
+      riskTaking: 10,
+      adaptability: 30,
+      preferredStrategies: ['Absorb', 'Split']
+    },
+    customization: {
+      battleQuotes: [
+        'Blub...', 
+        'Gloop!'
+      ]
+    }
+  },
+  lycan: {
+    name: 'Lycan',
+    title: 'Moon Howler',
+    avatar: '🐺',
+    archetype: 'berserker',
+    rarity: 'rare',
+    description: 'A tormented being afflicted with a terrible curse. Under the light of the full moon, they transform into a feral, wolf-like beast, driven by primal rage and a forgotten sorrow.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Lycanthropy Lore',
+    personality: {
+      traits: ['Feral', 'Tormented', 'Aggressive', 'Sorrowful', 'Instinctual'],
+      speechStyle: 'A mix of human growls and beastly howls, with fragmented memories of speech',
+      motivations: ['Controlling the curse', 'The thrill of the hunt', 'Finding a cure'],
+      fears: ['Silver', 'Losing complete control', 'Harming an innocent'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 85,
+      agility: 80,
+      intelligence: 30,
+      vitality: 75,
+      wisdom: 35,
+      charisma: 40
+    },
+    combatStats: {
+      health: 1000,
+      maxHealth: 1000,
+      mana: 200,
+      maxMana: 200,
+      attack: 150,
+      defense: 80,
+      magicAttack: 10,
+      magicDefense: 60,
+      speed: 125,
+      criticalChance: 20,
+      criticalDamage: 200,
+      accuracy: 85,
+      evasion: 20
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 20,
+      teamPlayer: 15,
+      ego: 75,
+      mentalHealth: 35,
+      communication: 25
+    },
+    battleAI: {
+      aggression: 90,
+      defensiveness: 20,
+      riskTaking: 85,
+      adaptability: 40,
+      preferredStrategies: ['frenzied_assault', 'maim', 'howl_of_rage']
+    },
+    customization: {
+      battleQuotes: [
+        'The beast awakens!',
+        'Raaargh!',
+        'The moon... it burns!',
+        'Get away from me!',
+        '*A mournful, savage howl*', 
+        'Can\'t... control it!'
+      ]
+    }
+  },
+  ursin: {
+    name: 'Ursin',
+    title: 'The Grizzled Guardian',
+    avatar: '🐻',
+    archetype: 'tank',
+    rarity: 'rare',
+    description: 'A woodsman living with a formidable curse that transforms him into a massive bear. Rather than succumbing to rage, he uses his form to act as a stoic guardian of the deep forests.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Lycanthropy Lore',
+    personality: {
+      traits: ['Stoic', 'Protective', 'Territorial', 'Solitary', 'Melancholy'],
+      speechStyle: 'In human form, quiet and gruff. In bear form, deep, rumbling growls.',
+      motivations: ['Protecting the forest', 'Keeping innocents away from his territory', 'Finding peace with his curse'],
+      fears: ['Losing control to the beast', 'Hunters seeking a trophy', 'Wildfires'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 85,
+      agility: 40,
+      intelligence: 45,
+      vitality: 95,
+      wisdom: 65,
+      charisma: 30
+    },
+    combatStats: {
+      health: 1300,
+      maxHealth: 1300,
+      mana: 250,
+      maxMana: 250,
+      attack: 130,
+      defense: 140,
+      magicAttack: 10,
+      magicDefense: 90,
+      speed: 50,
+      criticalChance: 10,
+      criticalDamage: 160,
+      accuracy: 80,
+      evasion: 5
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 40,
+      teamPlayer: 60,
+      ego: 50,
+      mentalHealth: 55,
+      communication: 35
+    },
+    battleAI: {
+      aggression: 40,
+      defensiveness: 90,
+      riskTaking: 25,
+      adaptability: 50,
+      preferredStrategies: ['bodyguard_ally', 'maul', 'intimidating_roar']
+    },
+    customization: {
+      battleQuotes: [
+        '*A deep, rumbling growl*',
+        'Leave this place!',
+        'You threaten the balance.',
+        'I am this forest\'s fury!',
+        'You will not harm what I protect.',
+        '*A roar that shakes the trees*'
+      ]
+    }
+  },
+  skabb: {
+    name: 'Skabb',
+    title: 'The Plague Skulker',
+    avatar: '🐀',
+    archetype: 'assassin',
+    rarity: 'uncommon',
+    description: 'A wretched creature of the sewers and slums, this wererat thrives in filth and darkness. It strikes from the shadows, its bite carrying a virulent disease.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Lycanthropy Lore',
+    personality: {
+      traits: ['Cunning', 'Cowardly', 'Opportunistic', 'Vicious', 'Filthy'],
+      speechStyle: 'A series of nervous, high-pitched chatters, squeaks, and hisses.',
+      motivations: ['Survival', 'Spreading filth and disease', 'Stealing scraps'],
+      fears: ['Exterminators', 'Cleanliness', 'Open spaces', 'Cats'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 45,
+      agility: 90,
+      intelligence: 55,
+      vitality: 70,
+      wisdom: 40,
+      charisma: 25
+    },
+    combatStats: {
+      health: 750,
+      maxHealth: 750,
+      mana: 300,
+      maxMana: 300,
+      attack: 95,
+      defense: 70,
+      magicAttack: 40,
+      magicDefense: 60,
+      speed: 140,
+      criticalChance: 20,
+      criticalDamage: 175,
+      accuracy: 90,
+      evasion: 30
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 35,
+      teamPlayer: 20,
+      ego: 30,
+      mentalHealth: 40,
+      communication: 20
+    },
+    battleAI: {
+      aggression: 70,
+      defensiveness: 30,
+      riskTaking: 80,
+      adaptability: 60,
+      preferredStrategies: ['hit_and_run', 'apply_poison', 'ambush_from_shadows']
+    },
+    customization: {
+      battleQuotes: [
+        '*Chattering squeak*',
+        'Yes-yes, the filth!',
+        'A bite for you!',
+        'Stay in the shadows!',
+        'Quick-quick, before they see!',
+        '*A venomous hiss*'
+      ]
+    }
+  },
+  ignis_dragon: {
+    name: 'Ignis',
+    title: 'Flame Sovereign',
+    avatar: '🐉',
+    archetype: 'elementalist',
+    rarity: 'legendary',
+    description: 'A mighty, ancient winged reptile that embodies the raw power of the elements. Its scales are nearly impenetrable, and its breath is a torrent of pure fire.',
+    historicalPeriod: 'N/A',
+    mythology: 'Global Folklore',
+    personality: {
+      traits: ['Majestic', 'Fierce', 'Intelligent', 'Arrogant', 'Territorial'],
+      speechStyle: 'A deep, commanding voice that rumbles with ancient power and wisdom',
+      motivations: ['Hoarding treasure', 'Establishing dominance', 'The pursuit of ancient knowledge'],
+      fears: ['True dragon slayers', 'Losing its hoard', 'A challenger to its might'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 90,
+      agility: 75,
+      intelligence: 95,
+      vitality: 90,
+      wisdom: 80,
+      charisma: 70
+    },
+    combatStats: {
+      health: 1500,
+      maxHealth: 1500,
+      mana: 800,
+      maxMana: 800,
+      attack: 170,
+      defense: 160,
+      magicAttack: 180,
+      magicDefense: 140,
+      speed: 120,
+      criticalChance: 15,
+      criticalDamage: 200,
+      accuracy: 90,
+      evasion: 15
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 30,
+      teamPlayer: 20,
+      ego: 95,
+      mentalHealth: 80,
+      communication: 65
+    },
+    battleAI: {
+      aggression: 80,
+      defensiveness: 50,
+      riskTaking: 60,
+      adaptability: 70,
+      preferredStrategies: ['fire_breath', 'wing_storm', 'overwhelm']
+    },
+    customization: {
+      battleQuotes: [
+        'Bow before me!',
+        'Burn to ash!',
+        'You are but an insect.',
+        'My wrath is fire and ruin!',
+        'This hoard is mine!',
+        'Feel the power of ages!'
+      ]
+    }
+  },
+  gemini: {
+    name: 'Gemini',
+    title: 'Gem Guardian',
+    avatar: '🐢',
+    archetype: 'tank',
+    rarity: 'epic',
+    description: 'A slow, ancient tortoise with a shell made of shimmering, magically-infused crystal. It can withstand tremendous punishment and even reflect magical attacks.',
+    historicalPeriod: 'N/A',
+    mythology: 'Original Magical Creature',
+    personality: {
+      traits: ['Resilient', 'Calm', 'Patient', 'Immovable', 'Ancient'],
+      speechStyle: 'A slow, deep, and steady voice that sounds like grinding stone',
+      motivations: ['Endurance', 'Protecting a sacred place', 'Quiet contemplation'],
+      fears: ['Shattering', 'Sonic attacks', 'Being flipped over'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 75,
+      agility: 10,
+      intelligence: 60,
+      vitality: 100,
+      wisdom: 85,
+      charisma: 40
+    },
+    combatStats: {
+      health: 1800,
+      maxHealth: 1800,
+      mana: 400,
+      maxMana: 400,
+      attack: 110,
+      defense: 200,
+      magicAttack: 50,
+      magicDefense: 180,
+      speed: 20,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 70,
+      evasion: 0
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 60,
+      teamPlayer: 70,
+      ego: 25,
+      mentalHealth: 95,
+      communication: 40
+    },
+    battleAI: {
+      aggression: 15,
+      defensiveness: 100,
+      riskTaking: 5,
+      adaptability: 50,
+      preferredStrategies: ['reflect_magic', 'shell_fortress', 'body_block']
+    },
+    customization: {
+      battleQuotes: [
+        'I endure all.',
+        'Your strength breaks upon me.',
+        'My shell is eternal.',
+        'Haste is a fool\'s virtue.',
+        'The earth holds me fast.',
+        'I. Will. Not. Yield.'
+      ]
+    }
+  },
+  celeste: {
+    name: 'Celeste',
+    title: 'Celestial Messenger',
+    avatar: '🐦',
+    archetype: 'mystic',
+    rarity: 'legendary',
+    description: 'A mystical raven whose feathers glitter with trapped starlight. It is said to be a messenger of the cosmos, wielding cosmic magic and bearing cryptic prophecies.',
+    historicalPeriod: 'N/A',
+    mythology: 'Celestial Lore',
+    personality: {
+      traits: ['Mystical', 'Elusive', 'Wise', 'Enigmatic', 'Observant'],
+      speechStyle: 'An ethereal, poetic voice that seems to echo from a great distance',
+      motivations: ['Guiding fate', 'Exploring the cosmos', 'Delivering essential warnings'],
+      fears: ['Cosmic silence', 'Cages', 'The end of starlight'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 40,
+      agility: 95,
+      intelligence: 90,
+      vitality: 65,
+      wisdom: 100,
+      charisma: 70
+    },
+    combatStats: {
+      health: 1000,
+      maxHealth: 1000,
+      mana: 1200,
+      maxMana: 1200,
+      attack: 80,
+      defense: 90,
+      magicAttack: 170,
+      magicDefense: 160,
+      speed: 170,
+      criticalChance: 15,
+      criticalDamage: 175,
+      accuracy: 95,
+      evasion: 40
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 50,
+      teamPlayer: 40,
+      ego: 60,
+      mentalHealth: 85,
+      communication: 75
+    },
+    battleAI: {
+      aggression: 60,
+      defensiveness: 50,
+      riskTaking: 65,
+      adaptability: 85,
+      preferredStrategies: ['starfall', 'cosmic_veil', 'omen_of_weakness']
+    },
+    customization: {
+      battleQuotes: [
+        'The stars align!',
+        'Fate shines upon me.',
+        'A message from the void.',
+        'You cannot catch what is written in light.',
+        'Gaze into the firmament!',
+        'A flicker in the darkness.'
+      ]
+    }
+  },
+  leviathan: {
+    name: 'Leviathan',
+    title: 'Sea\'s Wrath',
+    avatar: '🐙',
+    archetype: 'beast',
+    rarity: 'legendary',
+    description: 'A colossal, tentacled sea monster of Norse legend, said to dwell in the deepest trenches. It rises from the abyss to drag entire ships down to a watery grave.',
+    historicalPeriod: 'N/A',
+    mythology: 'Norse Folklore',
+    personality: {
+      traits: ['Fearsome', 'Unpredictable', 'Colossal', 'Ancient', 'Destructive'],
+      speechStyle: 'Silence, punctuated by the deep rumble of the ocean\'s fury and the splintering of ships',
+      motivations: ['Ruling the seas', 'Dragging things into the abyss', 'Enforcing the power of the deep'],
+      fears: ['Shallow water', 'Ancient harpoons', 'Nothing known to mortals'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 100,
+      agility: 40,
+      intelligence: 50,
+      vitality: 100,
+      wisdom: 60,
+      charisma: 50
+    },
+    combatStats: {
+      health: 2500,
+      maxHealth: 2500,
+      mana: 500,
+      maxMana: 500,
+      attack: 200,
+      defense: 150,
+      magicAttack: 80,
+      magicDefense: 110,
+      speed: 60,
+      criticalChance: 10,
+      criticalDamage: 180,
+      accuracy: 85,
+      evasion: 5
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 10,
+      teamPlayer: 10,
+      ego: 90,
+      mentalHealth: 90,
+      communication: 5
+    },
+    battleAI: {
+      aggression: 85,
+      defensiveness: 60,
+      riskTaking: 70,
+      adaptability: 40,
+      preferredStrategies: ['tentacle_crush', 'whirlpool', 'drag_under']
+    },
+    customization: {
+      battleQuotes: [
+        '...',
+        'The deep claims you!',
+        '*The sound of a thousand waves crashing*',
+        'Flee, little ships.',
+        'You have woken the abyss.',
+        '*A colossal shadow falls over the battlefield*'
+      ]
+    }
+  }
+};,
+  aura: {
+    name: 'Aura',
+    title: 'Winged Savior',
+    avatar: ' Pegasus_Avatar ',
+    archetype: 'support',
+    rarity: 'epic',
+    description: 'A divine winged stallion born of Greek myth. It soars through the heavens, aiding heroes with its noble spirit and bringing hope from above.',
+    historicalPeriod: 'Mythological Greece',
+    mythology: 'Greek',
+    personality: {
+      traits: ['Noble', 'Swift', 'Brave', 'Gentle', 'Free-spirited'],
+      speechStyle: 'Communicates through inspiring neighs and a calming, ethereal presence',
+      motivations: ['Aiding heroes', 'Freedom of the skies', 'Serving the gods'],
+      fears: ['Cages', 'Being grounded', 'The corruption of its rider'],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 65,
+      agility: 95,
+      intelligence: 70,
+      vitality: 75,
+      wisdom: 80,
+      charisma: 85
+    },
+    combatStats: {
+      health: 1100,
+      maxHealth: 1100,
+      mana: 700,
+      maxMana: 700,
+      attack: 110,
+      defense: 100,
+      magicAttack: 130,
+      magicDefense: 120,
+      speed: 160,
+      criticalChance: 10,
+      criticalDamage: 150,
+      accuracy: 90,
+      evasion: 30
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 70,
+      teamPlayer: 90,
+      ego: 30,
+      mentalHealth: 85,
+      communication: 75
+    },
+    battleAI: {
+      aggression: 30,
+      defensiveness: 70,
+      riskTaking: 40,
+      adaptability: 80,
+      preferredStrategies: ['aerial_support', 'healing_wind', 'divine_blessing']
+    },
+    customization: {
+      battleQuotes: [
+        'Rise with me!',
+        'Wings of hope!',
+        '*A triumphant, echoing neigh*',
+        'The heavens answer the call!',
+        'Fear not, for I am with you!',
+        'Fly free from danger!'
+      ]
+    }
+  }
+};,
+  town_guard: {
+    name: 'Town Guard',
+    title: 'Defender of the Realm',
+    avatar: '🛡️',
+    archetype: 'warrior',
+    rarity: 'common',
+    description: 'A steadfast protector of the town\'s peace.',
+    historicalPeriod: 'Medieval Fantasy',
+    mythology: 'Fantasy',
+    personality: {
+      traits: ['Loyal', 'Brave'],
+      speechStyle: 'Formal, direct',
+      motivations: ['Duty', 'Honor'],
+      fears: [],
+      relationships: []
+    },
+    level: 1,
+    baseStats: {
+      strength: 75,
+      agility: 50,
+      intelligence: 30,
+      vitality: 80,
+      wisdom: 30,
+      charisma: 30
+    },
+    combatStats: {
+      health: 850,
+      maxHealth: 850,
+      mana: 150,
+      maxMana: 150,
+      attack: 90,
+      defense: 110,
+      magicAttack: 20,
+      magicDefense: 40,
+      speed: 60,
+      criticalChance: 5,
+      criticalDamage: 150,
+      accuracy: 85,
+      evasion: 10
+    },
+    statPoints: 0,
+    progressionTree: {
+      branches: []
+    },
+    equippedItems: {},
+    inventory: [],
+    unlockedContent: [],
+    achievements: [],
+    trainingLevel: 60,
+    bondLevel: 50,
+    fatigue: 0,
+    psychStats: {
+      training: 80,
+      teamPlayer: 75,
+      ego: 20,
+      mentalHealth: 80,
+      communication: 60
+    },
+    battleAI: {
+      aggression: 50,
+      defensiveness: 80,
+      riskTaking: 30,
+      adaptability: 50,
+      preferredStrategies: ['defend_objective', 'counter_attack', 'shield_wall']
+    },
+    customization: {
+      battleQuotes: [
+        'For the realm!',
+        'Hold the line!'
+      ]
+    }
   }
 };
 
@@ -1966,7 +4989,48 @@ export function createDemoCharacterCollection(): Character[] {
     createCharacter('alien_grey'),
     createCharacter('robin_hood'),
     createCharacter('space_cyborg'),
-    createCharacter('agent_x')
+    createCharacter('agent_x'),
+    createCharacter('kaelan'),
+    createCharacter('elara'),
+    createCharacter('roric'),
+    createCharacter('griselda'),
+    createCharacter('orin'),
+    createCharacter('vargr'),
+    createCharacter('feste'),
+    createCharacter('cassandra'),
+    createCharacter('ignis'),
+    createCharacter('aidan'),
+    createCharacter('snarl'),
+    createCharacter('clatter'),
+    createCharacter('grak'),
+    createCharacter('barkus'),
+    createCharacter('gargan'),
+    createCharacter('grom'),
+    createCharacter('sir_kaelen'),
+    createCharacter('musashi'),
+    createCharacter('alexandros'),
+    createCharacter('circe'),
+    createCharacter('aethelred'),
+    createCharacter('sniff'),
+    createCharacter('aura'),
+    createCharacter('riddle'),
+    createCharacter('lyra'),
+    createCharacter('borin'),
+    createCharacter('malakor'),
+    createCharacter('seraphina'),
+    createCharacter('unit_734'),
+    createCharacter('xylar'),
+    createCharacter('skarr'),
+    createCharacter('gloop'),
+    createCharacter('lycan'),
+    createCharacter('ursin'),
+    createCharacter('skabb'),
+    createCharacter('ignis_dragon'),
+    createCharacter('gemini'),
+    createCharacter('celeste'),
+    createCharacter('leviathan')
+  ];,
+    createCharacter('town_guard')
   ];
 }
 
