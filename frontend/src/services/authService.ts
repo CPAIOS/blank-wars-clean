@@ -18,7 +18,7 @@ interface TokenRefreshResponse {
 }
 
 class AuthService {
-  private readonly baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
+  private readonly baseURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
   private readonly timeout = 10000; // 10 seconds
   
   // Helper method to add timeout to fetch requests
