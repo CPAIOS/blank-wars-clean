@@ -171,4 +171,14 @@ router.get('/test', (req: Request, res: Response) => {
   res.json({ message: 'Auth router is working!' });
 });
 
+// Test register route
+router.post('/test-register', (req: Request, res: Response) => {
+  res.json({ message: 'Test register route is working!' });
+});
+
+// Test GET version of register to see if it's a method issue
+router.get('/register', (req: Request, res: Response) => {
+  res.json({ message: 'Register GET route is working!' });
+});
+
 export default router;
