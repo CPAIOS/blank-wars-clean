@@ -166,4 +166,9 @@ router.get('/profile', authenticateToken, async (req: any, res: Response) => {
   }
 });
 
+// Test route to verify auth router is working
+router.get('/test', (req: Request, res: Response) => {
+  res.json({ message: 'Auth router is working!' });
+});
+
 export default router;
