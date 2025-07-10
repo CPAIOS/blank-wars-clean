@@ -130,7 +130,7 @@ export default function TeamChatPanel({
 
   // Add initial team greeting
   useEffect(() => {
-    if (phase.name === 'strategy-selection' && messages.length === 0) {
+    if (phase?.name === 'strategy-selection' && messages.length === 0) {
       const initialMessages: ChatMessage[] = [
         {
           id: 'coach-welcome',
@@ -169,7 +169,7 @@ export default function TeamChatPanel({
                   ]
                 },
                 battleContext: {
-                  phase: phase.name,
+                  phase: phase?.name || 'unknown',
                   round: currentRound,
                   match: currentMatch,
                   messageType: 'general'
@@ -184,7 +184,7 @@ export default function TeamChatPanel({
 
       setMessages(initialMessages);
     }
-  }, [phase.name, currentMatch, currentRound, playerTeam.characters]);
+  }, [phase?.name, currentMatch, currentRound, playerTeam.characters]);
 
   const handleSendCoachMessage = () => {
     if (!coachMessage.trim()) return;
@@ -280,7 +280,7 @@ export default function TeamChatPanel({
                     ]
                   },
                   battleContext: {
-                    phase: phase.name,
+                    phase: phase?.name || 'unknown',
                     round: currentRound,
                     match: currentMatch,
                     messageType: newMessage.messageType

@@ -87,29 +87,51 @@ import type { BattleCharacter, ExecutedAction, PlannedAction } from '@/data/batt
 // BattlePhase type imported from @/data/battleFlow
 
 export default function ImprovedBattleArena() {
-  // Memory leak prevention with error handling
-  let timeoutManager;
-  try {
-    timeoutManager = useTimeoutManager();
-  } catch (error) {
-    console.error('TimeoutManager initialization failed:', error);
-    timeoutManager = {
-      setTimeout: (cb: () => void, delay: number) => setTimeout(cb, delay),
-      clearTimeout: (id: any) => clearTimeout(id),
-      clearAllTimeouts: () => {}
-    };
-  }
-  
+  // Memory leak prevention with timeout manager
+  const timeoutManager = useTimeoutManager();
   const { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout, clearAllTimeouts } = timeoutManager;
+  
+  // Battle Announcer Integration with error handling (moved before cleanup effect)
+  const battleAnnouncer = useBattleAnnouncer();
+  
+  const {
+    isAnnouncerSpeaking,
+    isEnabled: isAnnouncerEnabled,
+    toggleEnabled: toggleAnnouncer,
+    announceBattleStart,
+    announceRoundStart,
+    announceAction,
+    announceVictory,
+    announceDefeat,
+    announcePhaseTransition,
+    announceStrategySelection,
+    announceBattleCry,
+    clearQueue
+  } = battleAnnouncer || {
+    isAnnouncerSpeaking: false,
+    isEnabled: false,
+    toggleEnabled: () => {},
+    announceBattleStart: () => {},
+    announceRoundStart: () => {},
+    announceAction: () => {},
+    announceVictory: () => {},
+    announceDefeat: () => {},
+    announcePhaseTransition: () => {},
+    announceStrategySelection: () => {},
+    announceBattleCry: () => {},
+    clearQueue: () => {}
+  };
   
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       console.log('ImprovedBattleArena unmounting - cleaning up');
       clearAllTimeouts();
-      clearQueue(); // Clear audio announcer queue
+      if (clearQueue) {
+        clearQueue(); // Clear audio announcer queue
+      }
     };
-  }, []);
+  }, [clearAllTimeouts, clearQueue]);
   
   // New Team Battle System State with refs for stability
   // Mock headquarters state for demo - in real app this would come from global state
@@ -213,60 +235,17 @@ export default function ImprovedBattleArena() {
     setIsFastBattleMode, setFastBattleConsent
   } = actions;
 
-  // Battle Announcer Integration with error handling
-  const battleAnnouncer = useBattleAnnouncer();
-  
-  const {
-    isAnnouncerSpeaking,
-    isEnabled: isAnnouncerEnabled,
-    toggleEnabled: toggleAnnouncer,
-    announceBattleStart,
-    announceRoundStart,
-    announceAction,
-    announceVictory,
-    announceDefeat,
-    announcePhaseTransition,
-    announceStrategySelection,
-    announceBattleCry,
-    clearQueue
-  } = battleAnnouncer || {
-    isAnnouncerSpeaking: false,
-    isEnabled: true, // Enable by default even in fallback
-    toggleEnabled: (enabled?: boolean) => {
-      console.log('Announcer toggle fallback:', enabled);
-    },
-    announceBattleStart: (p1: string, p2: string) => {
-      console.log(`🎤 Battle Start: ${p1} vs ${p2}!`);
-    },
-    announceRoundStart: (round: number) => {
-      console.log(`🎤 Round ${round} begins!`);
-    },
-    announceAction: (text: string) => {
-      console.log(`🎤 ${text}`);
-    },
-    announceVictory: (winner: string) => {
-      console.log(`🎤 Victory to ${winner}!`);
-    },
-    announceDefeat: (loser: string) => {
-      console.log(`🎤 ${loser} has fallen!`);
-    },
-    announcePhaseTransition: (phase: string) => {
-      console.log(`🎤 Phase: ${phase}`);
-    },
-    announceStrategySelection: () => {
-      console.log('🎤 Choose your strategies!');
-    },
-    announceBattleCry: () => {
-      console.log('🎤 Warriors let out their battle cries!');
-    },
-    clearQueue: () => {
-      console.log('🎤 Clearing announcement queue');
-    }
-  };
-
   // WebSocket Battle Integration with ref for stability
   const socketRef = useRef<any>(null);
-  const battleWebSocket = useBattleWebSocket();
+  const battleWebSocket = useBattleWebSocket({
+    onError: (error: string) => {
+      console.error('❌ Battle WebSocket error:', error);
+      if (error.includes('session has expired') || error.includes('Token expired')) {
+        // Token expired - refresh the page to re-authenticate
+        window.location.reload();
+      }
+    }
+  });
   socketRef.current = battleWebSocket;
   
   const {
@@ -381,6 +360,15 @@ export default function ImprovedBattleArena() {
     timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout }
   });
 
+  // Initialize Battle Simulation Hook (must be before battleEngineLogic)
+  const battleSimulation = useBattleSimulation({
+    state,
+    actions,
+    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
+    calculateBattleRewards: battleRewardsHook.calculateBattleRewards,
+    announceAction
+  });
+
   // Initialize Battle Engine Logic Hook 
   const battleEngineLogic = useBattleEngineLogic({
     state,
@@ -449,14 +437,6 @@ export default function ImprovedBattleArena() {
     announceBattleCry
   });
 
-  // Initialize Battle Simulation Hook
-  const battleSimulation = useBattleSimulation({
-    state,
-    actions,
-    timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
-    calculateBattleRewards: battleRewardsHook.calculateBattleRewards,
-    announceAction
-  });
 
   // Initialize Battle Events Hook
   const battleEvents = useBattleEvents({
@@ -556,21 +536,21 @@ export default function ImprovedBattleArena() {
   // Initialize fighters on first load
   useEffect(() => {
     if (!player1.id) {
-      setPlayer1(actions.getCurrentPlayerFighter());
+      setPlayer1(uiPresentation.getCurrentPlayerFighter());
     }
     if (!player2.id) {
-      setPlayer2(actions.getCurrentOpponentFighter());
+      setPlayer2(uiPresentation.getCurrentOpponentFighter());
     }
-  }, [player1.id, player2.id]);
+  }, [player1.id, player2.id, uiPresentation]);
 
   // Update fighters when round changes
   useEffect(() => {
-    setPlayer1(actions.getCurrentPlayerFighter());
-    setPlayer2(actions.getCurrentOpponentFighter());
+    setPlayer1(uiPresentation.getCurrentPlayerFighter());
+    setPlayer2(uiPresentation.getCurrentOpponentFighter());
     // Reset battle stats for new round
     setPlayer1BattleStats(createBattleStats());
     setPlayer2BattleStats(createBattleStats());
-  }, [currentRound]);
+  }, [currentRound, uiPresentation]);
 
   // Clear announcement ref when content changes
   useEffect(() => {
@@ -814,8 +794,8 @@ export default function ImprovedBattleArena() {
 
   // Initialize card collection on mount
   useEffect(() => {
-    actions.initializeCardCollection();
-  }, [actions]);
+    cardCollectionSystem.initializeCardCollection();
+  }, [cardCollectionSystem]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -841,7 +821,7 @@ export default function ImprovedBattleArena() {
       />
 
       {/* AI Chaos Monitor - Shows during combat phases */}
-      {(phase.name === 'round-combat' || phase.name === 'round-end' || activeDeviations.length > 0) && (
+      {(phase?.name === 'round-combat' || phase?.name === 'round-end' || activeDeviations.length > 0) && (
         <ChaosPanel
           characterPsychology={characterPsychology}
           activeDeviations={activeDeviations}
@@ -852,14 +832,14 @@ export default function ImprovedBattleArena() {
       )}
 
       {/* Character-Specific Strategy Panel */}
-      {phase.name === 'strategy-selection' && (
+      {phase?.name === 'strategy-selection' && (
         <CharacterSpecificStrategyPanel
           currentRound={currentRound}
           currentMatch={currentMatch}
           playerTeam={playerTeam}
           characterStrategies={characterStrategies}
-          onStrategyChange={actions.handleCharacterStrategyChange}
-          onAllStrategiesComplete={handleAllCharacterStrategiesComplete}
+          onStrategyChange={coachingSystem.handleCharacterStrategyChange}
+          onAllStrategiesComplete={coachingSystem.handleAllCharacterStrategiesComplete}
           coachingMessages={coachingMessages}
           timeRemaining={timer || 0}
           isVisible={true}
@@ -870,7 +850,7 @@ export default function ImprovedBattleArena() {
       <TeamOverview
         playerTeam={playerTeam}
         playerMorale={playerMorale}
-        onCharacterClick={actions.conductIndividualCoaching}
+        onCharacterClick={coachingSystem.conductIndividualCoaching}
         onSelectChatCharacter={handleSelectChatCharacter}
       />
 
@@ -948,13 +928,13 @@ export default function ImprovedBattleArena() {
             currentRound={currentRound}
             currentMatch={currentMatch}
             isVisible={true}
-            onSendCoachMessage={actions.handleTeamChatMessage}
+            onSendCoachMessage={coachingSystem.handleTeamChatMessage}
           />
         </div>
       </div>
 
       {/* Matchmaking Panel - Positioned after Team Communication Hub */}
-      {phase.name === 'matchmaking' && (
+      {phase?.name === 'matchmaking' && (
         <MatchmakingPanel
           playerTeamLevels={playerTeam.characters.map(char => char.level)}
           onSelectOpponent={matchmaking.handleOpponentSelection}
@@ -964,7 +944,7 @@ export default function ImprovedBattleArena() {
 
 
       {/* Start Battle Button */}
-      {phase.name === 'pre-battle' && selectedOpponent && (
+      {phase?.name === 'pre-battle' && selectedOpponent && (
         <div className="text-center space-y-4">
           <div className="flex justify-center gap-4">
             <button
@@ -1000,7 +980,7 @@ export default function ImprovedBattleArena() {
       )}
 
       {/* Battle End - Victory/Restart */}
-      {phase.name === 'battle-end' && (
+      {phase?.name === 'battle-end' && (
         <motion.div 
           className="text-center space-y-6"
           initial={{ opacity: 0, scale: 0.8 }}
@@ -1082,7 +1062,7 @@ export default function ImprovedBattleArena() {
         isOpen={showCoachingModal}
         character={selectedCharacterForCoaching}
         onClose={() => setShowCoachingModal(false)}
-        onCoachingSession={actions.executeCoachingSession}
+        onCoachingSession={coachingSystem.executeCoachingSession}
         coachingPoints={playerTeam.coachingPoints}
       />
 
@@ -1126,8 +1106,8 @@ export default function ImprovedBattleArena() {
                 characters={playerCards}
                 selectedCards={selectedTeamCards}
                 maxSelection={3}
-                onCardSelect={actions.handleCardSelect}
-                onCardDeselect={actions.handleCardDeselect}
+                onCardSelect={cardCollectionSystem.handleCardSelect}
+                onCardDeselect={cardCollectionSystem.handleCardDeselect}
                 showSelectionMode={true}
               />
             </div>
@@ -1145,7 +1125,7 @@ export default function ImprovedBattleArena() {
                   Cancel
                 </button>
                 <button
-                  onClick={actions.buildTeamFromCards}
+                  onClick={coachingSystem.buildTeamFromCards}
                   disabled={selectedTeamCards.length !== 3}
                   className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
                     selectedTeamCards.length === 3
@@ -1165,10 +1145,10 @@ export default function ImprovedBattleArena() {
       <CardPackOpening
         isOpen={showCardPacks}
         onClose={() => setShowCardPacks(false)}
-        onCardsReceived={actions.handleCardsReceived}
+        onCardsReceived={cardCollectionSystem.handleCardsReceived}
         availableCards={playerCards}
         playerCurrency={playerCurrency}
-        onCurrencySpent={actions.handleCurrencySpent}
+        onCurrencySpent={cardCollectionSystem.handleCurrencySpent}
       />
 
     </div>
