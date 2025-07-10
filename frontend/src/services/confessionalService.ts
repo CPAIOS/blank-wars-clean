@@ -43,7 +43,7 @@ export const startConfessional = async (
   // Immediately clear any existing interviews and timeouts
   clearAllConfessionalTimeouts(confessionalTimeouts);
   
-  const character = availableCharacters.find(c => c.baseName === characterName);
+  const character = availableCharacters.find(c => c.id === characterName);
   console.log('🎭 Found character:', character?.name, 'ID:', character?.id);
   if (!character) return;
 
@@ -126,7 +126,7 @@ export const generateCharacterResponse = async (
   setConfessionalData: React.Dispatch<React.SetStateAction<ConfessionalData>>
 ) => {
   console.log('🎪 Generating response for characterName:', characterName);
-  const character = availableCharacters.find(c => c.baseName === characterName);
+  const character = availableCharacters.find(c => c.id === characterName);
   console.log('🎨 Character found:', character?.name, 'ID:', character?.id);
   if (!character) return;
 
@@ -148,9 +148,8 @@ export const generateCharacterResponse = async (
     };
 
     // Get other characters for context
-    const allHousemates = headquarters.rooms.flatMap(room => room.assignedCharacters);
     const otherCharacters = availableCharacters
-      .filter(c => allHousemates.includes(c.baseName) && c.baseName !== characterName)
+      .filter(c => c.id !== characterName)
       .map(c => c.name)
       .slice(0, 4); // Limit to 4 for prompt length
 

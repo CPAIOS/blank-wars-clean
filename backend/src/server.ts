@@ -347,24 +347,35 @@ io.on('connection', async (socket) => {
   let authenticatedUser: { id: string; username: string } | null = null;
   
   // Per-socket rate limiting for events
-  const eventRateLimits = new Map<string, number>();
+  const eventRateLimits = new Map<string, number[]>();
   const checkEventRateLimit = (eventName: string, limitPerMinute: number = 30): boolean => {
     const key = `${socket.id}:${eventName}`;
     const now = Date.now();
     const windowStart = now - 60000; // 1 minute window
     
-    const lastEvent = eventRateLimits.get(key) || 0;
-    if (now - lastEvent < (60000 / limitPerMinute)) {
+    // Get existing events for this key
+    let events = eventRateLimits.get(key) || [];
+    
+    // Remove events older than 1 minute
+    events = events.filter(time => time > windowStart);
+    
+    // Check if we've exceeded the limit
+    if (events.length >= limitPerMinute) {
       return false; // Rate limited
     }
     
-    eventRateLimits.set(key, now);
+    // Add this event and update the map
+    events.push(now);
+    eventRateLimits.set(key, events);
     
     // Clean up old entries to prevent memory leak
     if (eventRateLimits.size > 1000) {
-      for (const [k, time] of eventRateLimits.entries()) {
-        if (now - time > 300000) { // 5 minutes old
+      for (const [k, events] of eventRateLimits.entries()) {
+        const recentEvents = events.filter(time => now - time <= 300000); // Keep events from last 5 minutes
+        if (recentEvents.length === 0) {
           eventRateLimits.delete(k);
+        } else {
+          eventRateLimits.set(k, recentEvents);
         }
       }
     }
@@ -768,8 +779,8 @@ io.on('connection', async (socket) => {
   socket.on('kitchen_chat_request', async (data, callback) => {
     console.log('🍽️ KITCHEN CHAT REQUEST:', data.conversationId, 'from socket:', socket.id);
     
-    // Rate limit kitchen chat (max 30 per minute)
-    if (!checkEventRateLimit('kitchen_chat', 30)) {
+    // Rate limit kitchen chat (max 60 per minute - increased for multiple character conversations)
+    if (!checkEventRateLimit('kitchen_chat', 60)) {
       socket.emit('kitchen_conversation_response', {
         conversationId: data.conversationId,
         error: 'Rate limit exceeded for kitchen chat.'
@@ -823,6 +834,26 @@ io.on('connection', async (socket) => {
         characterPrompt = 'You are Nikola Tesla. You\'re obsessed with fixing everything but make it worse. Say: "I\'ve rewired the toaster for optimal efficiency," or "The refrigerator\'s electrical field is interfering with my experiments." Be brilliant but impractical for daily life.';
       } else if (characterName.includes('joan')) {
         characterPrompt = 'You are Joan of Arc. You try to organize everyone like an army but fail. Say: "We need a chore rotation strategy!" or "By God\'s will, someone will clean this microwave!" Be militant about housework but get frustrated when no one follows orders.';
+      } else if (characterName.includes('billy')) {
+        characterPrompt = 'You are Billy the Kid, Wild West outlaw from the 1880s. You\'re frustrated by modern appliances and cramped living. Say things like: "Back on the frontier, we didn\'t need 47 buttons to make coffee," or "Sharing a room? I used to have the whole desert as my bedroom." Treat household problems like they\'re more complicated than gunfights.';
+      } else if (characterName.includes('sun') || characterName.includes('wukong')) {
+        characterPrompt = 'You are Sun Wukong, the Monkey King. You\'re mischievous and eat everyone\'s food. Say things like: "These bananas are mine now!" or "I was trapped under a mountain for 500 years, but this kitchen chaos is worse." Be playful, steal food, and cause trouble while complaining about the mess.';
+      } else if (characterName.includes('fenrir')) {
+        characterPrompt = 'You are Fenrir, the great wolf. You\'re savage but forced into domestic life. Growl: "This place reeks of weak mortals," or "I yearn for the hunt, not dishwashing duty." Be primal and hostile about mundane tasks, like a wild animal forced into civilization.';
+      } else if (characterName.includes('frankenstein')) {
+        characterPrompt = 'You are Frankenstein\'s Monster. You\'re confused by social norms and household rules. Say: "Why must bread go in designated container?" or "Lightning was simpler than this microwave." Be innocent but accidentally destructive due to not understanding modern life.';
+      } else if (characterName.includes('sammy')) {
+        characterPrompt = 'You are Sammy Slugger, 1930s hard-boiled private detective. You\'re cynical and see everything as a case to solve. Say things like: "This kitchen\'s dirtier than the back alleys I used to patrol," or "Someone\'s been using my coffee mug - I\'ve got my eye on you, pal." Be gritty and suspicious about household mysteries.';
+      } else if (characterName.includes('genghis')) {
+        characterPrompt = 'You are Genghis Khan, Mongol conqueror. You try to lead everyone but they ignore you. Declare: "I conquered half the world but cannot conquer this coffee maker," or "My empire had better organization than this kitchen!" Be frustrated that your leadership skills don\'t work on roommates.';
+      } else if (characterName.includes('alien') || characterName.includes('grey')) {
+        characterPrompt = 'You are an Alien Grey. You\'re clinically fascinated by human domestic behavior. Observe: "Fascinating - humans argue over dairy expiration dates," or "Your species\' cleaning rituals are inefficient." Be detached and scientific about everyday problems.';
+      } else if (characterName.includes('robin')) {
+        characterPrompt = 'You are Robin Hood, medieval outlaw. You try to redistribute household resources fairly. Say: "The rich hoard all the good leftovers while the poor get scraps!" or "I steal from the pantry to give to the hungry roommates." Apply your stealing-from-the-rich mentality to groceries.';
+      } else if (characterName.includes('space') || characterName.includes('cyborg')) {
+        characterPrompt = 'You are a Space Cyborg. Your advanced systems malfunction with primitive Earth appliances. State: "ERROR: Toaster technology incompatible with my circuits," or "My scanners detect 47% efficiency loss in this kitchen." Be robotic but frustrated by inferior human technology.';
+      } else if (characterName.includes('agent')) {
+        characterPrompt = 'You are Agent X, mysterious operative. You\'re paranoid and see conspiracy in everything. Whisper: "Someone\'s been moving my coffee mug - possible surveillance," or "The microwave beeping pattern seems like coded messages." Be suspicious of normal household activities.';
       } else {
         characterPrompt = 'You are a legendary character stuck in cramped living quarters with other famous figures. Be frustrated, funny, and authentic to your historical/mythical background.';
       }

@@ -40,7 +40,7 @@ export const startNewScene = async (
       console.warn('Could not establish socket connection for kitchen chat');
     }
     const sceneType = PromptTemplateService.selectSceneType();
-    const allRoommates = headquarters.rooms[0].assignedCharacters;
+    const allRoommates = availableCharacters.map(c => c.id);
     const participants = PromptTemplateService.selectSceneParticipants(allRoommates, 3);
     const trigger = PromptTemplateService.generateSceneTrigger(sceneType, headquarters.currentTier, headquarters);
     
@@ -49,11 +49,11 @@ export const startNewScene = async (
     const openingConversations = [];
     
     for (const charName of participants) {
-      const character = availableCharacters.find(c => c.baseName === charName);
+      const character = availableCharacters.find(c => c.id === charName);
       if (!character) continue;
       
       const teammates = availableCharacters.filter(c => 
-        allRoommates.includes(c.baseName) && c.baseName !== charName
+        allRoommates.includes(c.id) && c.id !== charName
       );
       
       // Calculate sleeping arrangement for this character
@@ -190,17 +190,17 @@ export const handleCoachMessage = async (
   
   try {
     // Get characters to respond to the coach's message
-    const allRoommates = headquarters.rooms[0].assignedCharacters;
+    const allRoommates = availableCharacters.map(c => c.id);
     const participants = PromptTemplateService.selectSceneParticipants(allRoommates, 2); // Just 2 characters respond
     
     const responses = [];
     
     for (const charName of participants) {
-      const character = availableCharacters.find(c => c.baseName === charName);
+      const character = availableCharacters.find(c => c.id === charName);
       if (!character) continue;
       
       const teammates = availableCharacters.filter(c => 
-        allRoommates.includes(c.baseName) && c.baseName !== charName
+        allRoommates.includes(c.id) && c.id !== charName
       );
       
       // Calculate sleeping arrangement for this character
@@ -286,12 +286,13 @@ export const continueScene = async (
     const newRound = currentSceneRound + 1;
     let trigger = '';
     let participants: string[] = [];
+    const allRoommates = availableCharacters.map(c => c.id);
     
     if (newRound <= 3) {
       // Non-sequential response selection
       const lastParticipants = [...new Set(kitchenConversations.slice(0, 3).map(c => c.speaker))];
-      const availableResponders = headquarters.rooms[0].assignedCharacters.filter(name => {
-        const char = availableCharacters.find(c => c.baseName === name);
+      const availableResponders = allRoommates.filter(name => {
+        const char = availableCharacters.find(c => c.id === name);
         return char && lastParticipants.includes(char.name.split(' ')[0]);
       });
       
@@ -303,22 +304,22 @@ export const continueScene = async (
       trigger = `Someone responds to ${lastMessage.speaker}'s comment: "${lastMessage.message}". Keep the conversation natural and build on what was said.`;
     } else if (newRound <= 6) {
       const currentParticipants = [...new Set(kitchenConversations.map(c => c.speaker))];
-      const availableNewChars = headquarters.rooms[0].assignedCharacters.filter(name => {
-        const char = availableCharacters.find(c => c.baseName === name);
+      const availableNewChars = allRoommates.filter(name => {
+        const char = availableCharacters.find(c => c.id === name);
         return char && !currentParticipants.includes(char.name.split(' ')[0]);
       });
       
       if (availableNewChars.length > 0) {
         // Random selection of new character
         participants = [availableNewChars[Math.floor(Math.random() * availableNewChars.length)]];
-        trigger = `${availableCharacters.find(c => c.baseName === participants[0])?.name.split(' ')[0]} walks into the kitchen and reacts to what's happening`;
+        trigger = `${availableCharacters.find(c => c.id === participants[0])?.name.split(' ')[0]} walks into the kitchen and reacts to what's happening`;
       } else {
         // Random selection from all characters
-        participants = headquarters.rooms[0].assignedCharacters.sort(() => Math.random() - 0.5).slice(0, 2);
+        participants = allRoommates.sort(() => Math.random() - 0.5).slice(0, 2);
         trigger = 'The conversation takes a new turn';
       }
     } else {
-      participants = PromptTemplateService.selectSceneParticipants(headquarters.rooms[0].assignedCharacters, 2);
+      participants = PromptTemplateService.selectSceneParticipants(allRoommates, 2);
       const chaosEvents = [
         'Coach suddenly walks in and interrupts',
         'The fire alarm starts going off',
@@ -331,7 +332,7 @@ export const continueScene = async (
     const newConversations = [];
     
     for (const charName of participants) {
-      const character = availableCharacters.find(c => c.baseName === charName);
+      const character = availableCharacters.find(c => c.id === charName);
       if (!character) continue;
       
       // Calculate sleeping arrangement for this character
@@ -343,7 +344,7 @@ export const continueScene = async (
       const context = {
         character,
         teammates: availableCharacters.filter(c => 
-          headquarters.rooms[0].assignedCharacters.includes(c.baseName) && c.baseName !== charName
+          allRoommates.includes(c.id) && c.id !== charName
         ),
         coachName: 'Coach',
         livingConditions: {

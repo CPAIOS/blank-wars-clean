@@ -1233,9 +1233,9 @@ export default function TeamHeadquarters() {
                     
                     return (
                       <div
-                        key={character.baseName}
+                        key={character.id}
                         className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-pointer hover:bg-purple-600/30 transition-colors"
-                        onClick={() => startConfessional(character.baseName, availableCharacters, confessionalTimeouts, setConfessionalData, headquarters)}
+                        onClick={() => startConfessional(character.id, availableCharacters, confessionalTimeouts, setConfessionalData, headquarters)}
                       >
                         <div className="text-2xl mb-1">{character.avatar}</div>
                         <div className="text-xs text-white text-center">
@@ -1254,15 +1254,15 @@ export default function TeamHeadquarters() {
                   <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-600">
                     <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center border-2 border-purple-400">
                       <span className="text-2xl">
-                        {availableCharacters.find(c => c.baseName === confessionalData.activeCharacter)?.avatar || '👤'}
+                        {availableCharacters.find(c => c.id === confessionalData.activeCharacter)?.avatar || '👤'}
                       </span>
                     </div>
                     <div>
                       <h3 className="text-white font-semibold text-lg">
-                        {availableCharacters.find(c => c.baseName === confessionalData.activeCharacter)?.name}
+                        {availableCharacters.find(c => c.id === confessionalData.activeCharacter)?.name}
                       </h3>
                       <p className="text-gray-400 text-sm">
-                        {availableCharacters.find(c => c.baseName === confessionalData.activeCharacter)?.archetype} • In Confessional
+                        {availableCharacters.find(c => c.id === confessionalData.activeCharacter)?.archetype} • In Confessional
                       </p>
                     </div>
                   </div>
@@ -1310,7 +1310,7 @@ export default function TeamHeadquarters() {
                       <div key={message.id} className="flex justify-start">
                         <div className="max-w-md p-3 rounded-lg bg-gray-600/80 text-white">
                           <div className="text-xs opacity-75 mb-1">
-                            {availableCharacters.find(c => c.baseName === confessionalData.activeCharacter)?.name.toUpperCase() || 'CHARACTER'}
+                            {availableCharacters.find(c => c.id === confessionalData.activeCharacter)?.name.toUpperCase() || 'CHARACTER'}
                           </div>
                           <div className="text-sm">{message.content}</div>
                         </div>
