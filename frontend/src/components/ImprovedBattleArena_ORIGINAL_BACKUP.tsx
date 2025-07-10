@@ -1085,13 +1085,13 @@ export default function ImprovedBattleArena() {
     // Try API if available, but don't crash if it fails
     try {
       const [cry1, cry2] = await Promise.all([
-        fetch('https://blank-wars-demo-3.onrender.com/api/battle-cry', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/battle-cry`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ character: currentPlayer1 }),
           signal: controller.signal
         }).catch(() => null),
-        fetch('https://blank-wars-demo-3.onrender.com/api/battle-cry', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/battle-cry`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ character: currentPlayer2 }),

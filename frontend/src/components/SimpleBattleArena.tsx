@@ -48,7 +48,7 @@ export default function SimpleBattleArena() {
 
   // Initialize socket connection using stable patterns from SimpleChatDemo
   useEffect(() => {
-    const socketUrl = 'https://blank-wars-demo-3.onrender.com';
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
     console.log('🔌 Connecting to battle server:', socketUrl);
     
     socketRef.current = io(socketUrl, {
