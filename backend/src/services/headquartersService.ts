@@ -148,8 +148,10 @@ export class HeadquartersService {
           hqId,
           userId,
           headquarters.tierId || 'spartan_apartment',
-          headquarters.currency?.coins || 50000,
-          headquarters.currency?.gems || 100,
+          // TODO: For non-demo uses, implement a robust currency system.
+          // Currently, coins and gems are directly on HeadquartersState.
+          headquarters.coins || 50000,
+          headquarters.gems || 100,
           JSON.stringify(headquarters.unlockedThemes || [])
         ]
       );
@@ -188,9 +190,9 @@ export class HeadquartersService {
               `${roomDbId}_${bed.id}`,
               roomDbId,
               bed.id,
-              bed.type,
-              bed.position?.x || 0,
-              bed.position?.y || 0,
+              bed.bedType,
+              bed.positionX || 0,
+              bed.positionY || 0,
               bed.capacity,
               bed.comfortBonus
             ]
@@ -243,9 +245,9 @@ export class HeadquartersService {
         bedDbId,
         roomDbId,
         bedData.id,
-        bedData.type,
-        bedData.position?.x || 0,
-        bedData.position?.y || 0,
+        bedData.bedType,
+        bedData.positionX || 0,
+        bedData.positionY || 0,
         bedData.capacity,
         bedData.comfortBonus
       ]

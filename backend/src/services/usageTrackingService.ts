@@ -288,7 +288,7 @@ export class UsageTrackingService {
       if (!user) return false;
 
       // Reset count if it's a new day
-      let newTrainingCount = user.daily_training_count;
+      let newTrainingCount = user.daily_training_count ?? 0;
       if (user.daily_training_reset_date !== today) {
         newTrainingCount = 0;
       }
