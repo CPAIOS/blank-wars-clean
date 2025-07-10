@@ -8,7 +8,7 @@ const router = Router();
 const authService = new AuthService();
 
 // Register new user - matches server.ts exactly
-router.post('/register', authLimiter, async (req: Request, res: Response) => {
+router.post('/register', async (req: Request, res: Response) => {
   try {
     const { username, email, password, claimToken } = req.body;
     
@@ -44,7 +44,7 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
 });
 
 // Login user - matches server.ts exactly
-router.post('/login', authLimiter, async (req: Request, res: Response) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     
@@ -80,7 +80,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response) => {
 });
 
 // Refresh tokens endpoint - matches server.ts exactly
-router.post('/refresh', authLimiter, async (req: Request, res: Response) => {
+router.post('/refresh', async (req: Request, res: Response) => {
   try {
     // SECURITY: Read refresh token from httpOnly cookie instead of request body
     const refreshToken = req.cookies?.refreshToken;
