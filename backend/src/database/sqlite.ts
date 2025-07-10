@@ -1354,7 +1354,7 @@ const seedCharacters = async (): Promise<void> => {
     {
       id: 'leviathan',
       name: 'Leviathan',
-      title: 'Sea's Wrath',
+      title: 'Sea\'s Wrath',
       archetype: 'beast',
       origin_era: 'N/A',
       rarity: 'legendary',
