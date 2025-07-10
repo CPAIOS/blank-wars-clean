@@ -1364,11 +1364,11 @@ const seedCharacters = async (): Promise<void> => {
       base_speed: 60,
       base_special: 80,
       personality_traits: JSON.stringify(['Fearsome', 'Unpredictable', 'Colossal', 'Ancient', 'Destructive']),
-      conversation_style: 'Silence, punctuated by the deep rumble of the ocean's fury and the splintering of ships',
+      conversation_style: 'Silence, punctuated by the deep rumble of the ocean\'s fury and the splintering of ships',
       backstory: 'A colossal, tentacled sea monster of Norse legend, said to dwell in the deepest trenches. It rises from the abyss to drag entire ships down to a watery grave.',
       conversation_topics: JSON.stringify(['Ruling the seas', 'Dragging things into the abyss', 'Enforcing the power of the deep']),
       avatar_emoji: '🐙',
-      abilities: JSON.stringify({})
+      abilities: JSON.stringify({"baseStats": {"strength": 100, "agility": 40, "intelligence": 50, "vitality": 100, "wisdom": 60, "charisma": 50}, "combatStats": {"maxHealth": 2500, "maxMana": 500, "magicAttack": 80, "magicDefense": 110, "criticalChance": 10, "criticalDamage": 180, "accuracy": 85, "evasion": 5}, "battleAI": {"aggression": 85, "defensiveness": 60, "riskTaking": 70, "adaptability": 40, "preferredStrategies": ["tentacle_crush", "whirlpool", "drag_under"]}, "battleQuotes": ["...", "The deep claims you!", "*The sound of a thousand waves crashing*", "Flee, little ships.", "You have woken the abyss.", "*A colossal shadow falls over the battlefield*"]})
     }
   ];
 
