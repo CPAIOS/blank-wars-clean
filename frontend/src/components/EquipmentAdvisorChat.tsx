@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Heart, Star, User, Crown, Sword, Shield, Zap } from 'lucide-react';
+import { Send, Heart, Star, User, Sword, Shield, Zap } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
-import { createDemoCharacterCollection, Character } from '../data/characters';
-import { createDemoPlayerTeam, TeamCharacter } from '../data/teamBattleSystem';
+import { characterAPI } from '../services/apiClient';
+import { Character } from '../data/characters';
 
 interface Message {
   id: number;
@@ -15,84 +15,115 @@ interface Message {
   bondIncrease?: boolean;
 }
 
-interface EnhancedCharacter extends TeamCharacter {
+interface EnhancedCharacter extends Character {
   baseName: string;
   displayBondLevel: number;
 }
 
-const createAvailableCharacters = (): EnhancedCharacter[] => {
-  const demoTeam = createDemoPlayerTeam();
-  return demoTeam.characters.map(char => {
-    const baseName = char.name.toLowerCase().replace(/[^a-z]/g, '_');
-    return {
-      ...char,
-      baseName,
-      displayBondLevel: Math.floor(char.psychStats.mentalHealth / 10)
-    };
-  });
+const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
+  try {
+    const response = await characterAPI.getUserCharacters();
+    const characters = response.characters || [];
+    
+    return characters.map((char: any) => {
+      const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+      return {
+        ...char,
+        baseName,
+        displayBondLevel: char.bond_level || Math.floor((char.base_health || 80) / 10),
+        // Map database fields to component expectations
+        baseStats: {
+          strength: char.base_attack || 70,
+          vitality: char.base_health || 80,
+          agility: char.base_speed || 70,
+          intelligence: char.base_special || 70,
+          wisdom: char.base_defense || 70,
+          charisma: char.bond_level || 5
+        },
+        combatStats: {
+          health: char.current_health || char.base_health || 80,
+          maxHealth: char.max_health || char.base_health || 80,
+          attack: char.base_attack || 70,
+          defense: char.base_defense || 70,
+          speed: char.base_speed || 70,
+          criticalChance: 15,
+          accuracy: 85
+        },
+        level: char.level || 1,
+        experience: char.experience || 0,
+        abilities: char.abilities || [],
+        archetype: char.archetype || 'warrior',
+        avatar: char.avatar || '⚔️',
+        name: char.name || 'Unknown Character',
+        personalityTraits: char.personality_traits || ['Determined'],
+        speakingStyle: char.speaking_style || 'Direct',
+        decisionMaking: char.decision_making || 'Analytical',
+        conflictResponse: char.conflict_response || 'Confrontational'
+      };
+    });
+  } catch (error) {
+    console.error('Failed to load user characters:', error);
+    return [];
+  }
 };
 
 // Generate character-specific equipment advice based on actual gear and stats
 const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
-  const { traditionalStats, abilities, archetype } = character;
+  const { baseStats, combatStats, archetype } = character;
   
   // Archetype-specific equipment recommendations
-  if (archetype === 'warrior' && traditionalStats.strength < 80) {
-    advice.push(`As a warrior, you need strength-boosting weapons - current strength is only ${traditionalStats.strength}`);
+  if (archetype === 'warrior' && baseStats?.strength && baseStats.strength < 80) {
+    advice.push(`As a warrior, you need strength-boosting weapons - current strength is only ${baseStats.strength}`);
   }
-  if (archetype === 'mage' && traditionalStats.intelligence < 80) {
-    advice.push(`Your intelligence (${traditionalStats.intelligence}) needs magical equipment enhancement`);
+  if (archetype === 'mage' && baseStats?.intelligence && baseStats.intelligence < 80) {
+    advice.push(`Your intelligence (${baseStats.intelligence}) needs magical equipment enhancement`);
   }
-  if (archetype === 'detective' && traditionalStats.dexterity < 80) {
-    advice.push(`Precision weapons would suit your detective skills better - dexterity is ${traditionalStats.dexterity}`);
+  if (archetype === 'assassin' && baseStats?.agility && baseStats.agility < 80) {
+    advice.push(`Precision weapons would suit your assassin skills better - agility is ${baseStats.agility}`);
   }
   
   // Defense recommendations based on vitality
-  if (traditionalStats.vitality < 70) {
-    advice.push(`Your vitality (${traditionalStats.vitality}) is low - consider heavier armor for protection`);
+  if (baseStats?.vitality && baseStats.vitality < 70) {
+    advice.push(`Your vitality (${baseStats.vitality}) is low - consider heavier armor for protection`);
   }
-  if (traditionalStats.vitality > 90) {
-    advice.push(`Your high vitality (${traditionalStats.vitality}) allows for lighter, faster armor`);
+  if (baseStats?.vitality && baseStats.vitality > 90) {
+    advice.push(`Your high vitality (${baseStats.vitality}) allows for lighter, faster armor`);
   }
   
   // Speed-based equipment advice
-  if (traditionalStats.speed < 60) {
-    advice.push(`Your speed (${traditionalStats.speed}) needs mobility-enhancing gear`);
+  if (combatStats?.speed && combatStats.speed < 60) {
+    advice.push(`Your speed (${combatStats.speed}) needs mobility-enhancing gear`);
   }
-  if (traditionalStats.speed > 85) {
-    advice.push(`Your excellent speed (${traditionalStats.speed}) would benefit from agility-focused equipment`);
+  if (combatStats?.speed && combatStats.speed > 85) {
+    advice.push(`Your excellent speed (${combatStats.speed}) would benefit from agility-focused equipment`);
   }
   
-  // Ability-specific equipment needs
-  const attackAbilities = abilities.filter(a => a.type === 'attack');
-  const defenseAbilities = abilities.filter(a => a.type === 'defense');
-  const specialAbilities = abilities.filter(a => a.type === 'special');
-  
-  if (attackAbilities.length > defenseAbilities.length) {
-    advice.push('Focus on offensive weapons to complement your attack-heavy ability set');
+  // Combat stat-based equipment needs
+  if (combatStats?.attack && combatStats.attack < 100) {
+    advice.push('Focus on offensive weapons to boost your attack power');
   }
-  if (defenseAbilities.length > attackAbilities.length) {
-    advice.push('Invest in defensive gear to synergize with your protective abilities');
+  if (combatStats?.defense && combatStats.defense < 80) {
+    advice.push('Invest in defensive gear to improve your survivability');
   }
-  if (specialAbilities.length > 2) {
-    advice.push('Consider spirit-boosting accessories to enhance your special abilities');
+  if (combatStats?.criticalChance && combatStats.criticalChance < 20) {
+    advice.push('Consider crit-boosting accessories to enhance your damage output');
   }
   
   // Mental state equipment considerations
-  if (character.psychStats.mentalHealth < 60) {
+  if (character.psychStats?.mentalHealth && character.psychStats.mentalHealth < 60) {
     advice.push('Choose reliable, simple equipment until your mental health improves');
   }
-  if (character.psychStats.ego > 80) {
+  if (character.psychStats?.ego && character.psychStats.ego > 80) {
     advice.push('Flashy, prestigious equipment would suit your high ego personality');
   }
   
   // Character-specific recommendations
-  if (character.personalityTraits.includes('Arrogant')) {
-    advice.push('Your arrogance demands equipment that makes a statement');
+  if (character.personality?.traits?.includes('Prideful')) {
+    advice.push('Your pride demands equipment that makes a statement');
   }
-  if (character.personalityTraits.includes('Practical')) {
-    advice.push('Focus on functional gear over flashy appearance');
+  if (character.personality?.traits?.includes('Honorable')) {
+    advice.push('Focus on traditional, well-crafted gear over flashy appearance');
   }
   
   // Fallback advice if nothing specific applies
@@ -114,8 +145,32 @@ export default function EquipmentAdvisorChat({
   selectedCharacterId, 
   onCharacterChange 
 }: EquipmentAdvisorChatProps) {
-  const [availableCharacters] = useState<EnhancedCharacter[]>(createAvailableCharacters());
+  const [availableCharacters, setAvailableCharacters] = useState<EnhancedCharacter[]>([]);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState(selectedCharacterId || 'achilles');
+  const [charactersLoading, setCharactersLoading] = useState(true);
+
+  // Load characters on component mount
+  useEffect(() => {
+    const loadCharacters = async () => {
+      setCharactersLoading(true);
+      const characters = await loadUserCharacters();
+      setAvailableCharacters(characters);
+      setCharactersLoading(false);
+    };
+    
+    loadCharacters();
+  }, []);
+
+  // Update internal state when prop changes and clear messages
+  useEffect(() => {
+    if (selectedCharacterId && selectedCharacterId !== globalSelectedCharacterId) {
+      setGlobalSelectedCharacterId(selectedCharacterId);
+      // Clear messages when character changes
+      setMessages([]);
+      setInputMessage('');
+      setIsTyping(false);
+    }
+  }, [selectedCharacterId, globalSelectedCharacterId]);
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -199,9 +254,16 @@ export default function EquipmentAdvisorChat({
 
     setMessages(prev => [...prev, playerMessage]);
     setInputMessage('');
-    setIsTyping(true);
 
     console.log('📤 EquipmentAdvisor message:', content);
+
+    // Only proceed if connected and socket available
+    if (!connected || !socketRef.current) {
+      console.log('❌ Cannot send message: not connected to backend');
+      return;
+    }
+
+    setIsTyping(true);
 
     // Generate dynamic equipment context
     const currentGearTier = Math.floor(Math.random() * 5) + 1; // Tier 1-5
@@ -215,60 +277,54 @@ export default function EquipmentAdvisorChat({
         name: selectedCharacter.name,
         archetype: selectedCharacter.archetype,
         level: selectedCharacter.level,
-        personality: {
-          traits: selectedCharacter.personalityTraits,
-          speechStyle: selectedCharacter.speakingStyle,
-          decisionMaking: selectedCharacter.decisionMaking,
-          conflictResponse: selectedCharacter.conflictResponse,
-          interests: ['equipment optimization', 'gear synergy', 'weapon mastery', 'armor efficiency']
+        personality: selectedCharacter.personality || {
+          traits: ['Equipment-focused'],
+          speechStyle: 'Direct',
+          motivations: ['Excellence', 'Efficiency'],
+          fears: ['Inadequate gear'],
+          relationships: []
         },
         // Real combat stats that affect equipment choices
-        traditionalStats: selectedCharacter.traditionalStats,
-        psychStats: selectedCharacter.psychStats,
-        // Current abilities that need equipment synergy
-        abilities: selectedCharacter.abilities.map(a => ({
-          name: a.name,
-          type: a.type,
-          power: a.power,
-          description: a.description
-        })),
+        baseStats: selectedCharacter.baseStats,
+        combatStats: selectedCharacter.combatStats,
         // Current status
-        currentHp: selectedCharacter.currentHp,
-        maxHp: selectedCharacter.maxHp,
+        currentHp: selectedCharacter.combatStats?.health || 100,
+        maxHp: selectedCharacter.combatStats?.maxHealth || 100,
+        injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Equipment-specific context
-        conversationContext: `This is an equipment advisory session. The user is the coach who makes equipment decisions for ${selectedCharacter.name}. The character should advocate for gear choices that fit their archetype (${selectedCharacter.archetype}), stats, and personality. Focus on their actual stats: Strength: ${selectedCharacter.traditionalStats.strength}, Vitality: ${selectedCharacter.traditionalStats.vitality}, Speed: ${selectedCharacter.traditionalStats.speed}, Dexterity: ${selectedCharacter.traditionalStats.dexterity}, Intelligence: ${selectedCharacter.traditionalStats.intelligence}. The character should suggest equipment that enhances their strengths or compensates for weaknesses.`,
+        conversationContext: `This is an equipment advisory session. The user is the coach who makes equipment decisions for ${selectedCharacter.name}. The character should advocate for gear choices that fit their archetype (${selectedCharacter.archetype}), stats, and personality. Focus on their actual stats: Base Stats - Strength: ${selectedCharacter.baseStats?.strength || 'Unknown'}, Vitality: ${selectedCharacter.baseStats?.vitality || 'Unknown'}, Agility: ${selectedCharacter.baseStats?.agility || 'Unknown'}, Intelligence: ${selectedCharacter.baseStats?.intelligence || 'Unknown'}. Combat Stats - Attack: ${selectedCharacter.combatStats?.attack || 'Unknown'}, Defense: ${selectedCharacter.combatStats?.defense || 'Unknown'}, Speed: ${selectedCharacter.combatStats?.speed || 'Unknown'}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance || 'Unknown'}%. The character should suggest equipment that enhances their strengths or compensates for weaknesses.`,
         equipmentData: {
           currentWeapon: {
             type: selectedCharacter.archetype === 'warrior' ? 'melee weapon' : 
                   selectedCharacter.archetype === 'mage' ? 'magical staff' : 
-                  selectedCharacter.archetype === 'detective' ? 'precision weapon' : 'versatile weapon',
+                  selectedCharacter.archetype === 'assassin' ? 'precision weapon' : 'versatile weapon',
             level: weaponLevel,
             tier: `Tier ${currentGearTier}`,
             statRequirements: selectedCharacter.archetype === 'warrior' ? 'High Strength' :
                              selectedCharacter.archetype === 'mage' ? 'High Intelligence' :
-                             selectedCharacter.archetype === 'detective' ? 'High Dexterity' : 'Balanced',
+                             selectedCharacter.archetype === 'assassin' ? 'High Agility' : 'Balanced',
             upgradeAvailable: Math.random() > 0.5
           },
           currentArmor: {
-            type: selectedCharacter.traditionalStats.vitality < 70 ? 'needs heavy armor' : 'can use light armor',
+            type: (selectedCharacter.baseStats?.vitality || 70) < 70 ? 'needs heavy armor' : 'can use light armor',
             level: armorLevel,
             tier: `Tier ${currentGearTier}`,
             defenseRating: 50 + (armorLevel * 5),
-            speedPenalty: selectedCharacter.traditionalStats.speed > 85 ? 'avoid heavy armor' : 'heavy armor acceptable'
+            speedPenalty: (selectedCharacter.combatStats?.speed || 70) > 85 ? 'avoid heavy armor' : 'heavy armor acceptable'
           },
           statBasedRecommendations: {
-            strengthBased: selectedCharacter.traditionalStats.strength > 80,
-            intelligenceBased: selectedCharacter.traditionalStats.intelligence > 80,
-            dexterityBased: selectedCharacter.traditionalStats.dexterity > 80,
-            speedBased: selectedCharacter.traditionalStats.speed > 80,
-            needsVitalityBoost: selectedCharacter.traditionalStats.vitality < 70
+            strengthBased: (selectedCharacter.baseStats?.strength || 0) > 80,
+            intelligenceBased: (selectedCharacter.baseStats?.intelligence || 0) > 80,
+            agilityBased: (selectedCharacter.baseStats?.agility || 0) > 80,
+            speedBased: (selectedCharacter.combatStats?.speed || 0) > 80,
+            needsVitalityBoost: (selectedCharacter.baseStats?.vitality || 100) < 70
           },
           personalityGearPrefs: {
-            egotistical: selectedCharacter.psychStats.ego > 80,
-            practical: selectedCharacter.personalityTraits.includes('Practical'),
-            traditional: selectedCharacter.personalityTraits.includes('Traditional'),
-            innovative: selectedCharacter.personalityTraits.includes('Innovative')
+            egotistical: (selectedCharacter.psychStats?.ego || 0) > 80,
+            honorable: selectedCharacter.personality?.traits?.includes('Honorable'),
+            prideful: selectedCharacter.personality?.traits?.includes('Prideful'),
+            practical: selectedCharacter.personality?.traits?.includes('Practical')
           }
         }
       },
@@ -278,27 +334,16 @@ export default function EquipmentAdvisorChat({
       }))
     });
 
-    setTimeout(() => {
-      if (isTyping) {
-        setIsTyping(false);
-      }
-    }, 15000);
   };
 
   const getEquipmentIntro = (character: EnhancedCharacter): string => {
     // Simple intro that lets the AI take over from there
-    return `*${character.name} looks over their current equipment*\n\nCoach, I've been thinking about my gear lately. What equipment advice do you have for me?`;
+    return `Coach, I've been thinking about my gear lately. What equipment advice do you have for me?`;
   };
 
   useEffect(() => {
     if (selectedCharacter) {
       setMessages([
-        {
-          id: Date.now(),
-          type: 'system',
-          content: `Equipment consultation started with ${selectedCharacter.name}`,
-          timestamp: new Date(),
-        },
         {
           id: Date.now() + 1,
           type: 'character',
@@ -306,6 +351,8 @@ export default function EquipmentAdvisorChat({
           timestamp: new Date(),
         }
       ]);
+      // Ensure typing state is cleared when character changes
+      setIsTyping(false);
     }
   }, [selectedCharacter?.id]);
 
@@ -322,69 +369,21 @@ export default function EquipmentAdvisorChat({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-4 h-[700px]">
-          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Characters
-            </h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {availableCharacters.map((character) => (
-                <button
-                  key={character.id}
-                  onClick={() => handleCharacterChange(character.baseName)}
-                  className={`w-full p-3 rounded-lg border transition-all text-left ${
-                    globalSelectedCharacterId === character.baseName
-                      ? 'border-blue-500 bg-blue-500/20 text-white'
-                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">{character.avatar}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{character.name}</div>
-                      <div className="text-xs text-gray-400 truncate">{character.title}</div>
-                      <div className="text-xs text-blue-400 capitalize">{character.archetype}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <Crown className="w-3 h-3" />
-                      Gear Expertise
-                    </div>
-                    <div className="bg-gray-600 rounded-full h-1 mt-1">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full h-1 transition-all"
-                        style={{ width: `${(character.displayBondLevel / 10) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="lg:col-span-3 flex flex-col">
+        <div className="h-[700px]">
+          <div className="flex flex-col h-full">
             <div className="bg-gradient-to-r from-blue-800/30 to-cyan-800/30 p-4 border-b border-blue-500/30">
               <div className="flex items-center gap-3">
                 <div className="text-3xl">{selectedCharacter.avatar}</div>
                 <div>
                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Crown className="w-5 h-5 text-blue-400" />
+                    <Sword className="w-5 h-5 text-blue-400" />
                     Equipment Advisor - {selectedCharacter.name}
                   </h3>
                   <p className="text-sm text-blue-200">Discuss gear choices, weapon preferences, and equipment strategy</p>
                 </div>
-                <div className="ml-auto flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <Sword className="w-4 h-4 text-blue-400" />
-                    <span className="text-gray-300">Weapon Expert</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Shield className="w-4 h-4 text-cyan-400" />
-                    <span className="text-gray-300">Armor Specialist</span>
-                  </div>
+                <div className="ml-auto flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm text-gray-300">Focus: Gear Optimization</span>
                 </div>
               </div>
             </div>

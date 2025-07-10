@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Heart, Star, User, BookOpen, Zap, Target, Brain } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
-import { createDemoCharacterCollection, Character } from '../data/characters';
-import { createDemoPlayerTeam, TeamCharacter } from '../data/teamBattleSystem';
+import { characterAPI } from '../services/apiClient';
+import { Character } from '../data/characters';
 
 interface Message {
   id: number;
@@ -15,67 +15,104 @@ interface Message {
   bondIncrease?: boolean;
 }
 
-interface EnhancedCharacter extends TeamCharacter {
+interface EnhancedCharacter extends Character {
   baseName: string;
   displayBondLevel: number;
 }
 
-const createAvailableCharacters = (): EnhancedCharacter[] => {
-  const demoTeam = createDemoPlayerTeam();
-  return demoTeam.characters.map(char => {
-    const baseName = char.name.toLowerCase().replace(/[^a-z]/g, '_');
-    return {
-      ...char,
-      baseName,
-      displayBondLevel: Math.floor(char.psychStats.mentalHealth / 10)
-    };
-  });
+const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
+  try {
+    const response = await characterAPI.getUserCharacters();
+    const characters = response.characters || [];
+    
+    return characters.map((char: any) => {
+      const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+      return {
+        ...char,
+        baseName,
+        displayBondLevel: char.bond_level || Math.floor((char.base_health || 80) / 10),
+        // Map database fields to component expectations
+        baseStats: {
+          strength: char.base_attack || 70,
+          vitality: char.base_health || 80,
+          agility: char.base_speed || 70,
+          intelligence: char.base_special || 70,
+          wisdom: char.base_defense || 70,
+          charisma: char.bond_level || 5
+        },
+        combatStats: {
+          health: char.current_health || char.base_health || 80,
+          maxHealth: char.max_health || char.base_health || 80,
+          attack: char.base_attack || 70,
+          defense: char.base_defense || 70,
+          speed: char.base_speed || 70,
+          criticalChance: 15,
+          accuracy: 85
+        },
+        level: char.level || 1,
+        experience: char.experience || 0,
+        abilities: char.abilities || [],
+        archetype: char.archetype || 'warrior',
+        avatar: char.avatar || '⚔️',
+        name: char.name || 'Unknown Character',
+        personalityTraits: char.personality_traits || ['Determined'],
+        speakingStyle: char.speaking_style || 'Direct',
+        decisionMaking: char.decision_making || 'Analytical',
+        conflictResponse: char.conflict_response || 'Confrontational'
+      };
+    });
+  } catch (error) {
+    console.error('Failed to load user characters:', error);
+    return [];
+  }
 };
 
 // Generate character-specific skill advice based on actual abilities and stats
 const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
-  const { traditionalStats, psychStats, abilities, archetype } = character;
+  const { baseStats, combatStats, abilities, archetype } = character;
   
   // Ability-specific skill development advice
-  const attackAbilities = abilities.filter(a => a.type === 'attack');
-  const defenseAbilities = abilities.filter(a => a.type === 'defense');
-  const specialAbilities = abilities.filter(a => a.type === 'special');
-  const supportAbilities = abilities.filter(a => a.type === 'support');
-  
-  if (attackAbilities.length > 2) {
-    advice.push(`Focus on mastering your ${attackAbilities.length} attack abilities for maximum damage`);
-  }
-  if (defenseAbilities.length > 1) {
-    advice.push(`Develop your defensive skill tree to complement your ${defenseAbilities.length} protection abilities`);
-  }
-  if (specialAbilities.length > 0) {
-    advice.push(`Your ${specialAbilities[0].name} special ability needs skill point investment`);
+  if (abilities && abilities.length > 0) {
+    const attackAbilities = abilities.filter(a => a.type === 'attack');
+    const defenseAbilities = abilities.filter(a => a.type === 'defense');
+    const specialAbilities = abilities.filter(a => a.type === 'special');
+    const supportAbilities = abilities.filter(a => a.type === 'support');
+    
+    if (attackAbilities.length > 2) {
+      advice.push(`Focus on mastering your ${attackAbilities.length} attack abilities for maximum damage`);
+    }
+    if (defenseAbilities.length > 1) {
+      advice.push(`Develop your defensive skill tree to complement your ${defenseAbilities.length} protection abilities`);
+    }
+    if (specialAbilities.length > 0) {
+      advice.push(`Your ${specialAbilities[0].name} special ability needs skill point investment`);
+    }
   }
   
   // Stat-based skill recommendations
-  if (traditionalStats.strength > 80) {
-    advice.push(`Your high strength (${traditionalStats.strength}) should guide physical skill development`);
+  if (baseStats?.strength && baseStats.strength > 80) {
+    advice.push(`Your high strength (${baseStats.strength}) should guide physical skill development`);
   }
-  if (traditionalStats.intelligence > 80) {
-    advice.push(`Your intelligence (${traditionalStats.intelligence}) opens advanced technique paths`);
+  if (baseStats?.intelligence && baseStats.intelligence > 80) {
+    advice.push(`Your intelligence (${baseStats.intelligence}) opens advanced technique paths`);
   }
-  if (traditionalStats.dexterity > 80) {
-    advice.push(`Your dexterity (${traditionalStats.dexterity}) allows precision skill specialization`);
+  if (baseStats?.agility && baseStats.agility > 80) {
+    advice.push(`Your agility (${baseStats.agility}) allows precision skill specialization`);
   }
-  if (traditionalStats.speed > 80) {
-    advice.push(`Your speed (${traditionalStats.speed}) enables agility-based skill trees`);
+  if (combatStats?.speed && combatStats.speed > 80) {
+    advice.push(`Your speed (${combatStats.speed}) enables agility-based skill trees`);
   }
   
-  // Psychology-based training approach
-  if (psychStats.training > 80) {
-    advice.push(`Your excellent training discipline (${psychStats.training}) allows complex skill combinations`);
+  // Combat stat-based training approach
+  if (combatStats?.accuracy && combatStats.accuracy > 80) {
+    advice.push(`Your excellent accuracy (${combatStats.accuracy}%) allows complex skill combinations`);
   }
-  if (psychStats.training < 50) {
-    advice.push(`Your training discipline (${psychStats.training}) needs work before advanced skills`);
+  if (combatStats?.accuracy && combatStats.accuracy < 50) {
+    advice.push(`Your accuracy (${combatStats.accuracy}%) needs work before advanced skills`);
   }
-  if (psychStats.mentalHealth < 60) {
-    advice.push(`Focus on basic skills until your mental health (${psychStats.mentalHealth}) improves`);
+  if (baseStats?.vitality && baseStats.vitality < 60) {
+    advice.push(`Focus on basic skills until your vitality (${baseStats.vitality}) improves`);
   }
   
   // Archetype-specific skill paths
@@ -90,13 +127,13 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   }
   
   // Character-specific approaches
-  if (character.personalityTraits.includes('Analytical')) {
+  if (character.personality?.traits?.includes('Analytical')) {
     advice.push('Your analytical nature suits systematic skill progression');
   }
-  if (character.personalityTraits.includes('Impatient')) {
+  if (character.personality?.traits?.includes('Impatient')) {
     advice.push('Focus on quick-learning skills that show immediate results');
   }
-  if (character.personalityTraits.includes('Perfectionist')) {
+  if (character.personality?.traits?.includes('Perfectionist')) {
     advice.push('Master each skill completely before moving to the next');
   }
   
@@ -119,8 +156,31 @@ export default function SkillDevelopmentChat({
   selectedCharacterId, 
   onCharacterChange 
 }: SkillDevelopmentChatProps) {
-  const [availableCharacters] = useState<EnhancedCharacter[]>(createAvailableCharacters());
+  const [availableCharacters, setAvailableCharacters] = useState<EnhancedCharacter[]>([]);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState(selectedCharacterId || 'achilles');
+  const [charactersLoading, setCharactersLoading] = useState(true);
+
+  // Load characters on component mount
+  useEffect(() => {
+    const loadCharacters = async () => {
+      setCharactersLoading(true);
+      const characters = await loadUserCharacters();
+      setAvailableCharacters(characters);
+      setCharactersLoading(false);
+    };
+    
+    loadCharacters();
+  }, []);
+
+  // Update internal state when prop changes and clear messages
+  useEffect(() => {
+    if (selectedCharacterId && selectedCharacterId !== globalSelectedCharacterId) {
+      setGlobalSelectedCharacterId(selectedCharacterId);
+      setMessages([]);
+      setInputMessage('');
+      setIsTyping(false);
+    }
+  }, [selectedCharacterId, globalSelectedCharacterId]);
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -223,8 +283,8 @@ export default function SkillDevelopmentChat({
           interests: ['skill mastery', 'ability development', 'training optimization', 'technique improvement']
         },
         // Real combat stats that influence skill development
-        traditionalStats: selectedCharacter.traditionalStats,
-        psychStats: selectedCharacter.psychStats,
+        baseStats: selectedCharacter.baseStats,
+        combatStats: selectedCharacter.combatStats,
         // Current abilities and their skill requirements
         abilities: selectedCharacter.abilities.map(a => ({
           name: a.name,
@@ -239,7 +299,25 @@ export default function SkillDevelopmentChat({
         experience: selectedCharacter.experience,
         bondLevel: selectedCharacter.displayBondLevel,
         // Skill-specific context
-        conversationContext: `This is a skill development session. The user is the coach who makes skill point allocation decisions for ${selectedCharacter.name}. The character should advocate for skill development paths that fit their archetype (${selectedCharacter.archetype}), abilities, and personality. Focus on their actual stats: Training: ${selectedCharacter.psychStats.training}, Intelligence: ${selectedCharacter.traditionalStats.intelligence}, their ${selectedCharacter.abilities.length} current abilities, and how different skill trees would benefit their fighting style.`,
+        conversationContext: `This is a skill development session. The user is the coach who makes skill point allocation decisions for ${selectedCharacter.name}. 
+
+CURRENT CHARACTER STATUS:
+- Base Stats: Strength: ${selectedCharacter.baseStats?.strength}, Vitality: ${selectedCharacter.baseStats?.vitality}, Agility: ${selectedCharacter.baseStats?.agility}, Intelligence: ${selectedCharacter.baseStats?.intelligence}, Wisdom: ${selectedCharacter.baseStats?.wisdom}, Charisma: ${selectedCharacter.baseStats?.charisma}
+- Combat Stats: Health: ${selectedCharacter.combatStats?.health}/${selectedCharacter.combatStats?.maxHealth}, Attack: ${selectedCharacter.combatStats?.attack}, Defense: ${selectedCharacter.combatStats?.defense}, Speed: ${selectedCharacter.combatStats?.speed}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance}%, Accuracy: ${selectedCharacter.combatStats?.accuracy}%
+- Level: ${selectedCharacter.level}, Archetype: ${selectedCharacter.archetype}
+- Current Abilities: ${selectedCharacter.abilities?.length || 0} learned abilities
+- Available Training Points: ${Math.floor(selectedCharacter.level * 1.5)}
+
+GAME MECHANICS KNOWLEDGE:
+- Base Stats affect combat: Strength (physical damage, carry capacity), Agility (speed, dodge, crit), Intelligence (mana, spell power), Vitality (health, stamina), Wisdom (mana regen, XP gain), Charisma (social abilities, leadership)
+- Skill Categories: Core Skills (available to all), Archetype Skills (class-specific), Signature Skills (unique abilities)
+- Training Cost: Each skill requires training sessions based on complexity and character level
+- Skill Prerequisites: Higher skills require previous skills and minimum levels
+- Combat Actions: Attack, defend, special abilities, dodge, critical hits, healing, buffs/debuffs
+- Battle Performance affects skill progression: successful actions, critical hits, strategic decisions
+- Archetype Synergy: ${selectedCharacter.archetype} characters excel in specific skill trees that match their nature
+
+COACHING ROLE: You should advocate for skill development paths that optimize this character's combat effectiveness, consider their personality traits, and suggest training priorities based on their current weaknesses and strengths. Reference specific game mechanics when explaining why certain skills would benefit them.`,
         skillData: {
           availableSkillPoints: Math.floor(selectedCharacter.level * 1.5),
           currentAbilities: selectedCharacter.abilities.map(a => ({
@@ -248,17 +326,18 @@ export default function SkillDevelopmentChat({
             requiresSkillInvestment: a.power < 50
           })),
           statFocusRecommendations: {
-            strengthBased: selectedCharacter.traditionalStats.strength > 75,
-            intelligenceBased: selectedCharacter.traditionalStats.intelligence > 75,
-            dexterityBased: selectedCharacter.traditionalStats.dexterity > 75,
-            speedBased: selectedCharacter.traditionalStats.speed > 75
+            strengthBased: (selectedCharacter.baseStats?.strength || 0) > 75,
+            intelligenceBased: (selectedCharacter.baseStats?.intelligence || 0) > 75,
+            agilityBased: (selectedCharacter.baseStats?.agility || 0) > 75,
+            speedBased: (selectedCharacter.combatStats?.speed || 0) > 90,
+            vitalityBased: (selectedCharacter.baseStats?.vitality || 0) > 75
           },
           learningCapacity: {
-            trainingDiscipline: selectedCharacter.psychStats.training,
-            mentalHealth: selectedCharacter.psychStats.mentalHealth,
-            canLearnAdvanced: selectedCharacter.psychStats.training > 70 && selectedCharacter.psychStats.mentalHealth > 60,
-            preferredLearningStyle: selectedCharacter.personalityTraits.includes('Analytical') ? 'systematic' :
-                                   selectedCharacter.personalityTraits.includes('Impatient') ? 'quick_results' : 'balanced'
+            currentLevel: selectedCharacter.level,
+            experience: selectedCharacter.experience || 0,
+            canLearnAdvanced: selectedCharacter.level > 10 && (selectedCharacter.baseStats?.intelligence || 0) > 70,
+            preferredLearningStyle: selectedCharacter.personality?.traits?.includes('Analytical') ? 'systematic' :
+                                   selectedCharacter.personality?.traits?.includes('Impatient') ? 'quick_results' : 'balanced'
           },
           archetypeSkillTrees: {
             primary: selectedCharacter.archetype === 'warrior' ? 'combat_mastery' :
@@ -284,18 +363,12 @@ export default function SkillDevelopmentChat({
 
   const getSkillIntro = (character: EnhancedCharacter): string => {
     // Simple intro that lets the AI take over from there
-    return `*${character.name} reviews their current abilities and skill progress*\n\nCoach, I have ${character.abilities.length} abilities and ${Math.floor(character.level * 1.5)} skill points available. What skill development do you recommend for my ${character.archetype} build?`;
+    return `Coach, I have ${character.abilities.length} abilities and ${Math.floor(character.level * 1.5)} skill points available. What skill development do you recommend for my ${character.archetype} build?`;
   };
 
   useEffect(() => {
     if (selectedCharacter) {
       setMessages([
-        {
-          id: Date.now(),
-          type: 'system',
-          content: `Skill development session started with ${selectedCharacter.name}`,
-          timestamp: new Date(),
-        },
         {
           id: Date.now() + 1,
           type: 'character',
@@ -303,6 +376,8 @@ export default function SkillDevelopmentChat({
           timestamp: new Date(),
         }
       ]);
+      // Ensure typing state is cleared when character changes
+      setIsTyping(false);
     }
   }, [selectedCharacter?.id]);
 
@@ -319,50 +394,8 @@ export default function SkillDevelopmentChat({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-4 h-[700px]">
-          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Characters
-            </h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {availableCharacters.map((character) => (
-                <button
-                  key={character.id}
-                  onClick={() => handleCharacterChange(character.baseName)}
-                  className={`w-full p-3 rounded-lg border transition-all text-left ${
-                    globalSelectedCharacterId === character.baseName
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
-                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">{character.avatar}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{character.name}</div>
-                      <div className="text-xs text-gray-400 truncate">{character.title}</div>
-                      <div className="text-xs text-purple-400 capitalize">{character.archetype}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <BookOpen className="w-3 h-3" />
-                      Skill Mastery
-                    </div>
-                    <div className="bg-gray-600 rounded-full h-1 mt-1">
-                      <div 
-                        className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full h-1 transition-all"
-                        style={{ width: `${(character.displayBondLevel / 10) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="lg:col-span-3 flex flex-col">
+        <div className="h-[700px]">
+          <div className="flex flex-col h-full">
             <div className="bg-gradient-to-r from-purple-800/30 to-indigo-800/30 p-4 border-b border-purple-500/30">
               <div className="flex items-center gap-3">
                 <div className="text-3xl">{selectedCharacter.avatar}</div>

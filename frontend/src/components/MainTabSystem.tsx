@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Dumbbell, Sword, Home, ShoppingBag,
@@ -32,6 +32,7 @@ import TrainingFacilitySelector from './TrainingFacilitySelector';
 import RealEstateAgentChat from './RealEstateAgentChat';
 import SkillTree from './SkillTree';
 import AICoach from './AICoach';
+import PersonalTrainerChat from './PersonalTrainerChat';
 import CharacterDatabase from './CharacterDatabase';
 // CoachingInterface is lazy-loaded below
 import TeamManagementCoaching from './TeamManagementCoaching';
@@ -39,6 +40,7 @@ import IndividualSessionsWrapper from './IndividualSessionsWrapper';
 import TeamBuildingWrapper from './TeamBuildingWrapper';
 import GroupActivitiesWrapper from './GroupActivitiesWrapper';
 import { createDemoCharacterCollection } from '@/data/characters';
+import { characterAPI } from '@/services/apiClient';
 
 // Lazy load non-critical components
 const ImprovedBattleArena = lazy(() => import('./ImprovedBattleArena'));
@@ -278,6 +280,19 @@ export default function MainTabSystem() {
               </h2>
             </div>
 
+            {/* Performance Coaching Chat */}
+            <PerformanceCoachingChat 
+              selectedCharacterId={globalSelectedCharacterId}
+              onCharacterChange={setGlobalSelectedCharacterId}
+            />
+            
+            <ProgressionDashboard
+              character={selectedCharacter}
+              onAllocateSkillPoint={(skill) => console.log(`${selectedCharacter.name} allocated skill point to ${skill}`)}
+              onAllocateStatPoint={(stat) => console.log(`${selectedCharacter.name} allocated stat point to ${stat}`)}
+              onViewDetails={(section) => console.log(`${selectedCharacter.name} viewing details for ${section}`)}
+            />
+            
             {/* Training Enhancement Banner */}
             <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-xl p-4 border border-orange-500/30">
               <div className="flex items-center gap-2 mb-2">
@@ -306,13 +321,6 @@ export default function MainTabSystem() {
                 Training Points Available: {selectedCharacter.trainingPoints || (selectedCharacter.level * 2)} • Training Level: {selectedCharacter.trainingLevel || 75}%
               </div>
             </div>
-            
-            <ProgressionDashboard
-              character={selectedCharacter}
-              onAllocateSkillPoint={(skill) => console.log(`${selectedCharacter.name} allocated skill point to ${skill}`)}
-              onAllocateStatPoint={(stat) => console.log(`${selectedCharacter.name} allocated stat point to ${stat}`)}
-              onViewDetails={(section) => console.log(`${selectedCharacter.name} viewing details for ${section}`)}
-            />
           </div>
         </div>
     </div>
@@ -419,8 +427,24 @@ export default function MainTabSystem() {
               </h2>
             </div>
 
-            {/* Training Equipment Synergy Display */}
-            <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl p-4 border border-blue-500/30">
+            {/* Equipment Advisor Chat */}
+            <EquipmentAdvisorChat 
+              selectedCharacterId={globalSelectedCharacterId}
+              onCharacterChange={setGlobalSelectedCharacterId}
+            />
+            
+            <EquipmentManager
+            characterName={selectedCharacter.name}
+            characterLevel={selectedCharacter.level}
+            characterArchetype={selectedCharacter.archetype}
+            equippedItems={characterEquipment[globalSelectedCharacterId] || {}}
+            inventory={selectedCharacter.inventory || []}
+            onEquip={handleEquip}
+            onUnequip={handleUnequip}
+          />
+          
+          {/* Training Equipment Synergy Display */}
+          <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl p-4 border border-blue-500/30">
             <div className="flex items-center gap-2 mb-3">
               <Crown className="w-5 h-5 text-blue-400" />
               <span className="text-blue-300 font-semibold">Training-Enhanced Equipment Effectiveness for {selectedCharacter.name}</span>
@@ -446,16 +470,6 @@ export default function MainTabSystem() {
               💡 {selectedCharacter.name}'s equipment stats are enhanced by training bonuses
             </div>
           </div>
-          
-          <EquipmentManager
-            characterName={selectedCharacter.name}
-            characterLevel={selectedCharacter.level}
-            characterArchetype={selectedCharacter.archetype}
-            equippedItems={characterEquipment[globalSelectedCharacterId] || {}}
-            inventory={selectedCharacter.inventory || []}
-            onEquip={handleEquip}
-            onUnequip={handleUnequip}
-          />
           </div>
         </div>
     </div>
@@ -532,42 +546,11 @@ export default function MainTabSystem() {
               </h2>
             </div>
 
-            {/* Training Points & Skill Learning */}
-            <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-4 border border-purple-500/30">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-5 h-5 text-purple-400" />
-                <span className="text-purple-300 font-semibold">Training-Unlocked Abilities for {selectedCharacter.name}</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="w-4 h-4 text-yellow-400" />
-                    <span className="text-white font-semibold">Training Points</span>
-                  </div>
-                  <div className="text-2xl font-bold text-yellow-400">{currentTrainingPoints}</div>
-                  <div className="text-gray-400">Available for ability upgrades</div>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-4 h-4 text-green-400" />
-                    <span className="text-white font-semibold">Special Bonus</span>
-                  </div>
-                  <div className="text-lg font-bold text-green-400">+{selectedCharacter.trainingBonuses.special}</div>
-                  <div className="text-gray-400">Enhanced ability effectiveness</div>
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-                <div className="bg-green-900/30 rounded p-2 text-green-200">
-                  ✨ Combat Training Unlocked: Enhanced weapon abilities
-                </div>
-                <div className="bg-blue-900/30 rounded p-2 text-blue-200">
-                  🎯 Precision Training: +15% critical chance on abilities
-                </div>
-                <div className="bg-purple-900/30 rounded p-2 text-purple-200">
-                  🔥 Advanced Techniques: Signature abilities available
-                </div>
-              </div>
-            </div>
+            {/* Skill Development Chat */}
+            <SkillDevelopmentChat
+              selectedCharacterId={globalSelectedCharacterId}
+              onCharacterChange={setGlobalSelectedCharacterId}
+            />
             
             <AbilityManager
               characterId={selectedCharacter.id}
@@ -597,11 +580,25 @@ export default function MainTabSystem() {
               </div>
               <SkillTree
                 characterId={selectedCharacter.id}
+                characterName={selectedCharacter.name}
                 characterLevel={selectedCharacter.level}
                 characterArchetype={selectedCharacter.archetype}
-                availablePoints={selectedCharacter.trainingPoints || (selectedCharacter.level * 2)}
-                onSkillUnlock={(skillId) => console.log(`${selectedCharacter.name} unlocked skill: ${skillId}`)}
+                learnedSkills={selectedCharacter.learnedSkills || []}
+                trainingPoints={selectedCharacter.trainingPoints || (selectedCharacter.level * 2)}
+                onLearnSkill={(skillId) => console.log(`${selectedCharacter.name} learned skill: ${skillId}`)}
               />
+            </div>
+
+            {/* Training Points Display */}
+            <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-4 border border-purple-500/30">
+              <div className="flex items-center gap-2 mb-3">
+                <Star className="w-5 h-5 text-yellow-400" />
+                <span className="text-purple-300 font-semibold">Training Points for {selectedCharacter.name}</span>
+              </div>
+              <div className="bg-gray-800/50 rounded-lg p-3">
+                <div className="text-2xl font-bold text-yellow-400">{currentTrainingPoints}</div>
+                <div className="text-gray-400">Available for ability upgrades</div>
+              </div>
             </div>
           </div>
         </div>
@@ -609,56 +606,116 @@ export default function MainTabSystem() {
     );
   };
 
-  const PersonalTrainerWrapper = () => (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-green-900/30 to-blue-900/30 rounded-xl p-6 border border-green-500/30">
-        <div className="flex items-center gap-2 mb-4">
-          <Brain className="w-6 h-6 text-green-400" />
-          <span className="text-green-300 font-semibold text-xl">Personal Trainer</span>
-        </div>
-        <p className="text-green-100 mb-4">
-          Your dedicated AI trainer provides personalized recommendations based on your characters' progress and training goals.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div className="bg-green-900/40 rounded-lg p-3">
-            <div className="text-green-300 font-semibold">🎯 Training Recommendations</div>
-            <div className="text-green-100">Optimized training plans for each character</div>
-          </div>
-          <div className="bg-blue-900/40 rounded-lg p-3">
-            <div className="text-blue-300 font-semibold">📊 Progress Analysis</div>
-            <div className="text-blue-100">Track efficiency and suggest improvements</div>
-          </div>
-        </div>
-      </div>
+  const PersonalTrainerWrapper = () => {
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [charactersLoading, setCharactersLoading] = useState(true);
+    
+    // Load characters on component mount
+    useEffect(() => {
+      const loadCharacters = async () => {
+        setCharactersLoading(true);
+        try {
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const mappedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+            return {
+              ...char,
+              baseName,
+              displayBondLevel: char.bond_level || Math.floor((char.base_health || 80) / 10),
+              // Map database fields to component expectations
+              baseStats: {
+                strength: char.base_attack || 70,
+                vitality: char.base_health || 80,
+                agility: char.base_speed || 70,
+                intelligence: char.base_special || 70,
+                wisdom: char.base_defense || 70,
+                charisma: char.bond_level || 5
+              },
+              combatStats: {
+                health: char.current_health || char.base_health || 80,
+                maxHealth: char.max_health || char.base_health || 80,
+                attack: char.base_attack || 70,
+                defense: char.base_defense || 70,
+                speed: char.base_speed || 70,
+                criticalChance: 15,
+                accuracy: 85
+              },
+              level: char.level || 1,
+              experience: char.experience || 0,
+              abilities: char.abilities || [],
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar_emoji || char.avatar || '⚔️',
+              name: char.name || 'Unknown Character'
+            };
+          });
+          
+          setAvailableCharacters(mappedCharacters);
+        } catch (error) {
+          console.error('Failed to load characters:', error);
+        } finally {
+          setCharactersLoading(false);
+        }
+      };
       
-      <div className="bg-gray-800/50 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Today's Training Recommendations</h3>
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg">
-            <div className="text-2xl">⚔️</div>
-            <div>
-              <div className="text-white font-semibold">Achilles - Strength Focus</div>
-              <div className="text-gray-400 text-sm">Recommended: Elite Combat Training (60% efficiency boost)</div>
+      loadCharacters();
+    }, []);
+    
+    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-6">
+          {/* Character Sidebar */}
+          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Characters
+            </h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {charactersLoading ? (
+                <div className="text-center text-gray-400 py-4">Loading characters...</div>
+              ) : (
+                availableCharacters.map((character) => (
+                  <button
+                    key={character.id}
+                    onClick={() => {
+                      console.log('PersonalTrainer - Clicking character:', character.name, character.baseName);
+                      setGlobalSelectedCharacterId(character.baseName);
+                    }}
+                    className={`w-full p-3 rounded-lg border transition-all text-left ${
+                      globalSelectedCharacterId === character.baseName
+                        ? 'border-green-500 bg-green-500/20 text-white'
+                        : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">{character.avatar}</div>
+                      <div>
+                        <div className="font-semibold">{character.name}</div>
+                        <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg">
-            <div className="text-2xl">🔮</div>
-            <div>
-              <div className="text-white font-semibold">Character Recovery</div>
-              <div className="text-gray-400 text-sm">2 characters need energy recovery before next session</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg">
-            <div className="text-2xl">⭐</div>
-            <div>
-              <div className="text-white font-semibold">Skill Unlock Available</div>
-              <div className="text-gray-400 text-sm">You have 12 training points ready to spend</div>
-            </div>
+          
+          {/* Personal Trainer Chat */}
+          <div className="flex-1">
+            {selectedCharacter && (
+              <PersonalTrainerChat 
+                selectedCharacterId={globalSelectedCharacterId}
+                onCharacterChange={setGlobalSelectedCharacterId}
+              />
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const ClubhouseWrapper = () => {
     try {
@@ -937,16 +994,121 @@ export default function MainTabSystem() {
   };
 
   const TrainingGroundsWrapper = () => {
-    const availableCharacters = createDemoCharacterCollection();
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [charactersLoading, setCharactersLoading] = useState(true);
+    
+    // Load characters on component mount
+    useEffect(() => {
+      const loadCharacters = async () => {
+        setCharactersLoading(true);
+        try {
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const mappedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+            return {
+              ...char,
+              baseName,
+              displayBondLevel: char.bond_level || Math.floor((char.base_health || 80) / 10),
+              // Map database fields to component expectations
+              baseStats: {
+                strength: char.base_attack || 70,
+                vitality: char.base_health || 80,
+                agility: char.base_speed || 70,
+                intelligence: char.base_special || 70,
+                wisdom: char.base_defense || 70,
+                charisma: char.bond_level || 5
+              },
+              combatStats: {
+                health: char.current_health || char.base_health || 80,
+                maxHealth: char.max_health || char.base_health || 80,
+                attack: char.base_attack || 70,
+                defense: char.base_defense || 70,
+                speed: char.base_speed || 70,
+                criticalChance: 15,
+                accuracy: 85
+              },
+              level: char.level || 1,
+              experience: char.experience || 0,
+              abilities: char.abilities || [],
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar_emoji || char.avatar || '⚔️',
+              name: char.name || 'Unknown Character',
+              trainingBonuses: {
+                strength: Math.floor((char.level || 1) / 3),
+                defense: Math.floor((char.level || 1) / 4),
+                speed: Math.floor((char.level || 1) / 3.5),
+                special: Math.floor((char.level || 1) / 2.5)
+              }
+            };
+          });
+          
+          setAvailableCharacters(mappedCharacters);
+        } catch (error) {
+          console.error('Failed to load characters:', error);
+        } finally {
+          setCharactersLoading(false);
+        }
+      };
+      
+      loadCharacters();
+    }, []);
+    
     const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     
     return (
-      <TrainingGrounds 
-        globalSelectedCharacterId={globalSelectedCharacterId}
-        setGlobalSelectedCharacterId={setGlobalSelectedCharacterId}
-        selectedCharacter={selectedCharacter}
-        availableCharacters={availableCharacters}
-      />
+      <div className="space-y-6">
+        <div className="flex gap-6">
+          {/* Character Sidebar */}
+          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Characters
+            </h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {charactersLoading ? (
+                <div className="text-center text-gray-400 py-4">Loading characters...</div>
+              ) : (
+                availableCharacters.map((character) => (
+                  <button
+                    key={character.id}
+                    onClick={() => {
+                      console.log('Training - Clicking character:', character.name, character.baseName);
+                      setGlobalSelectedCharacterId(character.baseName);
+                    }}
+                    className={`w-full p-3 rounded-lg border transition-all text-left ${
+                      globalSelectedCharacterId === character.baseName
+                        ? 'border-green-500 bg-green-500/20 text-white'
+                        : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">{character.avatar}</div>
+                      <div>
+                        <div className="font-semibold">{character.name}</div>
+                        <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+          
+          {/* Training Interface */}
+          <div className="flex-1">
+            {selectedCharacter && (
+              <TrainingGrounds 
+                globalSelectedCharacterId={globalSelectedCharacterId}
+                setGlobalSelectedCharacterId={setGlobalSelectedCharacterId}
+                selectedCharacter={selectedCharacter}
+                availableCharacters={availableCharacters}
+              />
+            )}
+          </div>
+        </div>
+      </div>
     );
   };
 

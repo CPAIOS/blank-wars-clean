@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Heart, Star, User, TrendingUp, Activity, Target } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
-import { createDemoCharacterCollection, Character } from '../data/characters';
-import { createDemoPlayerTeam, TeamCharacter } from '../data/teamBattleSystem';
+import { characterAPI } from '../services/apiClient';
+import { Character } from '../data/characters';
 
 interface Message {
   id: number;
@@ -15,73 +15,98 @@ interface Message {
   bondIncrease?: boolean;
 }
 
-interface EnhancedCharacter extends TeamCharacter {
+interface EnhancedCharacter extends Character {
   baseName: string;
   displayBondLevel: number;
 }
 
-const createAvailableCharacters = (): EnhancedCharacter[] => {
-  const demoTeam = createDemoPlayerTeam();
-  return demoTeam.characters.map(char => {
-    const baseName = char.name.toLowerCase().replace(/[^a-z]/g, '_');
-    return {
-      ...char,
-      baseName,
-      displayBondLevel: Math.floor(char.psychStats.mentalHealth / 10) // Use mental health as bond indicator
-    };
-  });
+const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
+  try {
+    const response = await characterAPI.getUserCharacters();
+    const characters = response.characters || [];
+    
+    return characters.map((char: any) => {
+      const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+      return {
+        ...char,
+        baseName,
+        displayBondLevel: char.bond_level || Math.floor((char.base_health || 80) / 10),
+        // Map database fields to component expectations
+        baseStats: {
+          strength: char.base_attack || 70,
+          vitality: char.base_health || 80,
+          agility: char.base_speed || 70,
+          intelligence: char.base_special || 70,
+          wisdom: char.base_defense || 70,
+          charisma: char.bond_level || 5
+        },
+        combatStats: {
+          health: char.current_health || char.base_health || 80,
+          maxHealth: char.max_health || char.base_health || 80,
+          attack: char.base_attack || 70,
+          defense: char.base_defense || 70,
+          speed: char.base_speed || 70,
+          criticalChance: 15,
+          accuracy: 85
+        },
+        level: char.level || 1,
+        experience: char.experience || 0,
+        abilities: char.abilities || [],
+        archetype: char.archetype || 'warrior',
+        avatar: char.avatar || '⚔️',
+        name: char.name || 'Unknown Character',
+        personalityTraits: char.personality_traits || ['Determined'],
+        speakingStyle: char.speaking_style || 'Direct',
+        decisionMaking: char.decision_making || 'Analytical',
+        conflictResponse: char.conflict_response || 'Confrontational'
+      };
+    });
+  } catch (error) {
+    console.error('Failed to load user characters:', error);
+    return [];
+  }
 };
 
 // Generate character-specific coaching advice based on actual stats
 const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
-  const { traditionalStats, psychStats, abilities } = character;
+  const { baseStats, combatStats, level } = character;
   
-  // Psychological stat issues
-  if (psychStats.ego > 80) {
-    advice.push(`Your ego (${psychStats.ego}) is affecting team chemistry - let's work on humility`);
+  // Base stat weaknesses (below 70)
+  if (baseStats?.strength && baseStats.strength < 70) {
+    advice.push(`Your strength (${baseStats.strength}) needs training for better damage output`);
   }
-  if (psychStats.teamPlayer < 50) {
-    advice.push(`Your teamwork (${psychStats.teamPlayer}) needs improvement for better coordination`);
+  if (baseStats?.vitality && baseStats.vitality < 70) {
+    advice.push(`Your vitality (${baseStats.vitality}) needs work - you're taking too much damage`);
   }
-  if (psychStats.mentalHealth < 60) {
-    advice.push(`Your mental health (${psychStats.mentalHealth}) is impacting ability reliability`);
+  if (baseStats?.agility && baseStats.agility < 70) {
+    advice.push(`Your agility (${baseStats.agility}) is limiting your turn order advantage`);
   }
-  if (psychStats.communication < 60) {
-    advice.push(`Your communication (${psychStats.communication}) is limiting team synergy`);
-  }
-  
-  // Traditional stat weaknesses (below 70)
-  if (traditionalStats.strength < 70) {
-    advice.push(`Your strength (${traditionalStats.strength}) needs training for better damage output`);
-  }
-  if (traditionalStats.vitality < 70) {
-    advice.push(`Your vitality (${traditionalStats.vitality}) needs work - you're taking too much damage`);
-  }
-  if (traditionalStats.speed < 70) {
-    advice.push(`Your speed (${traditionalStats.speed}) is limiting your turn order advantage`);
-  }
-  if (traditionalStats.dexterity < 70) {
-    advice.push(`Your dexterity (${traditionalStats.dexterity}) is affecting accuracy and crits`);
+  if (baseStats?.intelligence && baseStats.intelligence < 70) {
+    advice.push(`Your intelligence (${baseStats.intelligence}) is affecting tactical decisions`);
   }
   
-  // Ability-specific advice
-  const abilitiesOnCooldown = abilities.filter(a => a.currentCooldown > 0);
-  if (abilitiesOnCooldown.length > 0) {
-    advice.push(`Manage your cooldowns better - ${abilitiesOnCooldown[0].name} is still recharging`);
+  // Combat stat advice
+  if (combatStats?.criticalChance && combatStats.criticalChance < 20) {
+    advice.push(`Your critical chance (${combatStats.criticalChance}%) needs improvement for better damage`);
+  }
+  if (combatStats?.accuracy && combatStats.accuracy < 80) {
+    advice.push(`Your accuracy (${combatStats.accuracy}%) is causing missed opportunities`);
   }
   
-  const highMentalReqAbilities = abilities.filter(a => a.mentalHealthRequired > psychStats.mentalHealth);
-  if (highMentalReqAbilities.length > 0) {
-    advice.push(`Your mental health is too low for ${highMentalReqAbilities[0].name} - focus on recovery`);
+  // Level-based advice
+  if (level < 10) {
+    advice.push('Focus on basic training fundamentals at your current level');
+  } else if (level > 15) {
+    advice.push('Your experience should guide newer team members');
   }
   
   // Personality-specific advice
-  if (character.personalityTraits.includes('Arrogant')) {
-    advice.push('Your arrogance is showing in battle - consider more defensive plays');
+  if (character.personality?.traits?.includes('Honorable')) {
+    advice.push('Your honor is admirable, but consider strategic flexibility');
   }
-  if (character.personalityTraits.includes('Impatient')) {
-    advice.push('Your impatience is causing rushed decisions - slow down and think');
+  if (character.personality?.traits?.includes('Wrathful')) {
+    advice.push('Channel your anger productively in battle');
   }
   
   // Ensure we have at least some generic advice if nothing specific applies
@@ -103,8 +128,32 @@ export default function PerformanceCoachingChat({
   selectedCharacterId, 
   onCharacterChange 
 }: PerformanceCoachingChatProps) {
-  const [availableCharacters] = useState<EnhancedCharacter[]>(createAvailableCharacters());
+  const [availableCharacters, setAvailableCharacters] = useState<EnhancedCharacter[]>([]);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState(selectedCharacterId || 'achilles');
+  const [charactersLoading, setCharactersLoading] = useState(true);
+
+  // Load characters on component mount
+  useEffect(() => {
+    const loadCharacters = async () => {
+      setCharactersLoading(true);
+      const characters = await loadUserCharacters();
+      setAvailableCharacters(characters);
+      setCharactersLoading(false);
+    };
+    
+    loadCharacters();
+  }, []);
+
+  // Update internal state when prop changes and clear messages
+  useEffect(() => {
+    if (selectedCharacterId && selectedCharacterId !== globalSelectedCharacterId) {
+      setGlobalSelectedCharacterId(selectedCharacterId);
+      // Clear messages when character changes
+      setMessages([]);
+      setInputMessage('');
+      setIsTyping(false);
+    }
+  }, [selectedCharacterId, globalSelectedCharacterId]);
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -188,9 +237,16 @@ export default function PerformanceCoachingChat({
 
     setMessages(prev => [...prev, playerMessage]);
     setInputMessage('');
-    setIsTyping(true);
 
     console.log('📤 PerformanceCoaching message:', content);
+
+    // Only proceed if connected and socket available
+    if (!connected || !socketRef.current) {
+      console.log('❌ Cannot send message: not connected to backend');
+      return;
+    }
+
+    setIsTyping(true);
 
     // Generate dynamic performance data for context
     const recentBattles = Math.floor(Math.random() * 20) + 10;
@@ -205,34 +261,23 @@ export default function PerformanceCoachingChat({
         name: selectedCharacter.name,
         archetype: selectedCharacter.archetype,
         level: selectedCharacter.level,
-        personality: {
-          traits: selectedCharacter.personalityTraits,
-          speechStyle: selectedCharacter.speakingStyle,
-          decisionMaking: selectedCharacter.decisionMaking,
-          conflictResponse: selectedCharacter.conflictResponse,
-          interests: ['combat improvement', 'tactical mastery', 'team coordination', 'skill development']
+        personality: selectedCharacter.personality || {
+          traits: ['Combat-focused'],
+          speechStyle: 'Direct',
+          motivations: ['Victory', 'Honor'],
+          fears: ['Defeat'],
+          relationships: []
         },
         // Real combat stats
-        traditionalStats: selectedCharacter.traditionalStats,
-        psychStats: selectedCharacter.psychStats,
-        // Current abilities and their status
-        abilities: selectedCharacter.abilities.map(a => ({
-          name: a.name,
-          type: a.type,
-          power: a.power,
-          cooldown: a.cooldown,
-          currentCooldown: a.currentCooldown,
-          mentalHealthRequired: a.mentalHealthRequired,
-          description: a.description
-        })),
+        baseStats: selectedCharacter.baseStats,
+        combatStats: selectedCharacter.combatStats,
         // Current status
-        currentHp: selectedCharacter.currentHp,
-        maxHp: selectedCharacter.maxHp,
-        statusEffects: selectedCharacter.statusEffects,
+        currentHp: selectedCharacter.combatStats?.health || 100,
+        maxHp: selectedCharacter.combatStats?.maxHealth || 100,
         injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Performance-specific context
-        conversationContext: `This is a performance coaching session. The user is the coach who makes decisions about ${selectedCharacter.name}'s training and tactics. ${selectedCharacter.name} should discuss their recent battle performance, ask for guidance on areas they're struggling with, and advocate for training approaches that fit their fighting style and personality. Focus on their actual stats: Traditional Stats - Strength: ${selectedCharacter.traditionalStats.strength}, Vitality: ${selectedCharacter.traditionalStats.vitality}, Speed: ${selectedCharacter.traditionalStats.speed}, Dexterity: ${selectedCharacter.traditionalStats.dexterity}, Intelligence: ${selectedCharacter.traditionalStats.intelligence}. Psychological Stats - Training: ${selectedCharacter.psychStats.training}, Team Player: ${selectedCharacter.psychStats.teamPlayer}, Ego: ${selectedCharacter.psychStats.ego}, Mental Health: ${selectedCharacter.psychStats.mentalHealth}, Communication: ${selectedCharacter.psychStats.communication}.`,
+        conversationContext: `This is a performance coaching session. The user is the coach who makes decisions about ${selectedCharacter.name}'s training and tactics. ${selectedCharacter.name} should discuss their recent battle performance, ask for guidance on areas they're struggling with, and advocate for training approaches that fit their fighting style and personality. Focus on their actual stats: Base Stats - Strength: ${selectedCharacter.baseStats?.strength || 'Unknown'}, Vitality: ${selectedCharacter.baseStats?.vitality || 'Unknown'}, Agility: ${selectedCharacter.baseStats?.agility || 'Unknown'}, Intelligence: ${selectedCharacter.baseStats?.intelligence || 'Unknown'}. Combat Stats - Attack: ${selectedCharacter.combatStats?.attack || 'Unknown'}, Defense: ${selectedCharacter.combatStats?.defense || 'Unknown'}, Speed: ${selectedCharacter.combatStats?.speed || 'Unknown'}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance || 'Unknown'}%.`,
         performanceData: {
           recentBattles,
           battlesWon,
@@ -240,21 +285,11 @@ export default function PerformanceCoachingChat({
           winRate: `${winRate}%`,
           lastBattleResult: Math.random() > 0.5 ? 'victory' : 'defeat',
           // Identify actual weaknesses based on stats
-          statWeaknesses: Object.entries(selectedCharacter.traditionalStats)
+          statWeaknesses: selectedCharacter.baseStats ? Object.entries(selectedCharacter.baseStats)
             .filter(([_, value]) => value < 70)
-            .map(([stat, value]) => `${stat}: ${value}`),
-          psychIssues: Object.entries(selectedCharacter.psychStats)
-            .filter(([key, value]) => 
-              (key === 'ego' && value > 80) || 
-              (key !== 'ego' && value < 60)
-            )
-            .map(([stat, value]) => `${stat}: ${value}`),
-          abilitiesOnCooldown: selectedCharacter.abilities
-            .filter(a => a.currentCooldown > 0)
-            .map(a => `${a.name} (${a.currentCooldown} turns)`),
-          mentalHealthBlocks: selectedCharacter.abilities
-            .filter(a => a.mentalHealthRequired > selectedCharacter.psychStats.mentalHealth)
-            .map(a => a.name)
+            .map(([stat, value]) => `${stat}: ${value}`) : [],
+          recentPerformance: 'Analyzing combat effectiveness and coordination',
+          focusAreas: ['Combat tactics', 'Team coordination', 'Skill optimization']
         }
       },
       previousMessages: messages.slice(-5).map(m => ({
@@ -263,27 +298,16 @@ export default function PerformanceCoachingChat({
       }))
     });
 
-    setTimeout(() => {
-      if (isTyping) {
-        setIsTyping(false);
-      }
-    }, 15000);
   };
 
   const getPerformanceIntro = (character: EnhancedCharacter): string => {
     // Simple intro that lets the AI take over from there
-    return `*${character.name} approaches for a performance discussion*\n\nCoach, I've been thinking about my recent battles. Can we talk about areas where I might improve, or strategies that could work better for my fighting style?`;
+    return `Coach, I've been thinking about my recent battles. Can we talk about areas where I might improve, or strategies that could work better for my fighting style?`;
   };
 
   useEffect(() => {
     if (selectedCharacter) {
       setMessages([
-        {
-          id: Date.now(),
-          type: 'system',
-          content: `Performance coaching session started with ${selectedCharacter.name}`,
-          timestamp: new Date(),
-        },
         {
           id: Date.now() + 1,
           type: 'character',
@@ -291,13 +315,11 @@ export default function PerformanceCoachingChat({
           timestamp: new Date(),
         }
       ]);
+      // Ensure typing state is cleared when character changes
+      setIsTyping(false);
     }
   }, [selectedCharacter?.id]);
 
-  const handleCharacterChange = (characterId: string) => {
-    setGlobalSelectedCharacterId(characterId);
-    onCharacterChange?.(characterId);
-  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -307,50 +329,8 @@ export default function PerformanceCoachingChat({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-4 h-[700px]">
-          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Characters
-            </h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {availableCharacters.map((character) => (
-                <button
-                  key={character.id}
-                  onClick={() => handleCharacterChange(character.baseName)}
-                  className={`w-full p-3 rounded-lg border transition-all text-left ${
-                    globalSelectedCharacterId === character.baseName
-                      ? 'border-orange-500 bg-orange-500/20 text-white'
-                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">{character.avatar}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{character.name}</div>
-                      <div className="text-xs text-gray-400 truncate">{character.title}</div>
-                      <div className="text-xs text-orange-400 capitalize">{character.archetype}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <TrendingUp className="w-3 h-3" />
-                      Performance Focus
-                    </div>
-                    <div className="bg-gray-600 rounded-full h-1 mt-1">
-                      <div 
-                        className="bg-gradient-to-r from-orange-500 to-red-500 rounded-full h-1 transition-all"
-                        style={{ width: `${(character.displayBondLevel / 10) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="lg:col-span-3 flex flex-col">
+        <div className="h-[700px]">
+          <div className="flex flex-col h-full">
             <div className="bg-gradient-to-r from-orange-800/30 to-red-800/30 p-4 border-b border-orange-500/30">
               <div className="flex items-center gap-3">
                 <div className="text-3xl">{selectedCharacter.avatar}</div>
