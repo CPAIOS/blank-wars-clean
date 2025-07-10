@@ -3474,7 +3474,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
         'Sneaky, sneaky!',
         'Big shiny for the hoard!',
         'Yip-yip! Attack!',
-        'Don't step there!',
+        'Don\'t step there!',
         'My trap! My glory!'
       ]
     }
@@ -3558,8 +3558,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
   lyra: {
     name: 'Lyra',
     title: 'Forest Whisperer',
-    avatar: '
-',
+    avatar: '🧝‍♀️',
     archetype: 'assassin',
     rarity: 'rare',
     description: 'A swift and elusive elf, skilled in archery and attuned to the forest\'s secrets. She moves like a phantom, her arrows finding their mark from the shadows.',
@@ -4684,7 +4683,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       ]
     }
   }
-};,
+},
   aura: {
     name: 'Aura',
     title: 'Winged Savior',
@@ -4761,7 +4760,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       ]
     }
   }
-};,
+},
   town_guard: {
     name: 'Town Guard',
     title: 'Defender of the Realm',
@@ -5028,8 +5027,7 @@ export function createDemoCharacterCollection(): Character[] {
     createCharacter('ignis_dragon'),
     createCharacter('gemini'),
     createCharacter('celeste'),
-    createCharacter('leviathan')
-  ];,
+    createCharacter('leviathan'),
     createCharacter('town_guard')
   ];
 }
