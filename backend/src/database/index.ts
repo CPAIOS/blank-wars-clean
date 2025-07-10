@@ -1,4 +1,4 @@
-// For development, we'll use SQLite for simplicity
-// In production, you can switch back to PostgreSQL + Redis
+// Auto-detects database type based on DATABASE_URL
+// Uses PostgreSQL in production, SQLite for local development
 
-export * from './sqlite';
+export * from './postgres';

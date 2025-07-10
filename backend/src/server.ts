@@ -1130,6 +1130,111 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
     }
   });
 
+  // Real Estate Agent Chat Endpoints
+  socket.on('generate_real_estate_agent_response', async (data) => {
+    console.log('🏡 REAL ESTATE AGENT REQUEST:', data.agentId, 'from socket:', socket.id);
+    
+    // Rate limit real estate chat (max 30 per minute)
+    if (!checkEventRateLimit('real_estate_chat', 30)) {
+      socket.emit('real_estate_agent_response', {
+        error: 'Rate limit exceeded for real estate chat.'
+      });
+      return;
+    }
+
+    try {
+      const { agentId, userMessage, context } = data;
+      
+      console.log('🤖 Real Estate AI Request:', {
+        agentId,
+        userMessage: userMessage.substring(0, 50) + '...'
+      });
+
+      // Use existing AI chat service with real estate context
+      const realEstateContext = {
+        characterId: agentId,
+        characterName: context?.selectedAgent?.name || 'Real Estate Agent',
+        personality: {
+          traits: ['Professional', 'Persuasive', 'Detail-oriented', 'Competitive'],
+          speechStyle: 'Professional yet personable',
+          motivations: ['Making sales', 'Client satisfaction', 'Property expertise'],
+          fears: ['Losing deals', 'Client dissatisfaction', 'Market downturns']
+        },
+        historicalPeriod: 'Modern real estate market',
+        mythology: 'Professional services',
+        currentBondLevel: context?.bondLevel || 3,
+        previousMessages: context?.conversationHistory || []
+      };
+
+      const response = await aiChatService.generateCharacterResponse(
+        realEstateContext,
+        userMessage,
+        socket.data?.userId || 'anonymous',
+        db,
+        { isInBattle: false }
+      );
+
+      socket.emit('real_estate_agent_response', {
+        agentId,
+        agentName: context?.selectedAgent?.name || 'Real Estate Agent',
+        message: response.message,
+        timestamp: new Date(),
+        isCompetitorInterruption: false
+      });
+
+      // 30% chance of competitor interruption if there are competing agents
+      if (context?.competingAgents?.length > 0 && Math.random() < 0.3) {
+        setTimeout(() => {
+          const competingAgent = context.competingAgents[Math.floor(Math.random() * context.competingAgents.length)];
+          socket.emit('competitor_interruption', {
+            agentId: competingAgent.id,
+            agentName: competingAgent.name,
+            message: `Actually, I think I can offer you a better deal on that property...`,
+            timestamp: new Date(),
+            isCompetitorInterruption: true
+          });
+        }, 2000 + Math.random() * 3000); // Random delay 2-5 seconds
+      }
+
+    } catch (error) {
+      console.error('❌ Real Estate Chat Error:', error);
+      socket.emit('real_estate_agent_response', {
+        error: 'Failed to generate response. Please try again.'
+      });
+    }
+  });
+
+  socket.on('competitor_interruption', async (data) => {
+    console.log('🏡 COMPETITOR INTERRUPTION REQUEST:', data.agentId);
+    
+    try {
+      const { agentId, context } = data;
+      const competingAgent = context?.competingAgents?.find((agent: any) => agent.id === agentId);
+      
+      if (competingAgent) {
+        const interruptionMessages = [
+          `Wait! I have a much better property that would suit your team perfectly.`,
+          `Before you decide, you should know about the exclusive deal I can offer.`,
+          `That agent is overcharging you - I can get you 20% off that facility.`,
+          `I represent the premium properties in this area, let me show you something special.`,
+          `Hold on - I've got insider information about an upcoming development nearby.`
+        ];
+        
+        const randomMessage = interruptionMessages[Math.floor(Math.random() * interruptionMessages.length)];
+        
+        socket.emit('competitor_interruption', {
+          agentId: competingAgent.id,
+          agentName: competingAgent.name,
+          message: randomMessage,
+          timestamp: new Date(),
+          isCompetitorInterruption: true
+        });
+      }
+    } catch (error) {
+      console.error('❌ Competitor Interruption Error:', error);
+    }
+  });
+
   // Battle system events are handled by BattleManager.setupSocketHandlers()
   // when a player joins a battle
 });
