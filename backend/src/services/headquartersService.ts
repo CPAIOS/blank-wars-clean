@@ -89,7 +89,7 @@ export class HeadquartersService {
         [roomRow.id]
       );
 
-      const beds: Bed[] = bedsResult.rows.map(bed => ({
+      const beds: Bed[] = bedsResult.rows.map((bed: any) => ({
         id: bed.id,
         bedId: bed.bed_id,
         bedType: bed.bed_type,
