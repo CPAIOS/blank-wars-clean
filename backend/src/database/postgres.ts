@@ -90,6 +90,7 @@ export const initializeDatabase = async (): Promise<void> => {
         daily_battle_reset_date TEXT DEFAULT '',
         daily_training_count INTEGER DEFAULT 0,
         daily_training_reset_date TEXT DEFAULT '',
+        character_slot_capacity INTEGER DEFAULT 6,
         created_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
         updated_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'}
       );
