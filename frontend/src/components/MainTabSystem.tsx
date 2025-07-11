@@ -953,6 +953,54 @@ export default function MainTabSystem() {
   );
 
 
+  const FacilitiesManagerWrapper = () => {
+    // Demo facilities state
+    const [demoFacilities, setDemoFacilities] = useState([
+      { id: 'gym', level: 2, purchaseDate: new Date(), maintenancePaid: true, bonusesActive: true },
+      { id: 'medical_bay', level: 1, purchaseDate: new Date(), maintenancePaid: false, bonusesActive: false }
+    ]);
+    
+    const demoCurrency = { coins: 50000, gems: 100 };
+    const demoTeamLevel = 12;
+    const demoAchievements = ['team_harmony', 'inner_peace', 'tech_pioneer'];
+    
+    const handlePurchaseFacility = (facilityId: string) => {
+      console.log('Purchasing facility:', facilityId);
+      setDemoFacilities(prev => [...prev, {
+        id: facilityId,
+        level: 1,
+        purchaseDate: new Date(),
+        maintenancePaid: true,
+        bonusesActive: true
+      }]);
+    };
+    
+    const handleUpgradeFacility = (facilityId: string) => {
+      console.log('Upgrading facility:', facilityId);
+      setDemoFacilities(prev => prev.map(f => 
+        f.id === facilityId ? { ...f, level: f.level + 1 } : f
+      ));
+    };
+    
+    const handlePayMaintenance = (facilityId: string) => {
+      console.log('Paying maintenance for facility:', facilityId);
+      setDemoFacilities(prev => prev.map(f => 
+        f.id === facilityId ? { ...f, maintenancePaid: true, bonusesActive: true } : f
+      ));
+    };
+    
+    return (
+      <FacilitiesManager
+        teamLevel={demoTeamLevel}
+        currency={demoCurrency}
+        unlockedAchievements={demoAchievements}
+        ownedFacilities={demoFacilities}
+        onPurchaseFacility={handlePurchaseFacility}
+        onUpgradeFacility={handleUpgradeFacility}
+        onPayMaintenance={handlePayMaintenance}
+      />
+    );
+  };
 
   const TrainingGroundsWrapper = () => {
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
@@ -1097,6 +1145,7 @@ export default function MainTabSystem() {
       color: 'amber',
       subTabs: [
         { id: 'overview', label: 'Team Base', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space and facilities' },
+        { id: 'facilities', label: 'Facilities', icon: Building, component: FacilitiesManagerWrapper, description: 'Manage team facilities and upgrades' },
       ]
     },
     {

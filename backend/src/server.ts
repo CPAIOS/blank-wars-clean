@@ -1115,7 +1115,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
       console.log('🤖 Training AI Request:', {
         characterId,
         characterName,
-        userMessage: userMessage ? userMessage.substring(0, 50) + '...' : 'No message'
+        userMessage: userMessage.substring(0, 50) + '...'
       });
 
       // Use existing AI chat service with training-specific context
@@ -1178,7 +1178,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
       
       console.log('🤖 Real Estate AI Request:', {
         agentId,
-        userMessage: userMessage ? userMessage.substring(0, 50) + '...' : 'No message'
+        userMessage: userMessage.substring(0, 50) + '...'
       });
 
       // Use existing AI chat service with real estate context
