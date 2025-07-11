@@ -118,6 +118,7 @@ export default function TrainingGrounds({
     
     // Convert from global character format to training character format
     return {
+<<<<<<< HEAD
       id: characterToUse.baseName || characterToUse.id,
       name: characterToUse.name,
       level: characterToUse.level,
@@ -132,6 +133,22 @@ export default function TrainingGrounds({
       maxEnergy: characterToUse.maxEnergy || 100,
       avatar: characterToUse?.avatar || '⚔️',
       archetype: characterToUse.archetype,
+=======
+      id: globalCharacter.baseName || globalCharacter.id,
+      name: globalCharacter.name,
+      level: globalCharacter.level,
+      xp: globalCharacter.experience?.currentXP || 0,
+      xpToNext: globalCharacter.experience?.xpToNextLevel || 1000,
+      hp: globalCharacter.combatStats?.health || globalCharacter.baseStats?.vitality * 10 || 200,
+      maxHp: globalCharacter.combatStats?.maxHealth || globalCharacter.baseStats?.vitality * 10 || 200,
+      atk: globalCharacter.combatStats?.attack || globalCharacter.baseStats?.strength || 50,
+      def: globalCharacter.combatStats?.defense || globalCharacter.baseStats?.vitality || 40,
+      spd: globalCharacter.combatStats?.speed || globalCharacter.baseStats?.agility || 60,
+      energy: globalCharacter.energy || 75,
+      maxEnergy: globalCharacter.maxEnergy || 100,
+      avatar: globalCharacter.avatar,
+      archetype: globalCharacter.archetype,
+>>>>>>> 08f19d7 (Automated commit: Selected frontend changes)
       trainingBonuses: {
         strength: Math.floor(characterToUse.level / 3),
         defense: Math.floor(characterToUse.level / 4),
@@ -1057,7 +1074,7 @@ export default function TrainingGrounds({
             animate={{ opacity: 1, x: 0 }}
           >
             <div className="text-center mb-6">
-              <div className="text-6xl mb-3">{selectedCharacter.avatar}</div>
+              <div className="text-6xl mb-3">{selectedCharacter?.avatar}</div>
               <h3 className="text-2xl font-bold text-white">{selectedCharacter.name}</h3>
               <div className="flex items-center justify-center gap-2 text-yellow-400">
                 <Star className="w-4 h-4" />
