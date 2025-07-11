@@ -102,15 +102,21 @@ export class RealEstateAgentChatService {
       }, 30000);
 
       this.socket!.emit('generate_real_estate_agent_response', {
+        agentId: context.selectedAgent.id,
         agent: context.selectedAgent,
         competingAgents: context.competingAgents,
         facilityType: context.facilityType,
         userMessage: context.userMessage,
         teamStats: context.currentTeamStats,
-        conversationHistory: context.conversationHistory.slice(-5) // Last 5 messages for context
+        context: {
+          selectedAgent: context.selectedAgent,
+          competingAgents: context.competingAgents,
+          currentTeamStats: context.currentTeamStats,
+          conversationHistory: context.conversationHistory.slice(-5)
+        }
       });
 
-      this.socket!.once('real_estate_agent_response_generated', (data) => {
+      this.socket!.once('real_estate_agent_response', (data) => {
         clearTimeout(timeout);
         if (data.error) {
           reject(new Error(data.error));

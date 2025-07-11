@@ -133,7 +133,7 @@ export default function TrainingGrounds({
       spd: globalCharacter.combatStats?.speed || globalCharacter.baseStats?.agility || 60,
       energy: globalCharacter.energy || 75,
       maxEnergy: globalCharacter.maxEnergy || 100,
-      avatar: globalCharacter?.avatar || '⚔️',
+      avatar: globalCharacter.avatar,
       archetype: globalCharacter.archetype,
       trainingBonuses: {
         strength: Math.floor(globalCharacter.level / 3),
@@ -821,7 +821,7 @@ export default function TrainingGrounds({
             animate={{ opacity: 1, x: 0 }}
           >
             <div className="text-center mb-6">
-              <div className="text-6xl mb-3">{selectedCharacter.avatar}</div>
+              <div className="text-6xl mb-3">{selectedCharacter?.avatar}</div>
               <h3 className="text-2xl font-bold text-white">{selectedCharacter.name}</h3>
               <div className="flex items-center justify-center gap-2 text-yellow-400">
                 <Star className="w-4 h-4" />

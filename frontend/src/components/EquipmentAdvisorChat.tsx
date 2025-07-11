@@ -178,16 +178,6 @@ export default function EquipmentAdvisorChat({
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
-  
-  // Safety check to prevent errors when no characters are loaded
-  if (!selectedCharacter) {
-    return (
-      <div className="text-center text-gray-400 py-8">
-        Loading character data...
-      </div>
-    );
-  }
-  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -290,7 +280,7 @@ export default function EquipmentAdvisorChat({
       message: content,
       character: selectedCharacter.baseName,
       characterData: {
-        name: selectedCharacter.name,
+        name: selectedCharacter?.name,
         archetype: selectedCharacter.archetype,
         level: selectedCharacter.level,
         personality: selectedCharacter.personality || {
@@ -309,7 +299,7 @@ export default function EquipmentAdvisorChat({
         injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Equipment-specific context
-        conversationContext: `This is an equipment advisory session. The user is the coach who makes equipment decisions for ${selectedCharacter.name}. The character should advocate for gear choices that fit their archetype (${selectedCharacter.archetype}), stats, and personality. Focus on their actual stats: Base Stats - Strength: ${selectedCharacter.baseStats?.strength || 'Unknown'}, Vitality: ${selectedCharacter.baseStats?.vitality || 'Unknown'}, Agility: ${selectedCharacter.baseStats?.agility || 'Unknown'}, Intelligence: ${selectedCharacter.baseStats?.intelligence || 'Unknown'}. Combat Stats - Attack: ${selectedCharacter.combatStats?.attack || 'Unknown'}, Defense: ${selectedCharacter.combatStats?.defense || 'Unknown'}, Speed: ${selectedCharacter.combatStats?.speed || 'Unknown'}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance || 'Unknown'}%. The character should suggest equipment that enhances their strengths or compensates for weaknesses.`,
+        conversationContext: `This is an equipment advisory session. The user is the coach who makes equipment decisions for ${selectedCharacter?.name}. The character should advocate for gear choices that fit their archetype (${selectedCharacter.archetype}), stats, and personality. Focus on their actual stats: Base Stats - Strength: ${selectedCharacter.baseStats?.strength || 'Unknown'}, Vitality: ${selectedCharacter.baseStats?.vitality || 'Unknown'}, Agility: ${selectedCharacter.baseStats?.agility || 'Unknown'}, Intelligence: ${selectedCharacter.baseStats?.intelligence || 'Unknown'}. Combat Stats - Attack: ${selectedCharacter.combatStats?.attack || 'Unknown'}, Defense: ${selectedCharacter.combatStats?.defense || 'Unknown'}, Speed: ${selectedCharacter.combatStats?.speed || 'Unknown'}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance || 'Unknown'}%. The character should suggest equipment that enhances their strengths or compensates for weaknesses.`,
         equipmentData: {
           currentWeapon: {
             type: selectedCharacter.archetype === 'warrior' ? 'melee weapon' : 
@@ -389,11 +379,11 @@ export default function EquipmentAdvisorChat({
           <div className="flex flex-col h-full">
             <div className="bg-gradient-to-r from-blue-800/30 to-cyan-800/30 p-4 border-b border-blue-500/30">
               <div className="flex items-center gap-3">
-                <div className="text-3xl">{selectedCharacter.avatar}</div>
+                <div className="text-3xl">{selectedCharacter?.avatar}</div>
                 <div>
                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <Sword className="w-5 h-5 text-blue-400" />
-                    Equipment Advisor - {selectedCharacter.name}
+                    Equipment Advisor - {selectedCharacter?.name}
                   </h3>
                   <p className="text-sm text-blue-200">Discuss gear choices, weapon preferences, and equipment strategy</p>
                 </div>
@@ -487,7 +477,7 @@ export default function EquipmentAdvisorChat({
                       sendMessage(inputMessage);
                     }
                   }}
-                  placeholder={isTyping ? 'Character is considering equipment...' : `Ask ${selectedCharacter.name} about gear...`}
+                  placeholder={isTyping ? 'Character is considering equipment...' : `Ask ${selectedCharacter?.name} about gear...`}
                   disabled={isTyping}
                   className="flex-1 bg-gray-700 border border-blue-500/30 rounded-full px-4 py-2 text-white placeholder-blue-200/50 focus:outline-none focus:border-blue-400 disabled:opacity-50"
                   autoComplete="off"

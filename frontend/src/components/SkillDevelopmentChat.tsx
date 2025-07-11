@@ -188,16 +188,6 @@ export default function SkillDevelopmentChat({
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
-  
-  // Safety check to prevent errors when no characters are loaded
-  if (!selectedCharacter) {
-    return (
-      <div className="text-center text-gray-400 py-8">
-        Loading character data...
-      </div>
-    );
-  }
-  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -288,7 +278,7 @@ export default function SkillDevelopmentChat({
       message: content,
       character: selectedCharacter.baseName,
       characterData: {
-        name: selectedCharacter.name,
+        name: selectedCharacter?.name,
         archetype: selectedCharacter.archetype,
         level: selectedCharacter.level,
         personality: {
@@ -315,7 +305,7 @@ export default function SkillDevelopmentChat({
         experience: selectedCharacter.experience,
         bondLevel: selectedCharacter.displayBondLevel,
         // Skill-specific context
-        conversationContext: `This is a skill development session. The user is the coach who makes skill point allocation decisions for ${selectedCharacter.name}. 
+        conversationContext: `This is a skill development session. The user is the coach who makes skill point allocation decisions for ${selectedCharacter?.name}. 
 
 CURRENT CHARACTER STATUS:
 - Base Stats: Strength: ${selectedCharacter.baseStats?.strength}, Vitality: ${selectedCharacter.baseStats?.vitality}, Agility: ${selectedCharacter.baseStats?.agility}, Intelligence: ${selectedCharacter.baseStats?.intelligence}, Wisdom: ${selectedCharacter.baseStats?.wisdom}, Charisma: ${selectedCharacter.baseStats?.charisma}
@@ -414,11 +404,11 @@ COACHING ROLE: You should advocate for skill development paths that optimize thi
           <div className="flex flex-col h-full">
             <div className="bg-gradient-to-r from-purple-800/30 to-indigo-800/30 p-4 border-b border-purple-500/30">
               <div className="flex items-center gap-3">
-                <div className="text-3xl">{selectedCharacter.avatar}</div>
+                <div className="text-3xl">{selectedCharacter?.avatar}</div>
                 <div>
                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-purple-400" />
-                    Skill Development - {selectedCharacter.name}
+                    Skill Development - {selectedCharacter?.name}
                   </h3>
                   <p className="text-sm text-purple-200">Discuss training methods, skill trees, and ability development</p>
                 </div>
@@ -518,7 +508,7 @@ COACHING ROLE: You should advocate for skill development paths that optimize thi
                       sendMessage(inputMessage);
                     }
                   }}
-                  placeholder={isTyping ? 'Character is thinking about skills...' : `Discuss skills with ${selectedCharacter.name}...`}
+                  placeholder={isTyping ? 'Character is thinking about skills...' : `Discuss skills with ${selectedCharacter?.name}...`}
                   disabled={isTyping}
                   className="flex-1 bg-gray-700 border border-purple-500/30 rounded-full px-4 py-2 text-white placeholder-purple-200/50 focus:outline-none focus:border-purple-400 disabled:opacity-50"
                   autoComplete="off"

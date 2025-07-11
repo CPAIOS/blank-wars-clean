@@ -109,29 +109,57 @@ export default function ImprovedBattleArena() {
     clearQueue
   } = battleAnnouncer || {
     isAnnouncerSpeaking: false,
-    isEnabled: false,
-    toggleEnabled: () => {},
-    announceBattleStart: () => {},
-    announceRoundStart: () => {},
-    announceAction: () => {},
-    announceVictory: () => {},
-    announceDefeat: () => {},
-    announcePhaseTransition: () => {},
-    announceStrategySelection: () => {},
-    announceBattleCry: () => {},
-    clearQueue: () => {}
+    isEnabled: true, // Enable by default even in fallback
+    toggleEnabled: (enabled?: boolean) => {
+      console.log('Announcer toggle fallback:', enabled);
+    },
+    announceBattleStart: (p1: string, p2: string) => {
+      console.log(`🎤 Battle Start: ${p1} vs ${p2}!`);
+    },
+    announceRoundStart: (round: number) => {
+      console.log(`🎤 Round ${round} begins!`);
+    },
+    announceAction: (text: string) => {
+      console.log(`🎤 ${text}`);
+    },
+    announceVictory: (winner: string) => {
+      console.log(`🎤 Victory to ${winner}!`);
+    },
+    announceDefeat: (loser: string) => {
+      console.log(`🎤 ${loser} has fallen!`);
+    },
+    announcePhaseTransition: (phase: string) => {
+      console.log(`🎤 Phase: ${phase}`);
+    },
+    announceStrategySelection: () => {
+      console.log('🎤 Choose your strategies!');
+    },
+    announceBattleCry: () => {
+      console.log('🎤 Warriors let out their battle cries!');
+    },
+    clearQueue: () => {
+      console.log('🎤 Clearing announcement queue');
+    }
   };
   
+  // Store clearQueue function in ref to avoid temporal dead zone
+  useEffect(() => {
+    if (clearQueue) {
+      clearQueueRef.current = clearQueue;
+    }
+  }, [clearQueue]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       console.log('ImprovedBattleArena unmounting - cleaning up');
       clearAllTimeouts();
-      if (clearQueue) {
-        clearQueue(); // Clear audio announcer queue
+      // Clear audio announcer queue if available
+      if (clearQueueRef.current) {
+        clearQueueRef.current();
       }
     };
-  }, [clearAllTimeouts, clearQueue]);
+  }, [clearAllTimeouts]);
   
   // New Team Battle System State with refs for stability
   // Mock headquarters state for demo - in real app this would come from global state

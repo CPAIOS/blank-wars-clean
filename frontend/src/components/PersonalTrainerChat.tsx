@@ -20,52 +20,6 @@ interface EnhancedCharacter extends Character {
   displayBondLevel: number;
 }
 
-const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
-  try {
-    const response = await characterAPI.getUserCharacters();
-    const characters = response.characters || [];
-    
-    return characters.map((char: any) => {
-      const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
-      return {
-        ...char,
-        baseName,
-        displayBondLevel: char.bond_level || Math.floor((char.base_health || 80) / 10),
-        // Map database fields to component expectations
-        baseStats: {
-          strength: char.base_attack || 70,
-          vitality: char.base_health || 80,
-          agility: char.base_speed || 70,
-          intelligence: char.base_special || 70,
-          wisdom: char.base_defense || 70,
-          charisma: char.bond_level || 5
-        },
-        combatStats: {
-          health: char.current_health || char.base_health || 80,
-          maxHealth: char.max_health || char.base_health || 80,
-          attack: char.base_attack || 70,
-          defense: char.base_defense || 70,
-          speed: char.base_speed || 70,
-          criticalChance: 15,
-          accuracy: 85
-        },
-        level: char.level || 1,
-        experience: char.experience || 0,
-        abilities: char.abilities || [],
-        archetype: char.archetype || 'warrior',
-        avatar: char.avatar_emoji || char.avatar || '⚔️',
-        name: char.name || 'Unknown Character',
-        personalityTraits: char.personality_traits || ['Determined'],
-        speakingStyle: char.speaking_style || 'Direct',
-        decisionMaking: char.decision_making || 'Analytical',
-        conflictResponse: char.conflict_response || 'Confrontational'
-      };
-    });
-  } catch (error) {
-    console.error('Failed to load user characters:', error);
-    return [];
-  }
-};
 
 // Generate Argock's training recommendations to the COACH
 const generateCoachRecommendations = (character: EnhancedCharacter): string[] => {
@@ -162,12 +116,56 @@ export default function PersonalTrainerChat({
   const [conversationMode, setConversationMode] = useState<'coach_consultation' | 'character_training'>('coach_consultation');
   const [currentExercise, setCurrentExercise] = useState<string | null>(null);
 
+
   // Load characters on component mount
   useEffect(() => {
     const loadCharacters = async () => {
       setCharactersLoading(true);
-      const characters = await loadUserCharacters();
-      setAvailableCharacters(characters);
+      try {
+        const response = await characterAPI.getUserCharacters();
+        const characters = response.characters || [];
+        
+        const enhancedCharacters = characters.map((char: any) => {
+          const baseName = char.name?.toLowerCase() || char.id?.split('_')[0];
+          return {
+            ...char,
+            baseName,
+            displayBondLevel: char.bond_level,
+            baseStats: {
+              strength: char.base_attack,
+              vitality: char.base_health,
+              agility: char.base_speed,
+              intelligence: char.base_special,
+              wisdom: char.base_defense,
+              charisma: char.bond_level
+            },
+            combatStats: {
+              health: char.current_health,
+              maxHealth: char.max_health,
+              attack: char.base_attack,
+              defense: char.base_defense,
+              speed: char.base_speed,
+              criticalChance: char.critical_chance,
+              accuracy: char.accuracy
+            },
+            level: char.level,
+            experience: char.experience,
+            abilities: char.abilities,
+            archetype: char.archetype,
+            avatar: char.avatar_emoji,
+            name: char.name,
+            personalityTraits: char.personality_traits,
+            speakingStyle: char.speaking_style,
+            decisionMaking: char.decision_making,
+            conflictResponse: char.conflict_response
+          };
+        });
+        
+        setAvailableCharacters(enhancedCharacters);
+      } catch (error) {
+        console.error('Failed to load characters:', error);
+        setAvailableCharacters([]);
+      }
       setCharactersLoading(false);
     };
     
