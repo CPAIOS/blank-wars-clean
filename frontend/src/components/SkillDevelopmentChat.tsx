@@ -70,6 +70,12 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
 // Generate character-specific skill advice based on actual abilities and stats
 const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
+  
+  // Safety check to prevent destructuring errors
+  if (!character) {
+    return ["Focus on basic skill development", "Practice fundamental techniques", "Build core competencies"];
+  }
+  
   const { baseStats, combatStats, abilities, archetype } = character;
   
   // Ability-specific skill development advice
@@ -182,6 +188,16 @@ export default function SkillDevelopmentChat({
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+  
+  // Safety check to prevent errors when no characters are loaded
+  if (!selectedCharacter) {
+    return (
+      <div className="text-center text-gray-400 py-8">
+        Loading character data...
+      </div>
+    );
+  }
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);

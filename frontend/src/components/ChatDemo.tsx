@@ -98,6 +98,16 @@ export default function ChatDemo() {
   const [availableCharacters] = useState<EnhancedCharacter[]>(createAvailableCharacters());
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState('achilles');
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+  
+  // Safety check to prevent errors when no characters are loaded
+  if (!selectedCharacter) {
+    return (
+      <div className="text-center text-gray-400 py-8">
+        Loading character data...
+      </div>
+    );
+  }
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,

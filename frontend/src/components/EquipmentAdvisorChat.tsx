@@ -70,6 +70,12 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
 // Generate character-specific equipment advice based on actual gear and stats
 const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
+  
+  // Safety check to prevent destructuring errors
+  if (!character) {
+    return ["Check your equipment regularly", "Upgrade when possible", "Match gear to your fighting style"];
+  }
+  
   const { baseStats, combatStats, archetype } = character;
   
   // Archetype-specific equipment recommendations
@@ -172,6 +178,16 @@ export default function EquipmentAdvisorChat({
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+  
+  // Safety check to prevent errors when no characters are loaded
+  if (!selectedCharacter) {
+    return (
+      <div className="text-center text-gray-400 py-8">
+        Loading character data...
+      </div>
+    );
+  }
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);

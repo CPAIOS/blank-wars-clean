@@ -70,6 +70,12 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
 // Generate character-specific coaching advice based on actual stats
 const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
+  
+  // Safety check to prevent destructuring errors
+  if (!character) {
+    return ["Focus on consistent training", "Track your progress", "Stay motivated"];
+  }
+  
   const { baseStats, combatStats, level } = character;
   
   // Base stat weaknesses (below 70)
@@ -155,6 +161,16 @@ export default function PerformanceCoachingChat({
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+  
+  // Safety check to prevent errors when no characters are loaded
+  if (!selectedCharacter) {
+    return (
+      <div className="text-center text-gray-400 py-8">
+        Loading character data...
+      </div>
+    );
+  }
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);

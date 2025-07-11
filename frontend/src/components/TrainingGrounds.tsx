@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Dumbbell, 
@@ -84,34 +84,65 @@ export default function TrainingGrounds({
   availableCharacters 
 }: TrainingGroundsProps) {
   // Convert global character to training character format
-  const [selectedCharacter, setSelectedCharacter] = useState<Character>(() => {
-    const level = 12;
-    const levelData = getLevelData(level);
-    const baseStats = getBaseStatsForLevel(level, 'warrior');
+  const selectedCharacter: Character = React.useMemo(() => {
+    if (!globalCharacter) {
+      // Fallback to first available character if none selected
+      const fallback = availableCharacters[0];
+      if (!fallback) {
+        const level = 12;
+        const levelData = getLevelData(level);
+        const baseStats = getBaseStatsForLevel(level, 'warrior');
+        
+        return {
+          id: 'achilles',
+          name: 'Achilles',
+          level,
+          xp: 2400,
+          xpToNext: levelData?.xpToNext || 800,
+          hp: baseStats.hp,
+          maxHp: baseStats.hp,
+          atk: baseStats.atk,
+          def: baseStats.def,
+          spd: baseStats.spd,
+          energy: 75,
+          maxEnergy: 100,
+          avatar: '⚔️',
+          archetype: 'warrior',
+          trainingBonuses: {
+            strength: 5,
+            defense: 3,
+            speed: 4,
+            special: 2
+          }
+        };
+      }
+      globalCharacter = fallback;
+    }
     
+    // Convert from global character format to training character format
     return {
-      id: 'achilles',
-      name: 'Achilles',
-      level,
-      xp: 2400,
-      xpToNext: levelData?.xpToNext || 800,
-      hp: baseStats.hp,
-      maxHp: baseStats.hp,
-      atk: baseStats.atk,
-      def: baseStats.def,
-      spd: baseStats.spd,
-      energy: 75,
-      maxEnergy: 100,
-      avatar: '⚔️',
-      archetype: 'warrior',
+      id: globalCharacter.baseName || globalCharacter.id,
+      name: globalCharacter.name,
+      level: globalCharacter.level,
+      xp: globalCharacter.experience?.currentXP || 0,
+      xpToNext: globalCharacter.experience?.xpToNextLevel || 1000,
+      hp: globalCharacter.combatStats?.health || globalCharacter.baseStats?.vitality * 10 || 200,
+      maxHp: globalCharacter.combatStats?.maxHealth || globalCharacter.baseStats?.vitality * 10 || 200,
+      atk: globalCharacter.combatStats?.attack || globalCharacter.baseStats?.strength || 50,
+      def: globalCharacter.combatStats?.defense || globalCharacter.baseStats?.vitality || 40,
+      spd: globalCharacter.combatStats?.speed || globalCharacter.baseStats?.agility || 60,
+      energy: globalCharacter.energy || 75,
+      maxEnergy: globalCharacter.maxEnergy || 100,
+      avatar: globalCharacter?.avatar || '⚔️',
+      archetype: globalCharacter.archetype,
       trainingBonuses: {
-        strength: 5,
-        defense: 3,
-        speed: 4,
-        special: 2
+        strength: Math.floor(globalCharacter.level / 3),
+        defense: Math.floor(globalCharacter.level / 4),
+        speed: Math.floor(globalCharacter.level / 3.5),
+        special: Math.floor(globalCharacter.level / 2.5)
       }
     };
-  });
+  }, [globalCharacter, availableCharacters]);
 
   const [isTraining, setIsTraining] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<TrainingActivity | null>(null);

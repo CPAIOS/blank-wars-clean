@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import MainTabSystem from '@/components/MainTabSystem';
+import LogoutButton from '@/components/LogoutButton';
 
 function HomePageContent() {
   const { user, isLoading } = useAuth();
@@ -93,11 +94,17 @@ function HomePageContent() {
 
   // If user is logged in, show the actual game interface
   if (user && !isLoading) {
-    return <MainTabSystem />;
+    return (
+      <>
+        <LogoutButton />
+        <MainTabSystem />
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white relative overflow-hidden">
+      <LogoutButton />
       {/* Background elements - subtle blend of arena and living quarters */}
       <div className="absolute inset-0 z-0">
         {/* Arena-like gradient */}
@@ -123,7 +130,7 @@ function HomePageContent() {
             Can you win the battle before your team loses their minds?
           </h1>
           <h2 className="text-3xl md:text-4xl font-semibold text-gray-200 drop-shadow-md">
-            Welcome to <span className="font-bold text-purple-400">Blank Wars: The Reality Show</span>
+            Welcome to <span className="font-bold text-purple-400">_____ Wars: The Reality Show</span>
           </h2>
           <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
             Coach a team of legendary figures and fantastical beings as they live, train, and fight for survival in the ultimate team combat challenge.
@@ -174,7 +181,7 @@ function HomePageContent() {
             It's Not Just a Battle, It's a Show!
           </h3>
           <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-8">
-            Step into the world of <span className="font-bold text-purple-300">Blank Wars</span>, a groundbreaking mockumentary-style reality show where the cameras never stop rolling. You'll follow a diverse cast of characters – from ancient legends to fantastical beings – as they navigate the brutal arena and the even more brutal confines of their shared living quarters.
+            Step into the world of <span className="font-bold text-purple-300">_____ Wars</span>, a groundbreaking mockumentary-style reality show where the cameras never stop rolling. You'll follow a diverse cast of characters – from ancient legends to fantastical beings – as they navigate the brutal arena and the even more brutal confines of their shared living quarters.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center">
@@ -250,7 +257,7 @@ function HomePageContent() {
             Beyond the Battlefield
           </h3>
           <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-12">
-            Blank Wars offers a unique blend of strategic combat and reality show management. Master these key features to lead your team to victory and stardom.
+            _____ Wars offers a unique blend of strategic combat and reality show management. Master these key features to lead your team to victory and stardom.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -303,7 +310,7 @@ function HomePageContent() {
           className="w-full p-8 bg-gray-900/70 border-t border-gray-700 text-gray-400 text-sm"
         >
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <p>&copy; {new Date().getFullYear()} Blank Wars. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} _____ Wars. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
