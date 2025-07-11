@@ -268,7 +268,7 @@ export default function MainTabSystem() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 w-full space-y-6">
             {/* Selected Character Header */}
             <div className="bg-gray-800/50 rounded-xl p-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
@@ -380,9 +380,9 @@ export default function MainTabSystem() {
     
     return (
     <div className="space-y-6">
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
           {/* Character Sidebar */}
-          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+          <div className="w-full lg:w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5" />
               Characters
@@ -415,7 +415,7 @@ export default function MainTabSystem() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 w-full space-y-6">
             {/* Selected Character Header */}
             <div className="bg-gray-800/50 rounded-xl p-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
@@ -500,9 +500,9 @@ export default function MainTabSystem() {
     
     return (
     <div className="space-y-6">
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
           {/* Character Sidebar */}
-          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+          <div className="w-full lg:w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5" />
               Characters
@@ -534,7 +534,7 @@ export default function MainTabSystem() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 w-full space-y-6">
             {/* Selected Character Header */}
             <div className="bg-gray-800/50 rounded-xl p-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
