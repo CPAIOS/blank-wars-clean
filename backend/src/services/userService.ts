@@ -231,4 +231,40 @@ export class UserService {
       return [];
     }
   }
+
+
+  async getTeamStats(userId: string) {
+    try {
+      // Get user level and basic info
+      const userResult = await query('SELECT level FROM users WHERE id = ?', [userId]);
+      const user = userResult.rows[0];
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Get currency (battle_tokens for budget)
+      const currencyResult = await query('SELECT battle_tokens FROM user_currency WHERE user_id = ?', [userId]);
+      const currency = currencyResult.rows[0] || { battle_tokens: 0 };
+
+      // Get total characters count
+      const charactersResult = await query(
+        'SELECT COUNT(*) AS totalCharacters FROM user_characters WHERE user_id = ?',
+        [userId]
+      );
+      const totalCharacters = charactersResult.rows[0]?.totalCharacters || 0;
+
+      // For now, return basic facilities - we can enhance this later
+      const currentFacilities = ['Basic Headquarters'];
+
+      return {
+        level: user.level || 1,
+        totalCharacters: totalCharacters,
+        currentFacilities: currentFacilities,
+        budget: currency.battle_tokens || 0,
+      };
+    } catch (error) {
+      console.error('Error getting team stats:', error);
+      throw new Error('Failed to retrieve team stats.');
+    }
+  }
 }

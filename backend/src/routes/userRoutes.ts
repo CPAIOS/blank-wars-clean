@@ -118,10 +118,11 @@ router.get('/users/search', async (req, res) => {
 router.get('/characters', authenticateToken, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    console.log('🔍 Getting characters for user:', userId);
+    console.log('🔍 [/characters] Getting characters for user:', userId);
     
     const userCharacters = await dbAdapter.userCharacters.findByUserId(userId);
-    console.log('📊 Found characters:', userCharacters.length);
+    console.log('📊 [/characters] Found characters:', userCharacters.length);
+    console.log('🔍 [/characters] First character sample:', userCharacters[0] ? JSON.stringify(userCharacters[0], null, 2) : 'None');
     
     return res.json({
       success: true,
@@ -133,6 +134,17 @@ router.get('/characters', authenticateToken, async (req: any, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+router.get('/team-stats', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const teamStats = await userService.getTeamStats(userId);
+    res.json(teamStats);
+  } catch (error: any) {
+    console.error('Failed to fetch team stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

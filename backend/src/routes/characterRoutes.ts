@@ -5,6 +5,7 @@ const router = Router();
 
 // Get all characters
 router.get('/', async (req, res) => {
+  console.log('🎯 [/api/characters] Hit characterRoutes.ts - returning ALL characters');
   try {
     const characters = await dbAdapter.characters.findAll();
     return res.json({

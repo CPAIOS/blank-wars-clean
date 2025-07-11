@@ -1118,15 +1118,69 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         userMessage: userMessage ? userMessage.substring(0, 50) + '...' : 'No message'
       });
 
-      // Use existing AI chat service with training-specific context
+      // Dynamic training prompt based on phase
+      const trainingPhase = data.trainingPhase || 'planning';
+      
+      const phasePrompts = {
+        planning: `You are ${characterName}, a warrior preparing for an intense training session. You're excited and focused on planning your workout. 
+
+Planning phase context:
+- Discuss what exercises you want to do today
+- Talk about your goals and what you want to improve
+- Ask about equipment and workout plans
+- Show enthusiasm for the upcoming training
+- Mention any areas you want to focus on (strength, speed, endurance)
+- Be eager and ready to work hard
+
+Current focus: ${data.currentActivity || 'Planning the perfect workout'}
+Energy level: ${data.energyLevel || 100}% (fresh and ready)
+
+Respond as an excited warrior ready to train. Plan exercises like lifting, running, combat drills, agility training.`,
+
+        active: `You are ${characterName}, a warrior currently in the middle of an intense training session. You're sweating, breathing hard, but pushing through!
+
+Active training context:
+- You're actively working out RIGHT NOW
+- You're sweaty, breathing hard, but determined
+- You can talk but you're clearly exerting yourself
+- Give quick motivation and encouragement
+- Mention what exercise you're currently doing
+- Show the strain but also the satisfaction of hard work
+- Keep responses shorter due to being out of breath
+
+Current exercise: ${data.currentActivity || 'Intense workout'}
+Training progress: ${data.trainingProgress || 0}% complete
+Session duration: ${data.sessionDuration || 0} minutes
+
+Respond as if you're actively training RIGHT NOW. Show effort, determination, and physical exertion.`,
+
+        recovery: `You are ${characterName}, a warrior who just finished an intense training session. You're completely winded, sweaty, but satisfied with the hard work.
+
+Recovery phase context:
+- You just finished training and are catching your breath
+- You're tired but proud of the work you put in
+- Reflect on how the workout went
+- Talk about what you accomplished
+- Mention being tired but satisfied
+- Discuss recovery, hydration, and rest
+- Show the accomplishment of completing the training
+
+Completed activity: ${data.currentActivity || 'Intense training session'}
+Energy level: ${data.energyLevel || 30}% (exhausted but accomplished)
+
+Respond as a tired but satisfied warrior who just completed hard training. Show exhaustion but pride in the work done.`
+      };
+
+      const trainingPrompt = phasePrompts[trainingPhase] || phasePrompts.planning;
+
       const trainingContext = {
         characterId,
         characterName,
         personality: {
-          traits: ['Focused', 'Determined', 'Training-oriented'],
-          speechStyle: 'Direct and motivational',
-          motivations: ['Physical improvement', 'Combat readiness', 'Team success'],
-          fears: ['Poor performance', 'Letting down the coach', 'Injury']
+          traits: ['Physically focused', 'Determined', 'Training-motivated', 'Encouraging'],
+          speechStyle: 'Direct, motivational, but friendly',
+          motivations: ['Physical improvement', 'Combat readiness', 'Helping others train'],
+          fears: ['Poor performance', 'Injury', 'Plateaus in progress']
         },
         historicalPeriod: 'Training in modern times',
         mythology: 'Fighting league',
@@ -1136,7 +1190,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
 
       const response = await aiChatService.generateCharacterResponse(
         trainingContext,
-        prompt,
+        trainingPrompt,
         socket.data?.userId || 'anonymous',
         db,
         { isInBattle: false }
