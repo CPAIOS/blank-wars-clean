@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Dumbbell, Sword, Home, ShoppingBag,
@@ -229,7 +229,9 @@ export default function MainTabSystem() {
       };
     });
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     console.log('Progression - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
     
     return (
@@ -346,7 +348,9 @@ export default function MainTabSystem() {
       };
     });
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     console.log('Equipment - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
     
     // Handle equipment changes
@@ -495,7 +499,9 @@ export default function MainTabSystem() {
       };
     });
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     const currentTrainingPoints = characterAbilities[globalSelectedCharacterId]?.trainingPoints || (selectedCharacter.level * 2);
     
     return (
@@ -653,7 +659,8 @@ export default function MainTabSystem() {
           
           setAvailableCharacters(mappedCharacters);
         } catch (error) {
-          console.error('Failed to load characters:', error);
+          console.error('❌ Failed to load characters:', error);
+          console.error('❌ Error details:', error.response?.data || error.message);
         } finally {
           setCharactersLoading(false);
         }
@@ -662,7 +669,9 @@ export default function MainTabSystem() {
       loadCharacters();
     }, []);
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     
     return (
       <div className="space-y-6">
@@ -1002,51 +1011,54 @@ export default function MainTabSystem() {
       const loadCharacters = async () => {
         setCharactersLoading(true);
         try {
+          console.log('🔄 Loading characters from API...');
           const response = await characterAPI.getUserCharacters();
+          console.log('📊 API Response:', response);
           const characters = response.characters || [];
+          console.log('👥 Characters received:', characters.length);
           
           const mappedCharacters = characters.map((char: any) => {
-            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0];
             return {
               ...char,
               baseName,
-              displayBondLevel: char.bond_level || Math.floor((char.base_health || 80) / 10),
-              // Map database fields to component expectations
+              displayBondLevel: char.bond_level,
               baseStats: {
-                strength: char.base_attack || 70,
-                vitality: char.base_health || 80,
-                agility: char.base_speed || 70,
-                intelligence: char.base_special || 70,
-                wisdom: char.base_defense || 70,
-                charisma: char.bond_level || 5
+                strength: char.base_attack,
+                vitality: char.base_health,
+                agility: char.base_speed,
+                intelligence: char.base_special,
+                wisdom: char.base_defense,
+                charisma: char.bond_level
               },
               combatStats: {
-                health: char.current_health || char.base_health || 80,
-                maxHealth: char.max_health || char.base_health || 80,
-                attack: char.base_attack || 70,
-                defense: char.base_defense || 70,
-                speed: char.base_speed || 70,
-                criticalChance: 15,
-                accuracy: 85
+                health: char.current_health,
+                maxHealth: char.max_health,
+                attack: char.base_attack,
+                defense: char.base_defense,
+                speed: char.base_speed,
+                criticalChance: char.critical_chance,
+                accuracy: char.accuracy
               },
-              level: char.level || 1,
-              experience: char.experience || 0,
-              abilities: char.abilities || [],
-              archetype: char.archetype || 'warrior',
-              avatar: char.avatar_emoji || char.avatar || '⚔️',
-              name: char.name || 'Unknown Character',
+              level: char.level,
+              experience: char.experience,
+              abilities: char.abilities,
+              archetype: char.archetype,
+              avatar: char.avatar_emoji,
+              name: char.name,
               trainingBonuses: {
-                strength: Math.floor((char.level || 1) / 3),
-                defense: Math.floor((char.level || 1) / 4),
-                speed: Math.floor((char.level || 1) / 3.5),
-                special: Math.floor((char.level || 1) / 2.5)
+                strength: Math.floor(char.level / 3),
+                defense: Math.floor(char.level / 4),
+                speed: Math.floor(char.level / 3.5),
+                special: Math.floor(char.level / 2.5)
               }
             };
           });
           
           setAvailableCharacters(mappedCharacters);
         } catch (error) {
-          console.error('Failed to load characters:', error);
+          console.error('❌ Failed to load characters:', error);
+          console.error('❌ Error details:', error.response?.data || error.message);
         } finally {
           setCharactersLoading(false);
         }
@@ -1055,7 +1067,9 @@ export default function MainTabSystem() {
       loadCharacters();
     }, []);
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     
     return (
       <div className="space-y-6">

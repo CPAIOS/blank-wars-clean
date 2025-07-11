@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Heart, Star, User, Dumbbell, Zap, Target, Brain, Flame } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
@@ -185,7 +185,9 @@ export default function PersonalTrainerChat({
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
   
-  const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+  const selectedCharacter = useMemo(() => {
+    return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+  }, [availableCharacters, globalSelectedCharacterId]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -252,8 +254,13 @@ export default function PersonalTrainerChat({
   }, [messages]);
 
   // Generate quick messages based on conversation mode
-  const coachRecommendations = selectedCharacter ? generateCoachRecommendations(selectedCharacter) : [];
-  const exerciseOptions = selectedCharacter ? generateExerciseOptions(selectedCharacter) : [];
+  const coachRecommendations = useMemo(() => {
+    return selectedCharacter ? generateCoachRecommendations(selectedCharacter) : [];
+  }, [selectedCharacter]);
+  
+  const exerciseOptions = useMemo(() => {
+    return selectedCharacter ? generateExerciseOptions(selectedCharacter) : [];
+  }, [selectedCharacter]);
   
   // Handle exercise selection (switches to character training mode)
   const startExercise = (exercise: string) => {

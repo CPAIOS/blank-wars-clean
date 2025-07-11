@@ -23,7 +23,7 @@ export const paymentAPI = {
 
 export const characterAPI = {
   getUserCharacters: async () => {
-    const response = await apiClient.get('/characters');
+    const response = await apiClient.get('/user/characters');
     return response.data;
   },
 };

@@ -10,8 +10,8 @@ import { User, AuthRequest } from '../types';
 // Load environment variables
 config();
 
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '30d';
+const ACCESS_TOKEN_EXPIRY = '4h';
+const REFRESH_TOKEN_EXPIRY = '7d';
 const SALT_ROUNDS = 12;
 
 export class AuthService {

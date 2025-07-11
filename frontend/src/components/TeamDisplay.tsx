@@ -143,7 +143,7 @@ export default function TeamDisplay({
               ⚔️
             </motion.div>
             <h2 className="text-3xl font-bold text-white mb-2">Match {currentMatch}, Round {currentRound}</h2>
-            <p className="text-lg text-gray-300">{phase?.name?.replace('-', ' ').toUpperCase() || 'PREPARING'}</p>
+            <p className="text-lg text-gray-300">{phase.replace('_', ' ').toUpperCase()}</p>
             {(playerMatchWins > 0 || opponentMatchWins > 0 || playerRoundWins > 0 || opponentRoundWins > 0) && (
               <div className="mt-1">
                 <p className="text-lg text-yellow-300">Matches: Player {playerMatchWins} - {opponentMatchWins} Opponent</p>
