@@ -497,7 +497,7 @@ Respond as Argock would based on the current conversation mode.`,
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex ${message.type === 'player' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                  <div className={`max-w-[calc(100vw-8rem)] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                     message.type === 'player'
                       ? 'bg-green-600 text-white'
                       : message.type === 'character'
