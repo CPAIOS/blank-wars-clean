@@ -1212,10 +1212,10 @@ export default function MainTabSystem() {
       <div className="border-b border-gray-700 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4 w-full overflow-x-auto">
+            <div className="flex items-center gap-4 min-w-0">
               <button
                 onClick={() => setIsMainTabExpanded(!isMainTabExpanded)}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
               >
                 {isMainTabExpanded ? (
                   <ChevronDown className="w-5 h-5 text-gray-400" />
@@ -1224,25 +1224,27 @@ export default function MainTabSystem() {
                 )}
               </button>
               
-              <div className="flex gap-2 overflow-x-auto">
-                {mainTabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeMainTab === tab.id;
-                  
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveMainTab(tab.id);
-                        setActiveSubTab(tab.subTabs[0].id);
-                      }}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${getColorClasses(tab.color, isActive)}`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="font-semibold">{tab.label}</span>
-                    </button>
-                  );
-                })}
+              <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
+                <div className="flex gap-2">
+                  {mainTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeMainTab === tab.id;
+                    
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setActiveMainTab(tab.id);
+                          setActiveSubTab(tab.subTabs[0].id);
+                        }}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all flex-shrink-0 ${getColorClasses(tab.color, isActive)}`}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span className="font-semibold">{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
