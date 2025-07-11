@@ -1277,7 +1277,7 @@ export default function MainTabSystem() {
                 )}
               </button>
               
-              <div className="flex gap-2">
+              <div className="flex gap-2 overflow-x-auto">
                 {mainTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeMainTab === tab.id;
