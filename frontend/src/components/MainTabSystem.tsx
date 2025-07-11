@@ -1263,9 +1263,9 @@ export default function MainTabSystem() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* Main Tab Navigation */}
       <div className="border-b border-gray-700 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 w-full overflow-x-auto">
               <button
                 onClick={() => setIsMainTabExpanded(!isMainTabExpanded)}
                 className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
