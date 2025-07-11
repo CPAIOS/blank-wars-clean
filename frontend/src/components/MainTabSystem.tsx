@@ -30,12 +30,14 @@ import AbilityManager from './AbilityManager';
 import MembershipSelection from './MembershipSelection';
 import TrainingFacilitySelector from './TrainingFacilitySelector';
 import RealEstateAgentChat from './RealEstateAgentChat';
+import FacilitiesManager from './FacilitiesManager';
 import SkillTree from './SkillTree';
 import AICoach from './AICoach';
 import PersonalTrainerChat from './PersonalTrainerChat';
 import CharacterDatabase from './CharacterDatabase';
 // CoachingInterface is lazy-loaded below
 import TeamManagementCoaching from './TeamManagementCoaching';
+import TherapyModule from './TherapyModule';
 import IndividualSessionsWrapper from './IndividualSessionsWrapper';
 import TeamBuildingWrapper from './TeamBuildingWrapper';
 import GroupActivitiesWrapper from './GroupActivitiesWrapper';
@@ -1145,7 +1147,6 @@ export default function MainTabSystem() {
       color: 'amber',
       subTabs: [
         { id: 'overview', label: 'Team Base', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space and facilities' },
-        { id: 'facilities', label: 'Facilities', icon: Building, component: FacilitiesManagerWrapper, description: 'Manage team facilities and upgrades' },
       ]
     },
     {
@@ -1198,6 +1199,7 @@ export default function MainTabSystem() {
       subTabs: [
         { id: 'profile', label: 'Profile', icon: User, component: CoachProgressionPage, description: 'View your coach profile and progression' },
         { id: 'team-management', label: 'Team Management', icon: Shield, component: TeamManagementCoaching, description: 'Handle team conflicts, strategy reviews, and leadership decisions' },
+        { id: 'therapy', label: 'Therapy', icon: Brain, component: TherapyModule, description: 'Individual and group therapy sessions with legendary therapists' },
         { id: 'individual-sessions', label: 'Individual Sessions', icon: MessageCircle, component: IndividualSessionsWrapper, description: 'One-on-one coaching with team members' },
         { id: 'team-building', label: 'Team Building', icon: Users, component: TeamBuildingWrapper, description: 'Organize dinners, retreats, and activities' },
         { id: 'group-activities', label: 'Group Activities', icon: Activity, component: GroupActivitiesWrapper, description: 'Game nights and group therapy sessions' },

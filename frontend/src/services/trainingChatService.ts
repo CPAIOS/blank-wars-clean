@@ -120,8 +120,8 @@ export class TrainingChatService {
 
     const conversationId = `training_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Generate training-specific prompt
-    const prompt = TrainingPromptTemplateService.generateTrainingPrompt({
+    // Generate training-specific prompt using existing service
+    const prompt = PromptTemplateService.generateTrainingPrompt({
       character: {
         name: character.name,
         title: character.title || '',

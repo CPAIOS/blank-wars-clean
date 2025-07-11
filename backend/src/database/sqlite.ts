@@ -536,8 +536,8 @@ const seedCharacters = async (): Promise<void> => {
     },
     {
       id: 'alien_grey',
-      name: 'Zyx-9',
-      title: 'The Cosmic Observer',
+      name: 'Zeta Reticulan',
+      title: 'Cosmic Manipulator',
       archetype: 'mystic',
       origin_era: 'Modern UFO Mythology',
       rarity: 'rare',

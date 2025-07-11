@@ -83,65 +83,72 @@ export default function TrainingGrounds({
   selectedCharacter: globalCharacter, 
   availableCharacters 
 }: TrainingGroundsProps) {
-  // Convert global character to training character format
-  const selectedCharacter: Character = React.useMemo(() => {
-    if (!globalCharacter) {
-      // Fallback to first available character if none selected
-      const fallback = availableCharacters[0];
-      if (!fallback) {
-        const level = 12;
-        const levelData = getLevelData(level);
-        const baseStats = getBaseStatsForLevel(level, 'warrior');
-        
-        return {
-          id: 'achilles',
-          name: 'Achilles',
-          level,
-          xp: 2400,
-          xpToNext: levelData?.xpToNext || 800,
-          hp: baseStats.hp,
-          maxHp: baseStats.hp,
-          atk: baseStats.atk,
-          def: baseStats.def,
-          spd: baseStats.spd,
-          energy: 75,
-          maxEnergy: 100,
-          avatar: '⚔️',
-          archetype: 'warrior',
-          trainingBonuses: {
-            strength: 5,
-            defense: 3,
-            speed: 4,
-            special: 2
-          }
-        };
-      }
-      globalCharacter = fallback;
+  // Convert global character to training character format and make it state
+  const createTrainingCharacter = (characterToUse: any): Character => {
+    if (!characterToUse) {
+      // Create default character if no characters available
+      const level = 12;
+      const levelData = getLevelData(level);
+      const baseStats = getBaseStatsForLevel(level, 'warrior');
+      
+      return {
+        id: 'achilles',
+        name: 'Achilles',
+        level,
+        xp: 2400,
+        xpToNext: levelData?.xpToNext || 800,
+        hp: baseStats.hp,
+        maxHp: baseStats.hp,
+        atk: baseStats.atk,
+        def: baseStats.def,
+        spd: baseStats.spd,
+        energy: 75,
+        maxEnergy: 100,
+        avatar: '⚔️',
+        archetype: 'warrior',
+        trainingBonuses: {
+          strength: 5,
+          defense: 3,
+          speed: 4,
+          special: 2
+        }
+      };
     }
     
     // Convert from global character format to training character format
     return {
-      id: globalCharacter.baseName || globalCharacter.id,
-      name: globalCharacter.name,
-      level: globalCharacter.level,
-      xp: globalCharacter.experience?.currentXP || 0,
-      xpToNext: globalCharacter.experience?.xpToNextLevel || 1000,
-      hp: globalCharacter.combatStats?.health || globalCharacter.baseStats?.vitality * 10 || 200,
-      maxHp: globalCharacter.combatStats?.maxHealth || globalCharacter.baseStats?.vitality * 10 || 200,
-      atk: globalCharacter.combatStats?.attack || globalCharacter.baseStats?.strength || 50,
-      def: globalCharacter.combatStats?.defense || globalCharacter.baseStats?.vitality || 40,
-      spd: globalCharacter.combatStats?.speed || globalCharacter.baseStats?.agility || 60,
-      energy: globalCharacter.energy || 75,
-      maxEnergy: globalCharacter.maxEnergy || 100,
-      avatar: globalCharacter?.avatar || '⚔️',
-      archetype: globalCharacter.archetype,
+      id: characterToUse.baseName || characterToUse.id,
+      name: characterToUse.name,
+      level: characterToUse.level,
+      xp: characterToUse.experience?.currentXP || 0,
+      xpToNext: characterToUse.experience?.xpToNextLevel || 1000,
+      hp: characterToUse.combatStats?.health || characterToUse.baseStats?.vitality * 10 || 200,
+      maxHp: characterToUse.combatStats?.maxHealth || characterToUse.baseStats?.vitality * 10 || 200,
+      atk: characterToUse.combatStats?.attack || characterToUse.baseStats?.strength || 50,
+      def: characterToUse.combatStats?.defense || characterToUse.baseStats?.vitality || 40,
+      spd: characterToUse.combatStats?.speed || characterToUse.baseStats?.agility || 60,
+      energy: characterToUse.energy || 75,
+      maxEnergy: characterToUse.maxEnergy || 100,
+      avatar: characterToUse?.avatar || '⚔️',
+      archetype: characterToUse.archetype,
       trainingBonuses: {
-        strength: Math.floor(globalCharacter.level / 3),
-        defense: Math.floor(globalCharacter.level / 4),
-        speed: Math.floor(globalCharacter.level / 3.5),
-        special: Math.floor(globalCharacter.level / 2.5)
+        strength: Math.floor(characterToUse.level / 3),
+        defense: Math.floor(characterToUse.level / 4),
+        speed: Math.floor(characterToUse.level / 3.5),
+        special: Math.floor(characterToUse.level / 2.5)
       }
     };
+  };
+
+  const [selectedCharacter, setSelectedCharacter] = useState<Character>(() => {
+    const characterToUse = globalCharacter || availableCharacters[0];
+    return createTrainingCharacter(characterToUse);
+  });
+
+  // Update selected character when global character changes
+  useEffect(() => {
+    const characterToUse = globalCharacter || availableCharacters[0];
+    setSelectedCharacter(createTrainingCharacter(characterToUse));
   }, [globalCharacter, availableCharacters]);
 
   const [isTraining, setIsTraining] = useState(false);
@@ -537,7 +544,12 @@ export default function TrainingGrounds({
       // Get user ID from auth context (you'll need to implement this)
       const userId = 'user123'; // Replace with actual user ID from auth context
       
-      // Load the training system manager
+      // Load the training system manager - ensure client-side only
+      if (typeof window === 'undefined') {
+        console.warn('Training attempted during SSR, skipping');
+        return;
+      }
+      
       const trainingManager = TrainingSystemManager.loadProgress();
       
       // Start training with usage tracking following battle service pattern
@@ -575,27 +587,8 @@ export default function TrainingGrounds({
     }
   };
 
-  // Training timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isTraining && trainingTimeLeft > 0) {
-      interval = setInterval(() => {
-        setTrainingTimeLeft(prev => {
-          const newTime = prev - 1;
-          setTrainingProgress(((currentActivity?.duration || 0) - newTime) / (currentActivity?.duration || 1) * 100);
-          return newTime;
-        });
-      }, 1000);
-    } else if (trainingTimeLeft === 0 && isTraining) {
-      completeTraining();
-    }
-    
-    return () => clearInterval(interval);
-  }, [isTraining, trainingTimeLeft, completeTraining, currentActivity?.duration]);
-
   // Complete training
-  const completeTraining = () => {
+  const completeTraining = React.useCallback(() => {
     if (!currentActivity) return;
     
     // Apply membership multipliers
@@ -660,7 +653,26 @@ export default function TrainingGrounds({
     setIsTraining(false);
     setCurrentActivity(null);
     setTrainingProgress(0);
-  };
+  }, [currentActivity, membershipTier, selectedFacility]);
+
+  // Training timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isTraining && trainingTimeLeft > 0) {
+      interval = setInterval(() => {
+        setTrainingTimeLeft(prev => {
+          const newTime = prev - 1;
+          setTrainingProgress(((currentActivity?.duration || 0) - newTime) / (currentActivity?.duration || 1) * 100);
+          return newTime;
+        });
+      }, 1000);
+    } else if (trainingTimeLeft === 0 && isTraining) {
+      completeTraining();
+    }
+    
+    return () => clearInterval(interval);
+  }, [isTraining, trainingTimeLeft, completeTraining, currentActivity?.duration]);
 
   // Stop training early
   const stopTraining = () => {
@@ -787,32 +799,8 @@ export default function TrainingGrounds({
         </p>
       </div>
 
-      {/* Character Selection */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Select Character for Training
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {availableCharacters.map((character) => (
-            <button
-              key={character.baseName}
-              onClick={() => setGlobalSelectedCharacterId(character.baseName)}
-              className={`p-3 rounded-lg border transition-all text-center ${
-                globalSelectedCharacterId === character.baseName
-                  ? 'border-orange-500 bg-orange-500/20 text-white'
-                  : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
-              }`}
-            >
-              <div className="text-2xl mb-1">{character.avatar}</div>
-              <div className="text-sm font-medium">{character.name}</div>
-              <div className="text-xs text-gray-400">Level {character.level}</div>
-            </button>
-          ))}
-        </div>
-      </div>
 
-      <div className="grid lg:grid-cols-4 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Character Info Panel */}
         <div className="lg:col-span-1">
           <motion.div 
@@ -972,7 +960,7 @@ export default function TrainingGrounds({
         </div>
 
         {/* Training Activities */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-1">
           <motion.div 
             className="bg-gray-900/50 rounded-xl border border-gray-700 p-6"
             initial={{ opacity: 0, y: 20 }}

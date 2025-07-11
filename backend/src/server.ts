@@ -1115,7 +1115,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
       console.log('🤖 Training AI Request:', {
         characterId,
         characterName,
-        userMessage: userMessage.substring(0, 50) + '...'
+        userMessage: userMessage ? userMessage.substring(0, 50) + '...' : 'No message'
       });
 
       // Use existing AI chat service with training-specific context
@@ -1178,7 +1178,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
       
       console.log('🤖 Real Estate AI Request:', {
         agentId,
-        userMessage: userMessage.substring(0, 50) + '...'
+        userMessage: userMessage ? userMessage.substring(0, 50) + '...' : 'No message'
       });
 
       // Use existing AI chat service with real estate context
@@ -1197,6 +1197,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         previousMessages: context?.conversationHistory || []
       };
 
+      console.log('🔄 Calling aiChatService.generateCharacterResponse with context:', realEstateContext);
       const response = await aiChatService.generateCharacterResponse(
         realEstateContext,
         userMessage,
@@ -1204,6 +1205,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         db,
         { isInBattle: false }
       );
+      console.log('✅ AI Response generated successfully:', response.message.substring(0, 100) + '...');
 
       socket.emit('real_estate_agent_response', {
         agentId,
@@ -1229,6 +1231,8 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
 
     } catch (error) {
       console.error('❌ Real Estate Chat Error:', error);
+      console.error('❌ Error details:', (error as Error).message);
+      console.error('❌ Error stack:', (error as Error).stack);
       socket.emit('real_estate_agent_response', {
         error: 'Failed to generate response. Please try again.'
       });
