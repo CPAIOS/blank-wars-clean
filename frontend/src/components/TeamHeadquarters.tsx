@@ -1042,7 +1042,7 @@ export default function TeamHeadquarters() {
                 <img 
                   src="/images/kitchen-table.png" 
                   alt="Blank Wars Kitchen Table"
-                  className="w-64 h-48 object-cover rounded-lg border border-amber-600/50 shadow-lg mx-auto mb-3"
+                  className="w-full max-w-xs h-48 object-cover rounded-lg border border-amber-600/50 shadow-lg mx-auto mb-3"
                 />
                 <div className="text-gray-300 text-sm">The show's main set - where legends become roommates and drama unfolds</div>
                 <div className="text-amber-400 text-xs mt-1">All {availableCharacters.length} fighters available for kitchen conversations</div>
