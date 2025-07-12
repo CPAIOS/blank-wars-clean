@@ -109,7 +109,7 @@ export default function TeamDisplay({
                   </div>
                 )}
               </div>
-              {phase?.name === 'battle-cry' && battleCries.player1 && character.id === player1.id && (
+              {phase === 'battle-cry' && battleCries.player1 && character.id === player1.id && (
                 <motion.div
                   className="mt-2 p-2 bg-blue-600/30 rounded-lg"
                   initial={{ scale: 0 }}
@@ -188,7 +188,7 @@ export default function TeamDisplay({
                   </div>
                 )}
               </div>
-              {phase?.name === 'battle-cry' && battleCries.player2 && character.id === player2.id && (
+              {phase === 'battle-cry' && battleCries.player2 && character.id === player2.id && (
                 <motion.div
                   className="mt-2 p-2 bg-red-600/30 rounded-lg"
                   initial={{ scale: 0 }}

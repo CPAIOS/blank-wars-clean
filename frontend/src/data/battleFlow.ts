@@ -30,7 +30,14 @@ export type BattlePhase =
   | 'combat' 
   | 'coaching_timeout' 
   | 'post_battle' 
-  | 'battle_complete';
+  | 'battle_complete'
+  | 'matchmaking'
+  | 'strategy-selection'
+  | 'pre-battle'
+  | 'round-combat'
+  | 'round-end'
+  | 'battle-end'
+  | 'battle-cry';
 
 export interface BattleTeam {
   characters: BattleCharacter[];

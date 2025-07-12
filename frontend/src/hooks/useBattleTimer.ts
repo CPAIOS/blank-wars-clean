@@ -29,7 +29,7 @@ export const useBattleTimer = ({
     
     // Auto-select random strategies when timer expires or proceed with current selections
     actions.setIsTimerActive(false);
-    if (phase === 'strategy-selection' || phase?.name === 'strategy-selection') {
+    if (phase === 'strategy-selection') {
       const finalStrategies = { ...selectedStrategies };
       
       // Auto-select missing strategies (AI chooses)

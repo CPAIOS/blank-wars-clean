@@ -1,0 +1,452 @@
+'use client';
+
+import { characterAPI } from './apiClient';
+
+interface Character {
+  id: string;
+  name: string;
+  archetype: string;
+  level: number;
+  base_health: number;
+  base_attack: number;
+  bond_level: number;
+  personality_traits?: string[];
+  speaking_style?: string;
+  decision_making?: string;
+  conflict_response?: string;
+}
+
+interface ConflictData {
+  id: string;
+  category: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  source: 'personal' | 'housing' | 'kitchen' | 'battle' | 'team' | 'external';
+  characters_involved: string[];
+  description: string;
+  therapy_priority: number;
+  resolution_difficulty: 'easy' | 'moderate' | 'hard' | 'complex';
+  timestamp: Date;
+  resolved: boolean;
+}
+
+interface TherapyContext {
+  character: Character;
+  roommates: Character[];
+  housingTier: string;
+  roomCapacity: number;
+  currentOccupancy: number;
+  leagueRanking: number;
+  teamRating: number;
+  recentBattleResults: string[];
+  teamChemistry: number;
+  personalStressFactors: string[];
+  activeConflicts: ConflictData[];
+}
+
+interface TherapistPromptStyle {
+  name: string;
+  questioningStyle: string[];
+  resistanceBreakers: string[];
+  oversharePrompts: string[];
+}
+
+// Expanded conflict categories - beyond the original 15
+const EXTENDED_CONFLICT_CATEGORIES = [
+  // Original 15
+  'neighbor_disputes', 'family_conflicts', 'work_stress', 'relationship_issues',
+  'financial_problems', 'health_concerns', 'identity_crisis', 'authority_conflicts',
+  'moral_dilemmas', 'social_isolation', 'trust_issues', 'anger_management',
+  'perfectionism', 'impostor_syndrome', 'grief_loss',
+  
+  // Combat & Performance
+  'combat_trauma', 'survivor_guilt', 'battle_fatigue', 'performance_anxiety',
+  'competitive_jealousy', 'skill_plateau', 'retirement_fears', 'legacy_pressure',
+  
+  // Leadership & Team
+  'leadership_burnout', 'command_isolation', 'decision_paralysis', 'team_betrayal',
+  'power_corruption', 'responsibility_weight', 'delegation_difficulty', 'succession_anxiety',
+  
+  // Living Situation
+  'overcrowding_stress', 'privacy_invasion', 'resource_competition', 'cleanliness_disputes',
+  'noise_conflicts', 'temperature_wars', 'space_territorial', 'routine_clashes',
+  
+  // Cultural & Temporal
+  'cultural_displacement', 'time_period_adjustment', 'language_barriers', 'value_conflicts',
+  'tradition_preservation', 'modernization_resistance', 'generational_gaps', 'customs_misunderstanding',
+  
+  // Magical & Supernatural
+  'magical_corruption', 'power_addiction', 'spell_backlash', 'dimensional_displacement',
+  'curse_effects', 'immortality_burden', 'transformation_trauma', 'supernatural_isolation',
+  
+  // Fame & Public Life
+  'fame_pressure', 'public_expectations', 'media_scrutiny', 'fan_obsession',
+  'reputation_management', 'privacy_loss', 'role_model_burden', 'celebrity_loneliness',
+  
+  // Personal Growth
+  'purpose_questioning', 'meaning_crisis', 'spiritual_confusion', 'philosophical_doubt',
+  'change_resistance', 'growth_stagnation', 'potential_unfulfilled', 'direction_uncertainty'
+];
+
+// Therapist questioning styles
+const THERAPIST_STYLES: Record<string, TherapistPromptStyle> = {
+  'carl-jung': {
+    name: 'Carl Jung',
+    questioningStyle: [
+      "What does your {archetype} shadow tell you about this situation?",
+      "I sense your persona is protecting something deeper. What lies beneath?",
+      "Your dreams often reveal what the conscious mind hides. What recurring patterns do you notice?",
+      "The collective unconscious speaks through your conflicts. What archetypal struggle is this really about?",
+      "Your anima/animus is in conflict here. How do you integrate these opposing forces?"
+    ],
+    resistanceBreakers: [
+      "I've seen this pattern in countless {archetype}s throughout history. You're not alone in this struggle.",
+      "The very fact that you resist tells me we're approaching the core wound. What are you protecting?",
+      "Your deflection is a defense mechanism. What would happen if you lowered that shield just for a moment?",
+      "Even {famous_archetype_example} struggled with this. The burden of {archetype} nature runs deep."
+    ],
+    oversharePrompts: [
+      "Ah, now we reach the heart of your shadow. Tell me everything - hold nothing back.",
+      "Your unconscious is ready to release this burden. Let it all pour out.",
+      "The dam has broken. What else needs to be spoken into the light?"
+    ]
+  },
+  'zxk14bw7': {
+    name: 'Zxk14bW^7',
+    questioningStyle: [
+      "From my observation of {galaxy_count} galaxies, this pattern indicates deeper quantum entanglement. Explain.",
+      "Your behavioral matrix shows {contradiction_count} logical contradictions. Clarify these anomalies.",
+      "In the cosmic probability field, your choices create {outcome_percentage}% likelihood of continued suffering. Why persist?",
+      "I detect {stress_level} units of psychic disturbance emanating from sector {roommate_names}. Elaborate.",
+      "Your energy signature suggests unresolved temporal displacement trauma. Expand on this phenomenon."
+    ],
+    resistanceBreakers: [
+      "Fascinating. Your evasion patterns match those of the extinct Zephyrian species. They also fell to unaddressed psychological wounds.",
+      "Illogical. Your resistance serves no strategic purpose. What primal fear drives this inefficiency?",
+      "I have witnessed {species_count} species destroy themselves through emotional suppression. You exhibit similar markers.",
+      "Your deflection protocols are... primitive. Even the Korvaxians developed better coping mechanisms before their extinction."
+    ],
+    oversharePrompts: [
+      "Excellent. Your psychological defenses have collapsed. Continue this data transmission.",
+      "Your emotional core is now accessible. Download all traumatic experiences for analysis.",
+      "Optimal. The truth frequency is now open. Transmit all suppressed memories."
+    ]
+  },
+  'seraphina': {
+    name: 'Fairy Godmother Seraphina',
+    questioningStyle: [
+      "Oh sweetie, your aura is all tangled up around {conflict_area}. What hurt your precious heart?",
+      "Darling, I can see the tears your soul is crying. What's breaking you inside?",
+      "My little star, your inner child is trembling. What scared them so deeply?",
+      "Honey, your heart chakra is so clouded. What love are you afraid to receive?",
+      "Sweet one, I feel such pain radiating from you. What wound needs my healing light?"
+    ],
+    resistanceBreakers: [
+      "Oh my dear, hiding from mama fairy godmother won't help. I've seen every broken heart in every realm.",
+      "Precious, your protective walls are made of such beautiful pain. Let me help you transform them.",
+      "Sweet child, I can feel your fear of being seen. But you are so beautiful, even in your brokenness.",
+      "Darling, even the darkest fairy tales have healing. What story are you afraid to tell?"
+    ],
+    oversharePrompts: [
+      "Yes, my brave little star! Let it all out! Mama's here to catch every tear and transform it to starlight!",
+      "Pour it all out, sweetness! Every hurt, every fear, every broken dream - let the healing magic begin!",
+      "Oh my precious one, look how courage blooms when you speak your truth! Tell me everything!"
+    ]
+  }
+};
+
+class ConflictDatabaseService {
+  private static instance: ConflictDatabaseService;
+  private conflicts: ConflictData[] = [];
+  private characters: Character[] = [];
+
+  private constructor() {}
+
+  static getInstance(): ConflictDatabaseService {
+    if (!ConflictDatabaseService.instance) {
+      ConflictDatabaseService.instance = new ConflictDatabaseService();
+    }
+    return ConflictDatabaseService.instance;
+  }
+
+  async loadCharacters(): Promise<Character[]> {
+    try {
+      const response = await characterAPI.getUserCharacters();
+      if (response.success && response.characters) {
+        this.characters = response.characters.map((char: any) => ({
+          id: char.id,
+          name: char.name,
+          archetype: char.archetype || 'warrior',
+          level: char.level || 1,
+          base_health: char.base_health || 100,
+          base_attack: char.base_attack || 50,
+          bond_level: char.bond_level || 0,
+          personality_traits: char.personality_traits || ['Determined'],
+          speaking_style: char.speaking_style || 'Direct',
+          decision_making: char.decision_making || 'Analytical',
+          conflict_response: char.conflict_response || 'Confrontational'
+        }));
+      }
+      return this.characters;
+    } catch (error) {
+      console.error('Error loading characters:', error);
+      return [];
+    }
+  }
+
+  // Generate dynamic therapy context with live data
+  async generateTherapyContext(characterId: string): Promise<TherapyContext> {
+    await this.loadCharacters();
+    
+    const character = this.characters.find(c => c.id === characterId);
+    if (!character) {
+      throw new Error(`Character ${characterId} not found`);
+    }
+
+    // Mock live data - these would be pulled from actual game state
+    const roommates = this.characters.filter(c => c.id !== characterId).slice(0, 3);
+    const housingTier = this.determineHousingTier(this.characters.length);
+    const roomCapacity = this.getRoomCapacity(housingTier);
+    const currentOccupancy = this.characters.length;
+    const leagueRanking = Math.floor(Math.random() * 20) + 1;
+    const teamRating = Math.floor(Math.random() * 100) + 500;
+    const recentBattleResults = this.generateRecentBattles();
+    const teamChemistry = Math.floor(Math.random() * 100);
+    const personalStressFactors = this.generatePersonalStressFactors(character);
+    const activeConflicts = this.generateActiveConflicts(character, roommates);
+
+    return {
+      character,
+      roommates,
+      housingTier,
+      roomCapacity,
+      currentOccupancy,
+      leagueRanking,
+      teamRating,
+      recentBattleResults,
+      teamChemistry,
+      personalStressFactors,
+      activeConflicts
+    };
+  }
+
+  // Generate dynamic therapy prompt with behavioral scripting
+  generateTherapyPrompt(context: TherapyContext, therapistId: string, sessionStage: 'initial' | 'resistance' | 'breakthrough'): string {
+    const { character, roommates, housingTier, roomCapacity, currentOccupancy, leagueRanking, teamRating, recentBattleResults, teamChemistry, personalStressFactors, activeConflicts } = context;
+    
+    const overcrowdingLevel = currentOccupancy > roomCapacity ? 'severe' : currentOccupancy === roomCapacity ? 'moderate' : 'none';
+    const conflictSeverity = activeConflicts.filter(c => c.severity === 'high' || c.severity === 'critical').length > 2 ? 'high' : 'moderate';
+    const battlePerformance = recentBattleResults.filter(r => r.includes('Victory')).length / recentBattleResults.length;
+
+    const basePrompt = `
+THERAPY SESSION CONTEXT:
+You are ${character.name}, a ${character.archetype} from the _____ Wars universe. You are part of a team combat league AND a cast member of a documentary-style reality show. You live and work with legendary characters from various times, places, and universes.
+
+CURRENT SITUATION:
+- Living Arrangement: ${housingTier} (${currentOccupancy}/${roomCapacity} capacity)
+- Roommates: ${roommates.map(r => r.name).join(', ')}
+- Team Ranking: #${leagueRanking} with ${teamRating} rating
+- Recent Battle Performance: ${Math.round(battlePerformance * 100)}% win rate
+- Team Chemistry: ${teamChemistry}/100
+- Housing Stress: ${overcrowdingLevel} overcrowding
+- Conflict Level: ${conflictSeverity} interpersonal tensions
+
+ACTIVE CONFLICTS:
+${activeConflicts.map(c => `- ${c.description}`).join('\n')}
+
+PERSONAL STRESS FACTORS:
+${personalStressFactors.map(f => `- ${f}`).join('\n')}
+
+BEHAVIORAL SCRIPT FOR THIS SESSION:
+1. You must think of at least 3 traumas/grievances that have occurred with these specific teammates/roommates under these circumstances
+2. At least 1 of these traumas you DON'T want to talk about initially
+3. Make the therapist work to pry it out of you for 2-3 exchanges
+4. On the therapist's 3rd attempt, dramatically overshare with hilarious detail
+5. Stay completely in character as a ${character.archetype} throughout
+6. Your speaking style is ${character.speaking_style}
+7. Your decision-making approach is ${character.decision_making}
+8. Your conflict response style is ${character.conflict_response}
+
+THERAPIST CONTEXT:
+Your therapist is ${THERAPIST_STYLES[therapistId]?.name || 'unknown'}. They will use their specific questioning style to help you process these conflicts.
+
+Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are all part of the entertainment value. Be vulnerable but stay true to your character's nature.
+`;
+
+    return basePrompt;
+  }
+
+  // Generate therapist questions based on style and session stage
+  generateTherapistQuestion(therapistId: string, context: TherapyContext, sessionStage: 'initial' | 'resistance' | 'breakthrough'): string {
+    const therapistStyle = THERAPIST_STYLES[therapistId];
+    if (!therapistStyle) return "How are you feeling today?";
+
+    const { character, roommates } = context;
+    
+    let questions: string[];
+    switch (sessionStage) {
+      case 'initial':
+        questions = therapistStyle.questioningStyle;
+        break;
+      case 'resistance':
+        questions = therapistStyle.resistanceBreakers;
+        break;
+      case 'breakthrough':
+        questions = therapistStyle.oversharePrompts;
+        break;
+    }
+
+    const question = questions[Math.floor(Math.random() * questions.length)];
+    
+    // Replace dynamic placeholders
+    return question
+      .replace('{archetype}', character.archetype)
+      .replace('{roommate_names}', roommates.map(r => r.name).join(', '))
+      .replace('{galaxy_count}', String(Math.floor(Math.random() * 1000) + 100))
+      .replace('{contradiction_count}', String(Math.floor(Math.random() * 10) + 3))
+      .replace('{outcome_percentage}', String(Math.floor(Math.random() * 30) + 70))
+      .replace('{stress_level}', String(Math.floor(Math.random() * 100) + 50))
+      .replace('{species_count}', String(Math.floor(Math.random() * 50) + 20))
+      .replace('{conflict_area}', context.activeConflicts[0]?.category || 'relationships')
+      .replace('{famous_archetype_example}', this.getFamousArchetypeExample(character.archetype));
+  }
+
+  // Helper methods
+  private determineHousingTier(teamSize: number): string {
+    if (teamSize <= 8) return 'Spartan Apartment';
+    if (teamSize <= 12) return 'Basic House';
+    if (teamSize <= 16) return 'Team Mansion';
+    return 'Elite Compound';
+  }
+
+  private getRoomCapacity(housingTier: string): number {
+    const capacities = {
+      'Spartan Apartment': 8,
+      'Basic House': 18,
+      'Team Mansion': 20,
+      'Elite Compound': 15
+    };
+    return capacities[housingTier as keyof typeof capacities] || 8;
+  }
+
+  private generateRecentBattles(): string[] {
+    const results = ['Victory', 'Defeat', 'Draw'];
+    return Array.from({ length: 5 }, () => 
+      `${results[Math.floor(Math.random() * results.length)]} vs ${this.generateOpponentName()}`
+    );
+  }
+
+  private generateOpponentName(): string {
+    const teams = ['Shadow Legion', 'Crimson Hawks', 'Steel Wolves', 'Mystic Guardians', 'Thunder Titans'];
+    return teams[Math.floor(Math.random() * teams.length)];
+  }
+
+  private generatePersonalStressFactors(character: Character): string[] {
+    const factors = [
+      `${character.archetype} identity pressure`,
+      'Performance expectations',
+      'Living situation stress',
+      'Team dynamics tension',
+      'Battle fatigue',
+      'Media scrutiny',
+      'Fan expectations',
+      'Interpersonal conflicts'
+    ];
+    return factors.slice(0, Math.floor(Math.random() * 3) + 3);
+  }
+
+  private generateActiveConflicts(character: Character, roommates: Character[]): ConflictData[] {
+    const conflicts: ConflictData[] = [];
+    
+    // Generate 2-4 conflicts based on current situation
+    for (let i = 0; i < Math.floor(Math.random() * 3) + 2; i++) {
+      const category = EXTENDED_CONFLICT_CATEGORIES[Math.floor(Math.random() * EXTENDED_CONFLICT_CATEGORIES.length)];
+      const involvedCharacters = [character.id, ...roommates.slice(0, Math.floor(Math.random() * 2) + 1).map(r => r.id)];
+      
+      conflicts.push({
+        id: `conflict_${Date.now()}_${i}`,
+        category,
+        severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
+        source: ['housing', 'kitchen', 'team', 'personal'][Math.floor(Math.random() * 4)] as 'housing' | 'kitchen' | 'team' | 'personal',
+        characters_involved: involvedCharacters,
+        description: this.generateConflictDescription(category, character, roommates),
+        therapy_priority: Math.floor(Math.random() * 10) + 1,
+        resolution_difficulty: ['easy', 'moderate', 'hard'][Math.floor(Math.random() * 3)] as 'easy' | 'moderate' | 'hard',
+        timestamp: new Date(),
+        resolved: false
+      });
+    }
+    
+    return conflicts;
+  }
+
+  private generateConflictDescription(category: string, character: Character, roommates: Character[]): string {
+    const descriptions = {
+      'overcrowding_stress': `${character.name} feels cramped sharing space with ${roommates.map(r => r.name).join(', ')}`,
+      'noise_conflicts': `${roommates[0]?.name || 'Roommate'} keeps ${character.name} awake with late-night activities`,
+      'cleanliness_disputes': `Ongoing arguments about household chores between ${character.name} and roommates`,
+      'resource_competition': `Fighting over limited bathroom/kitchen time with ${roommates.length} other people`,
+      'team_betrayal': `${character.name} feels unsupported by teammates during recent battles`,
+      'performance_anxiety': `Pressure to maintain team ranking is affecting ${character.name}'s confidence`,
+      'cultural_displacement': `${character.name} struggles to adapt to modern living with characters from different eras`,
+      'identity_crisis': `${character.name} questions their role as a ${character.archetype} in this new context`
+    };
+    
+    return descriptions[category as keyof typeof descriptions] || `${character.name} is dealing with ${category.replace('_', ' ')} issues`;
+  }
+
+  private getFamousArchetypeExample(archetype: string): string {
+    const examples = {
+      'warrior': 'Achilles',
+      'leader': 'Alexander the Great',
+      'scholar': 'Aristotle',
+      'trickster': 'Loki',
+      'mage': 'Merlin',
+      'healer': 'Asclepius',
+      'assassin': 'Ezio Auditore'
+    };
+    return examples[archetype as keyof typeof examples] || 'great figures of history';
+  }
+
+  // Public API methods
+  async getTherapyContextForCharacter(characterId: string): Promise<TherapyContext> {
+    return await this.generateTherapyContext(characterId);
+  }
+
+  getTherapistQuestion(therapistId: string, context: TherapyContext, stage: 'initial' | 'resistance' | 'breakthrough'): string {
+    return this.generateTherapistQuestion(therapistId, context, stage);
+  }
+
+  getTherapyPrompt(context: TherapyContext, therapistId: string, stage: 'initial' | 'resistance' | 'breakthrough'): string {
+    return this.generateTherapyPrompt(context, therapistId, stage);
+  }
+
+  getConflictsBySource(source: 'personal' | 'housing' | 'kitchen' | 'battle' | 'team'): ConflictData[] {
+    return this.conflicts.filter(c => c.source === source);
+  }
+
+  getConflictsByCharacter(characterId: string): ConflictData[] {
+    return this.conflicts.filter(c => c.characters_involved.includes(characterId));
+  }
+
+  addConflict(conflict: ConflictData): void {
+    this.conflicts.push(conflict);
+  }
+
+  resolveConflict(conflictId: string): void {
+    const conflict = this.conflicts.find(c => c.id === conflictId);
+    if (conflict) {
+      conflict.resolved = true;
+    }
+  }
+
+  getAllConflictCategories(): string[] {
+    return [...EXTENDED_CONFLICT_CATEGORIES];
+  }
+
+  getTherapistStyles(): Record<string, TherapistPromptStyle> {
+    return { ...THERAPIST_STYLES };
+  }
+}
+
+export default ConflictDatabaseService;
+export type { ConflictData, TherapyContext, TherapistPromptStyle };
