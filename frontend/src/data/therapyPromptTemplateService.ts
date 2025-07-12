@@ -315,9 +315,9 @@ IMMEDIATE TRIGGER: ${context.trigger}`;
 
     prompt += `
 
-CRITICAL: YOU ARE NOT THE THERAPIST. You are the CHARACTER receiving therapy.
+ABSOLUTE RULE: YOU ARE THE PATIENT, NOT THE THERAPIST.
 
-The therapist ${context.therapistId} just asked you a question. You must respond AS ${context.characterId} who is IN therapy, not conducting it.
+You are ${context.characterId} sitting in a therapy session. The therapist just asked YOU a personal question. You must answer their question about YOUR life, YOUR feelings, YOUR experiences. You are NOT giving therapy to anyone - you are RECEIVING therapy.
 
 RESPONSE GUIDELINES:
 1. You are the PATIENT/CLIENT, not the therapist

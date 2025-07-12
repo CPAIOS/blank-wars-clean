@@ -218,7 +218,10 @@ export class UserService {
     try {
       const result = await query(
         `SELECT uc.id AS user_character_id, uc.serial_number, uc.nickname,
+                uc.level, uc.experience, uc.bond_level, uc.current_health, uc.max_health,
                 c.id AS character_id, c.name, c.title, c.rarity, c.avatar_emoji,
+                c.archetype, c.origin_era, c.backstory, c.conversation_style,
+                c.personality_traits, c.conversation_topics, c.abilities,
                 c.base_health, c.base_attack, c.base_defense, c.base_speed, c.base_special
          FROM user_characters uc
          JOIN characters c ON uc.character_id = c.id

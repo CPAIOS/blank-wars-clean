@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { Character } from '../data/characters';
 import { PromptTemplateService } from './promptTemplateService';
+import ConflictDatabaseService from '../services/ConflictDatabaseService';
 
 interface KitchenChatContext {
   character: Character;
@@ -30,11 +31,17 @@ interface KitchenConversation {
   }[];
 }
 
+// Global conversation storage that persists across Fast Refresh rebuilds
+const globalConversations = new Map<string, KitchenConversation>();
+
 export class KitchenChatService {
   private socket: Socket | null = null;
-  private activeConversations: Map<string, KitchenConversation> = new Map();
+  private activeConversations: Map<string, KitchenConversation> = globalConversations; // Use persistent storage
+  private conflictService: ConflictDatabaseService;
 
   constructor() {
+    console.warn('🔥 NEW KITCHEN CHAT SERVICE CREATED WITH CONFLICT DETECTION!');
+    this.conflictService = ConflictDatabaseService.getInstance();
     this.initializeSocket();
   }
 
@@ -113,6 +120,16 @@ export class KitchenChatService {
 
     return new Promise((resolve, reject) => {
       const conversationId = `kitchen_${Date.now()}_${context.character.id}`;
+      
+      // Store conversation for conflict tracking
+      const conversation: KitchenConversation = {
+        id: conversationId,
+        initiator: context.character.id,
+        trigger: trigger,
+        responses: []
+      };
+      this.activeConversations.set(conversationId, conversation);
+      console.warn('🔥 CONVERSATION CREATED:', conversationId, 'Total conversations:', this.activeConversations.size);
       
       // Send request to backend
       const requestData = {
@@ -286,6 +303,10 @@ export class KitchenChatService {
    * Handle conversation responses from backend
    */
   private handleConversationResponse(data: any) {
+    console.warn('🔥 RESPONSE HANDLER: Looking for conversation:', data.conversationId);
+    console.warn('🔥 RESPONSE HANDLER: Active conversations count:', this.activeConversations.size);
+    console.warn('🔥 RESPONSE HANDLER: Active conversation IDs:', Array.from(this.activeConversations.keys()));
+    
     const conversation = this.activeConversations.get(data.conversationId);
     if (conversation) {
       conversation.responses.push({
@@ -293,6 +314,239 @@ export class KitchenChatService {
         message: data.message,
         timestamp: new Date()
       });
+
+      console.warn('🔥 CONFLICT CHECK: About to analyze message for conflicts:', data.message.substring(0, 100));
+      // Detect and track conflicts from the AI response
+      this.detectAndTrackConflicts(data.message, data.characterId, conversation);
+    } else {
+      console.warn('🔥 ERROR: No conversation found for:', data.conversationId);
+      console.warn('🔥 ERROR: Available conversations:', Array.from(this.activeConversations.keys()));
+    }
+  }
+
+  /**
+   * Detect conflicts in kitchen chat responses and add them to ConflictDatabaseService
+   */
+  private detectAndTrackConflicts(message: string, characterId: string, conversation: KitchenConversation) {
+    try {
+      console.warn('🔥 CONFLICT ANALYSIS: Analyzing message for conflicts:', { message: message.substring(0, 100), characterId });
+      const conflicts = this.extractConflictsFromMessage(message, characterId, conversation);
+      console.warn('🔥 CONFLICT RESULT: Found conflicts:', conflicts.length);
+      
+      for (const conflict of conflicts) {
+        console.log('🔥 Detected kitchen conflict:', conflict);
+        
+        // Create ConflictData object matching the expected interface
+        const conflictData = {
+          id: `kitchen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          category: conflict.category,
+          severity: conflict.severity as 'low' | 'medium' | 'high' | 'critical',
+          source: 'kitchen' as const,
+          characters_involved: [conflict.characterId, ...conflict.involvedCharacters],
+          description: conflict.description,
+          therapy_priority: this.calculateTherapyPriority(conflict.severity, conflict.category),
+          resolution_difficulty: this.calculateResolutionDifficulty(conflict.category, conflict.severity),
+          timestamp: new Date(),
+          resolved: false
+        };
+        
+        this.conflictService.addConflict(conflictData);
+      }
+    } catch (error) {
+      console.error('❌ Error tracking conflicts:', error);
+    }
+  }
+
+  /**
+   * Extract conflicts from AI response message using pattern matching and sentiment analysis
+   */
+  private extractConflictsFromMessage(message: string, characterId: string, conversation: KitchenConversation): Array<{
+    characterId: string;
+    category: string;
+    description: string;
+    source: string;
+    severity: 'low' | 'medium' | 'high';
+    involvedCharacters: string[];
+  }> {
+    const conflicts = [];
+    const lowerMessage = message.toLowerCase();
+
+    // Define conflict patterns with their categories and severity
+    const conflictPatterns = [
+      // Direct confrontation patterns
+      {
+        patterns: ['argue', 'arguing', 'fight', 'fighting', 'yell', 'yelling', 'shout', 'shouting'],
+        category: 'interpersonal_conflict',
+        severity: 'high' as const
+      },
+      // Disagreement patterns
+      {
+        patterns: ['disagree', 'disagree', 'wrong', 'stupid', 'annoying', 'irritating'],
+        category: 'personality_clash',
+        severity: 'medium' as const
+      },
+      // Living situation conflicts
+      {
+        patterns: ['space', 'room', 'bathroom', 'kitchen', 'noise', 'loud', 'messy', 'clean'],
+        category: 'living_conditions',
+        severity: 'medium' as const
+      },
+      // Food/resource conflicts
+      {
+        patterns: ['food', 'eat', 'hungry', 'share', 'mine', 'yours', 'steal', 'took'],
+        category: 'resource_competition',
+        severity: 'low' as const
+      },
+      // Sleep/schedule conflicts
+      {
+        patterns: ['sleep', 'tired', 'wake', 'early', 'late', 'quiet', 'disturb'],
+        category: 'schedule_conflict',
+        severity: 'low' as const
+      },
+      // Relationship tensions
+      {
+        patterns: ['hate', 'dislike', 'avoid', 'ignore', 'annoyed', 'frustrated'],
+        category: 'relationship_tension',
+        severity: 'medium' as const
+      }
+    ];
+
+    // Check for conflict patterns
+    for (const patternGroup of conflictPatterns) {
+      for (const pattern of patternGroup.patterns) {
+        if (lowerMessage.includes(pattern)) {
+          // Extract characters mentioned in the message
+          const involvedCharacters = this.extractMentionedCharacters(message, conversation);
+          
+          conflicts.push({
+            characterId,
+            category: patternGroup.category,
+            description: `Kitchen conflict detected: ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`,
+            source: 'kitchen',
+            severity: this.adjustSeverityByContext(patternGroup.severity, message, conversation),
+            involvedCharacters
+          });
+          break; // Don't double-count the same conflict category
+        }
+      }
+    }
+
+    // Check for emotional language that indicates conflict
+    const emotionalIntensifiers = ['really', 'very', 'extremely', 'so', 'too', 'always', 'never'];
+    const hasIntensifiers = emotionalIntensifiers.some(word => lowerMessage.includes(word));
+    
+    // Check for negative emotions
+    const negativeEmotions = ['angry', 'mad', 'furious', 'upset', 'annoyed', 'irritated', 'frustrated'];
+    const hasNegativeEmotions = negativeEmotions.some(emotion => lowerMessage.includes(emotion));
+
+    if (hasNegativeEmotions && conflicts.length === 0) {
+      // Detected emotional language but no specific conflict - general tension
+      conflicts.push({
+        characterId,
+        category: 'emotional_tension',
+        description: `Emotional tension detected: ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`,
+        source: 'kitchen',
+        severity: hasIntensifiers ? 'medium' : 'low',
+        involvedCharacters: this.extractMentionedCharacters(message, conversation)
+      });
+    }
+
+    return conflicts;
+  }
+
+  /**
+   * Extract character names mentioned in the message
+   */
+  private extractMentionedCharacters(message: string, conversation: KitchenConversation): string[] {
+    // This is a simplified version - in a full implementation, you'd want to:
+    // 1. Have access to all character names in the system
+    // 2. Use more sophisticated name extraction
+    // 3. Handle nicknames and variations
+    
+    const mentioned = [];
+    const commonNames = ['dracula', 'tesla', 'joan', 'merlin', 'achilles', 'genghis', 'cleopatra', 'alien', 'fenrir'];
+    
+    for (const name of commonNames) {
+      if (message.toLowerCase().includes(name)) {
+        mentioned.push(name);
+      }
+    }
+    
+    return mentioned;
+  }
+
+  /**
+   * Adjust conflict severity based on context
+   */
+  private adjustSeverityByContext(baseSeverity: 'low' | 'medium' | 'high', message: string, conversation: KitchenConversation): 'low' | 'medium' | 'high' {
+    const lowerMessage = message.toLowerCase();
+    
+    // Escalation indicators
+    const escalationWords = ['extremely', 'really', 'very', 'so', 'absolutely', 'definitely'];
+    const hasEscalation = escalationWords.some(word => lowerMessage.includes(word));
+    
+    // Violence indicators
+    const violenceWords = ['kill', 'murder', 'destroy', 'break', 'smash', 'hit'];
+    const hasViolence = violenceWords.some(word => lowerMessage.includes(word));
+    
+    if (hasViolence) return 'high';
+    if (hasEscalation && baseSeverity === 'medium') return 'high';
+    if (hasEscalation && baseSeverity === 'low') return 'medium';
+    
+    return baseSeverity;
+  }
+
+  /**
+   * Calculate therapy priority based on severity and category
+   */
+  private calculateTherapyPriority(severity: string, category: string): number {
+    let basePriority = 0;
+    
+    // Severity-based priority
+    switch (severity) {
+      case 'high': basePriority = 80; break;
+      case 'medium': basePriority = 50; break;
+      case 'low': basePriority = 20; break;
+      default: basePriority = 30;
+    }
+    
+    // Category-based adjustments
+    switch (category) {
+      case 'interpersonal_conflict': basePriority += 20; break;
+      case 'relationship_tension': basePriority += 15; break;
+      case 'personality_clash': basePriority += 10; break;
+      case 'living_conditions': basePriority += 5; break;
+      case 'emotional_tension': basePriority += 5; break;
+      default: basePriority += 0;
+    }
+    
+    return Math.min(100, basePriority);
+  }
+
+  /**
+   * Calculate resolution difficulty based on category and severity
+   */
+  private calculateResolutionDifficulty(category: string, severity: string): 'easy' | 'moderate' | 'hard' | 'complex' {
+    const isHighSeverity = severity === 'high';
+    const isMediumSeverity = severity === 'medium';
+    
+    switch (category) {
+      case 'interpersonal_conflict':
+        return isHighSeverity ? 'complex' : isMediumSeverity ? 'hard' : 'moderate';
+      case 'relationship_tension':
+        return isHighSeverity ? 'hard' : isMediumSeverity ? 'moderate' : 'easy';
+      case 'personality_clash':
+        return isHighSeverity ? 'hard' : 'moderate';
+      case 'living_conditions':
+        return isMediumSeverity ? 'moderate' : 'easy';
+      case 'resource_competition':
+        return 'easy';
+      case 'schedule_conflict':
+        return 'easy';
+      case 'emotional_tension':
+        return isHighSeverity ? 'moderate' : 'easy';
+      default:
+        return 'moderate';
     }
   }
 
@@ -327,7 +581,7 @@ export class KitchenChatService {
     console.log('🔍 Checking socket connection status...');
     console.log('🔍 Socket exists:', !!this.socket);
     console.log('🔍 Socket connected:', this.socket?.connected);
-    console.log('🔍 Socket connecting:', this.socket?.connecting);
+    console.log('🔍 Socket disconnected:', this.socket?.disconnected);
     
     if (this.socket?.connected) {
       console.log('✅ Already connected');
@@ -362,5 +616,5 @@ export class KitchenChatService {
   }
 }
 
-// Export singleton instance
+// Export singleton instance with conflict detection v2
 export const kitchenChatService = new KitchenChatService();
