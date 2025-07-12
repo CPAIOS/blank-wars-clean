@@ -154,7 +154,7 @@ app.post('/api/confessional-interview', async (req, res) => {
 
 🎬 BLANK WARS SHOW CONTEXT:
 - Gladiator-style tournament with famous warriors/legends from history
-- All contestants live together in cramped ${context.livingConditions.name || context.livingConditions} quarters
+- All contestants live together in cramped ${context.livingConditions?.name || context.livingConditions} quarters
 - Constant drama over beds, bathroom time, food, privacy
 - Everyone's competing for prize money and trying to avoid elimination
 - Alliances form and break - trust is rare
@@ -337,6 +337,7 @@ io.use((socket, next) => {
 // Socket.io handlers with battle system integration
 io.on('connection', async (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
+  console.log(`📡 Total connected clients: ${io.sockets.sockets.size}`);
   
   // Send immediate connection confirmation
   socket.emit('connection_established', { 
@@ -1096,9 +1097,300 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
     }
   });
 
-  // Training chat AI conversations
+  // Multi-Agent Training Chat Helper Functions
+  
+  // Determine which agents should participate in the conversation
+  function determineActiveAgents(userMessage: string, trainingPhase: string, isCharacterSelection: boolean): string[] {
+    const activeAgents: string[] = [];
+    
+    // Character selection auto-triggers Argock analysis
+    if (isCharacterSelection) {
+      activeAgents.push('argock');
+      return activeAgents;
+    }
+    
+    // Planning phase: Both agents can participate
+    if (trainingPhase === 'planning') {
+      // Determine based on message content or random for dynamic interaction
+      if (userMessage.toLowerCase().includes('argock') || userMessage.toLowerCase().includes('trainer')) {
+        activeAgents.push('argock');
+      } else if (Math.random() < 0.3) { // 30% chance Argock interjects
+        activeAgents.push('argock');
+      }
+      activeAgents.push('character'); // Character always responds
+    }
+    
+    // Active phase: Both agents participate for dynamic motivation
+    else if (trainingPhase === 'active') {
+      if (Math.random() < 0.4) { // 40% chance both respond during training
+        activeAgents.push('argock');
+      }
+      activeAgents.push('character');
+    }
+    
+    // Recovery phase: Character leads, Argock gives advice
+    else if (trainingPhase === 'recovery') {
+      activeAgents.push('character');
+      if (Math.random() < 0.5) { // 50% chance Argock gives recovery advice
+        activeAgents.push('argock');
+      }
+    }
+    
+    return activeAgents;
+  }
+
+  // Generate responses from multiple agents with live AI calls
+  async function generateMultiAgentResponses(params: {
+    activeAgents: string[];
+    characterName: string;
+    characterId: string;
+    userMessage: string;
+    trainingPhase: string;
+    currentActivity?: string;
+    energyLevel: number;
+    trainingProgress: number;
+    sessionDuration: number;
+    isCharacterSelection: boolean;
+    userId: string;
+  }): Promise<Array<{agentType: string; agentName: string; message: string; timestamp: string}>> {
+    
+    const responses: Array<{agentType: string; agentName: string; message: string; timestamp: string}> = [];
+    
+    // Generate Argock response if active
+    if (params.activeAgents.includes('argock')) {
+      try {
+        console.log('🏋️ Generating Argock response...');
+        const argockResponse = await generateArgockResponse(params);
+        console.log('✅ Argock response generated:', argockResponse.substring(0, 50) + '...');
+        responses.push({
+          agentType: 'argock',
+          agentName: 'Argock',
+          message: argockResponse,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('❌ Argock response error:', error);
+      }
+    }
+    
+    // Generate Character response if active
+    if (params.activeAgents.includes('character')) {
+      try {
+        console.log('🏋️ Generating Character response...');
+        const characterResponse = await generateCharacterResponse(params, responses);
+        console.log('✅ Character response generated:', characterResponse.substring(0, 50) + '...');
+        responses.push({
+          agentType: 'character',
+          agentName: params.characterName,
+          message: characterResponse,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('❌ Character response error:', error);
+      }
+    }
+    
+    return responses;
+  }
+
+  // Generate Argock (Personal Trainer) response with live AI call
+  async function generateArgockResponse(params: {
+    characterName: string;
+    userMessage: string;
+    trainingPhase: string;
+    currentActivity?: string;
+    energyLevel: number;
+    trainingProgress: number;
+    isCharacterSelection: boolean;
+    userId: string;
+  }): Promise<string> {
+    
+    let argockPrompt = '';
+    
+    if (params.isCharacterSelection) {
+      // Auto-analysis when character is selected
+      argockPrompt = `You are ARGOCK, a gruff, no-nonsense personal trainer in a fighting league gym. ${params.characterName} just walked into your gym and you need to give the Coach (user) your immediate assessment and training recommendations.
+
+ARGOCK'S PERSONALITY:
+- Gruff, direct, and brutally honest
+- Experienced trainer who's seen it all
+- Calls people out on their weaknesses
+- Gives specific, actionable training advice
+- Uses gym slang and tough-love motivation
+- Addresses the COACH directly (not the character)
+
+CHARACTER ANALYSIS TARGET: ${params.characterName}
+SITUATION: This character just entered your gym for training
+
+Your immediate assessment to the Coach should include:
+- Quick physical assessment of ${params.characterName}
+- Specific training recommendations 
+- Areas that need immediate work
+- What exercises they should focus on
+- Your honest opinion about their potential
+
+Respond directly to the Coach with your gruff trainer assessment. Keep it under 2 sentences. Make each response unique and specific to ${params.characterName}. Current time: ${new Date().toLocaleTimeString()} - generate a completely fresh, dynamic assessment each time.`;
+    
+    } else {
+      // Regular training conversation
+      const phaseContext = {
+        planning: `You're helping plan ${params.characterName}'s workout. Give specific exercise recommendations to the Coach.`,
+        active: `${params.characterName} is training RIGHT NOW (${params.trainingProgress}% complete). Give motivational coaching advice to push them harder!`,
+        recovery: `${params.characterName} just finished training and is exhausted (${params.energyLevel}% energy). Give recovery advice and assessment of the workout.`
+      };
+
+      const conversationId = Math.random().toString(36).substr(2, 9);
+      
+      argockPrompt = `You are ARGOCK, the gruff personal trainer. The Coach said: "${params.userMessage}"
+
+CURRENT SITUATION:
+- Training Phase: ${params.trainingPhase}
+- ${phaseContext[params.trainingPhase as keyof typeof phaseContext]}
+- Current Activity: ${params.currentActivity || 'Planning'}
+- ${params.characterName}'s Energy: ${params.energyLevel}%
+- Conversation ID: ${conversationId} (make each response unique)
+- Time: ${new Date().toLocaleTimeString()}
+
+ARGOCK'S RESPONSE STYLE:
+- Always address the COACH directly
+- Be gruff but helpful
+- Give specific training advice
+- Use tough-love motivation
+- Keep responses under 2 sentences
+- Reference the character in third person
+- Generate fresh, dynamic responses each time
+
+Respond as Argock talking to the Coach:`;
+    }
+
+    const argockContext = {
+      characterId: 'argock',
+      characterName: 'Argock',
+      personality: {
+        traits: ['Gruff', 'Experienced', 'No-nonsense', 'Motivational'],
+        speechStyle: 'Direct, tough-love, gym trainer slang',
+        motivations: ['Getting results', 'Proper training form', 'Building champions'],
+        fears: ['Wasted potential', 'Poor training habits', 'Quitters']
+      },
+      historicalPeriod: 'Modern gym trainer',
+      mythology: 'Fighting league personal trainer',
+      currentBondLevel: 3,
+      previousMessages: []
+    };
+
+    const response = await aiChatService.generateCharacterResponse(
+      argockContext,
+      argockPrompt,
+      params.userId,
+      db,
+      { isInBattle: false }
+    );
+
+    return response.message;
+  }
+
+  // Generate Character response with live AI call (aware of other agents)
+  async function generateCharacterResponse(params: {
+    characterName: string;
+    characterId: string;
+    userMessage: string;
+    trainingPhase: string;
+    currentActivity?: string;
+    energyLevel: number;
+    trainingProgress: number;
+    sessionDuration: number;
+    userId: string;
+  }, previousResponses: Array<{agentType: string; agentName: string; message: string}>): Promise<string> {
+    
+    // Phase-specific prompts for the character
+    const phasePrompts = {
+      planning: `You are ${params.characterName}, planning your workout. You're excited and ready to train hard.
+
+CONTEXT:
+- Energy Level: ${params.energyLevel}% (fresh and ready)
+- Planned Activity: ${params.currentActivity || 'Workout planning'}
+- You're discussing training plans with your Coach
+
+Show enthusiasm for training and ask about specific exercises or goals.`,
+
+      active: `You are ${params.characterName}, actively training RIGHT NOW! You're sweating and working hard.
+
+CONTEXT:
+- Training Progress: ${params.trainingProgress}% complete
+- Current Exercise: ${params.currentActivity || 'Intense workout'}
+- Session Duration: ${params.sessionDuration} minutes
+- Energy Level: ${params.energyLevel}% (working hard!)
+
+You're breathing hard but pushing through. Keep responses shorter due to exertion.`,
+
+      recovery: `You are ${params.characterName}, just finished an intense training session. You're winded but accomplished.
+
+CONTEXT:
+- Completed Activity: ${params.currentActivity || 'Training session'}
+- Energy Level: ${params.energyLevel}% (exhausted but satisfied)
+- Session Duration: ${params.sessionDuration} minutes
+
+You're tired but proud of the work. Reflect on the training session.`
+    };
+
+    // Add context about other agents' responses for AI-to-AI interaction
+    let agentContext = '';
+    if (previousResponses.length > 0) {
+      const argockResponse = previousResponses.find(r => r.agentType === 'argock');
+      if (argockResponse) {
+        agentContext = `\n\nARGOCK JUST SAID: "${argockResponse.message}"\nYou can respond to Argock's comment or training advice if relevant.`;
+      }
+    }
+
+    const characterConversationId = Math.random().toString(36).substr(2, 9);
+    
+    const characterPrompt = `${phasePrompts[params.trainingPhase as keyof typeof phasePrompts]}
+
+COACH MESSAGE: "${params.userMessage}"${agentContext}
+
+DYNAMIC CONTEXT:
+- Conversation ID: ${characterConversationId} (ensure unique response)
+- Current time: ${new Date().toLocaleTimeString()}
+- Generate fresh, authentic responses as ${params.characterName}
+
+Respond as ${params.characterName} in this training situation. Keep it conversational and under 2 sentences. Make each response unique and true to your character.`;
+
+    const characterContext = {
+      characterId: params.characterId,
+      characterName: params.characterName,
+      personality: {
+        traits: ['Physically focused', 'Determined', 'Training-motivated'],
+        speechStyle: 'Direct, motivational, warrior-like',
+        motivations: ['Physical improvement', 'Combat readiness', 'Glory'],
+        fears: ['Poor performance', 'Weakness', 'Defeat']
+      },
+      historicalPeriod: 'Historical warrior in modern gym',
+      mythology: 'Fighting league',
+      currentBondLevel: 5,
+      previousMessages: []
+    };
+
+    const response = await aiChatService.generateCharacterResponse(
+      characterContext,
+      characterPrompt,
+      params.userId,
+      db,
+      { isInBattle: false }
+    );
+
+    return response.message;
+  }
+
+  // Multi-Agent Training Chat System - Live AI-to-AI Interactions
   socket.on('training_chat_request', async (data) => {
-    console.log('🏋️ TRAINING CHAT REQUEST:', data.conversationId, 'from socket:', socket.id);
+    console.log('🏋️🏋️🏋️ NEW MULTI-AGENT HANDLER TRIGGERED 🏋️🏋️🏋️');
+    console.log('🏋️ MULTI-AGENT TRAINING CHAT REQUEST RECEIVED:', {
+      conversationId: data.conversationId,
+      socketId: socket.id,
+      characterName: data.characterName,
+      isCharacterSelection: data.isCharacterSelection,
+      trainingPhase: data.trainingPhase
+    });
     
     // Rate limit training chat (max 30 per minute)
     if (!checkEventRateLimit('training_chat', 30)) {
@@ -1110,103 +1402,89 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
     }
 
     try {
-      const { conversationId, characterId, characterName, prompt, userMessage, maxTokens } = data;
+      const { 
+        conversationId, 
+        characterId, 
+        characterName, 
+        userMessage, 
+        trainingPhase = 'planning',
+        currentActivity,
+        energyLevel = 100,
+        trainingProgress = 0,
+        sessionDuration = 0,
+        isCharacterSelection = false
+      } = data;
       
-      console.log('🤖 Training AI Request:', {
+      console.log('🤖 Multi-Agent Training Request:', {
         characterId,
         characterName,
+        trainingPhase,
+        isCharacterSelection,
         userMessage: userMessage ? userMessage.substring(0, 50) + '...' : 'No message'
       });
 
-      // Dynamic training prompt based on phase
-      const trainingPhase = data.trainingPhase || 'planning';
-      
-      const phasePrompts = {
-        planning: `You are ${characterName}, a warrior preparing for an intense training session. You're excited and focused on planning your workout. 
+      console.log('🔍 Checking isCharacterSelection:', isCharacterSelection, typeof isCharacterSelection);
 
-Planning phase context:
-- Discuss what exercises you want to do today
-- Talk about your goals and what you want to improve
-- Ask about equipment and workout plans
-- Show enthusiasm for the upcoming training
-- Mention any areas you want to focus on (strength, speed, endurance)
-- Be eager and ready to work hard
+      // TEMPORARY: Send immediate test response to verify socket connection
+      if (isCharacterSelection === true) {
+        console.log('🧪 Character selection detected, sending test response...');
+        console.log('🎯 Character name:', characterName);
+        console.log('🎯 Training phase:', trainingPhase);
+        socket.emit('training_chat_response', {
+          conversationId,
+          multiAgentResponse: {
+            agents: [
+              {
+                agentType: 'argock',
+                agentName: 'Argock',
+                message: `Coach! ${characterName} just walked in. Let's see what this warrior is made of! Time for some serious training.`,
+                timestamp: new Date().toISOString()
+              }
+            ],
+            timestamp: new Date().toISOString(),
+            trainingPhase
+          }
+        });
+        console.log('📤 Test response sent successfully for character selection');
+        return;
+      }
 
-Current focus: ${data.currentActivity || 'Planning the perfect workout'}
-Energy level: ${data.energyLevel || 100}% (fresh and ready)
+      // Determine which agents should respond
+      const activeAgents = determineActiveAgents(userMessage, trainingPhase, isCharacterSelection);
+      console.log('🎯 Active agents determined:', activeAgents);
 
-Respond as an excited warrior ready to train. Plan exercises like lifting, running, combat drills, agility training.`,
-
-        active: `You are ${characterName}, a warrior currently in the middle of an intense training session. You're sweating, breathing hard, but pushing through!
-
-Active training context:
-- You're actively working out RIGHT NOW
-- You're sweaty, breathing hard, but determined
-- You can talk but you're clearly exerting yourself
-- Give quick motivation and encouragement
-- Mention what exercise you're currently doing
-- Show the strain but also the satisfaction of hard work
-- Keep responses shorter due to being out of breath
-
-Current exercise: ${data.currentActivity || 'Intense workout'}
-Training progress: ${data.trainingProgress || 0}% complete
-Session duration: ${data.sessionDuration || 0} minutes
-
-Respond as if you're actively training RIGHT NOW. Show effort, determination, and physical exertion.`,
-
-        recovery: `You are ${characterName}, a warrior who just finished an intense training session. You're completely winded, sweaty, but satisfied with the hard work.
-
-Recovery phase context:
-- You just finished training and are catching your breath
-- You're tired but proud of the work you put in
-- Reflect on how the workout went
-- Talk about what you accomplished
-- Mention being tired but satisfied
-- Discuss recovery, hydration, and rest
-- Show the accomplishment of completing the training
-
-Completed activity: ${data.currentActivity || 'Intense training session'}
-Energy level: ${data.energyLevel || 30}% (exhausted but accomplished)
-
-Respond as a tired but satisfied warrior who just completed hard training. Show exhaustion but pride in the work done.`
-      };
-
-      const trainingPrompt = phasePrompts[trainingPhase] || phasePrompts.planning;
-
-      const trainingContext = {
-        characterId,
+      // Generate responses from multiple agents with live AI calls
+      console.log('🤖 Starting multi-agent response generation...');
+      const agentResponses = await generateMultiAgentResponses({
+        activeAgents,
         characterName,
-        personality: {
-          traits: ['Physically focused', 'Determined', 'Training-motivated', 'Encouraging'],
-          speechStyle: 'Direct, motivational, but friendly',
-          motivations: ['Physical improvement', 'Combat readiness', 'Helping others train'],
-          fears: ['Poor performance', 'Injury', 'Plateaus in progress']
-        },
-        historicalPeriod: 'Training in modern times',
-        mythology: 'Fighting league',
-        currentBondLevel: 5,
-        previousMessages: []
-      };
-
-      const response = await aiChatService.generateCharacterResponse(
-        trainingContext,
-        trainingPrompt,
-        socket.data?.userId || 'anonymous',
-        db,
-        { isInBattle: false }
-      );
-
-      socket.emit('training_chat_response', {
-        conversationId,
-        characterResponse: {
-          characterId,
-          message: response.message,
-          timestamp: new Date().toISOString()
-        }
+        characterId,
+        userMessage,
+        trainingPhase,
+        currentActivity,
+        energyLevel,
+        trainingProgress,
+        sessionDuration,
+        isCharacterSelection,
+        userId: socket.data?.userId || 'anonymous'
       });
 
+      console.log('✅ Multi-agent responses generated:', agentResponses.length, 'responses');
+
+      // Send multi-agent response
+      socket.emit('training_chat_response', {
+        conversationId,
+        multiAgentResponse: {
+          agents: agentResponses,
+          timestamp: new Date().toISOString(),
+          trainingPhase
+        }
+      });
+      
+      console.log('📤 Multi-agent response sent to frontend');
+
     } catch (error) {
-      console.error('🏋️ Training chat error:', error);
+      console.error('🏋️ Multi-agent training chat error:', error);
       socket.emit('training_chat_response', {
         conversationId: data.conversationId,
         error: `Training chat service error: ${error instanceof Error ? error.message : String(error)}`,

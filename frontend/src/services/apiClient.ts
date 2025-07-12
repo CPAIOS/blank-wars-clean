@@ -23,7 +23,18 @@ export const paymentAPI = {
 
 export const characterAPI = {
   getUserCharacters: async () => {
+    console.log('🔄 [characterAPI] Making request to:', '/user/characters');
+    console.log('🔄 [characterAPI] Base URL:', apiClient.defaults.baseURL);
     const response = await apiClient.get('/user/characters');
+    console.log('🔄 [characterAPI] Response status:', response.status);
+    console.log('🔄 [characterAPI] Response data:', response.data);
+    return response.data;
+  },
+};
+
+export const realEstateAPI = {
+  sendMessage: async (context: any) => {
+    const response = await apiClient.post('/headquarters/real-estate-chat', context);
     return response.data;
   },
 };

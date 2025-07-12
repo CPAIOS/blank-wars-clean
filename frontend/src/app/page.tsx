@@ -127,13 +127,13 @@ function HomePageContent() {
           className="max-w-4xl mx-auto space-y-8 mb-20"
         >
           <h1 className="text-6xl md:text-7xl font-extrabold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-orange-400 to-red-500 drop-shadow-lg">
-            Can you win the battle before your team loses their minds?
+            A Game of AI Strategy, Psychology, Danger, and ______.
           </h1>
           <h2 className="text-3xl md:text-4xl font-semibold text-gray-200 drop-shadow-md">
-            Welcome to <span className="font-bold text-purple-400">_____ Wars: The Reality Show</span>
+            Welcome to <span className="font-bold text-purple-400">_____ Wars: A documentary-style reality show about characters from _____ time, place, universe or lore, living, training, and fighting together in an epic team deathmatch competition.</span>
           </h2>
           <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            Coach a team of legendary figures and fantastical beings as they live, train, and fight for survival in the ultimate team combat challenge.
+            Master unpredictable combat, uncomfortable circumstances, and personality clashes to keep your team together and vanquish your enemies.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
@@ -178,10 +178,10 @@ function HomePageContent() {
           className="max-w-5xl mx-auto p-8 bg-gray-900/70 rounded-xl shadow-2xl border border-gray-700 backdrop-blur-sm mb-20"
         >
           <h3 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-red-500 drop-shadow-lg">
-            It's Not Just a Battle, It's a Show!
+            It's Not Just a Battle, it’s Great Television!
           </h3>
           <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-8">
-            Step into the world of <span className="font-bold text-purple-300">_____ Wars</span>, a groundbreaking mockumentary-style reality show where the cameras never stop rolling. You'll follow a diverse cast of characters – from ancient legends to fantastical beings – as they navigate the brutal arena and the even more brutal confines of their shared living quarters.
+            Over 10 unique chat experiences in formats ranging from one-on-one coaching to group therapy. Hang around the kitchen table long enough and you can’t help but get caught up in a conflict as historic myths and legends squabble over petty chores and grievances. Take a peak into the confessional or head on over to the Clubhouse for a chance to catch some live, unscripted trash talking from dynamic AI characters.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center">
@@ -192,12 +192,12 @@ function HomePageContent() {
             <div className="flex flex-col items-center">
               <Tv className="w-16 h-16 text-blue-400 mb-4" />
               <h4 className="text-2xl font-bold text-white mb-2">Life-or-Death Stakes</h4>
-              <p className="text-gray-400">Every battle in the arena carries real consequences. Your characters aren't just fighting for glory; they're fighting for their very existence on the show.</p>
+              <p className="text-gray-400">Every battle in the arena carries real consequences. Your characters aren't just playing for glory; they’re modern day gladiators, fighting for their very lives.</p>
             </div>
             <div className="flex flex-col items-center">
               <Drama className="w-16 h-16 text-green-400 mb-4" />
               <h4 className="text-2xl font-bold text-white mb-2">Your Role: The Coach</h4>
-              <p className="text-gray-400">As their coach, you'll manage their training, mediate their disputes, and guide their strategies. But beware: their psychological state is as crucial as their combat skills.</p>
+              <p className="text-400">As their coach you set strategy, manage training, mediate disputes, and help steer your characters through storms in their personal lives.</p>
             </div>
           </div>
         </motion.section>
@@ -211,7 +211,7 @@ function HomePageContent() {
           className="max-w-6xl mx-auto p-8 bg-gray-900/70 rounded-xl shadow-2xl border border-gray-700 backdrop-blur-sm mb-20"
         >
           <h3 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-500 drop-shadow-lg">
-            Your Team, Your Drama
+            A Team of Characters from _____ = Endless Possible Hilarious Combos
           </h3>
           <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-12">
             Assemble an unforgettable cast from across history, myth, and imagination. Each character brings unique skills, personalities, and a whole lot of baggage to the show.
@@ -257,7 +257,9 @@ function HomePageContent() {
             Beyond the Battlefield
           </h3>
           <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-12">
-            _____ Wars offers a unique blend of strategic combat and reality show management. Master these key features to lead your team to victory and stardom.
+            _____ Wars offers a unique blend of strategic combat and
+    conflict management. Master these key features to lead your team
+     to victory and stardom.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -290,7 +292,9 @@ function HomePageContent() {
             Hostmaster's Orientation
           </h3>
           <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-8">
-            New to the show? Let the enigmatic Hostmaster guide you through the rules of the Arena and the drama of the House. Get ready for your close-up!
+            New to the game? Let the Hostmaster v8.72 be your guide.
+     through the rules of the Arena and the drama of the House. Get ready
+     for your close-up!
           </p>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -310,7 +314,7 @@ function HomePageContent() {
           className="w-full p-8 bg-gray-900/70 border-t border-gray-700 text-gray-400 text-sm"
         >
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <p>&copy; {new Date().getFullYear()} _____ Wars. All rights reserved.</p>
+            <p>&copy; 2025 _____ Wars. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>

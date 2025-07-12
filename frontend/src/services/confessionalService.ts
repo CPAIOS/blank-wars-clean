@@ -254,21 +254,30 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
 
         const data = await response.json();
         
+        // Get current question count before incrementing
+        const currentQuestionCount = confessionalData.questionCount;
+        
         // Increment question count and clear loading state
         setConfessionalData(prev => ({
           ...prev,
           questionCount: prev.questionCount + 1,
-          isLoading: false
+          isLoading: false,
+          messages: [...prev.messages, {
+            id: Date.now(),
+            type: 'hostmaster',
+            content: data.hostmasterResponse,
+            timestamp: new Date()
+          }]
         }));
 
-        // Only continue automatically for first 3 questions, then pause for user control
-        if (confessionalData.questionCount < 3) {
+        // Only continue automatically for first 2 questions, then pause for user control
+        if (currentQuestionCount < 2) {
           const continueTimeoutId = setTimeout(() => {
             generateCharacterResponse(characterName, data.hostmasterResponse, availableCharacters, headquarters, confessionalData, confessionalTimeouts, setConfessionalData);
           }, 3000);
           confessionalTimeouts.current.add(continueTimeoutId);
         } else {
-          // Pause after 3 questions
+          // Pause after 2-3 questions
           setConfessionalData(prev => ({
             ...prev,
             isPaused: true
@@ -278,15 +287,35 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
       } catch (error) {
         console.error('Director prompt error:', error);
         const fallbackQuestion = "your thoughts on team dynamics and how you think your teammates would describe your role in the house";
+        
+        // Get current question count before checking
+        const currentQuestionCount = confessionalData.questionCount;
+        
         setConfessionalData(prev => ({
           ...prev,
-          isLoading: false
+          isLoading: false,
+          questionCount: prev.questionCount + 1,
+          messages: [...prev.messages, {
+            id: Date.now(),
+            type: 'hostmaster',
+            content: fallbackQuestion,
+            timestamp: new Date()
+          }]
         }));
 
-        const fallbackTimeoutId = setTimeout(() => {
-          generateCharacterResponse(characterName, fallbackQuestion, availableCharacters, headquarters, confessionalData, confessionalTimeouts, setConfessionalData);
-        }, 3000);
-        confessionalTimeouts.current.add(fallbackTimeoutId);
+        // Only continue if under the limit
+        if (currentQuestionCount < 2) {
+          const fallbackTimeoutId = setTimeout(() => {
+            generateCharacterResponse(characterName, fallbackQuestion, availableCharacters, headquarters, confessionalData, confessionalTimeouts, setConfessionalData);
+          }, 3000);
+          confessionalTimeouts.current.add(fallbackTimeoutId);
+        } else {
+          // Pause after reaching limit
+          setConfessionalData(prev => ({
+            ...prev,
+            isPaused: true
+          }));
+        }
       }
     }, 2000);
     

@@ -12,6 +12,8 @@ interface TrainingChatContext {
     currentActivity?: string;
     energyLevel: number;
     trainingProgress: number;
+    trainingPhase?: string;
+    sessionDuration?: number;
   };
   recentTrainingEvents: string[];
 }
@@ -30,6 +32,11 @@ interface TrainingConversation {
 export class TrainingChatService {
   private socket: Socket | null = null;
   private activeConversations: Map<string, TrainingConversation> = new Map();
+
+  // Expose socket for debugging
+  get socketConnection() {
+    return this.socket;
+  }
 
   constructor() {
     // Only initialize socket on client side
@@ -59,16 +66,21 @@ export class TrainingChatService {
     
     console.log('🏋️ Training Chat Service initializing with URL:', socketUrl);
     console.log('🏋️ NODE_ENV:', process.env.NODE_ENV);
+    console.log('🏋️ Window location:', window.location.href);
+    console.log('🏋️ Is localhost?:', window.location.hostname === 'localhost');
     
     try {
+      console.log('🔌 Attempting to connect to:', socketUrl);
       this.socket = io(socketUrl, {
         transports: ['websocket', 'polling'],
         timeout: 20000,
         autoConnect: true,
+        forceNew: true
       });
 
       this.socket.on('connect', () => {
-        console.log('🏋️ Training chat connected to backend');
+        console.log('🏋️ Training chat connected to backend at:', socketUrl);
+        console.log('🔗 Socket ID:', this.socket?.id);
       });
 
       this.socket.on('disconnect', () => {
@@ -76,12 +88,18 @@ export class TrainingChatService {
       });
 
       this.socket.on('training_chat_response', (data) => {
-        console.log('🏋️ Received training chat response:', data);
-        this.handleTrainingChatResponse(data);
+        console.log('🏋️ Received multi-agent training chat response:', data);
+        this.handleMultiAgentTrainingChatResponse(data);
       });
 
       this.socket.on('connect_error', (error) => {
         console.error('🏋️ Training chat connection error:', error);
+        console.error('🏋️ Failed to connect to:', socketUrl);
+        console.error('🏋️ Error details:', error.message);
+      });
+
+      this.socket.on('disconnect', (reason) => {
+        console.log('🏋️ Training chat disconnected:', reason);
       });
 
     } catch (error) {
@@ -89,72 +107,91 @@ export class TrainingChatService {
     }
   }
 
-  private handleTrainingChatResponse(data: any) {
-    const { conversationId, characterResponse } = data;
+  private handleMultiAgentTrainingChatResponse(data: any) {
+    const { conversationId, multiAgentResponse, characterResponse, error } = data;
     
-    const conversation = this.activeConversations.get(conversationId);
-    if (conversation) {
-      conversation.responses.push({
-        characterId: characterResponse.characterId,
-        message: characterResponse.message,
-        timestamp: new Date()
-      });
-      
-      // Emit event for UI to update
+    if (error) {
+      console.error('🏋️ Training chat error:', error);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('trainingChatUpdate', {
-          detail: { conversationId, conversation }
+          detail: { conversationId, error }
         }));
       }
+      return;
+    }
+    
+    const conversation = this.activeConversations.get(conversationId);
+    if (!conversation) return;
+
+    let agents: any[] = [];
+
+    // Handle new multi-agent response format
+    if (multiAgentResponse?.agents) {
+      agents = multiAgentResponse.agents;
+    }
+    // Handle old single character response format for backward compatibility
+    else if (characterResponse) {
+      agents = [{
+        agentType: 'character',
+        agentName: characterResponse.characterId || 'Character',
+        message: characterResponse.message,
+        timestamp: characterResponse.timestamp
+      }];
+    }
+
+    // Add all agent responses to conversation
+    agents.forEach((agent: any) => {
+      conversation.responses.push({
+        characterId: agent.agentType,
+        agentType: agent.agentType,
+        agentName: agent.agentName,
+        message: agent.message,
+        timestamp: new Date(agent.timestamp)
+      });
+    });
+    
+    // Emit event for UI to update with multi-agent data
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('trainingChatUpdate', {
+        detail: { 
+          conversationId, 
+          conversation,
+          multiAgentResponse: agents
+        }
+      }));
     }
   }
 
   async startTrainingConversation(
     character: Character,
     context: TrainingChatContext,
-    userMessage: string
-  ): Promise<string> {
+    userMessage: string,
+    isCharacterSelection: boolean = false
+  ): Promise<Array<{agentType: string; agentName: string; message: string}>> {
     if (!this.socket?.connected) {
       throw new Error('Training chat service not connected');
     }
 
     const conversationId = `training_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Generate training-specific prompt using existing service
-    const prompt = PromptTemplateService.generateTrainingPrompt({
-      character: {
-        name: character.name,
-        title: character.title || '',
-        personality: character.personality,
-        historicalPeriod: character.historicalPeriod,
-        mythology: character.mythology,
-        archetype: character.archetype
-      },
-      facilityTier: context.trainingEnvironment.facilityTier,
-      teammates: context.teammates.map(t => t.name),
-      coachName: context.coachName,
-      trainingContext: {
-        currentActivity: context.trainingEnvironment.currentActivity,
-        energyLevel: context.trainingEnvironment.energyLevel,
-        equipment: context.trainingEnvironment.equipment,
-        trainingProgress: context.trainingEnvironment.trainingProgress
-      },
-      userMessage,
-      recentEvents: context.recentTrainingEvents
-    });
-
     const requestData = {
       conversationId,
       characterId: character.id,
       characterName: character.name,
-      prompt,
       userMessage,
-      maxTokens: 150
+      trainingPhase: context.trainingEnvironment.trainingPhase || 'planning',
+      currentActivity: context.trainingEnvironment.currentActivity,
+      energyLevel: context.trainingEnvironment.energyLevel,
+      trainingProgress: context.trainingEnvironment.trainingProgress,
+      sessionDuration: context.trainingEnvironment.sessionDuration || 0,
+      isCharacterSelection
     };
 
-    console.log('🏋️ Sending training chat request:', {
+    console.log('🏋️ Sending multi-agent training chat request:', {
       conversationId,
       characterName: character.name,
+      trainingPhase: requestData.trainingPhase,
+      isCharacterSelection,
       userMessage: userMessage.substring(0, 50) + '...'
     });
 
@@ -168,8 +205,8 @@ export class TrainingChatService {
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Training chat request timed out'));
-      }, 15000);
+        reject(new Error('Multi-agent training chat request timed out'));
+      }, 20000); // Longer timeout for multiple AI calls
 
       const handleResponse = (event: Event) => {
         const customEvent = event as CustomEvent;
@@ -177,8 +214,14 @@ export class TrainingChatService {
           clearTimeout(timeout);
           window.removeEventListener('trainingChatUpdate', handleResponse);
           
-          const response = customEvent.detail.conversation.responses[0];
-          resolve(response?.message || 'No response received');
+          if (customEvent.detail.error) {
+            reject(new Error(customEvent.detail.error));
+            return;
+          }
+          
+          // Return all agent responses
+          const agentResponses = customEvent.detail.multiAgentResponse || [];
+          resolve(agentResponses);
         }
       };
 
