@@ -118,7 +118,6 @@ router.get('/users/search', async (req, res) => {
 router.get('/characters', authenticateToken, async (req: any, res) => {
   try {
     const userId = req.user.id;
-<<<<<<< HEAD
     console.log('🔍 [/characters] Getting characters for user:', userId);
     
     const userCharacters = await dbAdapter.userCharacters.findByUserId(userId);
