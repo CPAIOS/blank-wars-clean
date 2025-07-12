@@ -610,7 +610,7 @@ export default function TrainingGrounds({
       const errorMessage = {
         id: `error_${Date.now()}`,
         sender: 'character' as const,
-        message: 'Sorry, we're having trouble responding right now. Let's focus on training!',
+        message: "Sorry, we're having trouble responding right now. Let's focus on training!",
         timestamp: new Date(),
         characterName: selectedCharacter.name
       };
