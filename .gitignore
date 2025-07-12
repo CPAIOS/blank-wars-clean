@@ -79,6 +79,7 @@ jspm_packages/
 # Logs
 logs
 *.log
+Chat_Log/
 
 # Database files
 backend/data/*.db

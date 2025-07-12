@@ -1,5 +1,7 @@
 import { query } from '../database';
 import { User } from '../types';
+import { aiChatService } from './aiChatService';
+import { db } from '../database';
 
 export interface HeadquartersState {
   id: string;
@@ -252,5 +254,81 @@ export class HeadquartersService {
         bedData.comfortBonus
       ]
     );
+  }
+
+  async handleRealEstateChat(userId: string, chatContext: any): Promise<any> {
+    try {
+      console.log('🏢 [RealEstate] Starting chat for userId:', userId);
+      
+      const { selectedAgent, competingAgents, userMessage, currentTeamStats, conversationHistory } = chatContext;
+
+      if (!selectedAgent || !selectedAgent.id || !selectedAgent.name) {
+        throw new Error('Invalid selectedAgent data');
+      }
+
+      // Use the agent's actual personality from the frontend data
+      const realEstateAgentPersonality = selectedAgent.personality || {
+        traits: ['Professional', 'Persuasive', 'Detail-oriented', 'Competitive'],
+        speechStyle: 'Professional yet personable',
+        motivations: ['Making sales', 'Client satisfaction', 'Property expertise'],
+        fears: ['Losing deals', 'Client dissatisfaction', 'Market downturns']
+      };
+
+      // Convert conversation history to OpenAI format
+      const formattedMessages = (conversationHistory || []).map((msg: any) => {
+        // Determine role based on whether it's from the selected agent or user
+        const role = msg.agentId === selectedAgent.id ? 'assistant' : 'user';
+        return {
+          role: role,
+          content: msg.message
+        };
+      });
+
+      console.log('🏢 [RealEstate] Calling AI service...');
+      const agentResponse = await aiChatService.generateCharacterResponse(
+        {
+          characterId: selectedAgent.id,
+          characterName: selectedAgent.name,
+          personality: realEstateAgentPersonality,
+          historicalPeriod: 'Modern real estate market',
+          mythology: 'Professional services',
+          currentBondLevel: 3,
+          previousMessages: formattedMessages,
+          conversationContext: selectedAgent.conversationContext
+        },
+        userMessage || "Hello, I'm interested in discussing facilities for my team.",
+        userId,
+        db,
+        { isInBattle: false }
+      );
+      console.log('🏢 [RealEstate] AI service response:', agentResponse);
+      
+      const responses = [{
+        agentId: selectedAgent.id,
+        agentName: selectedAgent.name,
+        message: agentResponse.message,
+        timestamp: new Date(),
+        isCompetitorInterruption: false
+      }];
+
+      // Simulate competitor interruption (30% chance)
+      if (competingAgents && competingAgents.length > 0 && Math.random() < 0.3) {
+        const competitorAgent = competingAgents[Math.floor(Math.random() * competingAgents.length)];
+        const interruptionMessage = `Actually, I think I can offer you a better deal on that property...`;
+        responses.push({
+          agentId: competitorAgent.id,
+          agentName: competitorAgent.name,
+          message: interruptionMessage,
+          timestamp: new Date(),
+          isCompetitorInterruption: true
+        });
+      }
+
+      console.log('🏢 [RealEstate] Returning responses:', responses);
+      return responses;
+    } catch (error) {
+      console.error('🏢 [RealEstate] Error in handleRealEstateChat:', error);
+      throw error;
+    }
   }
 }

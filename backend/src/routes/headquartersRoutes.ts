@@ -75,4 +75,27 @@ router.post('/purchase-bed', authenticateToken, async (req: AuthRequest, res: Re
   }
 });
 
+router.post('/real-estate-chat', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { selectedAgent, competingAgents, userMessage, currentTeamStats, conversationHistory } = req.body;
+
+    const response = await headquartersService.handleRealEstateChat(userId, {
+      selectedAgent,
+      competingAgents,
+      userMessage,
+      currentTeamStats,
+      conversationHistory,
+    });
+
+    return res.json({ success: true, messages: response });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

@@ -739,12 +739,22 @@ export class TrainingSystemManager {
   }
 
   static loadProgress(): TrainingSystemManager {
+    // Only access localStorage in browser environment
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return new TrainingSystemManager({});
+    }
+    
     const saved = localStorage.getItem('training-system');
     const data = saved ? JSON.parse(saved) : {};
     return new TrainingSystemManager(data);
   }
 
   saveToStorage(): void {
+    // Only access localStorage in browser environment
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+    
     localStorage.setItem('training-system', JSON.stringify(this.saveProgress()));
   }
 }

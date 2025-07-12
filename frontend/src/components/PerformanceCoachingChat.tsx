@@ -161,16 +161,6 @@ export default function PerformanceCoachingChat({
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
   const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
-  
-  // Safety check to prevent errors when no characters are loaded
-  if (!selectedCharacter) {
-    return (
-      <div className="text-center text-gray-400 py-8">
-        Loading character data...
-      </div>
-    );
-  }
-  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -274,7 +264,7 @@ export default function PerformanceCoachingChat({
       message: content,
       character: selectedCharacter.baseName,
       characterData: {
-        name: selectedCharacter.name,
+        name: selectedCharacter?.name,
         archetype: selectedCharacter.archetype,
         level: selectedCharacter.level,
         personality: selectedCharacter.personality || {
@@ -293,7 +283,7 @@ export default function PerformanceCoachingChat({
         injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Performance-specific context
-        conversationContext: `This is a performance coaching session. The user is the coach who makes decisions about ${selectedCharacter.name}'s training and tactics. ${selectedCharacter.name} should discuss their recent battle performance, ask for guidance on areas they're struggling with, and advocate for training approaches that fit their fighting style and personality. Focus on their actual stats: Base Stats - Strength: ${selectedCharacter.baseStats?.strength || 'Unknown'}, Vitality: ${selectedCharacter.baseStats?.vitality || 'Unknown'}, Agility: ${selectedCharacter.baseStats?.agility || 'Unknown'}, Intelligence: ${selectedCharacter.baseStats?.intelligence || 'Unknown'}. Combat Stats - Attack: ${selectedCharacter.combatStats?.attack || 'Unknown'}, Defense: ${selectedCharacter.combatStats?.defense || 'Unknown'}, Speed: ${selectedCharacter.combatStats?.speed || 'Unknown'}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance || 'Unknown'}%.`,
+        conversationContext: `This is a performance coaching session. The user is the coach who makes decisions about ${selectedCharacter?.name}'s training and tactics. ${selectedCharacter?.name} should discuss their recent battle performance, ask for guidance on areas they're struggling with, and advocate for training approaches that fit their fighting style and personality. Focus on their actual stats: Base Stats - Strength: ${selectedCharacter.baseStats?.strength || 'Unknown'}, Vitality: ${selectedCharacter.baseStats?.vitality || 'Unknown'}, Agility: ${selectedCharacter.baseStats?.agility || 'Unknown'}, Intelligence: ${selectedCharacter.baseStats?.intelligence || 'Unknown'}. Combat Stats - Attack: ${selectedCharacter.combatStats?.attack || 'Unknown'}, Defense: ${selectedCharacter.combatStats?.defense || 'Unknown'}, Speed: ${selectedCharacter.combatStats?.speed || 'Unknown'}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance || 'Unknown'}%.`,
         performanceData: {
           recentBattles,
           battlesWon,
@@ -349,11 +339,11 @@ export default function PerformanceCoachingChat({
           <div className="flex flex-col h-full">
             <div className="bg-gradient-to-r from-orange-800/30 to-red-800/30 p-4 border-b border-orange-500/30">
               <div className="flex items-center gap-3">
-                <div className="text-3xl">{selectedCharacter.avatar}</div>
+                <div className="text-3xl">{selectedCharacter?.avatar}</div>
                 <div>
                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <Activity className="w-5 h-5 text-orange-400" />
-                    Performance Coaching - {selectedCharacter.name}
+                    Performance Coaching - {selectedCharacter?.name}
                   </h3>
                   <p className="text-sm text-orange-200">Discuss battles, analyze performance, and set improvement goals</p>
                 </div>
@@ -447,7 +437,7 @@ export default function PerformanceCoachingChat({
                       sendMessage(inputMessage);
                     }
                   }}
-                  placeholder={isTyping ? 'Character is reflecting...' : `Provide feedback to ${selectedCharacter.name}...`}
+                  placeholder={isTyping ? 'Character is reflecting...' : `Provide feedback to ${selectedCharacter?.name}...`}
                   disabled={isTyping}
                   className="flex-1 bg-gray-700 border border-orange-500/30 rounded-full px-4 py-2 text-white placeholder-orange-200/50 focus:outline-none focus:border-orange-400 disabled:opacity-50"
                   autoComplete="off"

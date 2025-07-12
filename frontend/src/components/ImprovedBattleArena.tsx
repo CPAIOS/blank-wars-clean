@@ -109,29 +109,57 @@ export default function ImprovedBattleArena() {
     clearQueue
   } = battleAnnouncer || {
     isAnnouncerSpeaking: false,
-    isEnabled: false,
-    toggleEnabled: () => {},
-    announceBattleStart: () => {},
-    announceRoundStart: () => {},
-    announceAction: () => {},
-    announceVictory: () => {},
-    announceDefeat: () => {},
-    announcePhaseTransition: () => {},
-    announceStrategySelection: () => {},
-    announceBattleCry: () => {},
-    clearQueue: () => {}
+    isEnabled: true, // Enable by default even in fallback
+    toggleEnabled: (enabled?: boolean) => {
+      console.log('Announcer toggle fallback:', enabled);
+    },
+    announceBattleStart: (p1: string, p2: string) => {
+      console.log(`🎤 Battle Start: ${p1} vs ${p2}!`);
+    },
+    announceRoundStart: (round: number) => {
+      console.log(`🎤 Round ${round} begins!`);
+    },
+    announceAction: (text: string) => {
+      console.log(`🎤 ${text}`);
+    },
+    announceVictory: (winner: string) => {
+      console.log(`🎤 Victory to ${winner}!`);
+    },
+    announceDefeat: (loser: string) => {
+      console.log(`🎤 ${loser} has fallen!`);
+    },
+    announcePhaseTransition: (phase: string) => {
+      console.log(`🎤 Phase: ${phase}`);
+    },
+    announceStrategySelection: () => {
+      console.log('🎤 Choose your strategies!');
+    },
+    announceBattleCry: () => {
+      console.log('🎤 Warriors let out their battle cries!');
+    },
+    clearQueue: () => {
+      console.log('🎤 Clearing announcement queue');
+    }
   };
   
+  // Store clearQueue function in ref to avoid temporal dead zone
+  useEffect(() => {
+    if (clearQueue) {
+      clearQueueRef.current = clearQueue;
+    }
+  }, [clearQueue]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       console.log('ImprovedBattleArena unmounting - cleaning up');
       clearAllTimeouts();
-      if (clearQueue) {
-        clearQueue(); // Clear audio announcer queue
+      // Clear audio announcer queue if available
+      if (clearQueueRef.current) {
+        clearQueueRef.current();
       }
     };
-  }, [clearAllTimeouts, clearQueue]);
+  }, [clearAllTimeouts]);
   
   // New Team Battle System State with refs for stability
   // Mock headquarters state for demo - in real app this would come from global state
@@ -821,7 +849,7 @@ export default function ImprovedBattleArena() {
       />
 
       {/* AI Chaos Monitor - Shows during combat phases */}
-      {(phase?.name === 'round-combat' || phase?.name === 'round-end' || activeDeviations.length > 0) && (
+      {(phase === 'round-combat' || phase === 'round-end' || activeDeviations.length > 0) && (
         <ChaosPanel
           characterPsychology={characterPsychology}
           activeDeviations={activeDeviations}
@@ -832,7 +860,7 @@ export default function ImprovedBattleArena() {
       )}
 
       {/* Character-Specific Strategy Panel */}
-      {phase?.name === 'strategy-selection' && (
+      {phase === 'strategy-selection' && (
         <CharacterSpecificStrategyPanel
           currentRound={currentRound}
           currentMatch={currentMatch}
@@ -934,7 +962,7 @@ export default function ImprovedBattleArena() {
       </div>
 
       {/* Matchmaking Panel - Positioned after Team Communication Hub */}
-      {phase?.name === 'matchmaking' && (
+      {phase === 'matchmaking' && (
         <MatchmakingPanel
           playerTeamLevels={playerTeam.characters.map(char => char.level)}
           onSelectOpponent={matchmaking.handleOpponentSelection}
@@ -944,7 +972,7 @@ export default function ImprovedBattleArena() {
 
 
       {/* Start Battle Button */}
-      {phase?.name === 'pre-battle' && selectedOpponent && (
+      {phase === 'pre-battle' && selectedOpponent && (
         <div className="text-center space-y-4">
           <div className="flex justify-center gap-4">
             <button
@@ -980,7 +1008,7 @@ export default function ImprovedBattleArena() {
       )}
 
       {/* Battle End - Victory/Restart */}
-      {phase?.name === 'battle-end' && (
+      {phase === 'battle-end' && (
         <motion.div 
           className="text-center space-y-6"
           initial={{ opacity: 0, scale: 0.8 }}

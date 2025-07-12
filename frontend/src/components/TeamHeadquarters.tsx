@@ -48,6 +48,7 @@ import { assignCharacterToRoom, removeCharacterFromRoom, getUnassignedCharacters
 import { startNewScene, handleCoachMessage, continueScene, KitchenConversation } from '../services/kitchenChatService';
 import { clearAllConfessionalTimeouts, startConfessional, pauseConfessional, continueConfessional, generateCharacterResponse, ConfessionalData, ConfessionalMessage } from '../services/confessionalService';
 import { getCharacterConflicts, getCharacterHappiness, getThemeCompatibility, getCharacterSuggestedThemes } from '../services/characterHappinessService';
+import RealEstateAgentChat from './RealEstateAgentChat';
 import { getRoomThemeWarnings, calculateMissedBonuses, calculateRoomBonuses } from '../services/roomAnalysisService';
 import { calculateTeamChemistry, calculateBattleEffects } from '../services/teamPerformanceService';
 import { getElementCapacity } from '../services/headquartersService';
@@ -1305,6 +1306,9 @@ export default function TeamHeadquarters() {
                 }));
               }}
             />
+            
+            {/* Real Estate Agent Chat */}
+            <RealEstateAgentChat />
           </motion.div>
         )}
 
@@ -1811,6 +1815,7 @@ export default function TeamHeadquarters() {
 
       {/* Tutorial System */}
       <Tutorial />
+      {/* Real Estate Agent removed - now in Facilities tab */}
     </div>
   );
 }

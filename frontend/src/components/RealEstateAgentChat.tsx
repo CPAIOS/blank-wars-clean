@@ -10,6 +10,7 @@ import {
 import { realEstateAgents } from '../data/realEstateAgents_UPDATED';
 import { RealEstateAgent } from '../data/realEstateAgentTypes';
 import { realEstateAgentChatService } from '../services/realEstateAgentChatService';
+import { apiClient } from '../services/apiClient';
 
 interface ChatMessage {
   id: string;
@@ -67,13 +68,20 @@ export default function RealEstateAgentChat() {
   const [hasStarted, setHasStarted] = useState(false);
   const [selectedFacility, setSelectedFacility] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
 
-  const demoTeamStats: TeamStats = {
-    level: 18,
-    totalCharacters: 12,
-    currentFacilities: ['basic_gym'],
-    budget: 75000
-  };
+  useEffect(() => {
+    const fetchTeamStats = async () => {
+      try {
+        const response = await apiClient.get('/user/team-stats');
+        setTeamStats(response.data);
+      } catch (error) {
+        console.error('Failed to fetch team stats:', error);
+      }
+    };
+
+    fetchTeamStats();
+  }, []);
 
   const competingAgents = realEstateAgents.filter(agent => agent.id !== selectedAgent.id);
 
@@ -86,6 +94,8 @@ export default function RealEstateAgentChat() {
   }, [chatMessages]);
 
   const startConsultation = async () => {
+    if (!teamStats) return;
+
     setIsGenerating(true);
     setHasStarted(true);
     setChatMessages([]);
@@ -94,7 +104,7 @@ export default function RealEstateAgentChat() {
       const response = await realEstateAgentChatService.startFacilityConsultation(
         selectedAgent,
         competingAgents,
-        demoTeamStats
+        teamStats
       );
 
       const welcomeMessage: ChatMessage = {
@@ -126,7 +136,7 @@ export default function RealEstateAgentChat() {
   };
 
   const sendMessage = async () => {
-    if (!userMessage.trim() || isGenerating) return;
+    if (!userMessage.trim() || isGenerating || !teamStats) return;
 
     const userChatMessage: ChatMessage = {
       id: `user_${Date.now()}`,
@@ -154,7 +164,7 @@ export default function RealEstateAgentChat() {
         selectedAgent,
         competingAgents,
         currentMessage,
-        demoTeamStats,
+        teamStats,
         conversationHistory
       );
 
@@ -164,7 +174,7 @@ export default function RealEstateAgentChat() {
         agentName: response.agentName,
         agentAvatar: realEstateAgents.find(a => a.id === response.agentId)?.avatar || '🤖',
         message: response.message,
-        timestamp: response.timestamp,
+        timestamp: new Date(response.timestamp),
         isCompetitorInterruption: response.isCompetitorInterruption
       }));
 
@@ -280,24 +290,28 @@ export default function RealEstateAgentChat() {
                 <Trophy className="w-4 h-4" />
                 Team Status
               </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Level:</span>
-                  <span className="text-white">{demoTeamStats.level}</span>
+              {teamStats ? (
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Level:</span>
+                    <span className="text-white">{teamStats.level}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Characters:</span>
+                    <span className="text-white">{teamStats.totalCharacters}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Budget:</span>
+                    <span className="text-green-400">${teamStats.budget.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Facilities:</span>
+                    <span className="text-blue-400">{teamStats.currentFacilities.length}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Characters:</span>
-                  <span className="text-white">{demoTeamStats.totalCharacters}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Budget:</span>
-                  <span className="text-green-400">${demoTeamStats.budget.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Facilities:</span>
-                  <span className="text-blue-400">{demoTeamStats.currentFacilities.length}</span>
-                </div>
-              </div>
+              ) : (
+                <div className="text-center text-gray-400">Loading...</div>
+              )}
             </div>
           </div>
 
@@ -313,7 +327,7 @@ export default function RealEstateAgentChat() {
                 
                 <button
                   onClick={startConsultation}
-                  disabled={isGenerating}
+                  disabled={isGenerating || !teamStats}
                   className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
                 >
                   {isGenerating ? (
@@ -373,7 +387,7 @@ export default function RealEstateAgentChat() {
                           )}
                           <div className="text-sm">{message.message}</div>
                           <div className="text-xs opacity-60 mt-1">
-                            {message.timestamp.toLocaleTimeString()}
+                            {new Date(message.timestamp).toLocaleTimeString()}
                           </div>
                         </div>
                         {message.isUser && (

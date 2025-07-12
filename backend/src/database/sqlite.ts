@@ -99,6 +99,46 @@ export const initializeDatabase = async (): Promise<void> => {
         FOREIGN KEY (character_id) REFERENCES characters(id)
       );
 
+      -- User Headquarters table
+      CREATE TABLE IF NOT EXISTS user_headquarters (
+        id TEXT PRIMARY KEY,
+        user_id TEXT UNIQUE NOT NULL,
+        tier_id TEXT DEFAULT 'spartan_apartment',
+        coins INTEGER DEFAULT 50000,
+        gems INTEGER DEFAULT 100,
+        unlocked_themes TEXT DEFAULT '[]',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      -- Headquarters Rooms table
+      CREATE TABLE IF NOT EXISTS headquarters_rooms (
+        id TEXT PRIMARY KEY,
+        headquarters_id TEXT NOT NULL,
+        room_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        theme TEXT,
+        elements TEXT DEFAULT '[]',
+        assigned_characters TEXT DEFAULT '[]',
+        max_characters INTEGER DEFAULT 2,
+        custom_image_url TEXT,
+        FOREIGN KEY (headquarters_id) REFERENCES user_headquarters(id) ON DELETE CASCADE
+      );
+
+      -- Room Beds table
+      CREATE TABLE IF NOT EXISTS room_beds (
+        id TEXT PRIMARY KEY,
+        room_id TEXT NOT NULL,
+        bed_id TEXT NOT NULL,
+        bed_type TEXT NOT NULL,
+        position_x INTEGER,
+        position_y INTEGER,
+        capacity INTEGER,
+        comfort_bonus INTEGER,
+        FOREIGN KEY (room_id) REFERENCES headquarters_rooms(id) ON DELETE CASCADE
+      );
+
       -- Battles table
       CREATE TABLE IF NOT EXISTS battles (
         id TEXT PRIMARY KEY,
@@ -536,8 +576,8 @@ const seedCharacters = async (): Promise<void> => {
     },
     {
       id: 'alien_grey',
-      name: 'Zyx-9',
-      title: 'The Cosmic Observer',
+      name: 'Zeta Reticulan',
+      title: 'Cosmic Manipulator',
       archetype: 'mystic',
       origin_era: 'Modern UFO Mythology',
       rarity: 'rare',

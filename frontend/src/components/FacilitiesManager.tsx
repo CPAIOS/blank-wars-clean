@@ -48,6 +48,7 @@ export default function FacilitiesManager({
   onUpgradeFacility,
   onPayMaintenance
 }: FacilitiesManagerProps) {
+  console.log('🏢 FacilitiesManager rendering!');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -105,6 +106,7 @@ export default function FacilitiesManager({
   };
 
   const openFacilityDetails = (facility: Facility) => {
+    console.log('Opening facility details for:', facility.name);
     setSelectedFacility(facility);
     setShowDetailsModal(true);
   };

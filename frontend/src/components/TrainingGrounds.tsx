@@ -27,7 +27,7 @@ import { memberships, MembershipTier, getTrainingMultipliers, getDailyLimits, Fa
 import { getBaseStatsForLevel, getLevelData } from '@/data/characterProgression';
 import { TrainingSystemManager } from '@/systems/trainingSystem';
 import { trainingChatService } from '@/services/trainingChatService';
-import { createDemoCharacterCollection } from '@/data/characters';
+import PersonalTrainerChat from './PersonalTrainerChat';
 
 interface Character {
   id: string;
@@ -83,66 +83,195 @@ export default function TrainingGrounds({
   selectedCharacter: globalCharacter, 
   availableCharacters 
 }: TrainingGroundsProps) {
-  // Convert global character to training character format
-  const selectedCharacter: Character = React.useMemo(() => {
-    if (!globalCharacter) {
-      // Fallback to first available character if none selected
-      const fallback = availableCharacters[0];
-      if (!fallback) {
-        const level = 12;
-        const levelData = getLevelData(level);
-        const baseStats = getBaseStatsForLevel(level, 'warrior');
-        
-        return {
-          id: 'achilles',
-          name: 'Achilles',
-          level,
-          xp: 2400,
-          xpToNext: levelData?.xpToNext || 800,
-          hp: baseStats.hp,
-          maxHp: baseStats.hp,
-          atk: baseStats.atk,
-          def: baseStats.def,
-          spd: baseStats.spd,
-          energy: 75,
-          maxEnergy: 100,
-          avatar: '⚔️',
-          archetype: 'warrior',
-          trainingBonuses: {
-            strength: 5,
-            defense: 3,
-            speed: 4,
-            special: 2
-          }
-        };
-      }
-      globalCharacter = fallback;
+  // Convert global character to training character format and make it state
+  const createTrainingCharacter = (characterToUse: any): Character => {
+    if (!characterToUse) {
+      // Create default character if no characters available
+      const level = 12;
+      const levelData = getLevelData(level);
+      const baseStats = getBaseStatsForLevel(level, 'warrior');
+      
+      return {
+        id: 'achilles',
+        name: 'Achilles',
+        level,
+        xp: 2400,
+        xpToNext: levelData?.xpToNext || 800,
+        hp: baseStats.hp,
+        maxHp: baseStats.hp,
+        atk: baseStats.atk,
+        def: baseStats.def,
+        spd: baseStats.spd,
+        energy: 75,
+        maxEnergy: 100,
+        avatar: '⚔️',
+        archetype: 'warrior',
+        trainingBonuses: {
+          strength: 5,
+          defense: 3,
+          speed: 4,
+          special: 2
+        }
+      };
     }
     
     // Convert from global character format to training character format
+    console.log('🔍 Converting character:', characterToUse.name, 'Level from API:', characterToUse.level);
     return {
-      id: globalCharacter.baseName || globalCharacter.id,
-      name: globalCharacter.name,
-      level: globalCharacter.level,
-      xp: globalCharacter.experience?.currentXP || 0,
-      xpToNext: globalCharacter.experience?.xpToNextLevel || 1000,
-      hp: globalCharacter.combatStats?.health || globalCharacter.baseStats?.vitality * 10 || 200,
-      maxHp: globalCharacter.combatStats?.maxHealth || globalCharacter.baseStats?.vitality * 10 || 200,
-      atk: globalCharacter.combatStats?.attack || globalCharacter.baseStats?.strength || 50,
-      def: globalCharacter.combatStats?.defense || globalCharacter.baseStats?.vitality || 40,
-      spd: globalCharacter.combatStats?.speed || globalCharacter.baseStats?.agility || 60,
-      energy: globalCharacter.energy || 75,
-      maxEnergy: globalCharacter.maxEnergy || 100,
-      avatar: globalCharacter?.avatar || '⚔️',
-      archetype: globalCharacter.archetype,
+      id: characterToUse.baseName || characterToUse.id,
+      name: characterToUse.name,
+      level: characterToUse.level || 1,
+      xp: characterToUse.experience?.currentXP || 0,
+      xpToNext: characterToUse.experience?.xpToNextLevel || 1000,
+      hp: characterToUse.combatStats?.health || characterToUse.baseStats?.vitality * 10 || 200,
+      maxHp: characterToUse.combatStats?.maxHealth || characterToUse.baseStats?.vitality * 10 || 200,
+      atk: characterToUse.combatStats?.attack || characterToUse.baseStats?.strength || 50,
+      def: characterToUse.combatStats?.defense || characterToUse.baseStats?.vitality || 40,
+      spd: characterToUse.combatStats?.speed || characterToUse.baseStats?.agility || 60,
+      energy: characterToUse.energy || 75,
+      maxEnergy: characterToUse.maxEnergy || 100,
+      avatar: characterToUse?.avatar || '⚔️',
+      archetype: characterToUse.archetype,
       trainingBonuses: {
-        strength: Math.floor(globalCharacter.level / 3),
-        defense: Math.floor(globalCharacter.level / 4),
-        speed: Math.floor(globalCharacter.level / 3.5),
-        special: Math.floor(globalCharacter.level / 2.5)
+        strength: Math.floor(characterToUse.level / 3),
+        defense: Math.floor(characterToUse.level / 4),
+        speed: Math.floor(characterToUse.level / 3.5),
+        special: Math.floor(characterToUse.level / 2.5)
       }
     };
-  }, [globalCharacter, availableCharacters]);
+  };
+
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+
+  // Track previous character to prevent duplicate auto-triggers
+  const [previousCharacterId, setPreviousCharacterId] = useState<string>('');
+  const [isAutoAnalyzing, setIsAutoAnalyzing] = useState(false);
+  const [lastAnalyzedCharacter, setLastAnalyzedCharacter] = useState<string>('');
+
+  // Update selected character when global character changes and trigger Argock analysis
+  useEffect(() => {
+    if (!globalCharacter) {
+      console.error('❌ No globalCharacter provided - Training requires real character from API');
+      setSelectedCharacter(null);
+      return;
+    }
+    
+    const newCharacter = createTrainingCharacter(globalCharacter);
+    setSelectedCharacter(newCharacter);
+    
+    // Only trigger Argock analysis if character actually changed
+    if (newCharacter.id !== previousCharacterId) {
+      console.log('🔄 Character changed from', previousCharacterId, 'to', newCharacter.id);
+      setPreviousCharacterId(newCharacter.id);
+      
+      // Clear chat when character changes to start fresh
+      setChatMessages([]);
+      
+      // Reset analysis tracking for new character
+      setLastAnalyzedCharacter('');
+      
+      // Trigger analysis after a short delay to ensure state is settled
+      setTimeout(() => {
+        triggerArgockAnalysis(newCharacter);
+      }, 500);
+    }
+  }, [globalCharacter]);
+
+
+  // Auto-trigger Argock analysis when character is selected
+  const triggerArgockAnalysis = async (character: Character) => {
+    if (isAutoAnalyzing) {
+      console.log('🚫 Already auto-analyzing, skipping...');
+      return;
+    }
+    
+    // Prevent duplicate analysis for the same character
+    if (lastAnalyzedCharacter === character.id) {
+      console.log('🚫 Character already analyzed, skipping duplicate:', character.name);
+      return;
+    }
+    
+    console.log('🎯 Triggering Argock analysis for:', character.name, character.id);
+    setLastAnalyzedCharacter(character.id);
+    
+    // Verify socket connection
+    if (!trainingChatService.socketConnection?.connected) {
+      console.error('❌ Socket not connected - cannot trigger analysis');
+      setIsAutoAnalyzing(false);
+      return;
+    }
+    
+    setIsAutoAnalyzing(true);
+    
+    try {
+      // Use the real character directly - NO FALLBACKS
+      const currentCharacter = character;
+      
+      // Prepare training context
+      const trainingContext = {
+        character: currentCharacter,
+        teammates: [], // No teammates for training - focus on individual character
+        coachName: 'Coach',
+        trainingEnvironment: {
+          facilityTier: selectedFacility,
+          equipment: ['Weights', 'Treadmill', 'Combat dummies', 'Resistance bands'],
+          currentActivity: 'Character Assessment',
+          energyLevel: Math.round((character.energy / character.maxEnergy) * 100),
+          trainingProgress: 0,
+          trainingPhase: trainingPhase,
+          sessionDuration: 0
+        },
+        recentTrainingEvents: [`${character.name} entered the training facility`]
+      };
+
+      console.log('🤖 Calling training chat service for auto-analysis...');
+      
+      // Get Argock's immediate analysis with live AI call
+      const agentResponses = await trainingChatService.startTrainingConversation(
+        currentCharacter,
+        trainingContext,
+        `${character.name} just walked into the training facility`,
+        true // Character selection trigger
+      );
+
+      console.log('✅ Auto-analysis responses received:', agentResponses.length, agentResponses);
+
+      // Add Argock's analysis to chat - but only ONCE
+      agentResponses.forEach((agent, index) => {
+        const messageId = `auto_${agent.agentType}_${character.id}_${Date.now()}_${index}`;
+        const analysisMessage = {
+          id: messageId,
+          sender: agent.agentType as 'character' | 'argock',
+          message: agent.message,
+          timestamp: new Date(),
+          characterName: agent.agentName,
+          agentType: agent.agentType,
+          agentName: agent.agentName
+        };
+        console.log('📝 Adding auto-analysis message:', messageId, 'Message:', agent.message.substring(0, 50) + '...');
+        
+        // Check for duplicate messages before adding
+        setChatMessages(prev => {
+          const isDuplicate = prev.some(msg => 
+            msg.message === analysisMessage.message && 
+            msg.agentType === analysisMessage.agentType &&
+            Math.abs(msg.timestamp.getTime() - analysisMessage.timestamp.getTime()) < 5000 // within 5 seconds
+          );
+          if (isDuplicate) {
+            console.warn('🚫 Duplicate message detected, skipping:', messageId);
+            return prev;
+          }
+          return [...prev, analysisMessage];
+        });
+      });
+
+    } catch (error) {
+      console.error('Auto-trigger Argock analysis error:', error);
+      // No fallback message - let manual chat handle it
+    } finally {
+      setIsAutoAnalyzing(false);
+    }
+  };
 
   const [isTraining, setIsTraining] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<TrainingActivity | null>(null);
@@ -156,13 +285,18 @@ export default function TrainingGrounds({
   const [trainingPoints, setTrainingPoints] = useState(0);
   
   // Training chat state
-  const [showTrainingChat, setShowTrainingChat] = useState(false);
+  // Training phases: 'planning' | 'active' | 'recovery'
+  const [trainingPhase, setTrainingPhase] = useState<'planning' | 'active' | 'recovery'>('planning');
+  const [showTrainingChat, setShowTrainingChat] = useState(true); // Always show for Argock
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [chatMessages, setChatMessages] = useState<Array<{
     id: string;
-    sender: 'coach' | 'character';
+    sender: 'coach' | 'character' | 'argock';
     message: string;
     timestamp: Date;
     characterName?: string;
+    agentType?: string;
+    agentName?: string;
   }>>([]);
   const [currentChatMessage, setCurrentChatMessage] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -517,7 +651,7 @@ export default function TrainingGrounds({
 
 
   // Available activities based on character and membership
-  const availableActivities = trainingActivities.filter(activity => {
+  const availableActivities = selectedCharacter ? trainingActivities.filter(activity => {
     const meetsLevel = selectedCharacter.level >= activity.requirements.level;
     const meetsArchetype = !activity.requirements.archetype || 
       activity.requirements.archetype.includes(selectedCharacter.archetype);
@@ -526,18 +660,23 @@ export default function TrainingGrounds({
     
     // Skill activities require membership access
     return meetsLevel && meetsArchetype && hasEnergy && withinLimits;
-  });
+  }) : [];
 
   // Start training
   const startTraining = async (activity: TrainingActivity) => {
-    if (selectedCharacter.energy < activity.energyCost) return;
+    if (!selectedCharacter || selectedCharacter.energy < activity.energyCost) return;
     if (!canTrain()) return;
     
     try {
       // Get user ID from auth context (you'll need to implement this)
       const userId = 'user123'; // Replace with actual user ID from auth context
       
-      // Load the training system manager
+      // Load the training system manager - ensure client-side only
+      if (typeof window === 'undefined') {
+        console.warn('Training attempted during SSR, skipping');
+        return;
+      }
+      
       const trainingManager = TrainingSystemManager.loadProgress();
       
       // Start training with usage tracking following battle service pattern
@@ -556,6 +695,8 @@ export default function TrainingGrounds({
       setIsTraining(true);
       setTrainingProgress(0);
       setTrainingTimeLeft(activity.duration);
+      setTrainingPhase('active');
+      setSessionStartTime(new Date());
       
       // Increment daily sessions
       setDailyTrainingSessions(prev => prev + 1);
@@ -575,27 +716,8 @@ export default function TrainingGrounds({
     }
   };
 
-  // Training timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isTraining && trainingTimeLeft > 0) {
-      interval = setInterval(() => {
-        setTrainingTimeLeft(prev => {
-          const newTime = prev - 1;
-          setTrainingProgress(((currentActivity?.duration || 0) - newTime) / (currentActivity?.duration || 1) * 100);
-          return newTime;
-        });
-      }, 1000);
-    } else if (trainingTimeLeft === 0 && isTraining) {
-      completeTraining();
-    }
-    
-    return () => clearInterval(interval);
-  }, [isTraining, trainingTimeLeft, completeTraining, currentActivity?.duration]);
-
   // Complete training
-  const completeTraining = () => {
+  const completeTraining = React.useCallback(() => {
     if (!currentActivity) return;
     
     // Apply membership multipliers
@@ -658,9 +780,33 @@ export default function TrainingGrounds({
     }
     
     setIsTraining(false);
-    setCurrentActivity(null);
+    setTrainingPhase('recovery');
+    // Keep currentActivity for recovery discussion, clear after 5 minutes
+    setTimeout(() => {
+      setCurrentActivity(null);
+      setTrainingPhase('planning');
+    }, 300000); // 5 minutes recovery discussion
     setTrainingProgress(0);
-  };
+  }, [currentActivity, membershipTier, selectedFacility]);
+
+  // Training timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isTraining && trainingTimeLeft > 0) {
+      interval = setInterval(() => {
+        setTrainingTimeLeft(prev => {
+          const newTime = prev - 1;
+          setTrainingProgress(((currentActivity?.duration || 0) - newTime) / (currentActivity?.duration || 1) * 100);
+          return newTime;
+        });
+      }, 1000);
+    } else if (trainingTimeLeft === 0 && isTraining) {
+      completeTraining();
+    }
+    
+    return () => clearInterval(interval);
+  }, [isTraining, trainingTimeLeft, completeTraining, currentActivity?.duration]);
 
   // Stop training early
   const stopTraining = () => {
@@ -694,9 +840,9 @@ export default function TrainingGrounds({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Training chat functions
+  // Multi-agent training chat functions with live AI-to-AI interactions
   const sendTrainingChatMessage = async () => {
-    if (!currentChatMessage.trim() || isChatLoading) return;
+    if (!currentChatMessage.trim() || isChatLoading || !selectedCharacter) return;
 
     const messageText = currentChatMessage.trim();
     setCurrentChatMessage('');
@@ -712,11 +858,10 @@ export default function TrainingGrounds({
     setChatMessages(prev => [...prev, coachMessage]);
 
     try {
-      // Get available characters for context
-      const availableCharacters = createDemoCharacterCollection();
+      // Get available characters for context - use the real characters from props
       const currentCharacter = availableCharacters.find(c => c.name === selectedCharacter.name) || availableCharacters[0];
       
-      // Prepare training context
+      // Prepare training context with phase information
       const trainingContext = {
         character: currentCharacter,
         teammates: availableCharacters.filter(c => c.id !== currentCharacter.id).slice(0, 5),
@@ -726,37 +871,46 @@ export default function TrainingGrounds({
           equipment: ['Weights', 'Treadmill', 'Combat dummies', 'Resistance bands'],
           currentActivity: currentActivity?.name || 'Free training',
           energyLevel: Math.round((selectedCharacter.energy / selectedCharacter.maxEnergy) * 100),
-          trainingProgress: Math.round(trainingProgress)
+          trainingProgress: Math.round(trainingProgress),
+          trainingPhase: trainingPhase,
+          sessionDuration: sessionStartTime ? Math.floor((Date.now() - sessionStartTime.getTime()) / 60000) : 0
         },
         recentTrainingEvents: [
+          `Training phase: ${trainingPhase}`,
           `Completed ${dailyTrainingSessions} training sessions today`,
           `Current energy: ${selectedCharacter.energy}/${selectedCharacter.maxEnergy}`,
           `Training points earned: ${trainingPoints}`
         ]
       };
 
-      const response = await trainingChatService.startTrainingConversation(
+      // Get multi-agent responses with live AI calls
+      const agentResponses = await trainingChatService.startTrainingConversation(
         currentCharacter,
         trainingContext,
-        messageText
+        messageText,
+        false // Not character selection
       );
 
-      // Add character response to chat
-      const characterMessage = {
-        id: `char_${Date.now()}`,
-        sender: 'character' as const,
-        message: response,
-        timestamp: new Date(),
-        characterName: currentCharacter.name
-      };
-      setChatMessages(prev => [...prev, characterMessage]);
+      // Add all agent responses to chat
+      agentResponses.forEach((agent, index) => {
+        const agentMessage = {
+          id: `${agent.agentType}_${Date.now()}_${index}`,
+          sender: agent.agentType as 'character' | 'argock',
+          message: agent.message,
+          timestamp: new Date(),
+          characterName: agent.agentName,
+          agentType: agent.agentType,
+          agentName: agent.agentName
+        };
+        setChatMessages(prev => [...prev, agentMessage]);
+      });
 
     } catch (error) {
-      console.error('Training chat error:', error);
+      console.error('Multi-agent training chat error:', error);
       const errorMessage = {
         id: `error_${Date.now()}`,
         sender: 'character' as const,
-        message: 'Sorry, I\'m having trouble responding right now. Let\'s focus on training!',
+        message: 'Sorry, we\'re having trouble responding right now. Let\'s focus on training!',
         timestamp: new Date(),
         characterName: selectedCharacter.name
       };
@@ -773,6 +927,23 @@ export default function TrainingGrounds({
     }
   };
 
+
+  // Show error if no real character available
+  if (!selectedCharacter) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-white mb-4">Training Grounds</h1>
+          <div className="bg-red-900/50 border border-red-500 rounded-lg p-6 max-w-md mx-auto">
+            <p className="text-red-400 text-lg font-semibold">❌ No Character Available</p>
+            <p className="text-red-300 mt-2">Training requires a real character from the API.</p>
+            <p className="text-red-300 text-sm mt-2">Check authentication and backend connection.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       {/* Header */}
@@ -787,34 +958,129 @@ export default function TrainingGrounds({
         </p>
       </div>
 
-      {/* Character Selection */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Select Character for Training
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {availableCharacters.map((character) => (
-            <button
-              key={character.baseName}
-              onClick={() => setGlobalSelectedCharacterId(character.baseName)}
-              className={`p-3 rounded-lg border transition-all text-center ${
-                globalSelectedCharacterId === character.baseName
-                  ? 'border-orange-500 bg-orange-500/20 text-white'
-                  : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
-              }`}
-            >
-              <div className="text-2xl mb-1">{character.avatar}</div>
-              <div className="text-sm font-medium">{character.name}</div>
-              <div className="text-xs text-gray-400">Level {character.level}</div>
-            </button>
-          ))}
-        </div>
-      </div>
 
-      <div className="grid lg:grid-cols-4 gap-6">
-        {/* Character Info Panel */}
-        <div className="lg:col-span-1">
+      <div className="space-y-6">
+        {/* Dynamic Training Experience with Argock */}
+        <motion.div 
+          className="bg-gray-900/50 rounded-xl border border-gray-700 p-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Dumbbell className="w-5 h-5 text-orange-400" />
+              {trainingPhase === 'planning' && 'Training Planning with Argock'}
+              {trainingPhase === 'active' && `Training Session: ${currentActivity?.name}`}
+              {trainingPhase === 'recovery' && 'Post-Workout Recovery Chat'}
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                trainingPhase === 'planning' ? 'bg-blue-500/20 text-blue-400' :
+                trainingPhase === 'active' ? 'bg-orange-500/20 text-orange-400' :
+                'bg-green-500/20 text-green-400'
+              }`}>
+                {trainingPhase.toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          {/* Phase-specific content description */}
+          <div className="mb-4 p-3 bg-gray-800/50 rounded-lg">
+            <p className="text-gray-300 text-sm">
+              {trainingPhase === 'planning' && `Plan your workout with Argock and ${selectedCharacter.name}. Discuss goals, exercises, and get motivated!`}
+              {trainingPhase === 'active' && `Training in progress! Chat with Argock and your character during the workout. Stay motivated!`}
+              {trainingPhase === 'recovery' && `${selectedCharacter.name} is winded from training! Reflect on the workout and get recovery advice from Argock.`}
+            </p>
+          </div>
+
+          {/* Dynamic Training Chat */}
+          <div className="space-y-4">
+            {/* Chat Messages */}
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {chatMessages.length === 0 ? (
+                <div className="text-center py-8">
+                  <User className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                  <p className="text-gray-400 text-sm">
+                    {trainingPhase === 'planning' && `Start planning your workout with ${selectedCharacter.name}!`}
+                    {trainingPhase === 'active' && `Training in progress! Keep the motivation going!`}
+                    {trainingPhase === 'recovery' && `How was that workout? Let's discuss recovery!`}
+                  </p>
+                </div>
+              ) : (
+                chatMessages.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.sender === 'coach' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-md px-4 py-3 rounded-lg ${
+                      msg.sender === 'coach'
+                        ? 'bg-orange-600 text-white'
+                        : msg.sender === 'argock'
+                        ? 'bg-red-700 text-white border-l-4 border-red-400'
+                        : 'bg-gray-700 text-gray-200'
+                    }`}>
+                      {(msg.sender === 'character' || msg.sender === 'argock') && (
+                        <div className={`text-xs mb-1 flex items-center gap-2 ${
+                          msg.sender === 'argock' ? 'text-red-200' : 'text-gray-400'
+                        }`}>
+                          <span>{msg.agentName || msg.characterName}</span>
+                          {msg.sender === 'argock' && (
+                            <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
+                              TRAINER
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <div className="text-sm">{msg.message}</div>
+                      <div className="text-xs opacity-70 mt-1">
+                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              
+              {isChatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-700 px-4 py-3 rounded-lg">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Chat Input */}
+            <div className="border-t border-gray-700 pt-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={currentChatMessage}
+                  onChange={(e) => setCurrentChatMessage(e.target.value)}
+                  onKeyPress={handleChatKeyPress}
+                  placeholder={
+                    trainingPhase === 'planning' ? `Plan your workout with ${selectedCharacter.name}...` :
+                    trainingPhase === 'active' ? `Motivate ${selectedCharacter.name} during training...` :
+                    `Ask ${selectedCharacter.name} about the workout...`
+                  }
+                  className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+                  disabled={isChatLoading}
+                />
+                <button
+                  onClick={sendTrainingChatMessage}
+                  disabled={!currentChatMessage.trim() || isChatLoading}
+                  className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Training Management - Bottom */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Character Info & Training Status */}
           <motion.div 
             className="bg-gray-900/50 rounded-xl border border-gray-700 p-6"
             initial={{ opacity: 0, x: -20 }}
@@ -826,45 +1092,6 @@ export default function TrainingGrounds({
               <div className="flex items-center justify-center gap-2 text-yellow-400">
                 <Star className="w-4 h-4" />
                 <span>Level {selectedCharacter.level}</span>
-              </div>
-            </div>
-
-            {/* XP Progress */}
-            <div className="mb-6">
-              <div className="flex justify-between text-sm text-gray-400 mb-2">
-                <span>Experience</span>
-                <span>{selectedCharacter.xp}/{selectedCharacter.xp + selectedCharacter.xpToNext}</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-3">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-                  style={{ 
-                    width: `${(selectedCharacter.xp / (selectedCharacter.xp + selectedCharacter.xpToNext)) * 100}%` 
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">Health</span>
-                <div className="flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-red-400" />
-                  <span className="text-white">{selectedCharacter.hp}/{selectedCharacter.maxHp}</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">Attack</span>
-                <span className="text-red-400 font-bold">{selectedCharacter.atk}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">Defense</span>
-                <span className="text-blue-400 font-bold">{selectedCharacter.def}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">Speed</span>
-                <span className="text-green-400 font-bold">{selectedCharacter.spd}</span>
               </div>
             </div>
 
@@ -887,288 +1114,76 @@ export default function TrainingGrounds({
               </div>
             </div>
 
-            {/* Daily Training Limits */}
-            <div className="mb-4 p-3 bg-gray-800/50 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-400">Daily Training</span>
-                <span className="text-xs px-2 py-1 bg-gray-700 rounded capitalize">
-                  {membershipTier}
-                </span>
-              </div>
-              <div className="text-sm text-white">
-                Sessions: {dailyTrainingSessions}/{membershipLimits.dailyTrainingSessions === 'unlimited' ? '∞' : membershipLimits.dailyTrainingSessions}
-              </div>
-              <div className="text-sm text-white">
-                Refills: {dailyEnergyRefills}/{membershipLimits.dailyEnergyRefills === 'unlimited' ? '∞' : membershipLimits.dailyEnergyRefills}
-              </div>
-              <div className="text-sm text-yellow-400 flex items-center gap-1">
-                <Star className="w-3 h-3" />
-                Training Points: {trainingPoints}
-              </div>
-              {membershipLimits.xpMultiplier > 1 && (
-                <div className="text-sm text-green-400 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" />
-                  {membershipLimits.xpMultiplier}x XP Bonus
+            {/* Current Training Status */}
+            {isTraining && currentActivity ? (
+              <div className="bg-orange-900/30 border border-orange-500/50 rounded-xl p-4">
+                <div className="text-center">
+                  <div className="text-orange-400 text-lg mb-2">Training: {currentActivity.name}</div>
+                  <div className="text-gray-300 mb-4">
+                    <Clock className="w-4 h-4 inline mr-1" />
+                    {formatTime(trainingTimeLeft)} remaining
+                  </div>
+                  <button
+                    onClick={stopTraining}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Stop Training
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="text-center text-gray-400 py-4">
+                Ready for training
+              </div>
+            )}
           </motion.div>
 
-          {/* Current Training Status */}
-          {isTraining && currentActivity && (
-            <motion.div 
-              className="bg-orange-900/30 border border-orange-500/50 rounded-xl p-6 mt-4"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <div className="text-center">
-                <div className="text-orange-400 text-xl mb-2">Training in Progress</div>
-                <div className="text-white font-bold text-lg mb-3">{currentActivity.name}</div>
-                
-                {/* Progress Circle */}
-                <div className="relative w-24 h-24 mx-auto mb-4">
-                  <svg className="w-24 h-24 transform -rotate-90">
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="40"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="transparent"
-                      className="text-gray-700"
-                    />
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="40"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="transparent"
-                      strokeDasharray={`${2 * Math.PI * 40}`}
-                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - trainingProgress / 100)}`}
-                      className="text-orange-400 transition-all duration-1000"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white font-bold">{Math.round(trainingProgress)}%</span>
-                  </div>
-                </div>
-
-                <div className="text-gray-300 mb-4">
-                  <Clock className="w-4 h-4 inline mr-1" />
-                  {formatTime(trainingTimeLeft)} remaining
-                </div>
-
-                <button
-                  onClick={stopTraining}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 mx-auto"
-                >
-                  <Pause className="w-4 h-4" />
-                  Stop Training
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Training Activities */}
-        <div className="lg:col-span-2">
+          {/* Available Training Activities */}
           <motion.div 
             className="bg-gray-900/50 rounded-xl border border-gray-700 p-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
           >
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-blue-400" />
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-400" />
               Available Training
             </h2>
 
-            <div className="grid gap-4">
-              {availableActivities.map((activity) => {
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {availableActivities.slice(0, 5).map((activity) => {
                 const Icon = activity.icon;
                 const canStartTraining = !isTraining && selectedCharacter.energy >= activity.energyCost;
                 
                 return (
-                  <motion.div
+                  <div
                     key={activity.id}
-                    className={`border rounded-xl p-4 transition-all ${
+                    className={`border rounded-lg p-3 transition-all ${
                       canStartTraining 
                         ? 'border-gray-600 hover:border-blue-500 cursor-pointer' 
                         : 'border-gray-700 opacity-50 cursor-not-allowed'
                     }`}
-                    whileHover={canStartTraining ? { scale: 1.02 } : {}}
                     onClick={() => canStartTraining && startTraining(activity)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="bg-gray-700 p-3 rounded-lg">
-                          <Icon className="w-6 h-6 text-blue-400" />
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-white">{activity.name}</h3>
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${getDifficultyColor(activity.difficulty)}`}>
-                              {activity.difficulty.toUpperCase()}
-                            </span>
-                          </div>
-                          <p className="text-gray-400 text-sm mb-3">{activity.description}</p>
-                          
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-gray-400" />
-                              <span className="text-gray-300">{formatTime(activity.duration)}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Battery className="w-3 h-3 text-yellow-400" />
-                              <span className="text-yellow-400">{activity.energyCost} Energy</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Star className="w-3 h-3 text-blue-400" />
-                              <span className="text-blue-400">+{activity.xpGain} XP</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <TrendingUp className="w-3 h-3 text-green-400" />
-                              <span className="text-green-400">
-                                +{activity.statBonus} {activity.type}
-                              </span>
-                            </div>
-                          </div>
+                    <div className="flex items-center gap-3">
+                      <div className="bg-gray-700 p-2 rounded">
+                        <Icon className="w-4 h-4 text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-white font-medium">{activity.name}</div>
+                        <div className="text-xs text-gray-400">
+                          {formatTime(activity.duration)} • {activity.energyCost} Energy • +{activity.xpGain} XP
                         </div>
                       </div>
-                      
                       {canStartTraining && (
-                        <div className="ml-4">
-                          <button className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors">
-                            <Play className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <button className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded">
+                          <Play className="w-3 h-3" />
+                        </button>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
-
-            {availableActivities.length === 0 && (
-              <div className="text-center py-12">
-                <Battery className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-400 mb-2">No Training Available</h3>
-                <p className="text-gray-500">
-                  Your character needs more energy or higher level to access training activities.
-                </p>
-              </div>
-            )}
-          </motion.div>
-        </div>
-
-        {/* Training Chat Panel */}
-        <div className="lg:col-span-1">
-          <motion.div 
-            className="bg-gray-900/50 rounded-xl border border-gray-700 p-6 h-fit"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-orange-400" />
-                Training Coach
-              </h2>
-              <button
-                onClick={() => setShowTrainingChat(!showTrainingChat)}
-                className={`p-2 rounded-lg transition-colors ${
-                  showTrainingChat 
-                    ? 'bg-orange-600 text-white' 
-                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                }`}
-              >
-                <MessageCircle className="w-4 h-4" />
-              </button>
-            </div>
-
-            {showTrainingChat ? (
-              <>
-                {/* Chat Messages */}
-                <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
-                  {chatMessages.length === 0 ? (
-                    <div className="text-center py-8">
-                      <User className="w-12 h-12 text-gray-600 mx-auto mb-2" />
-                      <p className="text-gray-400 text-sm">
-                        Chat with {selectedCharacter.name} about training techniques and workout strategies!
-                      </p>
-                    </div>
-                  ) : (
-                    chatMessages.map((msg) => (
-                      <div key={msg.id} className={`flex ${msg.sender === 'coach' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-xs px-3 py-2 rounded-lg ${
-                          msg.sender === 'coach'
-                            ? 'bg-orange-600 text-white'
-                            : 'bg-gray-700 text-gray-200'
-                        }`}>
-                          {msg.sender === 'character' && (
-                            <div className="text-xs text-gray-400 mb-1">{msg.characterName}</div>
-                          )}
-                          <div className="text-sm">{msg.message}</div>
-                          <div className="text-xs opacity-70 mt-1">
-                            {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  
-                  {isChatLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-700 px-3 py-2 rounded-lg">
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Chat Input */}
-                <div className="border-t border-gray-700 pt-4">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={currentChatMessage}
-                      onChange={(e) => setCurrentChatMessage(e.target.value)}
-                      onKeyPress={handleChatKeyPress}
-                      placeholder={`Ask ${selectedCharacter.name} about training...`}
-                      className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
-                      disabled={isChatLoading}
-                    />
-                    <button
-                      onClick={sendTrainingChatMessage}
-                      disabled={!currentChatMessage.trim() || isChatLoading}
-                      className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-2">
-                    Press Enter to send • Chat with {selectedCharacter.name} about workouts, techniques, and training goals
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <MessageCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 mb-4">
-                  Get training advice and motivation from {selectedCharacter.name}
-                </p>
-                <button
-                  onClick={() => setShowTrainingChat(true)}
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Start Training Chat
-                </button>
-              </div>
-            )}
           </motion.div>
         </div>
       </div>

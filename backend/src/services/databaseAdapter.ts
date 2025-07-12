@@ -203,8 +203,7 @@ export const dbAdapter = {
         const result = await query(`
           SELECT uc.*, c.name, c.title, c.archetype, c.origin_era, c.rarity,
                  c.base_health, c.base_attack, c.base_defense, c.base_speed, c.base_special,
-                 c.personality_traits, c.conversation_style, c.backstory, c.emotional_range, c.conversation_topics,
-                 c.dialogue_intro, c.dialogue_victory, c.dialogue_defeat, c.dialogue_bonding,
+                 c.personality_traits, c.conversation_style, c.backstory, c.conversation_topics,
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc
           JOIN characters c ON uc.character_id = c.id
@@ -222,12 +221,7 @@ export const dbAdapter = {
             personality_drift: JSON.parse(row.personality_drift || '{}'),
             personality_traits: JSON.parse(row.personality_traits || '[]'),
             conversation_topics: JSON.parse(row.conversation_topics || '[]'),
-            emotional_range: JSON.parse(row.emotional_range || '[]'),
-            dialogue_intro: row.dialogue_intro,
-            dialogue_victory: row.dialogue_victory,
-            dialogue_defeat: row.dialogue_defeat,
-            dialogue_bonding: row.dialogue_bonding,
-            abilities: JSON.parse(row.abilities || '[]')
+                        abilities: JSON.parse(row.abilities || '[]')
           };
         }
         return null;
@@ -282,8 +276,7 @@ export const dbAdapter = {
         const result = await query(`
           SELECT uc.*, c.name, c.title, c.archetype, c.origin_era, c.rarity,
                  c.base_health, c.base_attack, c.base_defense, c.base_speed, c.base_special,
-                 c.personality_traits, c.conversation_style, c.backstory, c.emotional_range, c.conversation_topics,
-                 c.dialogue_intro, c.dialogue_victory, c.dialogue_defeat, c.dialogue_bonding,
+                 c.personality_traits, c.conversation_style, c.backstory, c.conversation_topics,
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc
           JOIN characters c ON uc.character_id = c.id
@@ -300,11 +293,6 @@ export const dbAdapter = {
           personality_drift: JSON.parse(row.personality_drift || '{}'),
           personality_traits: JSON.parse(row.personality_traits || '[]'),
           conversation_topics: JSON.parse(row.conversation_topics || '[]'),
-          emotional_range: JSON.parse(row.emotional_range || '[]'),
-          dialogue_intro: row.dialogue_intro,
-          dialogue_victory: row.dialogue_victory,
-          dialogue_defeat: row.dialogue_defeat,
-          dialogue_bonding: row.dialogue_bonding,
           abilities: JSON.parse(row.abilities || '[]')
         }));
       } catch (error) {
@@ -365,8 +353,8 @@ export const dbAdapter = {
         const result = await query(`
           SELECT uc.*, c.name, c.title, c.archetype, c.origin_era, c.rarity,
                  c.base_health, c.base_attack, c.base_defense, c.base_speed, c.base_special,
-                 c.emotional_range, c.dialogue_intro, c.dialogue_victory, c.dialogue_defeat,
-                 c.dialogue_bonding, c.abilities
+                 c.personality_traits, c.conversation_style, c.backstory, c.conversation_topics,
+                 c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc 
           JOIN characters c ON uc.character_id = c.id
           WHERE uc.user_id = ? AND uc.character_id = ?
@@ -383,12 +371,7 @@ export const dbAdapter = {
             personality_drift: JSON.parse(row.personality_drift || '{}'),
             personality_traits: JSON.parse(row.personality_traits || '[]'),
             conversation_topics: JSON.parse(row.conversation_topics || '[]'),
-            emotional_range: JSON.parse(row.emotional_range || '[]'),
-            dialogue_intro: row.dialogue_intro,
-            dialogue_victory: row.dialogue_victory,
-            dialogue_defeat: row.dialogue_defeat,
-            dialogue_bonding: row.dialogue_bonding,
-            abilities: JSON.parse(row.abilities || '[]')
+                        abilities: JSON.parse(row.abilities || '[]')
           };
         }
         return null;
@@ -513,7 +496,7 @@ export const dbAdapter = {
   characters: {
     async findById(id: string): Promise<Character | null> {
       try {
-        const result = await query('SELECT *, emotional_range, dialogue_intro, dialogue_victory, dialogue_defeat, dialogue_bonding FROM characters WHERE id = ?', [id]);
+        const result = await query('SELECT * FROM characters WHERE id = ?', [id]);
         if (result.rows[0]) {
           const row = result.rows[0];
           return {
@@ -533,7 +516,7 @@ export const dbAdapter = {
 
     async findAll(): Promise<Character[]> {
       try {
-        const result = await query('SELECT *, emotional_range, dialogue_intro, dialogue_victory, dialogue_defeat, dialogue_bonding FROM characters ORDER BY rarity DESC, name ASC');
+        const result = await query('SELECT * FROM characters ORDER BY rarity DESC, name ASC');
         return result.rows.map((row: any) => ({
           ...row,
           personality_traits: JSON.parse(row.personality_traits || '[]'),

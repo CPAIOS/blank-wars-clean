@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Dumbbell, Sword, Home, ShoppingBag,
@@ -30,12 +30,14 @@ import AbilityManager from './AbilityManager';
 import MembershipSelection from './MembershipSelection';
 import TrainingFacilitySelector from './TrainingFacilitySelector';
 import RealEstateAgentChat from './RealEstateAgentChat';
+import FacilitiesManager from './FacilitiesManager';
 import SkillTree from './SkillTree';
 import AICoach from './AICoach';
 import PersonalTrainerChat from './PersonalTrainerChat';
 import CharacterDatabase from './CharacterDatabase';
 // CoachingInterface is lazy-loaded below
 import TeamManagementCoaching from './TeamManagementCoaching';
+import TherapyModule from './TherapyModule';
 import IndividualSessionsWrapper from './IndividualSessionsWrapper';
 import TeamBuildingWrapper from './TeamBuildingWrapper';
 import GroupActivitiesWrapper from './GroupActivitiesWrapper';
@@ -229,7 +231,9 @@ export default function MainTabSystem() {
       };
     });
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     console.log('Progression - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
     
     return (
@@ -346,7 +350,9 @@ export default function MainTabSystem() {
       };
     });
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     console.log('Equipment - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
     
     // Handle equipment changes
@@ -495,7 +501,9 @@ export default function MainTabSystem() {
       };
     });
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     const currentTrainingPoints = characterAbilities[globalSelectedCharacterId]?.trainingPoints || (selectedCharacter.level * 2);
     
     return (
@@ -653,7 +661,9 @@ export default function MainTabSystem() {
           
           setAvailableCharacters(mappedCharacters);
         } catch (error) {
-          console.error('Failed to load characters:', error);
+          console.error('❌ Failed to load characters:', error);
+          console.error('❌ Error details:', error.response?.data || error.message);
+          setAvailableCharacters([]);
         } finally {
           setCharactersLoading(false);
         }
@@ -662,7 +672,9 @@ export default function MainTabSystem() {
       loadCharacters();
     }, []);
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     
     return (
       <div className="space-y-6">
@@ -1002,51 +1014,77 @@ export default function MainTabSystem() {
       const loadCharacters = async () => {
         setCharactersLoading(true);
         try {
+          console.log('🔄 Loading characters from API...');
+          console.log('🔄 API URL:', '/api/user/characters');
           const response = await characterAPI.getUserCharacters();
+          console.log('📊 API Response:', response);
+          
+          // Force use the characters if they exist elsewhere
+          if (!response.characters || response.characters.length === 0) {
+            console.log('❌ No characters in API response, checking for data in response root');
+            console.log('📊 Response keys:', Object.keys(response || {}));
+            
+            // Try to extract characters from different possible locations
+            const characters = response.characters || response.data?.characters || response.users || response || [];
+            console.log('🔍 Extracted characters:', characters.length);
+            
+            if (characters.length === 0) {
+              console.error('🚨 NO CHARACTERS FOUND - TRAINING REQUIRES REAL API CHARACTERS');
+              setAvailableCharacters([]);
+              setCharactersLoading(false);
+              return;
+            }
+          }
+          
           const characters = response.characters || [];
+          console.log('👥 Characters received:', characters.length);
+          if (characters.length === 0) {
+            console.log('❌ No characters found in response:', response);
+          }
           
           const mappedCharacters = characters.map((char: any) => {
-            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0];
             return {
               ...char,
               baseName,
-              displayBondLevel: char.bond_level || Math.floor((char.base_health || 80) / 10),
-              // Map database fields to component expectations
+              displayBondLevel: char.bond_level,
               baseStats: {
-                strength: char.base_attack || 70,
-                vitality: char.base_health || 80,
-                agility: char.base_speed || 70,
-                intelligence: char.base_special || 70,
-                wisdom: char.base_defense || 70,
-                charisma: char.bond_level || 5
+                strength: char.base_attack,
+                vitality: char.base_health,
+                agility: char.base_speed,
+                intelligence: char.base_special,
+                wisdom: char.base_defense,
+                charisma: char.bond_level
               },
               combatStats: {
-                health: char.current_health || char.base_health || 80,
-                maxHealth: char.max_health || char.base_health || 80,
-                attack: char.base_attack || 70,
-                defense: char.base_defense || 70,
-                speed: char.base_speed || 70,
-                criticalChance: 15,
-                accuracy: 85
+                health: char.current_health,
+                maxHealth: char.max_health,
+                attack: char.base_attack,
+                defense: char.base_defense,
+                speed: char.base_speed,
+                criticalChance: char.critical_chance,
+                accuracy: char.accuracy
               },
-              level: char.level || 1,
-              experience: char.experience || 0,
-              abilities: char.abilities || [],
-              archetype: char.archetype || 'warrior',
-              avatar: char.avatar_emoji || char.avatar || '⚔️',
-              name: char.name || 'Unknown Character',
+              level: char.level,
+              experience: char.experience,
+              abilities: char.abilities,
+              archetype: char.archetype,
+              avatar: char.avatar_emoji,
+              name: char.name,
               trainingBonuses: {
-                strength: Math.floor((char.level || 1) / 3),
-                defense: Math.floor((char.level || 1) / 4),
-                speed: Math.floor((char.level || 1) / 3.5),
-                special: Math.floor((char.level || 1) / 2.5)
+                strength: Math.floor(char.level / 3),
+                defense: Math.floor(char.level / 4),
+                speed: Math.floor(char.level / 3.5),
+                special: Math.floor(char.level / 2.5)
               }
             };
           });
           
           setAvailableCharacters(mappedCharacters);
         } catch (error) {
-          console.error('Failed to load characters:', error);
+          console.error('❌ Failed to load characters:', error);
+          console.error('❌ Error details:', error.response?.data || error.message);
+          setAvailableCharacters([]);
         } finally {
           setCharactersLoading(false);
         }
@@ -1055,7 +1093,9 @@ export default function MainTabSystem() {
       loadCharacters();
     }, []);
     
-    const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
     
     return (
       <div className="space-y-6">
@@ -1069,6 +1109,11 @@ export default function MainTabSystem() {
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {charactersLoading ? (
                 <div className="text-center text-gray-400 py-4">Loading characters...</div>
+              ) : availableCharacters.length === 0 ? (
+                <div className="text-center text-red-400 py-4">
+                  <p>❌ No characters loaded from API</p>
+                  <p className="text-sm mt-2">Check authentication and backend connection</p>
+                </div>
               ) : (
                 availableCharacters.map((character) => (
                   <button
@@ -1098,13 +1143,18 @@ export default function MainTabSystem() {
           
           {/* Training Interface */}
           <div className="flex-1">
-            {selectedCharacter && (
+            {console.log('🎯 Training render check:', !!selectedCharacter, selectedCharacter?.name)}
+            {selectedCharacter ? (
               <TrainingGrounds 
                 globalSelectedCharacterId={globalSelectedCharacterId}
                 setGlobalSelectedCharacterId={setGlobalSelectedCharacterId}
                 selectedCharacter={selectedCharacter}
                 availableCharacters={availableCharacters}
               />
+            ) : (
+              <div className="text-center text-gray-400 py-8">
+                No character selected or available
+              </div>
             )}
           </div>
         </div>
@@ -1131,7 +1181,6 @@ export default function MainTabSystem() {
       color: 'amber',
       subTabs: [
         { id: 'overview', label: 'Team Base', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space and facilities' },
-        { id: 'facilities', label: 'Facilities', icon: Building, component: FacilitiesManagerWrapper, description: 'Manage team facilities and upgrades' },
       ]
     },
     {
@@ -1184,6 +1233,7 @@ export default function MainTabSystem() {
       subTabs: [
         { id: 'profile', label: 'Profile', icon: User, component: CoachProgressionPage, description: 'View your coach profile and progression' },
         { id: 'team-management', label: 'Team Management', icon: Shield, component: TeamManagementCoaching, description: 'Handle team conflicts, strategy reviews, and leadership decisions' },
+        { id: 'therapy', label: 'Therapy', icon: Brain, component: TherapyModule, description: 'Individual and group therapy sessions with legendary therapists' },
         { id: 'individual-sessions', label: 'Individual Sessions', icon: MessageCircle, component: IndividualSessionsWrapper, description: 'One-on-one coaching with team members' },
         { id: 'team-building', label: 'Team Building', icon: Users, component: TeamBuildingWrapper, description: 'Organize dinners, retreats, and activities' },
         { id: 'group-activities', label: 'Group Activities', icon: Activity, component: GroupActivitiesWrapper, description: 'Game nights and group therapy sessions' },

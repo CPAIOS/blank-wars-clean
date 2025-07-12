@@ -28,5 +28,12 @@ export const characterAPI = {
   },
 };
 
+export const realEstateAPI = {
+  sendMessage: async (context: any) => {
+    const response = await apiClient.post('/api/headquarters/real-estate-chat', context);
+    return response.data;
+  },
+};
+
 export { apiClient };
 export default apiClient;

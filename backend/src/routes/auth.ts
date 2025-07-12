@@ -20,7 +20,7 @@ router.post('/register', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000 // 15 minutes
+      maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
     res.cookie('refreshToken', tokens.refreshToken, {
@@ -56,7 +56,7 @@ router.post('/login', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000 // 15 minutes
+      maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
     res.cookie('refreshToken', tokens.refreshToken, {
@@ -99,7 +99,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000 // 15 minutes
+      maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
     res.cookie('refreshToken', tokens.refreshToken, {
