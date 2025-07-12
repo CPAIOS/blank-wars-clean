@@ -663,6 +663,7 @@ export default function MainTabSystem() {
         } catch (error) {
           console.error('❌ Failed to load characters:', error);
           console.error('❌ Error details:', error.response?.data || error.message);
+          setAvailableCharacters([]);
         } finally {
           setCharactersLoading(false);
         }
@@ -1028,19 +1029,9 @@ export default function MainTabSystem() {
             console.log('🔍 Extracted characters:', characters.length);
             
             if (characters.length === 0) {
-              console.log('🚨 Still no characters found, using fallback data');
-              // Use the createDemoCharacterCollection as a temporary workaround
-              const demoCharacters = createDemoCharacterCollection();
-              console.log('📋 Using demo characters:', demoCharacters.length);
-              const mappedDemoCharacters = demoCharacters.map((char: any) => ({
-                ...char,
-                baseName: char.id,
-                displayBondLevel: 5,
-                baseStats: char.baseStats,
-                combatStats: char.combatStats,
-                experience: { currentXP: char.level * 100, xpToNextLevel: (char.level + 1) * 100 }
-              }));
-              setAvailableCharacters(mappedDemoCharacters);
+              console.error('🚨 NO CHARACTERS FOUND - TRAINING REQUIRES REAL API CHARACTERS');
+              setAvailableCharacters([]);
+              setCharactersLoading(false);
               return;
             }
           }
@@ -1093,6 +1084,7 @@ export default function MainTabSystem() {
         } catch (error) {
           console.error('❌ Failed to load characters:', error);
           console.error('❌ Error details:', error.response?.data || error.message);
+          setAvailableCharacters([]);
         } finally {
           setCharactersLoading(false);
         }
@@ -1117,6 +1109,11 @@ export default function MainTabSystem() {
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {charactersLoading ? (
                 <div className="text-center text-gray-400 py-4">Loading characters...</div>
+              ) : availableCharacters.length === 0 ? (
+                <div className="text-center text-red-400 py-4">
+                  <p>❌ No characters loaded from API</p>
+                  <p className="text-sm mt-2">Check authentication and backend connection</p>
+                </div>
               ) : (
                 availableCharacters.map((character) => (
                   <button

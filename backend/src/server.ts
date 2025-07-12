@@ -1209,27 +1209,41 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
     
     if (params.isCharacterSelection) {
       // Auto-analysis when character is selected
-      argockPrompt = `You are ARGOCK, a gruff, no-nonsense personal trainer in a fighting league gym. ${params.characterName} just walked into your gym and you need to give the Coach (user) your immediate assessment and training recommendations.
+      const timeOfDay = new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening';
+      const randomTrainingFocus = ['strength', 'cardio', 'agility', 'combat technique', 'endurance', 'flexibility'][Math.floor(Math.random() * 6)];
+      const sessionId = Math.random().toString(36).substr(2, 8);
+      
+      argockPrompt = `You are ARGOCK, a gruff, no-nonsense personal trainer. It's ${timeOfDay} and ${params.characterName} just walked into your gym.
 
 ARGOCK'S PERSONALITY:
-- Gruff, direct, and brutally honest
-- Experienced trainer who's seen it all
-- Calls people out on their weaknesses
-- Gives specific, actionable training advice
+- Gruff, direct, brutally honest
+- Experienced trainer who's seen everything
+- Calls out weaknesses immediately
+- Gives specific, actionable advice
 - Uses gym slang and tough-love motivation
-- Addresses the COACH directly (not the character)
+- Always addresses the COACH directly
 
-CHARACTER ANALYSIS TARGET: ${params.characterName}
-SITUATION: This character just entered your gym for training
+CHARACTER ANALYSIS: ${params.characterName}
+Think about what you know about ${params.characterName} historically/mythologically and assess their likely:
+- Physical strengths and weaknesses
+- Combat background and training needs
+- Personality traits that affect training
+- Specific areas for improvement
 
-Your immediate assessment to the Coach should include:
-- Quick physical assessment of ${params.characterName}
-- Specific training recommendations 
-- Areas that need immediate work
-- What exercises they should focus on
-- Your honest opinion about their potential
+SESSION CONTEXT:
+- Time: ${timeOfDay} training session
+- Focus suggestion: ${randomTrainingFocus}
+- Session ID: ${sessionId}
+- Your mood: Randomly choose between skeptical, motivated, or brutally honest
 
-Respond directly to the Coach with your gruff trainer assessment. Keep it under 2 sentences. Make each response unique and specific to ${params.characterName}. Current time: ${new Date().toLocaleTimeString()} - generate a completely fresh, dynamic assessment each time.`;
+Generate a UNIQUE assessment for the Coach. Consider ${params.characterName}'s background and give specific training advice. Be gruff but helpful. Keep under 2 sentences.
+
+Examples of your style:
+- "Coach! This one looks soft - needs serious conditioning work!"
+- "Finally, someone with potential! Let's work on their weak spots!"
+- "Coach, I've seen tougher fighters, but we can make something of them!"
+
+Make YOUR assessment completely different and specific to ${params.characterName}.`;
     
     } else {
       // Regular training conversation
@@ -1423,31 +1437,7 @@ Respond as ${params.characterName} in this training situation. Keep it conversat
         userMessage: userMessage ? userMessage.substring(0, 50) + '...' : 'No message'
       });
 
-      console.log('🔍 Checking isCharacterSelection:', isCharacterSelection, typeof isCharacterSelection);
-
-      // TEMPORARY: Send immediate test response to verify socket connection
-      if (isCharacterSelection === true) {
-        console.log('🧪 Character selection detected, sending test response...');
-        console.log('🎯 Character name:', characterName);
-        console.log('🎯 Training phase:', trainingPhase);
-        socket.emit('training_chat_response', {
-          conversationId,
-          multiAgentResponse: {
-            agents: [
-              {
-                agentType: 'argock',
-                agentName: 'Argock',
-                message: `Coach! ${characterName} just walked in. Let's see what this warrior is made of! Time for some serious training.`,
-                timestamp: new Date().toISOString()
-              }
-            ],
-            timestamp: new Date().toISOString(),
-            trainingPhase
-          }
-        });
-        console.log('📤 Test response sent successfully for character selection');
-        return;
-      }
+      console.log('🔍 Character selection status:', isCharacterSelection, typeof isCharacterSelection);
 
       // Determine which agents should respond
       const activeAgents = determineActiveAgents(userMessage, trainingPhase, isCharacterSelection);
