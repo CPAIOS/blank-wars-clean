@@ -29,8 +29,9 @@ import {
   Video,
   Mic
 } from 'lucide-react';
-import { createDemoCharacterCollection, Character } from '../data/characters';
-import { kitchenChatService } from '../data/kitchenChatService_ORIGINAL';
+import { Character } from '../data/characters';
+import { KitchenChatService } from '../data/kitchenChatService';
+import { characterAPI } from '../services/apiClient';
 import { PromptTemplateService } from '../data/promptTemplateService';
 import { roomImageService } from '../data/roomImageService';
 import { useTutorial } from '../data/useTutorial';
@@ -77,12 +78,109 @@ import { getElementCapacity } from '../services/headquartersService';
 
 export default function TeamHeadquarters() {
   
-  const [availableCharacters] = useState(() => 
-    createDemoCharacterCollection().map(char => ({
-      ...char,
-      baseName: char.id.split('_')[0]
-    }))
-  );
+  // Create persistent kitchen chat service instance with conflict detection
+  const kitchenChatServiceRef = useRef<KitchenChatService | null>(null);
+  if (!kitchenChatServiceRef.current) {
+    kitchenChatServiceRef.current = new KitchenChatService();
+  }
+  const kitchenChatService = kitchenChatServiceRef.current;
+  
+  const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+  const [charactersLoading, setCharactersLoading] = useState(true);
+
+  // Load characters from database API instead of demo collection
+  useEffect(() => {
+    const loadCharacters = async () => {
+      try {
+        setCharactersLoading(true);
+        const response = await characterAPI.getUserCharacters();
+        const characters = response.characters || [];
+        
+        // Map database characters to expected format
+        const mappedCharacters = characters.map((char: any) => {
+          console.log('🔍 Processing character:', char.name, {
+            personality_traits: char.personality_traits,
+            conversation_topics: char.conversation_topics
+          });
+          
+          try {
+            return {
+              // Basic database fields
+              id: char.character_id, // Use the base character ID from database
+              name: char.name,
+              title: char.title || '',
+              avatar: char.avatar_emoji || '⚔️',
+              archetype: char.archetype || 'warrior',
+              rarity: char.rarity || 'common',
+              
+              // Parse JSON fields from database with error handling
+              personality: {
+                traits: char.personality_traits ? JSON.parse(char.personality_traits) : ['Determined'],
+                speechStyle: char.conversation_style || 'Direct',
+                motivations: char.conversation_topics ? JSON.parse(char.conversation_topics).slice(0, 3) : ['Victory'],
+                fears: ['Defeat'], // Default fallback
+                relationships: []
+              },
+          
+          // Map database fields to demo character format
+          historicalPeriod: char.origin_era || 'Modern Era',
+          mythology: char.archetype + ' tradition',
+          description: char.backstory || 'A legendary warrior.',
+          
+          // Game progression fields
+          level: char.level || 1,
+          experience: char.experience || 0,
+          bond_level: char.bond_level || 0,
+          
+          // Combat stats
+          combatStats: {
+            maxHealth: char.max_health || char.base_health,
+            health: char.current_health || char.base_health,
+            attack: char.base_attack,
+            defense: char.base_defense,
+            speed: char.base_speed
+          },
+          
+              // Add baseName for compatibility
+              baseName: char.character_id
+            };
+          } catch (parseError) {
+            console.error('❌ Error parsing character data for:', char.name, parseError);
+            // Return fallback character
+            return {
+              id: char.character_id,
+              name: char.name,
+              title: char.title || '',
+              avatar: char.avatar_emoji || '⚔️',
+              archetype: char.archetype || 'warrior',
+              personality: {
+                traits: ['Determined'],
+                speechStyle: 'Direct',
+                motivations: ['Victory'],
+                fears: ['Defeat'],
+                relationships: []
+              },
+              historicalPeriod: char.origin_era || 'Modern Era',
+              mythology: char.archetype + ' tradition',
+              description: char.backstory || 'A legendary warrior.',
+              level: char.level || 1,
+              baseName: char.character_id
+            };
+          }
+        });
+        
+        console.log('📊 Loaded database characters for kitchen chat:', mappedCharacters);
+        setAvailableCharacters(mappedCharacters);
+      } catch (error) {
+        console.error('❌ Error loading characters for kitchen chat:', error);
+        setAvailableCharacters([]);
+      } finally {
+        setCharactersLoading(false);
+      }
+    };
+
+    loadCharacters();
+  }, []);
 
   // Usage tracking state
   const [usageStatus, setUsageStatus] = useState<UsageStatus | null>(null);
@@ -631,11 +729,11 @@ export default function TeamHeadquarters() {
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                     {getUnassignedCharacters(availableCharacters, headquarters).map(character => (
                       <div
-                        key={character.baseName}
+                        key={character.id}
                         className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-move hover:bg-gray-600/50 transition-colors"
                         draggable
                         onDragStart={(e) => {
-                          setDraggedCharacter(character.baseName);
+                          setDraggedCharacter(character.id);
                           e.dataTransfer.effectAllowed = 'move';
                         }}
                         onDragEnd={() => setDraggedCharacter(null)}
@@ -923,7 +1021,7 @@ export default function TeamHeadquarters() {
               <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-2 justify-center mb-4 max-w-4xl mx-auto">
                 {availableCharacters.map((character) => {
                   return (
-                    <div key={character.baseName} className="text-center">
+                    <div key={character.id} className="text-center">
                       <div className="text-3xl mb-1">{character.avatar}</div>
                       <div className="text-xs text-gray-400">
                         {character.name.split(' ')[0]}

@@ -1,6 +1,6 @@
 import { HeadquartersState } from '../types/headquarters';
 import { Character } from '../data/characters';
-import { kitchenChatService } from '../data/kitchenChatService_ORIGINAL';
+import { kitchenChatService } from '../data/kitchenChatService';
 import { PromptTemplateService } from '../services/promptTemplateService';
 import { usageService, UsageStatus } from '../services/usageService';
 import { calculateSleepingArrangement, calculateRoomCapacity } from '../utils/roomCalculations';

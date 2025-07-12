@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { Character } from '../data/characters';
 import { ConflictData, TherapyContext, TherapistPromptStyle } from '@/services/ConflictDatabaseService';
+import ConflictDatabaseService from '../services/ConflictDatabaseService';
 import { TherapyPromptTemplateService } from './therapyPromptTemplateService';
 
 interface TherapySession {
@@ -95,36 +96,24 @@ export class TherapyChatService {
   /**
    * Start an individual therapy session
    */
-  async startIndividualSession(context: IndividualTherapyContext): Promise<TherapySession> {
-    const sessionId = `therapy_individual_${Date.now()}_${context.character.id}`;
+  async startIndividualSession(characterId: string, therapistId: string): Promise<TherapySession> {
+    const sessionId = `therapy_individual_${Date.now()}_${characterId}`;
     
     const session: TherapySession = {
       id: sessionId,
       type: 'individual',
-      therapistId: context.therapistId,
-      participantIds: [context.character.id],
-      stage: context.sessionStage,
+      therapistId: therapistId,
+      participantIds: [characterId],
+      stage: 'initial',
       sessionHistory: [],
       startTime: new Date(),
-      context: context.therapyContext
+      context: undefined // Will be populated with real conflict data by the dual API
     };
 
     this.activeSessions.set(sessionId, session);
     
-    // Generate therapist opening question
-    const openingQuestion = await this.generateTherapistQuestion(context);
-    
-    const therapistMessage: TherapyMessage = {
-      id: `msg_${Date.now()}`,
-      sessionId,
-      speakerId: context.therapistId,
-      speakerType: 'therapist',
-      message: openingQuestion,
-      timestamp: new Date(),
-      messageType: 'question'
-    };
-    
-    session.sessionHistory.push(therapistMessage);
+    // Generate opening question using real API (automatically adds to session history)
+    await this.generateTherapistQuestion(sessionId);
     console.log('🧠 Individual therapy session started:', sessionId);
     
     return session;
@@ -169,7 +158,172 @@ export class TherapyChatService {
   }
 
   /**
-   * Generate character response in therapy session
+   * Generate therapist question in individual therapy (Step 1 of dual API)
+   */
+  async generateTherapistQuestion(sessionId: string): Promise<string> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    if (!this.socket?.connected) {
+      throw new Error('Socket not connected to backend. Please refresh the page and try again.');
+    }
+
+    return new Promise((resolve, reject) => {
+      const messageId = `therapy_therapist_${Date.now()}_${session.therapistId}`;
+      
+      const therapistPrompt = this.buildTherapistPrompt(session);
+      
+      const requestData = {
+        message: 'Generate therapeutic question',
+        character: session.therapistId,
+        characterData: {
+          name: 'Therapist',
+          personality: {
+            traits: ['empathetic', 'insightful', 'professional'],
+            speechStyle: 'Therapeutic and supportive',
+            motivations: ['Help patient heal', 'Uncover conflicts'],
+            fears: ['Patient withdrawal', 'Therapeutic rupture']
+          },
+          bondLevel: 5
+        },
+        promptOverride: therapistPrompt,
+        sessionType: 'therapy_therapist',
+        sessionId,
+        messageId,
+        previousMessages: session.sessionHistory.slice(-3).map(msg => ({
+          role: msg.speakerType === 'therapist' ? 'assistant' : 'user',
+          content: msg.message
+        }))
+      };
+      
+      console.log('📤 Sending therapist question request:', {
+        sessionId,
+        therapistId: session.therapistId,
+        messageId,
+        promptLength: therapistPrompt.length
+      });
+      
+      this.socket!.emit('chat_message', requestData);
+
+      const timeout = setTimeout(() => {
+        console.warn('⏰ Therapist question timeout for:', messageId);
+        reject(new Error('Therapist response timeout'));
+      }, 30000);
+
+      const responseHandler = (data: any) => {
+        if (data.messageId === messageId || data.character === session.therapistId) {
+          clearTimeout(timeout);
+          this.socket!.off('chat_response', responseHandler);
+          
+          const therapistMessage: TherapyMessage = {
+            id: messageId,
+            sessionId,
+            speakerId: session.therapistId,
+            speakerType: 'therapist',
+            message: data.message || 'How are you feeling today?',
+            timestamp: new Date(),
+            messageType: 'question'
+          };
+          
+          session.sessionHistory.push(therapistMessage);
+          resolve(data.message || 'Therapist response unavailable');
+        }
+      };
+
+      this.socket!.on('chat_response', responseHandler);
+    });
+  }
+
+  /**
+   * Generate patient response in individual therapy (Step 2 of dual API)
+   */
+  async generatePatientResponse(
+    sessionId: string,
+    characterId: string,
+    therapistQuestion: string
+  ): Promise<string> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    if (!this.socket?.connected) {
+      throw new Error('Socket not connected to backend. Please refresh the page and try again.');
+    }
+
+    return new Promise(async (resolve, reject) => {
+      const messageId = `therapy_patient_${Date.now()}_${characterId}`;
+      
+      const patientPrompt = await this.buildPatientPrompt(session, characterId, therapistQuestion);
+      
+      const requestData = {
+        message: therapistQuestion,
+        character: characterId,
+        characterData: {
+          name: 'Patient',
+          personality: {
+            traits: ['complex', 'conflicted'],
+            speechStyle: 'Authentic to character background',
+            motivations: ['Growth', 'Understanding'],
+            fears: ['Vulnerability', 'Judgment']
+          },
+          bondLevel: 1
+        },
+        promptOverride: patientPrompt,
+        sessionType: 'therapy_patient',
+        sessionId,
+        messageId,
+        therapistId: session.therapistId,
+        sessionStage: session.stage,
+        previousMessages: session.sessionHistory.slice(-5).map(msg => ({
+          role: msg.speakerType === 'character' ? 'assistant' : 'user',
+          content: msg.message
+        }))
+      };
+      
+      console.log('📤 Sending patient response request:', {
+        sessionId,
+        characterId,
+        messageId,
+        promptLength: patientPrompt.length,
+        therapistQuestion: therapistQuestion.substring(0, 50) + '...'
+      });
+      
+      this.socket!.emit('chat_message', requestData);
+
+      const timeout = setTimeout(() => {
+        console.warn('⏰ Patient response timeout for:', messageId);
+        reject(new Error('Patient response timeout'));
+      }, 30000);
+
+      const responseHandler = (data: any) => {
+        if (data.messageId === messageId || data.character === characterId) {
+          clearTimeout(timeout);
+          this.socket!.off('chat_response', responseHandler);
+          
+          const patientMessage: TherapyMessage = {
+            id: messageId,
+            sessionId,
+            speakerId: characterId,
+            speakerType: 'character',
+            message: data.message || 'I prefer not to discuss this.',
+            timestamp: new Date(),
+            messageType: 'response'
+          };
+          
+          session.sessionHistory.push(patientMessage);
+          resolve(data.message || 'Patient response unavailable');
+        }
+      };
+
+      this.socket!.on('chat_response', responseHandler);
+    });
+  }
+
+  /**
+   * Generate character response in therapy session (DEPRECATED - use dual API methods above)
    */
   async generateCharacterResponse(
     sessionId: string,
@@ -359,27 +513,6 @@ export class TherapyChatService {
     });
   }
 
-  /**
-   * Generate initial therapist question for individual therapy
-   */
-  private async generateTherapistQuestion(context: IndividualTherapyContext): Promise<string> {
-    const prompt = TherapyPromptTemplateService.generateTherapistPrompt({
-      therapistId: context.therapistId,
-      sessionType: 'individual',
-      character: context.character,
-      therapyContext: context.therapyContext,
-      sessionStage: context.sessionStage,
-      isOpeningQuestion: true
-    });
-
-    // For now, return synchronously generated question
-    // Later this could also be AI-generated for more variety
-    return TherapyPromptTemplateService.generateOpeningQuestion(
-      context.therapistId,
-      context.therapyContext,
-      context.sessionStage
-    );
-  }
 
   /**
    * Generate initial therapist question for group therapy
@@ -539,6 +672,116 @@ export class TherapyChatService {
         }
       }, 100);
     });
+  }
+
+
+  /**
+   * Build therapist prompt for dual API system
+   */
+  private buildTherapistPrompt(session: TherapySession): string {
+    const THERAPIST_STYLES: Record<string, any> = {
+      'seraphina': { name: 'Fairy Godmother Seraphina', style: 'nurturing and magical' },
+      'carl_jung': { name: 'Carl Jung', style: 'analytical and depth-oriented' },
+      'freud': { name: 'Sigmund Freud', style: 'psychoanalytic and probing' }
+    };
+
+    const therapistInfo = THERAPIST_STYLES[session.therapistId] || { name: 'Therapist', style: 'supportive' };
+    
+    // Get conversation context from recent history
+    const recentHistory = session.sessionHistory.slice(-6).map(msg => 
+      `${msg.speakerType === 'therapist' ? 'Therapist' : 'Patient'}: ${msg.message}`
+    ).join('\n');
+
+    return `
+THERAPY SESSION - THERAPIST ROLE
+
+You are ${therapistInfo.name}, a skilled therapist conducting individual therapy. Your therapeutic style is ${therapistInfo.style}.
+
+PATIENT CONTEXT:
+The patient is dealing with conflicts related to living in shared quarters with other characters. They have ongoing disputes about kitchen duties, sleeping arrangements, and general roommate tensions.
+
+RECENT CONVERSATION:
+${recentHistory || 'Session just beginning'}
+
+SESSION STAGE: ${session.stage || 'initial'}
+
+THERAPEUTIC OBJECTIVES:
+1. Ask one thoughtful, therapeutic question
+2. Focus on helping the patient explore their conflicts and emotions
+3. Use your ${therapistInfo.style} therapeutic approach
+4. Guide the patient toward self-discovery and healing
+5. Create a safe space for vulnerability
+
+RESPONSE REQUIREMENTS:
+- Generate exactly ONE therapeutic question or intervention
+- Keep it focused and purposeful
+- Match your established therapeutic style
+- Don't be preachy - let the patient do the work
+${recentHistory ? 
+  '- Build on the previous conversation context' : 
+  '- This is the opening question - ask what brings them to therapy, using your unique therapeutic style'
+}
+
+Remember: You are the THERAPIST asking questions, not the patient sharing problems.
+    `.trim();
+  }
+
+  /**
+   * Build patient prompt for dual API system
+   */
+  private async buildPatientPrompt(session: TherapySession, characterId: string, therapistQuestion: string): Promise<string> {
+    try {
+      console.log('🏗️ Building patient prompt for:', characterId, 'with question:', therapistQuestion.substring(0, 50) + '...');
+      
+      // Use ConflictDatabaseService for authentic patient prompts with real conflicts
+      const conflictService = ConflictDatabaseService.getInstance();
+      
+      // Get therapy context for the character
+      const therapyContext = await conflictService.getTherapyContextForCharacter(characterId);
+      console.log('🔍 Got therapy context for character:', characterId, 'conflicts:', therapyContext.activeConflicts.length);
+      
+      // Generate the base patient prompt from ConflictDatabaseService
+      const basePrompt = conflictService.generateTherapyPrompt(
+        therapyContext,
+        session.therapistId,
+        session.stage
+      );
+      
+      console.log('✅ Base prompt generated successfully, length:', basePrompt.length);
+
+      // Add the specific therapist question and response context
+      const enhancedPrompt = `
+${basePrompt}
+
+CURRENT THERAPEUTIC EXCHANGE:
+Therapist just asked you: "${therapistQuestion}"
+
+RESPONSE REQUIREMENTS:
+1. You are the PATIENT responding to this specific question
+2. Answer as your character would, drawing from your real conflicts and experiences
+3. Do NOT ask questions back to the therapist - you are receiving therapy, not giving it
+4. Share personal struggles, conflicts with roommates, or emotional challenges
+5. Show your character's personality while being vulnerable and authentic
+6. Keep your response to 2-3 sentences maximum - be concise but authentic
+7. Focus on one specific conflict or feeling rather than multiple topics
+
+CRITICAL: Respond TO the therapist's question as a patient sharing personal information. Be brief but meaningful.
+      `.trim();
+
+      console.log('✅ Enhanced prompt completed, total length:', enhancedPrompt.length);
+      return enhancedPrompt;
+      
+    } catch (error) {
+      console.error('❌ Error building patient prompt:', error);
+      // Fallback prompt if ConflictDatabaseService fails
+      return `
+You are ${characterId} in individual therapy. The therapist just asked: "${therapistQuestion}"
+
+Respond as a patient sharing personal struggles and conflicts with your roommates. Be authentic to your character while being vulnerable in therapy.
+
+CRITICAL: You are the PATIENT, not the therapist. Share your problems, don't ask questions.
+      `.trim();
+    }
   }
 
   /**

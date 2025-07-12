@@ -43,7 +43,8 @@ export class AIChatService {
       battlePhase?: string;
       isCombatChat?: boolean;
       facilitiesContext?: any;
-    }
+    },
+    customPrompt?: string // Add custom prompt parameter for therapy sessions
   ): Promise<{ message: string; bondIncrease: boolean; usageLimitReached?: boolean }> {
     try {
       // Check usage limits before generating AI response (skip for battle combat chat)
@@ -60,8 +61,14 @@ export class AIChatService {
         }
       }
 
-      // Build the system prompt based on character personality and additional context
-      const systemPrompt = this.buildCharacterPrompt(context, additionalContext);
+      // Build the system prompt - use custom prompt if provided (for therapy sessions)
+      const systemPrompt = customPrompt || this.buildCharacterPrompt(context, additionalContext);
+      
+      if (customPrompt) {
+        console.log('🧠 Using CUSTOM THERAPY PROMPT, length:', customPrompt.length);
+      } else {
+        console.log('💬 Using standard character prompt for:', context.characterName);
+      }
       
       // Include previous messages for context (last 5 messages)
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -117,8 +124,8 @@ export class AIChatService {
         try {
           await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
           
-          // Rebuild messages for retry
-          const systemPrompt = this.buildCharacterPrompt(context, additionalContext);
+          // Rebuild messages for retry - use custom prompt if provided
+          const systemPrompt = customPrompt || this.buildCharacterPrompt(context, additionalContext);
           const retryMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
             { role: 'system', content: systemPrompt }
           ];

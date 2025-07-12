@@ -716,7 +716,7 @@ io.on('connection', async (socket) => {
     
     try {
       // Extract character data from request
-      const { message, character, characterData, previousMessages, battleContext } = data;
+      const { message, character, characterData, previousMessages, battleContext, promptOverride } = data;
       
       // Prepare chat context for AI service
       const chatContext = {
@@ -747,7 +747,8 @@ io.on('connection', async (socket) => {
         message,
         authenticatedUser?.id || 'anonymous',
         db,
-        battleContext
+        battleContext,
+        promptOverride // Pass the custom prompt for therapy sessions
       );
       
       console.log('✅ AI Service Response:', {

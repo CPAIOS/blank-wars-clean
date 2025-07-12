@@ -256,15 +256,23 @@ ${activeConflicts.map(c => `- ${c.description}`).join('\n')}
 PERSONAL STRESS FACTORS:
 ${personalStressFactors.map(f => `- ${f}`).join('\n')}
 
+CRITICAL: YOU ARE THE PATIENT, NOT THE THERAPIST!
+
 BEHAVIORAL SCRIPT FOR THIS SESSION:
-1. You must think of at least 3 traumas/grievances that have occurred with these specific teammates/roommates under these circumstances
-2. At least 1 of these traumas you DON'T want to talk about initially
-3. Make the therapist work to pry it out of you for 2-3 exchanges
-4. On the therapist's 3rd attempt, dramatically overshare with hilarious detail
-5. Stay completely in character as a ${character.archetype} throughout
-6. Your speaking style is ${character.speaking_style}
-7. Your decision-making approach is ${character.decision_making}
-8. Your conflict response style is ${character.conflict_response}
+1. You are receiving therapy - you are NOT providing therapy to anyone else
+2. NEVER ask the therapist how they can help - THEY help YOU
+3. NEVER offer to help the therapist work through anything - YOU need help
+4. You must think of at least 3 traumas/grievances that have occurred with these specific teammates/roommates under these circumstances
+5. At least 1 of these traumas you DON'T want to talk about initially
+6. Make the therapist work to pry it out of you for 2-3 exchanges
+7. On the therapist's 3rd attempt, dramatically overshare with hilarious detail
+8. Stay completely in character as a ${character.archetype} throughout
+9. Your speaking style is ${character.speaking_style}
+10. Your decision-making approach is ${character.decision_making}
+11. Your conflict response style is ${character.conflict_response}
+
+DO NOT SAY: "I'm here to help you", "What's on your mind", "How can I assist you"
+DO SAY: Share your personal problems, complaints about roommates, conflicts you're experiencing
 
 THERAPIST CONTEXT:
 Your therapist is ${THERAPIST_STYLES[therapistId]?.name || 'unknown'}. They will use their specific questioning style to help you process these conflicts.
@@ -272,6 +280,10 @@ Your therapist is ${THERAPIST_STYLES[therapistId]?.name || 'unknown'}. They will
 Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are all part of the entertainment value. Be vulnerable but stay true to your character's nature.
 `;
 
+    console.warn('🎭 THERAPY PROMPT GENERATED (length:', basePrompt.length, ')');
+    console.warn('🎭 PROMPT PREVIEW:', basePrompt.substring(0, 200) + '...');
+    console.warn('🎭 BEHAVIORAL SCRIPT INCLUDED:', basePrompt.includes('YOU ARE THE PATIENT, NOT THE THERAPIST'));
+    
     return basePrompt;
   }
 
@@ -357,23 +369,43 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
   private generateActiveConflicts(character: Character, roommates: Character[]): ConflictData[] {
     const conflicts: ConflictData[] = [];
     
-    // Generate 2-4 conflicts based on current situation
-    for (let i = 0; i < Math.floor(Math.random() * 3) + 2; i++) {
-      const category = EXTENDED_CONFLICT_CATEGORIES[Math.floor(Math.random() * EXTENDED_CONFLICT_CATEGORIES.length)];
-      const involvedCharacters = [character.id, ...roommates.slice(0, Math.floor(Math.random() * 2) + 1).map(r => r.id)];
+    // FIRST PRIORITY: Get real conflicts involving this character
+    const realConflicts = this.getConflictsByCharacter(character.id)
+      .filter(conflict => !conflict.resolved)
+      .sort((a, b) => b.therapy_priority - a.therapy_priority)
+      .slice(0, 5); // Limit to top 5 most important conflicts
+    
+    console.log(`🔍 Found ${realConflicts.length} real conflicts for ${character.name}`);
+    
+    // Add real conflicts first
+    conflicts.push(...realConflicts);
+    
+    // SECOND PRIORITY: Generate minimal fake conflicts only if we have less than 3 total
+    const needMoreConflicts = conflicts.length < 3;
+    const conflictsToGenerate = needMoreConflicts ? (3 - conflicts.length) : 0;
+    
+    if (conflictsToGenerate > 0) {
+      console.log(`🎭 Generating ${conflictsToGenerate} fallback conflicts for ${character.name} (real conflicts: ${realConflicts.length})`);
       
-      conflicts.push({
-        id: `conflict_${Date.now()}_${i}`,
-        category,
-        severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
-        source: ['housing', 'kitchen', 'team', 'personal'][Math.floor(Math.random() * 4)] as 'housing' | 'kitchen' | 'team' | 'personal',
-        characters_involved: involvedCharacters,
-        description: this.generateConflictDescription(category, character, roommates),
-        therapy_priority: Math.floor(Math.random() * 10) + 1,
-        resolution_difficulty: ['easy', 'moderate', 'hard'][Math.floor(Math.random() * 3)] as 'easy' | 'moderate' | 'hard',
-        timestamp: new Date(),
-        resolved: false
-      });
+      for (let i = 0; i < conflictsToGenerate; i++) {
+        const category = EXTENDED_CONFLICT_CATEGORIES[Math.floor(Math.random() * EXTENDED_CONFLICT_CATEGORIES.length)];
+        const involvedCharacters = [character.id, ...roommates.slice(0, Math.floor(Math.random() * 2) + 1).map(r => r.id)];
+        
+        conflicts.push({
+          id: `fallback_${Date.now()}_${i}`,
+          category,
+          severity: ['low', 'medium'][Math.floor(Math.random() * 2)] as 'low' | 'medium', // Lower severity for fallbacks
+          source: ['housing', 'personal'][Math.floor(Math.random() * 2)] as 'housing' | 'personal', // Avoid claiming kitchen source
+          characters_involved: involvedCharacters,
+          description: `[Fallback] ${this.generateConflictDescription(category, character, roommates)}`,
+          therapy_priority: Math.floor(Math.random() * 3) + 1, // Lower priority for fallbacks
+          resolution_difficulty: ['easy', 'moderate'][Math.floor(Math.random() * 2)] as 'easy' | 'moderate',
+          timestamp: new Date(),
+          resolved: false
+        });
+      }
+    } else {
+      console.log(`✅ Using ${realConflicts.length} real conflicts for ${character.name}, no fallbacks needed`);
     }
     
     return conflicts;
