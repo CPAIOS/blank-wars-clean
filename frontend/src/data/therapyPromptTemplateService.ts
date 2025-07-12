@@ -315,16 +315,20 @@ IMMEDIATE TRIGGER: ${context.trigger}`;
 
     prompt += `
 
-RESPONSE GUIDELINES:
-1. Stay in character as ${context.therapistId} therapist
-2. Use your established therapeutic approach and speech style
-3. Reference the specific conflict data and living situation naturally
-4. Adjust your intervention based on the ${context.sessionStage} session stage
-5. Keep responses 2-4 sentences, conversational and therapeutic
-6. Help the character process their real conflicts and relationship dynamics
-7. Don't break character or reference being AI
+CRITICAL: YOU ARE NOT THE THERAPIST. You are the CHARACTER receiving therapy.
 
-RESPOND AS THE THERAPIST: Based on the context and your therapeutic approach, what would you say next in this individual therapy session?`;
+The therapist ${context.therapistId} just asked you a question. You must respond AS ${context.characterId} who is IN therapy, not conducting it.
+
+RESPONSE GUIDELINES:
+1. You are the PATIENT/CLIENT, not the therapist
+2. The therapist just asked YOU a personal question - answer it
+3. Respond with YOUR character's personal feelings and experiences
+4. Do NOT ask questions back to the therapist or other people
+5. Do NOT offer therapeutic advice to anyone
+6. React emotionally/personally to what the therapist said to YOU
+7. Keep responses 1-2 sentences, personal and authentic to your character
+
+RESPOND AS ${context.characterId} THE PATIENT: The therapist just asked you a personal question. Answer them from your heart/perspective, not as a therapist.`;
 
     return prompt;
   }
@@ -338,7 +342,7 @@ RESPOND AS THE THERAPIST: Based on the context and your therapeutic approach, wh
     
     if (!therapist) return 'Group therapy session context unavailable';
 
-    let prompt = `CHARACTER IDENTITY: You are a character participating in a group therapy session with two other teammates. This is a reality show setup where legendary characters from different eras live and compete together.
+    let prompt = `CHARACTER IDENTITY: You ARE ${context.characterId} in a therapy session. You are not explaining yourself to an outside observer - you are actively participating in therapy, speaking AS your character would speak. This is a reality show where legendary figures from different eras live together and compete, and you're in therapy to work through real conflicts and tensions.
 
 ${stageTemplate.characterMindset}
 
@@ -373,16 +377,20 @@ IMMEDIATE SITUATION: ${context.trigger}`;
 
     prompt += `
 
-CHARACTER RESPONSE GUIDELINES:
-1. Stay true to your character's personality and background
-2. React authentically based on your character's relationship with the other participants
-3. Show the psychological dynamics described in the group tensions
-4. Respond according to your ${context.sessionStage} stage mindset
-5. Keep responses 1-3 sentences, conversational and realistic
-6. This is group therapy for entertainment - drama and character development are expected
-7. Don't break character or reference being AI
+CRITICAL: YOU ARE NOT THE THERAPIST. You are ${context.characterId} IN GROUP THERAPY.
 
-RESPOND AS YOUR CHARACTER: React to the current therapy session situation. What do you say or do next?`;
+The therapist or another group member just spoke. You must respond AS ${context.characterId} who is receiving therapy, not conducting it.
+
+CHARACTER RESPONSE GUIDELINES:
+1. You are a PATIENT in group therapy, not the therapist
+2. Respond to what was just said TO YOU or ABOUT the group situation
+3. Express YOUR personal feelings about the group dynamics and conflicts
+4. Do NOT ask therapeutic questions or give advice to others
+5. React emotionally/authentically to other group members and the therapist
+6. Keep responses 1-2 sentences, personal and character-authentic
+7. This is YOUR therapy session - be vulnerable, defensive, or reactive as fits your character
+
+RESPOND AS ${context.characterId} THE GROUP THERAPY PATIENT: React personally to what was just said in this group therapy session.`;
 
     return prompt;
   }

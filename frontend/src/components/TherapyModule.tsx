@@ -123,6 +123,9 @@ const TherapyModule = () => {
   const [sessionMessages, setSessionMessages] = useState<TherapyMessage[]>([]);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [roundCount, setRoundCount] = useState(0);
+  const [exchangesInRound, setExchangesInRound] = useState(0);
   const conflictService = ConflictDatabaseService.getInstance();
 
   useEffect(() => {
@@ -172,6 +175,15 @@ const TherapyModule = () => {
 
     loadTherapyContext();
   }, [selectedCharacter, therapyType]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (activeSession) {
+        therapyChatService.unsubscribeFromSession(activeSession.id);
+      }
+    };
+  }, [activeSession]);
 
   // Generate dynamic prompts based on therapy context
   const generateDynamicPrompts = (context: TherapyContext): string[] => {
@@ -334,11 +346,25 @@ const TherapyModule = () => {
 
       setActiveSession(session);
       setSessionMessages(session.sessionHistory);
+      
+      // Reset round counters
+      setRoundCount(0);
+      setExchangesInRound(0);
+      setIsPaused(false);
 
       // Subscribe to session messages
       therapyChatService.subscribeToSession(session.id, (message: TherapyMessage) => {
         setSessionMessages(prev => [...prev, message]);
       });
+
+      // Start auto-play - if session already has therapist opening, start with character response
+      setTimeout(() => {
+        if (session.sessionHistory.length > 0) {
+          // Session already has therapist opening, start with character response
+          setExchangesInRound(1);
+        }
+        autoAdvanceTherapy();
+      }, 2000);
 
     } catch (error) {
       console.error('Error starting therapy session:', error);
@@ -349,6 +375,83 @@ const TherapyModule = () => {
     }
   };
 
+  // Auto-advance therapy session (like confessional)
+  const autoAdvanceTherapy = async () => {
+    console.log('🎬 Auto-advance therapy called:', { 
+      hasSession: !!activeSession, 
+      isPaused, 
+      isGeneratingResponse, 
+      exchangesInRound,
+      roundCount 
+    });
+    
+    if (!activeSession || isPaused || isGeneratingResponse) return;
+
+    try {
+      setIsGeneratingResponse(true);
+
+      if (activeSession.type === 'individual' && selectedCharacter) {
+        // Individual therapy: therapist question → character response → therapist response (1 round = 2 exchanges)
+        if (exchangesInRound === 0) {
+          // Therapist asks question
+          await handleTherapistIntervention('question');
+          setExchangesInRound(1);
+          
+          // Auto-continue to character response after delay
+          setTimeout(() => autoAdvanceTherapy(), 2000);
+        } else if (exchangesInRound === 1) {
+          // Character responds
+          await handleCharacterResponse(selectedCharacter.id);
+          setExchangesInRound(2);
+          
+          // Complete round, pause for user
+          setRoundCount(prev => prev + 1);
+          setExchangesInRound(0);
+          setIsPaused(true);
+        }
+      } else if (activeSession.type === 'group') {
+        // Group therapy: therapist → char1 → char2 → char3 (1 round = 4 exchanges)
+        if (exchangesInRound === 0) {
+          // Therapist intervention
+          await handleTherapistIntervention('question');
+          setExchangesInRound(1);
+          setTimeout(() => autoAdvanceTherapy(), 2000);
+        } else if (exchangesInRound <= 3 && selectedGroupMembers[exchangesInRound - 1]) {
+          // Characters respond in order
+          const character = selectedGroupMembers[exchangesInRound - 1];
+          await handleCharacterResponse(character.id);
+          setExchangesInRound(prev => prev + 1);
+          
+          if (exchangesInRound === 3) {
+            // Complete round, pause for user
+            setRoundCount(prev => prev + 1);
+            setExchangesInRound(0);
+            setIsPaused(true);
+          } else {
+            // Continue to next character
+            setTimeout(() => autoAdvanceTherapy(), 2000);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in auto-advance therapy:', error);
+      setIsPaused(true);
+    } finally {
+      setIsGeneratingResponse(false);
+    }
+  };
+
+  // Continue therapy session (like confessional continue)
+  const continueTherapy = () => {
+    setIsPaused(false);
+    setTimeout(() => autoAdvanceTherapy(), 1000);
+  };
+
+  // Pause therapy session
+  const pauseTherapy = () => {
+    setIsPaused(true);
+  };
+
   // Handle character response in therapy session
   const handleCharacterResponse = async (characterId: string, trigger?: string) => {
     if (!activeSession) return;
@@ -356,10 +459,27 @@ const TherapyModule = () => {
     try {
       setIsGeneratingResponse(true);
       
+      // Get character data for the request
+      const character = activeSession.type === 'individual' 
+        ? selectedCharacter 
+        : selectedGroupMembers.find(c => c.id === characterId);
+        
+      const characterData = character ? {
+        name: character.name,
+        personality: {
+          traits: [character.archetype],
+          speechStyle: 'Authentic to character background and era',
+          motivations: ['Growth', 'Understanding', 'Team harmony'],
+          fears: ['Vulnerability', 'Judgment', 'Conflict']
+        },
+        bondLevel: character.bond_level || 1
+      } : undefined;
+
       const response = await therapyChatService.generateCharacterResponse(
         activeSession.id,
         characterId,
-        trigger
+        trigger,
+        characterData
       );
       
       console.log('🎭 Character response generated:', response);
@@ -769,36 +889,188 @@ Remember: This is group therapy for entertainment value. Drama, conflict, and ch
         </div>
       )}
 
-      {/* Start Session Button */}
-      <div className="text-center">
-        <button
-          onClick={handleStartSession}
-          disabled={
-            !selectedTherapist || 
-            (therapyType === 'individual' && !selectedCharacter) ||
-            (therapyType === 'group' && selectedGroupMembers.length !== 3)
-          }
-          className={`px-8 py-3 rounded-lg font-medium transition-all ${
-            selectedTherapist && (
-              (therapyType === 'individual' && selectedCharacter) ||
-              (therapyType === 'group' && selectedGroupMembers.length === 3)
-            )
-              ? 'bg-purple-500 hover:bg-purple-600 text-white'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          {therapyType === 'individual' 
-            ? 'Start Individual Therapy Session' 
-            : `Start Group Therapy Session ${selectedGroupMembers.length}/3`
-          }
-        </button>
-        
-        {therapyType === 'group' && selectedGroupMembers.length < 3 && (
-          <div className="mt-2 text-sm text-gray-400">
-            Please select {3 - selectedGroupMembers.length} more character{3 - selectedGroupMembers.length !== 1 ? 's' : ''} to start group therapy
+      {/* Live Therapy Session Interface */}
+      {isSessionActive && activeSession && (
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+              <Brain className="text-purple-400" />
+              Live Therapy Session - {activeSession.type === 'individual' ? 'Individual' : 'Group'}
+            </h2>
+            <div className="flex items-center gap-4">
+              {/* Live/Paused Status */}
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${isPaused ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`}></div>
+                <span className="text-purple-300 font-semibold">
+                  {isPaused ? 'PAUSED' : 'LIVE SESSION'}
+                </span>
+                <span className="text-gray-500 text-sm">
+                  (Round {roundCount})
+                </span>
+              </div>
+              
+              {/* Pause/Continue Controls */}
+              {isPaused ? (
+                <button
+                  onClick={continueTherapy}
+                  disabled={isGeneratingResponse}
+                  className="text-green-400 hover:text-white px-3 py-1 rounded bg-gray-700 hover:bg-green-600 transition-colors disabled:opacity-50"
+                >
+                  Continue Session
+                </button>
+              ) : (
+                <button
+                  onClick={pauseTherapy}
+                  disabled={isGeneratingResponse}
+                  className="text-yellow-400 hover:text-white px-3 py-1 rounded bg-gray-700 hover:bg-yellow-600 transition-colors disabled:opacity-50"
+                >
+                  Pause
+                </button>
+              )}
+              
+              <button
+                onClick={handleEndSession}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
+              >
+                End Session
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Session Messages */}
+          <div className="bg-gray-900 rounded-lg p-6 mb-6 min-h-96 max-h-[600px] overflow-y-auto">
+            <div className="space-y-4">
+              {sessionMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`p-3 rounded-lg ${
+                    message.speakerType === 'therapist'
+                      ? 'bg-purple-900/30 border border-purple-500/30'
+                      : 'bg-blue-900/30 border border-blue-500/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`text-lg font-bold ${
+                      message.speakerType === 'therapist' ? 'text-purple-400' : 'text-blue-400'
+                    }`}>
+                      {message.speakerType === 'therapist' 
+                        ? selectedTherapist?.name 
+                        : activeSession.type === 'individual' 
+                          ? selectedCharacter?.name
+                          : selectedGroupMembers.find(c => c.id === message.speakerId)?.name
+                      }
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {new Date(message.timestamp).toLocaleTimeString()}
+                    </div>
+                  </div>
+                  <div className="text-white text-lg leading-relaxed">{message.message}</div>
+                </div>
+              ))}
+              
+              {isGeneratingResponse && (
+                <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-3">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400"></div>
+                    <span className="text-sm">Generating response...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Session Status */}
+          <div className="bg-gray-700/30 rounded-lg p-4 mb-4">
+            <div className="text-center">
+              {isPaused ? (
+                <span className="text-yellow-400">
+                  ⏸️ Session paused - Click "Continue Session" to watch the next round of therapy
+                </span>
+              ) : isGeneratingResponse ? (
+                <span className="text-blue-400">
+                  🎬 Therapy session in progress... {activeSession.type === 'individual' ? 'Character and therapist' : 'Characters and therapist'} are working through their issues
+                </span>
+              ) : (
+                <span className="text-green-400">
+                  ✨ Auto-playing therapy session - You can pause anytime to reflect
+                </span>
+              )}
+            </div>
+            {activeSession.type === 'group' && (
+              <div className="text-center mt-2 text-sm text-gray-400">
+                Next speakers: {selectedGroupMembers.map(c => c.name).join(' → ')} → Therapist
+              </div>
+            )}
+            
+            {/* Manual Continue Button (for debugging) */}
+            <div className="text-center mt-4">
+              <button
+                onClick={() => {
+                  console.log('🔧 Manual advance triggered');
+                  autoAdvanceTherapy();
+                }}
+                disabled={isGeneratingResponse}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
+              >
+                Force Next Response (Debug)
+              </button>
+            </div>
+          </div>
+
+          {/* Session Info */}
+          <div className="mt-4 p-3 bg-gray-700/30 rounded-lg">
+            <div className="text-xs text-gray-400">
+              Session ID: {activeSession.id} | Started: {new Date(activeSession.startTime).toLocaleString()}
+              {activeSession.type === 'individual' && therapyContext && (
+                <span> | Conflicts: {activeConflicts.length} | Team Chemistry: {therapyContext.teamChemistry}%</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Start Session Button */}
+      {!isSessionActive && (
+        <div className="text-center">
+          <button
+            onClick={handleStartSession}
+            disabled={
+              isGeneratingResponse ||
+              !selectedTherapist || 
+              (therapyType === 'individual' && !selectedCharacter) ||
+              (therapyType === 'group' && selectedGroupMembers.length !== 3)
+            }
+            className={`px-8 py-3 rounded-lg font-medium transition-all ${
+              selectedTherapist && (
+                (therapyType === 'individual' && selectedCharacter) ||
+                (therapyType === 'group' && selectedGroupMembers.length === 3)
+              ) && !isGeneratingResponse
+                ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {isGeneratingResponse ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Starting Session...
+              </div>
+            ) : (
+              <>
+                {therapyType === 'individual' 
+                  ? 'Start Individual Therapy Session' 
+                  : `Start Group Therapy Session ${selectedGroupMembers.length}/3`
+                }
+              </>
+            )}
+          </button>
+        
+          {therapyType === 'group' && selectedGroupMembers.length < 3 && (
+            <div className="mt-2 text-sm text-gray-400">
+              Please select {3 - selectedGroupMembers.length} more character{3 - selectedGroupMembers.length !== 1 ? 's' : ''} to start group therapy
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Future: Rare Therapist Acquisition */}
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 opacity-50">

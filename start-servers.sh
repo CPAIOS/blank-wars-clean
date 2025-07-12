@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd /Users/gabrielgreenstein/blank-wars-clean/
+
 echo "🎮 Starting Blank Wars Local Development Servers..."
 echo ""
 

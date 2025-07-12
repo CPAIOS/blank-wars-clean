@@ -79,14 +79,16 @@ export class TherapyChatService {
       console.warn('🔌 Therapy Chat Service disconnected:', reason);
     });
 
-    this.socket.on('therapy_session_response', (data) => {
-      console.log('📥 Therapy session response received:', {
-        sessionId: data.sessionId,
-        speakerId: data.speakerId,
+    this.socket.on('chat_response', (data) => {
+      console.log('📥 Therapy session global response received:', {
         hasMessage: !!data.message,
         hasError: !!data.error
       });
-      this.handleTherapyResponse(data);
+      // Individual response handlers now handle their own responses
+    });
+
+    this.socket.on('chat_error', (error) => {
+      console.error('❌ Therapy session error:', error);
     });
   }
 
@@ -172,7 +174,8 @@ export class TherapyChatService {
   async generateCharacterResponse(
     sessionId: string,
     characterId: string,
-    trigger?: string
+    trigger?: string,
+    characterData?: any
   ): Promise<string> {
     const session = this.activeSessions.get(sessionId);
     if (!session) {
@@ -189,15 +192,30 @@ export class TherapyChatService {
       // Build character therapy prompt
       const prompt = this.buildCharacterTherapyPrompt(session, characterId, trigger);
       
+      // Use common chat API format
       const requestData = {
+        message: trigger || 'I want to share something in therapy',
+        character: characterId,
+        characterData: characterData || {
+          name: 'Character',
+          personality: {
+            traits: ['complex'],
+            speechStyle: 'Authentic to character background',
+            motivations: ['Growth', 'Understanding'],
+            fears: ['Vulnerability', 'Judgment']
+          },
+          bondLevel: 1
+        },
+        promptOverride: prompt,
+        sessionType: 'therapy_character',
         sessionId,
         messageId,
-        characterId,
-        prompt,
-        trigger,
-        sessionType: session.type,
         therapistId: session.therapistId,
-        sessionStage: session.stage
+        sessionStage: session.stage,
+        previousMessages: session.sessionHistory.slice(-5).map(msg => ({
+          role: msg.speakerType === 'character' ? 'assistant' : 'user',
+          content: msg.message
+        }))
       };
       
       console.log('📤 Sending therapy character request:', {
@@ -208,7 +226,7 @@ export class TherapyChatService {
         promptLength: prompt.length
       });
       
-      this.socket!.emit('therapy_character_request', requestData);
+      this.socket!.emit('chat_message', requestData);
 
       const timeout = setTimeout(() => {
         console.warn('⏰ Therapy character response timeout for:', messageId);
@@ -216,34 +234,36 @@ export class TherapyChatService {
       }, 30000);
 
       const responseHandler = (data: any) => {
-        if (data.messageId === messageId) {
-          clearTimeout(timeout);
-          this.socket!.off('therapy_session_response', responseHandler);
-          if (data.error) {
-            if (data.usageLimitReached) {
-              reject(new Error('USAGE_LIMIT_REACHED'));
-            } else {
-              reject(new Error(data.error));
-            }
+        console.log('📥 Raw backend response:', data);
+        
+        // Backend sends responses without messageId matching, so we accept the first response
+        clearTimeout(timeout);
+        this.socket!.off('chat_response', responseHandler);
+        
+        if (data.error) {
+          if (data.usageLimitReached) {
+            reject(new Error('USAGE_LIMIT_REACHED'));
           } else {
-            // Add character message to session history
-            const characterMessage: TherapyMessage = {
-              id: messageId,
-              sessionId,
-              speakerId: characterId,
-              speakerType: 'character',
-              message: data.message || 'AI response unavailable',
-              timestamp: new Date(),
-              messageType: 'response'
-            };
-            
-            session.sessionHistory.push(characterMessage);
-            resolve(data.message || 'AI response unavailable');
+            reject(new Error(data.error));
           }
+        } else {
+          // Add character message to session history
+          const characterMessage: TherapyMessage = {
+            id: messageId,
+            sessionId,
+            speakerId: characterId,
+            speakerType: 'character',
+            message: data.message || 'AI response unavailable',
+            timestamp: new Date(),
+            messageType: 'response'
+          };
+          
+          session.sessionHistory.push(characterMessage);
+          resolve(data.message || 'AI response unavailable');
         }
       };
 
-      this.socket!.on('therapy_session_response', responseHandler);
+      this.socket!.on('chat_response', responseHandler);
     });
   }
 
@@ -269,15 +289,30 @@ export class TherapyChatService {
       // Build therapist intervention prompt
       const prompt = this.buildTherapistInterventionPrompt(session, interventionType);
       
+      // Use common chat API format for therapist
       const requestData = {
+        message: interventionType === 'question' ? 'Ask therapeutic question' : 'Make therapeutic intervention',
+        character: session.therapistId,
+        characterData: {
+          name: this.getTherapistName(session.therapistId),
+          personality: {
+            traits: ['Professional', 'Insightful', 'Caring'],
+            speechStyle: 'Therapeutic and supportive',
+            motivations: ['Healing', 'Growth', 'Understanding'],
+            fears: ['Causing harm', 'Missing important signs']
+          },
+          bondLevel: 5
+        },
+        promptOverride: prompt,
+        sessionType: 'therapy_therapist',
         sessionId,
         messageId,
-        therapistId: session.therapistId,
-        prompt,
         interventionType,
-        sessionType: session.type,
         sessionStage: session.stage,
-        sessionHistory: session.sessionHistory.slice(-6) // Last 6 messages for context
+        previousMessages: session.sessionHistory.slice(-5).map(msg => ({
+          role: msg.speakerType === 'therapist' ? 'assistant' : 'user',
+          content: msg.message
+        }))
       };
       
       console.log('📤 Sending therapist intervention request:', {
@@ -287,7 +322,7 @@ export class TherapyChatService {
         messageId
       });
       
-      this.socket!.emit('therapy_therapist_request', requestData);
+      this.socket!.emit('chat_message', requestData);
 
       const timeout = setTimeout(() => {
         console.warn('⏰ Therapist intervention timeout for:', messageId);
@@ -295,30 +330,32 @@ export class TherapyChatService {
       }, 30000);
 
       const responseHandler = (data: any) => {
-        if (data.messageId === messageId) {
-          clearTimeout(timeout);
-          this.socket!.off('therapy_session_response', responseHandler);
-          if (data.error) {
-            reject(new Error(data.error));
-          } else {
-            // Add therapist message to session history
-            const therapistMessage: TherapyMessage = {
-              id: messageId,
-              sessionId,
-              speakerId: session.therapistId,
-              speakerType: 'therapist',
-              message: data.message || 'Therapist response unavailable',
-              timestamp: new Date(),
-              messageType: interventionType
-            };
-            
-            session.sessionHistory.push(therapistMessage);
-            resolve(data.message || 'Therapist response unavailable');
-          }
+        console.log('📥 Raw therapist response:', data);
+        
+        // Backend sends responses without messageId matching, so we accept the first response
+        clearTimeout(timeout);
+        this.socket!.off('chat_response', responseHandler);
+        
+        if (data.error) {
+          reject(new Error(data.error));
+        } else {
+          // Add therapist message to session history
+          const therapistMessage: TherapyMessage = {
+            id: messageId,
+            sessionId,
+            speakerId: session.therapistId,
+            speakerType: 'therapist',
+            message: data.message || 'Therapist response unavailable',
+            timestamp: new Date(),
+            messageType: interventionType
+          };
+          
+          session.sessionHistory.push(therapistMessage);
+          resolve(data.message || 'Therapist response unavailable');
         }
       };
 
-      this.socket!.on('therapy_session_response', responseHandler);
+      this.socket!.on('chat_response', responseHandler);
     });
   }
 
@@ -502,6 +539,18 @@ export class TherapyChatService {
         }
       }, 100);
     });
+  }
+
+  /**
+   * Get therapist display name
+   */
+  private getTherapistName(therapistId: string): string {
+    const names: Record<string, string> = {
+      'carl-jung': 'Carl Jung',
+      'zxk14bw7': 'Zxk14bW^7',
+      'seraphina': 'Fairy Godmother Seraphina'
+    };
+    return names[therapistId] || 'Therapist';
   }
 
   disconnect() {
