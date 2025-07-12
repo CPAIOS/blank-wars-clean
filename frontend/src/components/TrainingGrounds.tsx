@@ -27,7 +27,6 @@ import { memberships, MembershipTier, getTrainingMultipliers, getDailyLimits, Fa
 import { getBaseStatsForLevel, getLevelData } from '@/data/characterProgression';
 import { TrainingSystemManager } from '@/systems/trainingSystem';
 import { trainingChatService } from '@/services/trainingChatService';
-import { createDemoCharacterCollection } from '@/data/characters';
 import PersonalTrainerChat from './PersonalTrainerChat';
 
 interface Character {
@@ -117,10 +116,11 @@ export default function TrainingGrounds({
     }
     
     // Convert from global character format to training character format
+    console.log('🔍 Converting character:', characterToUse.name, 'Level from API:', characterToUse.level);
     return {
       id: characterToUse.baseName || characterToUse.id,
       name: characterToUse.name,
-      level: characterToUse.level,
+      level: characterToUse.level || 1,
       xp: characterToUse.experience?.currentXP || 0,
       xpToNext: characterToUse.experience?.xpToNextLevel || 1000,
       hp: characterToUse.combatStats?.health || characterToUse.baseStats?.vitality * 10 || 200,
@@ -141,19 +141,22 @@ export default function TrainingGrounds({
     };
   };
 
-  const [selectedCharacter, setSelectedCharacter] = useState<Character>(() => {
-    const characterToUse = globalCharacter || availableCharacters[0];
-    return createTrainingCharacter(characterToUse);
-  });
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
 
   // Track previous character to prevent duplicate auto-triggers
   const [previousCharacterId, setPreviousCharacterId] = useState<string>('');
   const [isAutoAnalyzing, setIsAutoAnalyzing] = useState(false);
+  const [lastAnalyzedCharacter, setLastAnalyzedCharacter] = useState<string>('');
 
   // Update selected character when global character changes and trigger Argock analysis
   useEffect(() => {
-    const characterToUse = globalCharacter || availableCharacters[0];
-    const newCharacter = createTrainingCharacter(characterToUse);
+    if (!globalCharacter) {
+      console.error('❌ No globalCharacter provided - Training requires real character from API');
+      setSelectedCharacter(null);
+      return;
+    }
+    
+    const newCharacter = createTrainingCharacter(globalCharacter);
     setSelectedCharacter(newCharacter);
     
     // Only trigger Argock analysis if character actually changed
@@ -164,24 +167,16 @@ export default function TrainingGrounds({
       // Clear chat when character changes to start fresh
       setChatMessages([]);
       
+      // Reset analysis tracking for new character
+      setLastAnalyzedCharacter('');
+      
       // Trigger analysis after a short delay to ensure state is settled
       setTimeout(() => {
         triggerArgockAnalysis(newCharacter);
-      }, 500); // Increased delay to ensure backend is ready
+      }, 500);
     }
   }, [globalCharacter]);
 
-  // Test socket connection
-  const testSocketConnection = () => {
-    console.log('🧪 Testing socket connection...');
-    console.log('🔗 Socket connected:', trainingChatService.socketConnection?.connected);
-    
-    if (!trainingChatService.socketConnection?.connected) {
-      console.error('❌ Socket not connected!');
-      return false;
-    }
-    return true;
-  };
 
   // Auto-trigger Argock analysis when character is selected
   const triggerArgockAnalysis = async (character: Character) => {
@@ -190,11 +185,18 @@ export default function TrainingGrounds({
       return;
     }
     
-    console.log('🎯 Triggering Argock analysis for:', character.name, character.id);
+    // Prevent duplicate analysis for the same character
+    if (lastAnalyzedCharacter === character.id) {
+      console.log('🚫 Character already analyzed, skipping duplicate:', character.name);
+      return;
+    }
     
-    // Test socket connection first
-    if (!testSocketConnection()) {
-      console.error('❌ Socket connection failed - cannot trigger analysis');
+    console.log('🎯 Triggering Argock analysis for:', character.name, character.id);
+    setLastAnalyzedCharacter(character.id);
+    
+    // Verify socket connection
+    if (!trainingChatService.socketConnection?.connected) {
+      console.error('❌ Socket not connected - cannot trigger analysis');
       setIsAutoAnalyzing(false);
       return;
     }
@@ -202,14 +204,13 @@ export default function TrainingGrounds({
     setIsAutoAnalyzing(true);
     
     try {
-      // Get available characters for context
-      const availableCharacters = createDemoCharacterCollection();
-      const currentCharacter = availableCharacters.find(c => c.name === character.name) || availableCharacters[0];
+      // Use the real character directly - NO FALLBACKS
+      const currentCharacter = character;
       
       // Prepare training context
       const trainingContext = {
         character: currentCharacter,
-        teammates: availableCharacters.filter(c => c.id !== currentCharacter.id).slice(0, 5),
+        teammates: [], // No teammates for training - focus on individual character
         coachName: 'Coach',
         trainingEnvironment: {
           facilityTier: selectedFacility,
@@ -237,8 +238,9 @@ export default function TrainingGrounds({
 
       // Add Argock's analysis to chat - but only ONCE
       agentResponses.forEach((agent, index) => {
+        const messageId = `auto_${agent.agentType}_${character.id}_${Date.now()}_${index}`;
         const analysisMessage = {
-          id: `auto_${agent.agentType}_${character.id}_${Date.now()}_${index}`,
+          id: messageId,
           sender: agent.agentType as 'character' | 'argock',
           message: agent.message,
           timestamp: new Date(),
@@ -246,8 +248,21 @@ export default function TrainingGrounds({
           agentType: agent.agentType,
           agentName: agent.agentName
         };
-        console.log('📝 Adding auto-analysis message:', analysisMessage.id);
-        setChatMessages(prev => [...prev, analysisMessage]);
+        console.log('📝 Adding auto-analysis message:', messageId, 'Message:', agent.message.substring(0, 50) + '...');
+        
+        // Check for duplicate messages before adding
+        setChatMessages(prev => {
+          const isDuplicate = prev.some(msg => 
+            msg.message === analysisMessage.message && 
+            msg.agentType === analysisMessage.agentType &&
+            Math.abs(msg.timestamp.getTime() - analysisMessage.timestamp.getTime()) < 5000 // within 5 seconds
+          );
+          if (isDuplicate) {
+            console.warn('🚫 Duplicate message detected, skipping:', messageId);
+            return prev;
+          }
+          return [...prev, analysisMessage];
+        });
       });
 
     } catch (error) {
@@ -636,7 +651,7 @@ export default function TrainingGrounds({
 
 
   // Available activities based on character and membership
-  const availableActivities = trainingActivities.filter(activity => {
+  const availableActivities = selectedCharacter ? trainingActivities.filter(activity => {
     const meetsLevel = selectedCharacter.level >= activity.requirements.level;
     const meetsArchetype = !activity.requirements.archetype || 
       activity.requirements.archetype.includes(selectedCharacter.archetype);
@@ -645,11 +660,11 @@ export default function TrainingGrounds({
     
     // Skill activities require membership access
     return meetsLevel && meetsArchetype && hasEnergy && withinLimits;
-  });
+  }) : [];
 
   // Start training
   const startTraining = async (activity: TrainingActivity) => {
-    if (selectedCharacter.energy < activity.energyCost) return;
+    if (!selectedCharacter || selectedCharacter.energy < activity.energyCost) return;
     if (!canTrain()) return;
     
     try {
@@ -827,7 +842,7 @@ export default function TrainingGrounds({
 
   // Multi-agent training chat functions with live AI-to-AI interactions
   const sendTrainingChatMessage = async () => {
-    if (!currentChatMessage.trim() || isChatLoading) return;
+    if (!currentChatMessage.trim() || isChatLoading || !selectedCharacter) return;
 
     const messageText = currentChatMessage.trim();
     setCurrentChatMessage('');
@@ -843,8 +858,7 @@ export default function TrainingGrounds({
     setChatMessages(prev => [...prev, coachMessage]);
 
     try {
-      // Get available characters for context
-      const availableCharacters = createDemoCharacterCollection();
+      // Get available characters for context - use the real characters from props
       const currentCharacter = availableCharacters.find(c => c.name === selectedCharacter.name) || availableCharacters[0];
       
       // Prepare training context with phase information
@@ -913,6 +927,22 @@ export default function TrainingGrounds({
     }
   };
 
+
+  // Show error if no real character available
+  if (!selectedCharacter) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-white mb-4">Training Grounds</h1>
+          <div className="bg-red-900/50 border border-red-500 rounded-lg p-6 max-w-md mx-auto">
+            <p className="text-red-400 text-lg font-semibold">❌ No Character Available</p>
+            <p className="text-red-300 mt-2">Training requires a real character from the API.</p>
+            <p className="text-red-300 text-sm mt-2">Check authentication and backend connection.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
