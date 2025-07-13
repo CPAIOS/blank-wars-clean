@@ -9,6 +9,7 @@ import {
 import { createDemoCharacterCollection } from '@/data/characters';
 import ConflictDatabaseService, { ConflictData, TherapyContext } from '@/services/ConflictDatabaseService';
 import { characterAPI } from '@/services/apiClient';
+import { therapyChatService } from '@/data/therapyChatService';
 
 // Team Building Events (from TeamBuildingWrapper)
 interface TeamEvent {
@@ -386,6 +387,11 @@ export default function CombinedGroupActivitiesWrapper() {
       setSelectedEvent(null);
       setSelectedParticipants([]);
       setIsPaused(false);
+      
+      // Auto-start the first round of character responses
+      setTimeout(() => {
+        triggerFirstRound(session);
+      }, 2000);
     }
   };
 
@@ -505,6 +511,11 @@ export default function CombinedGroupActivitiesWrapper() {
       setSelectedActivity(null);
       setSelectedParticipants([]);
       setIsPaused(false);
+      
+      // Auto-start the first round of character responses
+      setTimeout(() => {
+        triggerFirstRound(session);
+      }, 2000);
     }
   };
 
@@ -648,8 +659,11 @@ export default function CombinedGroupActivitiesWrapper() {
     eventType: string, 
     chatHistory: ChatMessage[]
   ): Promise<string> => {
+    console.log('🎭 Generating response for:', character.name, 'to message:', facilitatorMessage.substring(0, 50) + '...');
+    
     try {
-      const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+      // Use the therapy chat service which is proven to work
+      console.log('🧠 Using therapy chat service for character response');
       
       // Build conflict-aware character prompt
       const characterPrompt = await buildConflictAwareCharacterPrompt(
@@ -659,46 +673,41 @@ export default function CombinedGroupActivitiesWrapper() {
         chatHistory
       );
       
-      const response = await fetch(`${BACKEND_URL}/coaching/group-activity`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          characterId: character.templateId || character.id,
-          characterName: character.name,
-          coachMessage: facilitatorMessage,
-          eventType,
-          promptOverride: characterPrompt,
-          sessionType: 'group_activity',
-          conflictContext: activeSession?.conflictContext,
-          relationshipDynamics: activeSession?.relationshipDynamics,
-          sessionStage: activeSession?.sessionStage,
-          context: {
-            personality: {
-              traits: character.personality_traits || ['Determined'],
-              archetype: character.archetype,
-              speaking_style: character.speaking_style || 'Direct',
-              conflict_response: character.conflict_response || 'Confrontational'
-            },
-            recentMessages: chatHistory.slice(-6).map(msg => ({
-              sender: msg.sender,
-              message: msg.message,
-              conflictTriggered: msg.conflictTriggered
-            }))
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      console.log('📝 Generated prompt length:', characterPrompt.length);
+      
+      // Wait for socket connection
+      const isConnected = await therapyChatService.waitForConnection(5000);
+      if (!isConnected) {
+        console.warn('⚠️ Therapy service not connected, using fallback');
+        return generateFallbackResponse(character, facilitatorMessage, eventType);
       }
-
-      const data = await response.json();
-      return data.message || generateFallbackResponse(character, facilitatorMessage, eventType);
+      
+      // Create a temporary therapy session for group activity response
+      const sessionId = `group_activity_${Date.now()}_${character.id}`;
+      const characterData = {
+        name: character.name,
+        personality: {
+          traits: character.personality_traits || ['Determined'],
+          speechStyle: character.speaking_style || 'Direct',
+          motivations: ['Team success', 'Personal growth'],
+          fears: ['Failure', 'Rejection']
+        },
+        bondLevel: character.bond_level || 5
+      };
+      
+      // Use the therapy service's character response method with custom prompt
+      const response = await therapyChatService.generateCharacterResponse(
+        sessionId,
+        character.templateId || character.id,
+        facilitatorMessage,
+        characterData
+      );
+      
+      console.log('✅ Got therapy service response:', response.substring(0, 100) + '...');
+      return response;
+      
     } catch (error) {
-      console.error('Enhanced character response failed, using fallback:', error);
+      console.error('❌ Therapy service failed, using fallback:', error);
       return generateFallbackResponse(character, facilitatorMessage, eventType);
     }
   };
@@ -796,6 +805,67 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
     return responses[Math.floor(Math.random() * responses.length)];
   };
 
+  // Trigger first round of responses for a new session
+  const triggerFirstRound = async (session: ActiveSession) => {
+    if (isGeneratingResponses) return;
+    
+    setIsPaused(false);
+    setIsGeneratingResponses(true);
+    
+    try {
+      console.log('🎯 Starting first round for session:', session.eventTitle);
+      
+      // Get responses from all participants in sequence
+      for (let i = 0; i < session.participants.length; i++) {
+        const participantName = session.participants[i];
+        const character = characters.find(c => c.name.toLowerCase() === participantName.toLowerCase());
+        
+        if (character) {
+          console.log(`🎭 Getting first response from ${character.name} (${i + 1}/${session.participants.length})`);
+          
+          try {
+            const characterResponse = await generateCharacterResponse(
+              character,
+              session.chatMessages[session.chatMessages.length - 1]?.message || 'Welcome to the session!',
+              session.eventType,
+              session.chatMessages
+            );
+
+            const characterMsg: ChatMessage = {
+              id: `char-${character.id}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+              sender: 'character',
+              senderName: character.name,
+              senderAvatar: character.avatar,
+              message: characterResponse,
+              timestamp: new Date(),
+              characterId: character.id
+            };
+
+            setActiveSession(prev => prev ? {
+              ...prev,
+              chatMessages: [...prev.chatMessages, characterMsg]
+            } : null);
+            
+            // Small delay between character responses
+            if (i < session.participants.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          } catch (error) {
+            console.error(`❌ Failed to get first response from ${character.name}:`, error);
+          }
+        }
+      }
+      
+      setIsPaused(true); // Pause for user to continue
+      
+    } catch (error) {
+      console.error('❌ Error in first round:', error);
+      setIsPaused(true);
+    } finally {
+      setIsGeneratingResponses(false);
+    }
+  };
+
   // Session control functions (inspired by therapy system)
   const continueSession = async () => {
     if (!activeSession || isGeneratingResponses) return;
@@ -844,7 +914,7 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
             );
 
             const characterMsg: ChatMessage = {
-              id: `char-${character.id}-${Date.now()}`,
+              id: `char-${character.id}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
               sender: 'character',
               senderName: character.name,
               senderAvatar: character.avatar,
@@ -933,7 +1003,19 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
       setActiveSession(null);
       setIsPaused(false);
       setIsGeneratingResponses(false);
+      // Clear selected participants to fully reset
+      setSelectedParticipants([]);
     }
+  };
+
+  // Clear all sessions and reset state
+  const clearAllSessions = () => {
+    console.log('🧹 Clearing all sessions and resetting state');
+    setActiveSession(null);
+    setIsPaused(false);
+    setIsGeneratingResponses(false);
+    setSelectedParticipants([]);
+    setChatMessage('');
   };
 
   const getColorClasses = (color: string) => {
@@ -980,9 +1062,18 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
             message: `Welcome everyone! Let's have a productive group discussion. We have ${newParticipants.join(', ')} joining us today.`,
             timestamp: new Date()
           }],
-          currentRound: 1
+          currentRound: 1,
+          sessionStage: 'icebreaker',
+          facilitatorStyle: 'neutral',
+          activityObjectives: ['Open communication', 'Team interaction', 'General discussion'],
+          relationshipDynamics: buildRelationshipDynamics(newParticipants)
         };
         setActiveSession(session);
+        
+        // Auto-start the first round of character responses for general chat
+        setTimeout(() => {
+          triggerFirstRound(session);
+        }, 2000);
       } else if (newParticipants.length === 0 && activeSession?.eventId === 'general-chat') {
         setActiveSession(null);
       }
