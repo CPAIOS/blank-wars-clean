@@ -19,7 +19,15 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
   const [starterCharacters, setStarterCharacters] = useState<TeamCharacter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { clearNewUserFlag } = useAuth();
+  const { clearNewUserFlag, user } = useAuth();
+
+  // Don't show if user is not authenticated
+  if (!user) {
+    console.log('🚫 NewUserStarterPack: No authenticated user, closing modal');
+    clearNewUserFlag();
+    onComplete();
+    return null;
+  }
 
   const fetchStarterCharacters = async (retryCount = 0) => {
     setIsLoading(true);
@@ -77,8 +85,17 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
       } else {
         throw new Error('Characters are still being prepared. Please try again in a moment.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching starter characters:', err);
+      
+      // Don't retry if it's an authentication error (401/403)
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError('Please log in to access your characters.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Only retry for other errors (characters not ready, server issues, etc.)
       if (retryCount < 10) {
         setError('Preparing your characters, please wait...');
         setTimeout(() => {
