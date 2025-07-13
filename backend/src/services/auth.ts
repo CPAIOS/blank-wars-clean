@@ -124,84 +124,39 @@ export class AuthService {
     console.log('✅ Tokens generated successfully');
 
     // --- CHARACTER ASSIGNMENT LOGIC ---
-    // Temporarily disabled ALL pack assignment to debug timeout issues
-    // TODO: Re-enable after fixing underlying timeout problems
-    console.log('🚨 ALL pack assignment temporarily disabled for debugging');
-    console.log('⚠️ Users will need packs manually assigned after timeout fix');
-    
-    /*
     console.log('🎁 Setting up starter characters for new user...');
     try {
       if (claimToken) {
         // User has a claim token (gifted pack)
         console.log(`🎫 Claiming pack with token: ${claimToken}`);
-        await this.packService.claimPack(userId, claimToken);
+        await Promise.race([
+          this.packService.claimPack(userId, claimToken),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Pack claim timeout')), 10000))
+        ]);
       } else {
         // New user gets a free starter pack with 3 characters
         console.log('🆓 Generating free starter pack...');
-        const starterPackToken = await this.packService.generatePack('standard_starter');
+        const starterPackToken = await Promise.race([
+          this.packService.generatePack('standard_starter'),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Pack generation timeout')), 10000))
+        ]) as string;
         console.log(`📦 Generated starter pack token: ${starterPackToken}`);
         
         // Auto-claim the starter pack for immediate access
-        await this.packService.claimPack(userId, starterPackToken);
+        await Promise.race([
+          this.packService.claimPack(userId, starterPackToken),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Pack claim timeout')), 10000))
+        ]);
         console.log('✅ Starter pack claimed successfully');
 
-        // Temporarily disabled premium rewards to debug timeout issues
-        // TODO: Re-enable after fixing underlying timeout problems
+        // Premium rewards temporarily disabled for stability
         console.log('⚠️ Premium rewards temporarily disabled for debugging');
-        
-        // Check if this is a legendary tier user and give them premium rewards
-        const userResult = await query('SELECT subscription_tier FROM users WHERE id = ?', [userId]);
-        const subscriptionTier = userResult.rows[0]?.subscription_tier;
-        
-        if (subscriptionTier === 'legendary') {
-          console.log('👑 Legendary tier user detected - granting premium rewards');
-          
-          // Give 5 additional characters (premium starter pack)
-          try {
-            const premiumPackToken = await this.packService.generatePack('premium_starter');
-            await this.packService.claimPack(userId, premiumPackToken);
-            console.log('✨ Granted premium starter pack with 5 characters');
-          } catch (error) {
-            console.error('❌ Error granting premium starter pack:', error);
-          }
-
-          // Give bonus currency and items
-          try {
-            // Check if currency record exists
-            const existingCurrency = await query(
-              'SELECT user_id FROM user_currency WHERE user_id = ?',
-              [userId]
-            );
-
-            if (existingCurrency.rows.length > 0) {
-              // Update existing record
-              await query(
-                `UPDATE user_currency 
-                 SET battle_tokens = battle_tokens + ?, premium_currency = premium_currency + ? 
-                 WHERE user_id = ?`,
-                [500, 100, userId]
-              );
-            } else {
-              // Insert new record  
-              await query(
-                `INSERT INTO user_currency (user_id, battle_tokens, premium_currency) 
-                 VALUES (?, ?, ?)`,
-                [userId, 500, 100]
-              );
-            }
-            console.log('💰 Granted legendary tier bonus currency');
-          } catch (error) {
-            console.error('❌ Error granting bonus currency:', error);
-          }
-        }
       }
     } catch (packError) {
       console.error('❌ Error setting up starter characters:', packError);
       // Don't fail registration if pack assignment fails
       console.log('⚠️ Continuing registration without starter pack');
     }
-    */
     // --- END CHARACTER ASSIGNMENT LOGIC ---
 
     // Cache user session - skip caching to avoid timeout
