@@ -158,14 +158,28 @@ export class AuthService {
 
           // Give bonus currency and items
           try {
-            await query(
-              `INSERT INTO user_currency (user_id, battle_tokens, premium_currency) 
-               VALUES (?, ?, ?) 
-               ON CONFLICT(user_id) DO UPDATE SET 
-                 battle_tokens = battle_tokens + ?, 
-                 premium_currency = premium_currency + ?`,
-              [userId, 500, 100, 500, 100] // 500 battle tokens, 100 premium currency
+            // Check if currency record exists
+            const existingCurrency = await query(
+              'SELECT user_id FROM user_currency WHERE user_id = ?',
+              [userId]
             );
+
+            if (existingCurrency.rows.length > 0) {
+              // Update existing record
+              await query(
+                `UPDATE user_currency 
+                 SET battle_tokens = battle_tokens + ?, premium_currency = premium_currency + ? 
+                 WHERE user_id = ?`,
+                [500, 100, userId]
+              );
+            } else {
+              // Insert new record  
+              await query(
+                `INSERT INTO user_currency (user_id, battle_tokens, premium_currency) 
+                 VALUES (?, ?, ?)`,
+                [userId, 500, 100]
+              );
+            }
             console.log('💰 Granted legendary tier bonus currency');
           } catch (error) {
             console.error('❌ Error granting bonus currency:', error);
