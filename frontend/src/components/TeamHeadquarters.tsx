@@ -115,9 +115,13 @@ export default function TeamHeadquarters() {
               
               // Parse JSON fields from database with error handling
               personality: {
-                traits: char.personality_traits ? JSON.parse(char.personality_traits) : ['Determined'],
+                traits: char.personality_traits ? 
+                  (Array.isArray(char.personality_traits) ? char.personality_traits : JSON.parse(char.personality_traits)) : 
+                  ['Determined'],
                 speechStyle: char.conversation_style || 'Direct',
-                motivations: char.conversation_topics ? JSON.parse(char.conversation_topics).slice(0, 3) : ['Victory'],
+                motivations: char.conversation_topics ? 
+                  (Array.isArray(char.conversation_topics) ? char.conversation_topics.slice(0, 3) : JSON.parse(char.conversation_topics).slice(0, 3)) : 
+                  ['Victory'],
                 fears: ['Defeat'], // Default fallback
                 relationships: []
               },
