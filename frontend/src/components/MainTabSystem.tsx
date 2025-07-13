@@ -39,8 +39,7 @@ import CharacterDatabase from './CharacterDatabase';
 import TeamManagementCoaching from './TeamManagementCoaching';
 import TherapyModule from './TherapyModule';
 import IndividualSessionsWrapper from './IndividualSessionsWrapper';
-import TeamBuildingWrapper from './TeamBuildingWrapper';
-import GroupActivitiesWrapper from './GroupActivitiesWrapper';
+import CombinedGroupActivitiesWrapper from './CombinedGroupActivitiesWrapper';
 import { createDemoCharacterCollection } from '@/data/characters';
 import { characterAPI } from '@/services/apiClient';
 
@@ -1235,8 +1234,7 @@ export default function MainTabSystem() {
         { id: 'team-management', label: 'Team Management', icon: Shield, component: TeamManagementCoaching, description: 'Handle team conflicts, strategy reviews, and leadership decisions' },
         { id: 'therapy', label: 'Therapy', icon: Brain, component: TherapyModule, description: 'Individual and group therapy sessions with legendary therapists' },
         { id: 'individual-sessions', label: 'Individual Sessions', icon: MessageCircle, component: IndividualSessionsWrapper, description: 'One-on-one coaching with team members' },
-        { id: 'team-building', label: 'Team Building', icon: Users, component: TeamBuildingWrapper, description: 'Organize dinners, retreats, and activities' },
-        { id: 'group-activities', label: 'Group Activities', icon: Activity, component: GroupActivitiesWrapper, description: 'Game nights and group therapy sessions' },
+        { id: 'group-events', label: 'Group Events & Activities', icon: Users, component: CombinedGroupActivitiesWrapper, description: 'Team building, group activities & live multi-participant chat' },
       ]
     }
   ];

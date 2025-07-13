@@ -88,8 +88,41 @@ const PROBLEM_CATEGORIES = [
 
 // Generate character-specific interpretation of random problem
 const generatePersonalProblem = (character: EnhancedCharacter): { problem: string, intro: string } => {
-  const randomProblem = PROBLEM_CATEGORIES[Math.floor(Math.random() * PROBLEM_CATEGORIES.length)];
   const { name, archetype } = character;
+  
+  // Use character's actual level and bond level to influence problem type
+  const lowLevelProblems = ['identity_crisis', 'impostor_syndrome', 'social_isolation'];
+  const highLevelProblems = ['moral_dilemmas', 'authority_conflicts', 'grief_loss'];
+  const lowBondProblems = ['trust_issues', 'social_isolation', 'anger_management'];
+  const highBondProblems = ['family_conflicts', 'relationship_issues', 'perfectionism'];
+  
+  let availableProblems = [...PROBLEM_CATEGORIES];
+  
+  // Filter problems based on character stats
+  if (character.level && character.level < 5) {
+    availableProblems = availableProblems.filter(p => lowLevelProblems.includes(p) || !highLevelProblems.includes(p));
+  } else if (character.level && character.level > 15) {
+    availableProblems = availableProblems.filter(p => highLevelProblems.includes(p) || !lowLevelProblems.includes(p));
+  }
+  
+  if (character.displayBondLevel && character.displayBondLevel < 3) {
+    availableProblems = availableProblems.filter(p => lowBondProblems.includes(p) || !highBondProblems.includes(p));
+  } else if (character.displayBondLevel && character.displayBondLevel > 7) {
+    availableProblems = availableProblems.filter(p => highBondProblems.includes(p) || !lowBondProblems.includes(p));
+  }
+  
+  // Add character-specific problems based on name/identity
+  if (name?.toLowerCase().includes('achilles')) {
+    availableProblems.push('pride_and_honor', 'destiny_pressure');
+  } else if (name?.toLowerCase().includes('merlin')) {
+    availableProblems.push('magical_burden', 'prophecy_weight');
+  } else if (name?.toLowerCase().includes('loki')) {
+    availableProblems.push('reputation_management', 'chaos_vs_order');
+  } else if (name?.toLowerCase().includes('sherlock')) {
+    availableProblems.push('intellectual_isolation', 'obsessive_analysis');
+  }
+  
+  const randomProblem = availableProblems[Math.floor(Math.random() * availableProblems.length)];
   
   const problemInterpretations: Record<string, Record<string, string>> = {
     neighbor_disputes: {
@@ -211,6 +244,41 @@ const generatePersonalProblem = (character: EnhancedCharacter): { problem: strin
       trickster: `My comedy partner died and humor feels wrong now. How do you laugh when your heart is broken?`,
       mage: `My magical teacher crossed the veil. I have no one to guide my studies or understand my struggles...`,
       default: `Coach, I lost someone important to me. The grief is consuming everything and I don't know how to heal.`
+    },
+    // Character-specific problems
+    pride_and_honor: {
+      warrior: `Coach, everyone expects me to be this legendary hero, but the pressure is crushing. What if I'm not worthy of my reputation?`,
+      default: `Coach, my pride has become both my strength and my weakness. It drives me forward but also isolates me from others.`
+    },
+    destiny_pressure: {
+      warrior: `The prophecies about my fate are overwhelming. Everyone acts like my destiny is set in stone, but I want to choose my own path...`,
+      default: `Coach, everyone keeps talking about my 'destiny' but I just want to live my life without cosmic expectations.`
+    },
+    magical_burden: {
+      mage: `Coach, my magical abilities come with a terrible cost. Every spell I cast takes something from me, and I'm losing myself...`,
+      scholar: `The weight of magical knowledge is crushing. I see things others can't, know things that terrify me. Wisdom is a curse...`,
+      default: `Coach, my powers feel more like a burden than a gift. The responsibility is overwhelming.`
+    },
+    prophecy_weight: {
+      mage: `I can see fragments of the future, and they're all dark. How do I carry this knowledge without going mad?`,
+      scholar: `The prophecies I've studied point to terrible things ahead. Should I warn others or bear this burden alone?`,
+      default: `Coach, I know things about the future that I wish I didn't. The weight of prophecy is breaking me.`
+    },
+    reputation_management: {
+      trickster: `Coach, everyone expects me to be the villain in every story. Sometimes I play the part, but it's lonely being the bad guy...`,
+      default: `Coach, my reputation precedes me everywhere I go. People see what they expect to see, not who I really am.`
+    },
+    chaos_vs_order: {
+      trickster: `I thrive on chaos but sometimes I crave stability. I'm tired of being unpredictable even to myself...`,
+      default: `Coach, I'm torn between my chaotic nature and my desire for meaningful connections and stability.`
+    },
+    intellectual_isolation: {
+      scholar: `Coach, my mind works differently than others. I can solve any puzzle except how to connect with people on an emotional level...`,
+      default: `Coach, being the smartest person in the room is incredibly lonely. No one understands how I think.`
+    },
+    obsessive_analysis: {
+      scholar: `I can't turn off my analytical mind. I dissect every conversation, every interaction. It's exhausting and it's ruining my relationships...`,
+      default: `Coach, I overanalyze everything to the point of paralysis. My mind won't let me just... be present.`
     }
   };
 
@@ -275,18 +343,15 @@ const generateCoachingPrompts = (character: EnhancedCharacter): string[] => {
     prompts.push(`With your experience, do you ever feel the weight of what you've seen?`);
   }
   
-  return prompts.slice(0, 8);
+  return prompts.slice(0, 4);
 };
 
 // Generate session type options
 const generateSessionTypes = (character: EnhancedCharacter): string[] => {
   return [
     `Start a mental health check-in with ${character.name}`,
-    `Discuss ${character.name}'s recent emotional struggles`,
     `Work on ${character.name}'s stress management`,
-    `Address ${character.name}'s personal goals and motivations`,
-    `Help ${character.name} process difficult experiences`,
-    `Support ${character.name} through relationship challenges`
+    `Help ${character.name} process difficult experiences`
   ];
 };
 
@@ -522,7 +587,7 @@ Respond as ${selectedCharacter?.name || 'the character'} would in a real psychol
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="h-[700px]">
+        <div className="min-h-[600px] max-h-[800px]">
           <div className="flex flex-col h-full">
             <div className="bg-gradient-to-r from-purple-800/30 to-blue-800/30 p-4 border-b border-purple-500/30">
               <div className="flex items-center gap-3">

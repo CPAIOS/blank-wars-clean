@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Dumbbell, 
@@ -28,6 +28,7 @@ import { getBaseStatsForLevel, getLevelData } from '@/data/characterProgression'
 import { TrainingSystemManager } from '@/systems/trainingSystem';
 import { trainingChatService } from '@/services/trainingChatService';
 import PersonalTrainerChat from './PersonalTrainerChat';
+import { Character as CharacterType } from '@/data/characters';
 
 interface Character {
   id: string;
@@ -138,6 +139,9 @@ export default function TrainingGrounds({
   const [isAutoAnalyzing, setIsAutoAnalyzing] = useState(false);
   const [lastAnalyzedCharacter, setLastAnalyzedCharacter] = useState<string>('');
 
+  // Ref to store analysis timeout
+  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Update selected character when global character changes and trigger Argock analysis
   useEffect(() => {
     if (!globalCharacter) {
@@ -157,12 +161,25 @@ export default function TrainingGrounds({
       // Reset analysis tracking for new character
       setLastAnalyzedCharacter('');
       
+      // Clear any pending analysis timeout to prevent duplicates
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+      
       // Trigger analysis after a short delay to ensure state is settled
-      setTimeout(() => {
+      analysisTimeoutRef.current = setTimeout(() => {
         triggerArgockAnalysis(currentCharacter);
-      }, 500); // Increased delay to ensure backend is ready
+        analysisTimeoutRef.current = null;
+      }, 500);
     }
-  }, [globalCharacter, currentCharacter]); // Depend on globalCharacter and currentCharacter
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+    };
+  }, [globalCharacter, currentCharacter]);
 
 
   // Auto-trigger Argock analysis when character is selected
@@ -195,6 +212,17 @@ export default function TrainingGrounds({
       const availableCharacters = createDemoCharacterCollection();
       const currentCharacterContext = availableCharacters.find(c => c.name === character.name) || availableCharacters[0];
       
+      // Get character-specific training activities for context
+      const characterActivities = generateCharacterTrainingActivities(character);
+      const availableExercises = characterActivities.map(activity => ({
+        name: activity.name,
+        description: activity.description,
+        type: activity.type,
+        difficulty: activity.difficulty,
+        energyCost: activity.energyCost,
+        xpGain: activity.xpGain
+      }));
+
       // Prepare training context
       const trainingContext = {
         character: currentCharacterContext,
@@ -207,9 +235,13 @@ export default function TrainingGrounds({
           energyLevel: Math.round((character.energy / character.maxEnergy) * 100),
           trainingProgress: 0,
           trainingPhase: trainingPhase,
-          sessionDuration: 0
+          sessionDuration: 0,
+          availableExercises: availableExercises.slice(0, 6) // Show first 6 exercises
         },
-        recentTrainingEvents: [`${character.name} entered the training facility`]
+        recentTrainingEvents: [
+          `${character.name} entered the training facility`,
+          `Available character-specific exercises: ${availableExercises.length}`
+        ]
       };
 
       console.log('🤖 Calling training chat service for auto-analysis...');
@@ -238,17 +270,31 @@ export default function TrainingGrounds({
         };
         console.log('📝 Adding auto-analysis message:', messageId, 'Message:', agent.message.substring(0, 50) + '...');
         
-        // Check for duplicate messages before adding
+        // Check for duplicate auto-analysis messages - prevent multiple Argock initial analyses
         setChatMessages(prev => {
+          // For auto-analysis, check if there's already an Argock message for this character
+          const hasArgockAnalysisForCharacter = prev.some(msg => 
+            msg.agentType === 'argock' && 
+            msg.id?.includes(`auto_argock_${character.id}`)
+          );
+          
+          if (hasArgockAnalysisForCharacter && messageId.includes('auto_argock')) {
+            console.warn('🚫 Argock auto-analysis already exists for character, skipping:', character.name);
+            return prev;
+          }
+          
+          // Also check for recent similar content to prevent rapid duplicates
           const isDuplicate = prev.some(msg => 
             msg.message === analysisMessage.message && 
             msg.agentType === analysisMessage.agentType &&
             Math.abs(msg.timestamp.getTime() - analysisMessage.timestamp.getTime()) < 5000 // within 5 seconds
           );
+          
           if (isDuplicate) {
-            console.warn('🚫 Duplicate message detected, skipping:', messageId);
+            console.warn('🚫 Duplicate message content detected, skipping:', messageId);
             return prev;
           }
+          
           return [...prev, analysisMessage];
         });
       });
@@ -286,61 +332,285 @@ export default function TrainingGrounds({
   const [currentChatMessage, setCurrentChatMessage] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
 
-  // Basic training activities
-  const trainingActivities = [
-    {
-      id: 'strength_basic',
-      name: 'Weapon Mastery',
-      description: 'Practice combat techniques to increase attack power',
-      type: 'strength',
-      duration: 30,
-      energyCost: 15,
-      xpGain: 50,
-      statBonus: 1,
-      icon: Dumbbell,
-      difficulty: 'easy',
-      requirements: { level: 1 }
-    },
-    {
-      id: 'defense_basic',
-      name: 'Shield Training',
-      description: 'Learn defensive stances and blocking techniques',
-      type: 'defense',
-      duration: 25,
-      energyCost: 12,
-      xpGain: 45,
-      statBonus: 1,
-      icon: Target,
-      difficulty: 'easy',
-      requirements: { level: 1 }
-    },
-    {
-      id: 'speed_basic',
-      name: 'Agility Course',
-      description: 'Run through obstacle courses to improve speed',
-      type: 'speed',
-      duration: 20,
-      energyCost: 18,
-      xpGain: 40,
-      statBonus: 1,
-      icon: Zap,
-      difficulty: 'easy',
-      requirements: { level: 1 }
-    },
-    {
-      id: 'special_basic',
-      name: 'Mental Focus',
-      description: 'Meditation and concentration exercises',
-      type: 'special',
-      duration: 35,
-      energyCost: 10,
-      xpGain: 55,
-      statBonus: 1,
-      icon: Brain,
-      difficulty: 'medium',
-      requirements: { level: 5 }
+  // Generate character-specific progressive training activities
+  const generateCharacterTrainingActivities = (character: Character): TrainingActivity[] => {
+    const activities: TrainingActivity[] = [];
+    const level = character.level;
+    const archetype = character.archetype;
+    const characterName = character.name?.toLowerCase() || '';
+    
+    // Create character name mapping for more robust matching
+    const getCharacterKey = (name: string): string => {
+      const lowerName = name.toLowerCase();
+      if (lowerName.includes('sherlock') || lowerName.includes('holmes')) return 'sherlock holmes';
+      if (lowerName.includes('robin') && lowerName.includes('hood')) return 'robin hood';
+      if (lowerName.includes('frankenstein')) return "frankenstein's monster";
+      if (lowerName.includes('dracula') || lowerName.includes('count')) return 'count dracula';
+      if (lowerName.includes('sun') && lowerName.includes('wukong')) return 'sun wukong';
+      if (lowerName.includes('loki')) return 'loki';
+      if (lowerName.includes('achilles')) return 'achilles';
+      if (lowerName.includes('merlin')) return 'merlin';
+      return lowerName;
+    };
+    
+    const characterKey = getCharacterKey(characterName);
+    
+    // Debug logging to verify character matching
+    console.log('🏋️ Generating training for:', {
+      originalName: character.name,
+      characterName: characterName,
+      characterKey: characterKey,
+      level: level,
+      archetype: archetype
+    });
+    
+    // Define character-specific exercise templates
+    const exerciseTemplates = {
+      // SHERLOCK HOLMES - Detective/Scholar exercises
+      'sherlock holmes': {
+        beginner: [
+          { name: 'Basic Observation Drills', desc: 'Train your eye to notice minute details', type: 'special', xp: 40, energy: 12, bonus: 2 },
+          { name: 'Simple Deduction Practice', desc: 'Practice logical reasoning with basic puzzles', type: 'special', xp: 45, energy: 15, bonus: 1 }
+        ],
+        intermediate: [
+          { name: 'Crime Scene Analysis', desc: 'Analyze complex scenarios for hidden clues', type: 'special', xp: 75, energy: 20, bonus: 3 },
+          { name: 'Memory Palace Training', desc: 'Build mental structures to store information', type: 'special', xp: 80, energy: 25, bonus: 4 }
+        ],
+        expert: [
+          { name: 'Master Detective Methodology', desc: 'Perfect the art of criminal investigation', type: 'special', xp: 120, energy: 30, bonus: 5 },
+          { name: 'Psychological Profiling', desc: 'Study the criminal mind to predict behavior', type: 'special', xp: 110, energy: 28, bonus: 4 }
+        ],
+        legendary: [
+          { name: 'Mind Palace Mastery', desc: 'Achieve perfect mental organization and recall', type: 'special', xp: 200, energy: 40, bonus: 8 },
+          { name: 'Impossible Case Solving', desc: 'Tackle the most complex mysteries known to man', type: 'special', xp: 250, energy: 45, bonus: 10 }
+        ]
+      },
+      
+      // ACHILLES - Warrior exercises
+      achilles: {
+        beginner: [
+          { name: 'Spartan Combat Drills', desc: 'Practice the basic forms of legendary warfare', type: 'strength', xp: 50, energy: 15, bonus: 2 },
+          { name: 'Honor Code Training', desc: 'Strengthen resolve through warrior discipline', type: 'defense', xp: 45, energy: 12, bonus: 1 }
+        ],
+        intermediate: [
+          { name: 'Trojan War Tactics', desc: 'Master battlefield strategies from the great war', type: 'strength', xp: 85, energy: 22, bonus: 3 },
+          { name: 'Divine Blessing Meditation', desc: 'Channel your godly heritage for power', type: 'special', xp: 75, energy: 20, bonus: 3 }
+        ],
+        expert: [
+          { name: 'Invulnerability Training', desc: 'Push your legendary durability to its limits', type: 'defense', xp: 130, energy: 32, bonus: 5 },
+          { name: 'Heroic Rage Control', desc: 'Harness the fury that makes you unstoppable', type: 'strength', xp: 140, energy: 35, bonus: 6 }
+        ],
+        legendary: [
+          { name: 'Godslayer Techniques', desc: 'Train methods capable of challenging immortals', type: 'strength', xp: 220, energy: 42, bonus: 9 },
+          { name: 'Legendary Warrior Mastery', desc: 'Achieve the pinnacle of mortal combat skill', type: 'strength', xp: 280, energy: 50, bonus: 12 }
+        ]
+      },
+
+      // MERLIN - Mage exercises  
+      merlin: {
+        beginner: [
+          { name: 'Basic Spell Weaving', desc: 'Learn fundamental magical manipulations', type: 'special', xp: 45, energy: 18, bonus: 2 },
+          { name: 'Elemental Attunement', desc: 'Connect with the basic forces of nature', type: 'special', xp: 40, energy: 15, bonus: 1 }
+        ],
+        intermediate: [
+          { name: 'Prophecy Interpretation', desc: 'Decipher the cryptic messages of fate', type: 'special', xp: 80, energy: 25, bonus: 4 },
+          { name: 'Arcane Research', desc: 'Study forbidden tomes of ancient magic', type: 'special', xp: 70, energy: 20, bonus: 3 }
+        ],
+        expert: [
+          { name: 'Time Magic Mastery', desc: 'Manipulate the flow of time itself', type: 'special', xp: 150, energy: 35, bonus: 6 },
+          { name: 'Dragon Communion', desc: 'Commune with the great wyrms for wisdom', type: 'special', xp: 135, energy: 32, bonus: 5 }
+        ],
+        legendary: [
+          { name: 'Reality Alteration', desc: 'Bend the very fabric of existence to your will', type: 'special', xp: 300, energy: 50, bonus: 12 },
+          { name: 'Eternal Wisdom Seeking', desc: 'Pursue knowledge that spans all of time', type: 'special', xp: 350, energy: 55, bonus: 15 }
+        ]
+      },
+
+      // Generic archetype-based exercises for other characters
+      warrior: {
+        beginner: [
+          { name: 'Weapon Training', desc: 'Master your chosen weapon through repetition', type: 'strength', xp: 45, energy: 15, bonus: 2 },
+          { name: 'Combat Stance Drills', desc: 'Perfect your defensive positioning', type: 'defense', xp: 40, energy: 12, bonus: 1 }
+        ],
+        intermediate: [
+          { name: 'Battle Fury Training', desc: 'Learn to channel rage in combat', type: 'strength', xp: 80, energy: 25, bonus: 3 },
+          { name: 'Tactical Maneuvers', desc: 'Study advanced battlefield tactics', type: 'speed', xp: 75, energy: 22, bonus: 3 }
+        ],
+        expert: [
+          { name: 'Berserker Mastery', desc: 'Achieve perfect unity of mind and violence', type: 'strength', xp: 130, energy: 32, bonus: 5 },
+          { name: 'Legendary Weaponsmith', desc: 'Forge weapons worthy of legends', type: 'strength', xp: 120, energy: 30, bonus: 4 }
+        ],
+        legendary: [
+          { name: 'Warrior God Training', desc: 'Transcend mortal limits through combat', type: 'strength', xp: 250, energy: 45, bonus: 10 },
+          { name: 'Eternal Champion', desc: 'Become a warrior for all ages', type: 'strength', xp: 300, energy: 50, bonus: 12 }
+        ]
+      },
+
+      scholar: {
+        beginner: [
+          { name: 'Knowledge Absorption', desc: 'Rapidly digest vast amounts of information', type: 'special', xp: 40, energy: 12, bonus: 2 },
+          { name: 'Logic Exercises', desc: 'Strengthen reasoning and analytical thinking', type: 'special', xp: 45, energy: 15, bonus: 1 }
+        ],
+        intermediate: [
+          { name: 'Ancient Text Deciphering', desc: 'Unlock secrets hidden in old manuscripts', type: 'special', xp: 75, energy: 20, bonus: 3 },
+          { name: 'Theoretical Frameworks', desc: 'Develop new models of understanding', type: 'special', xp: 80, energy: 25, bonus: 4 }
+        ],
+        expert: [
+          { name: 'Universal Truth Seeking', desc: 'Pursue knowledge that transcends disciplines', type: 'special', xp: 120, energy: 30, bonus: 5 },
+          { name: 'Wisdom Synthesis', desc: 'Combine all learning into perfect understanding', type: 'special', xp: 110, energy: 28, bonus: 4 }
+        ],
+        legendary: [
+          { name: 'Omniscience Training', desc: 'Approach the limits of mortal knowledge', type: 'special', xp: 200, energy: 40, bonus: 8 },
+          { name: 'Reality Documentation', desc: 'Record the true nature of existence', type: 'special', xp: 280, energy: 50, bonus: 12 }
+        ]
+      }
+    };
+
+    // Add more character-specific exercises
+    const additionalTemplates = {
+      // ROBIN HOOD - Archer/Leader exercises
+      'robin hood': {
+        beginner: [
+          { name: 'Forest Archery Practice', desc: 'Perfect your bow skills in natural terrain', type: 'special', xp: 45, energy: 15, bonus: 2 },
+          { name: 'Sherwood Navigation', desc: 'Learn to move unseen through the forest', type: 'speed', xp: 40, energy: 12, bonus: 1 }
+        ],
+        intermediate: [
+          { name: 'Trick Shot Training', desc: 'Master impossible angles and ricochet arrows', type: 'special', xp: 80, energy: 25, bonus: 4 },
+          { name: 'Merry Men Leadership', desc: 'Inspire loyalty and coordinate group tactics', type: 'special', xp: 75, energy: 20, bonus: 3 }
+        ],
+        expert: [
+          { name: 'Legendary Marksmanship', desc: 'Split arrows and hit targets blindfolded', type: 'special', xp: 130, energy: 32, bonus: 5 },
+          { name: 'Outlaw Strategist', desc: 'Outsmart authorities with guerrilla tactics', type: 'special', xp: 120, energy: 30, bonus: 5 }
+        ],
+        legendary: [
+          { name: 'Master of Sherwood', desc: 'Become one with the forest itself', type: 'special', xp: 250, energy: 45, bonus: 10 },
+          { name: 'Eternal Rebel', desc: 'Inspire revolution across generations', type: 'special', xp: 300, energy: 50, bonus: 12 }
+        ]
+      },
+      // LOKI - Trickster exercises
+      loki: {
+        beginner: [
+          { name: 'Shapeshifting Basics', desc: 'Learn simple disguises and illusions', type: 'special', xp: 45, energy: 15, bonus: 2 },
+          { name: 'Silver Tongue Training', desc: 'Master the art of persuasion and lies', type: 'special', xp: 40, energy: 12, bonus: 1 }
+        ],
+        intermediate: [
+          { name: 'Chaos Magic Mastery', desc: 'Bend reality to create mayhem', type: 'special', xp: 85, energy: 25, bonus: 4 },
+          { name: 'Divine Mischief', desc: 'Play pranks worthy of the gods', type: 'speed', xp: 75, energy: 22, bonus: 3 }
+        ],
+        expert: [
+          { name: 'Ragnarok Preparation', desc: 'Train for the end of all things', type: 'special', xp: 150, energy: 35, bonus: 6 },
+          { name: 'God of Lies Mastery', desc: 'Make even truth sound false', type: 'special', xp: 135, energy: 32, bonus: 5 }
+        ],
+        legendary: [
+          { name: 'Cosmic Trickster', desc: 'Fool the universe itself', type: 'special', xp: 300, energy: 50, bonus: 12 },
+          { name: 'Eternal Chaos', desc: 'Become chaos incarnate', type: 'special', xp: 350, energy: 55, bonus: 15 }
+        ]
+      }
+    };
+
+    // Merge additional templates with base templates
+    const allTemplates = { ...exerciseTemplates, ...additionalTemplates };
+    
+    // Determine which exercise set to use
+    let exerciseSet = allTemplates[characterKey as keyof typeof allTemplates] || 
+                     allTemplates[archetype as keyof typeof allTemplates] || 
+                     allTemplates.warrior;
+
+    // Add exercises based on character level
+    let exerciseIndex = 0;
+    
+    // Beginner (1-10)
+    if (level >= 1) {
+      exerciseSet.beginner.forEach((exercise, idx) => {
+        activities.push({
+          id: `${characterKey.replace(/[^a-z0-9]/g, '_')}_beginner_${idx}`,
+          name: exercise.name,
+          description: exercise.desc,
+          type: exercise.type as any,
+          duration: 25 + (idx * 5),
+          energyCost: exercise.energy,
+          xpGain: exercise.xp,
+          statBonus: exercise.bonus,
+          icon: exercise.type === 'strength' ? Dumbbell : exercise.type === 'defense' ? Target : exercise.type === 'speed' ? Zap : Brain,
+          difficulty: 'easy' as const,
+          requirements: { level: 1 }
+        });
+      });
+>>>>>>> origin/gabes-unmerged-changes
     }
-  ];
+
+    // Intermediate (11-25)
+    if (level >= 11) {
+      exerciseSet.intermediate.forEach((exercise, idx) => {
+        activities.push({
+          id: `${characterKey.replace(/[^a-z0-9]/g, '_')}_intermediate_${idx}`,
+          name: exercise.name,
+          description: exercise.desc,
+          type: exercise.type as any,
+          duration: 35 + (idx * 5),
+          energyCost: exercise.energy,
+          xpGain: exercise.xp,
+          statBonus: exercise.bonus,
+          icon: exercise.type === 'strength' ? Dumbbell : exercise.type === 'defense' ? Target : exercise.type === 'speed' ? Zap : Brain,
+          difficulty: 'medium' as const,
+          requirements: { level: 11 }
+        });
+      });
+    }
+
+    // Expert (26-40)
+    if (level >= 26) {
+      exerciseSet.expert.forEach((exercise, idx) => {
+        activities.push({
+          id: `${characterKey.replace(/[^a-z0-9]/g, '_')}_expert_${idx}`,
+          name: exercise.name,
+          description: exercise.desc,
+          type: exercise.type as any,
+          duration: 45 + (idx * 5),
+          energyCost: exercise.energy,
+          xpGain: exercise.xp,
+          statBonus: exercise.bonus,
+          icon: exercise.type === 'strength' ? Dumbbell : exercise.type === 'defense' ? Target : exercise.type === 'speed' ? Zap : Brain,
+          difficulty: 'hard' as const,
+          requirements: { level: 26 }
+        });
+      });
+    }
+
+    // Legendary (41+)
+    if (level >= 41) {
+      exerciseSet.legendary.forEach((exercise, idx) => {
+        activities.push({
+          id: `${characterKey.replace(/[^a-z0-9]/g, '_')}_legendary_${idx}`,
+          name: exercise.name,
+          description: exercise.desc,
+          type: exercise.type as any,
+          duration: 60 + (idx * 10),
+          energyCost: exercise.energy,
+          xpGain: exercise.xp,
+          statBonus: exercise.bonus,
+          icon: exercise.type === 'strength' ? Dumbbell : exercise.type === 'defense' ? Target : exercise.type === 'speed' ? Zap : Brain,
+          difficulty: 'extreme' as const,
+          requirements: { level: 41 }
+        });
+      });
+    }
+
+    // Debug logging to verify activities are generated
+    console.log('🎯 Generated training activities:', {
+      characterKey: characterKey,
+      exerciseSetUsed: exerciseSet === allTemplates[characterKey as keyof typeof allTemplates] ? 'character-specific' : 
+                      exerciseSet === allTemplates[archetype as keyof typeof allTemplates] ? 'archetype-based' : 'warrior-fallback',
+      activitiesCount: activities.length,
+      activities: activities.map(a => ({ name: a.name, difficulty: a.difficulty, type: a.type }))
+    });
+
+    return activities;
+  };
+
+  // Get character-specific training activities
+  const trainingActivities: TrainingActivity[] = selectedCharacter ? 
+    generateCharacterTrainingActivities(selectedCharacter) : [];
 
   // Check membership limits
   const membershipLimits = getDailyLimits(membershipTier);
@@ -367,28 +637,15 @@ export default function TrainingGrounds({
     if (!selectedCharacter || selectedCharacter.energy < activity.energyCost) return;
     
     try {
-      // Get user ID from auth context (you'll need to implement this)
-      const userId = 'user123'; // Replace with actual user ID from auth context
+      console.log('🏋️ Starting character-specific training:', {
+        character: selectedCharacter.name,
+        activity: activity.name,
+        type: activity.type,
+        difficulty: activity.difficulty
+      });
       
-      // Load the training system manager - ensure client-side only
-      if (typeof window === 'undefined') {
-        console.warn('Training attempted during SSR, skipping');
-        return;
-      }
-      
-      const trainingManager = TrainingSystemManager.loadProgress();
-      
-      // Start training with usage tracking following battle service pattern
-      const session = await trainingManager.startTraining(
-        currentCharacter.id, 
-        activity.id, 
-        userId, 
-        selectedFacility
-      );
-      
-      if (!session) {
-        throw new Error('Failed to start training session');
-      }
+      // Skip the old training system and use our character-specific system directly
+      // This bypasses the legacy psychology-based training that was causing SyntaxError
       
       setCurrentActivity(activity);
       setIsTraining(true);
@@ -414,6 +671,8 @@ export default function TrainingGrounds({
       // For this component, we'll just update the local character object for display
       // This is a temporary workaround for the rebase, not a final solution
       // setSelectedCharacter(updatedCharacter); // This state no longer exists
+      
+      console.log('✅ Character-specific training started successfully!');
       
     } catch (error) {
       console.error('Training failed:', error);
@@ -450,42 +709,80 @@ export default function TrainingGrounds({
       const nextLevelData = getLevelData(newLevel + 1);
       newXpToNext = nextLevelData?.xpToNext || currentCharacter.xpToNext;
       
-      // Update stats based on new level
-      const newStats = getBaseStatsForLevel(newLevel, currentCharacter.archetype);
-      const updatedCharacter = {
-        ...currentCharacter,
-        level: newLevel,
-        xp: remainingXp,
-        xpToNext: newXpToNext,
-        // Use progression-based stats as base, then apply training bonuses
-        hp: newStats.hp,
-        maxHp: newStats.hp,
-        atk: newStats.atk + (currentActivity.type === 'strength' ? statBonus : 0),
-        def: newStats.def + (currentActivity.type === 'defense' ? statBonus : 0),
-        spd: newStats.spd + (currentActivity.type === 'speed' ? statBonus : 0),
-        // Recover some energy after training
-        energy: Math.min(currentCharacter.maxEnergy, currentCharacter.energy + 5)
-      };
-      // setSelectedCharacter(updatedCharacter); // This state no longer exists
-    } else {
-      // No level up, just apply training bonuses
-      const updatedCharacter = {
-        ...currentCharacter,
-        xp: remainingXp,
-        // Apply stat bonus based on training type
-        atk: currentActivity.type === 'strength' ? currentCharacter.atk + statBonus : currentCharacter.atk,
-        def: currentActivity.type === 'defense' ? currentCharacter.def + statBonus : currentCharacter.def,
-        spd: currentActivity.type === 'speed' ? currentCharacter.spd + statBonus : currentCharacter.spd,
-        // Recover some energy after training
-        energy: Math.min(currentCharacter.maxEnergy, currentCharacter.energy + 5)
-      };
-      // setSelectedCharacter(updatedCharacter); // This state no longer exists
-    }
+      // Handle level up with new progression system
+      if (leveledUp && newLevel < 50) {
+        newLevel = prev.level + 1;
+        remainingXp = newXp - prev.xpToNext;
+        const nextLevelData = getLevelData(newLevel + 1);
+        newXpToNext = nextLevelData?.xpToNext || prev.xpToNext;
+        
+        // Update stats based on new level
+        const newStats = getBaseStatsForLevel(newLevel, prev.archetype);
+        return {
+          ...prev,
+          level: newLevel,
+          xp: remainingXp,
+          xpToNext: newXpToNext,
+          // Use progression-based stats as base, then apply training bonuses
+          hp: newStats.hp,
+          maxHp: newStats.hp,
+          atk: newStats.atk + (currentActivity.type === 'strength' ? statBonus : 0) + (currentActivity.type === 'special' ? statBonus : 0),
+          def: newStats.def + (currentActivity.type === 'defense' ? statBonus : 0),
+          spd: newStats.spd + (currentActivity.type === 'speed' ? statBonus : 0),
+          // Update training bonuses for tracking permanent improvements
+          trainingBonuses: {
+            strength: prev.trainingBonuses.strength + (currentActivity.type === 'strength' ? statBonus : 0),
+            defense: prev.trainingBonuses.defense + (currentActivity.type === 'defense' ? statBonus : 0),
+            speed: prev.trainingBonuses.speed + (currentActivity.type === 'speed' ? statBonus : 0),
+            special: prev.trainingBonuses.special + (currentActivity.type === 'special' ? statBonus : 0)
+          },
+          // Recover some energy after training
+          energy: Math.min(prev.maxEnergy, prev.energy + 5)
+        };
+      } else {
+        // No level up, just apply training bonuses
+        return {
+          ...prev,
+          xp: remainingXp,
+          // Apply stat bonus based on training type
+          atk: (currentActivity.type === 'strength' || currentActivity.type === 'special') ? prev.atk + statBonus : prev.atk,
+          def: currentActivity.type === 'defense' ? prev.def + statBonus : prev.def,
+          spd: currentActivity.type === 'speed' ? prev.spd + statBonus : prev.spd,
+          // Update training bonuses for tracking permanent improvements
+          trainingBonuses: {
+            strength: prev.trainingBonuses.strength + (currentActivity.type === 'strength' ? statBonus : 0),
+            defense: prev.trainingBonuses.defense + (currentActivity.type === 'defense' ? statBonus : 0),
+            speed: prev.trainingBonuses.speed + (currentActivity.type === 'speed' ? statBonus : 0),
+            special: prev.trainingBonuses.special + (currentActivity.type === 'special' ? statBonus : 0)
+          },
+          // Recover some energy after training
+          energy: Math.min(prev.maxEnergy, prev.energy + 5)
+        };
+      }
+    });
     
     // Award training points for skill activities
     if (trainingPointsGain > 0) {
       setTrainingPoints(prev => prev + trainingPointsGain);
     }
+    
+    // Generate completion message based on exercise difficulty and character
+    const completionMessage = currentActivity.difficulty === 'extreme' 
+      ? `🔥 LEGENDARY TRAINING COMPLETE! ${selectedCharacter?.name} mastered "${currentActivity.name}"! Gained +${statBonus} ${currentActivity.type} and ${xpGain} XP!`
+      : currentActivity.difficulty === 'hard'
+      ? `⚡ EXPERT TRAINING COMPLETE! ${selectedCharacter?.name} conquered "${currentActivity.name}"! Gained +${statBonus} ${currentActivity.type} and ${xpGain} XP!`
+      : `✅ Training Complete: ${selectedCharacter?.name} finished "${currentActivity.name}" and gained +${statBonus} ${currentActivity.type} and ${xpGain} XP!`;
+    
+    console.log('⭐ Character-Specific Training Completed!', {
+      characterName: selectedCharacter?.name,
+      exerciseName: currentActivity.name,
+      exerciseType: currentActivity.type,
+      difficulty: currentActivity.difficulty,
+      xpGained: xpGain,
+      statBonus: statBonus,
+      trainingPointsGained: trainingPointsGain,
+      completionMessage
+    });
     
     setIsTraining(false);
     setTrainingPhase('recovery');
@@ -561,6 +858,17 @@ export default function TrainingGrounds({
       const availableCharacters = createDemoCharacterCollection();
       const currentCharacterContext = availableCharacters.find(c => c.name === selectedCharacter.name) || availableCharacters[0];
       
+      // Get character-specific training activities for context
+      const characterActivities = generateCharacterTrainingActivities(selectedCharacter);
+      const availableExercises = characterActivities.map(activity => ({
+        name: activity.name,
+        description: activity.description,
+        type: activity.type,
+        difficulty: activity.difficulty,
+        energyCost: activity.energyCost,
+        xpGain: activity.xpGain
+      }));
+
       // Prepare training context with phase information
       const trainingContext = {
         character: currentCharacterContext,
@@ -573,13 +881,15 @@ export default function TrainingGrounds({
           energyLevel: Math.round((selectedCharacter.energy / selectedCharacter.maxEnergy) * 100),
           trainingProgress: Math.round(trainingProgress),
           trainingPhase: trainingPhase,
-          sessionDuration: sessionStartTime ? Math.floor((Date.now() - sessionStartTime.getTime()) / 60000) : 0
+          sessionDuration: sessionStartTime ? Math.floor((Date.now() - sessionStartTime.getTime()) / 60000) : 0,
+          availableExercises: availableExercises.slice(0, 6) // Show first 6 exercises
         },
         recentTrainingEvents: [
           `Training phase: ${trainingPhase}`,
           `Completed ${dailyTrainingSessions} training sessions today`,
           `Current energy: ${selectedCharacter.energy}/${selectedCharacter.maxEnergy}`,
-          `Training points earned: ${trainingPoints}`
+          `Training points earned: ${trainingPoints}`,
+          currentActivity ? `Currently training: ${currentActivity.name} (${currentActivity.difficulty} difficulty)` : `Available character-specific exercises: ${availableExercises.length}`
         ]
       };
 
@@ -912,7 +1222,7 @@ export default function TrainingGrounds({
           >
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-400" />
-              Available Training
+              {selectedCharacter ? `${selectedCharacter.name}'s Training` : 'Available Training'}
             </h2>
 
             <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -925,7 +1235,12 @@ export default function TrainingGrounds({
                     key={activity.id}
                     className={`border rounded-lg p-3 transition-all ${
                       canStartTraining 
-                        ? 'border-gray-600 hover:border-blue-500 cursor-pointer' 
+                        ? `border-gray-600 hover:border-blue-500 cursor-pointer ${
+                            activity.difficulty === 'extreme' ? 'bg-gradient-to-r from-purple-900/20 to-red-900/20 border-purple-500/50' :
+                            activity.difficulty === 'hard' ? 'bg-gradient-to-r from-orange-900/20 to-yellow-900/20 border-orange-500/50' :
+                            activity.difficulty === 'medium' ? 'bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border-blue-500/50' :
+                            'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/50'
+                          }` 
                         : 'border-gray-700 opacity-50 cursor-not-allowed'
                     }`}
                     onClick={() => canStartTraining && startTraining(activity)}
@@ -936,9 +1251,17 @@ export default function TrainingGrounds({
                       </div>
                       <div className="flex-1">
                         <div className="text-white font-medium">{activity.name}</div>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-gray-400 mb-1">
                           {formatTime(activity.duration)} • {activity.energyCost} Energy • +{activity.xpGain} XP
                         </div>
+                        <div className="text-xs text-blue-300 capitalize">
+                          +{activity.statBonus} {activity.type} • {activity.difficulty} difficulty
+                        </div>
+                        {activity.description && (
+                          <div className="text-xs text-gray-500 mt-1 italic">
+                            {activity.description}
+                          </div>
+                        )}
                       </div>
                       {canStartTraining && (
                         <button className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded">

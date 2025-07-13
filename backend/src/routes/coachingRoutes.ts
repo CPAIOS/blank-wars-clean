@@ -421,4 +421,138 @@ router.post('/skills', authenticateToken, async (req: any, res) => {
   }
 });
 
+// POST /api/coaching/group-activity - Group activity chat responses
+router.post('/group-activity', authenticateToken, async (req: any, res) => {
+  try {
+    const { characterId, characterName, coachMessage, eventType, context } = req.body;
+    
+    // Get character personality data - try both direct match and name-based lookup
+    let characterData = characterPsychologyData[characterId];
+    if (!characterData) {
+      // Try to find by name if direct ID lookup fails
+      const nameKey = Object.keys(characterPsychologyData).find(key => 
+        characterPsychologyData[key].name.toLowerCase() === characterName.toLowerCase()
+      );
+      if (nameKey) {
+        characterData = characterPsychologyData[nameKey];
+      }
+    }
+    
+    if (!characterData) {
+      // Create a basic fallback for unknown characters
+      characterData = {
+        name: characterName,
+        personality: {
+          traits: ['Friendly', 'Cooperative', 'Team-oriented'],
+          speechStyle: 'Casual and collaborative',
+          motivations: ['Team success', 'Personal growth', 'Friendship'],
+          fears: ['Letting the team down', 'Conflict', 'Isolation']
+        },
+        historicalPeriod: 'Modern Era',
+        mythology: 'Contemporary character'
+      };
+    }
+
+    // Build group activity prompt based on event type and coach message
+    let activityPrompt = '';
+    
+    switch (eventType.toLowerCase()) {
+      case 'team dinner':
+      case 'dinner':
+        activityPrompt = `You are participating in a team dinner event. The coach just said: "${coachMessage}". 
+        Respond as if you're having a casual meal with your teammates. Share personal thoughts, ask questions about others, 
+        or comment on the food and atmosphere. Keep it friendly and team-bonding focused.`;
+        break;
+        
+      case 'weekend retreat':
+      case 'retreat':
+        activityPrompt = `You are at a team weekend retreat. The coach just said: "${coachMessage}". 
+        Respond thoughtfully about team dynamics, personal growth, or the retreat activities. 
+        This is a deeper bonding experience, so be more reflective and open.`;
+        break;
+        
+      case 'board game night':
+      case 'game_night':
+        activityPrompt = `You are playing board games with the team. The coach just said: "${coachMessage}". 
+        Respond with enthusiasm about the games, strategy discussions, or friendly competitive banter. 
+        Show your personality through how you approach games and teamwork.`;
+        break;
+        
+      case 'group therapy session':
+      case 'group_therapy':
+        activityPrompt = `You are in a group therapy session with your teammates. The coach just said: "${coachMessage}". 
+        Respond with vulnerability and honesty appropriate for therapy. Share feelings, concerns, or insights 
+        about team dynamics and personal challenges. Be supportive of others.`;
+        break;
+        
+      case 'meditation & mindfulness':
+      case 'meditation':
+        activityPrompt = `You are in a group meditation and mindfulness session. The coach just said: "${coachMessage}". 
+        Respond with calm reflection, insights about inner peace, or observations about mindfulness. 
+        Keep your tone peaceful and centered.`;
+        break;
+        
+      case 'victory celebration':
+      case 'celebration':
+        activityPrompt = `You are celebrating a team victory! The coach just said: "${coachMessage}". 
+        Respond with joy, pride in the team's accomplishments, and celebration energy. 
+        Share what the victory means to you and praise your teammates.`;
+        break;
+        
+      default:
+        activityPrompt = `You are participating in a team activity: ${eventType}. The coach just said: "${coachMessage}". 
+        Respond appropriately for this group activity, showing your personality and team spirit.`;
+    }
+    
+    // Add character context
+    activityPrompt += `
+    
+    Response Guidelines:
+    - Stay true to your personality traits: ${characterData.personality.traits.join(', ')}
+    - Use your characteristic speech style: ${characterData.personality.speechStyle}
+    - Consider recent conversation context if provided
+    - Keep responses conversational and team-appropriate (1-2 sentences)
+    - Show genuine engagement with the group activity
+    - React to what the coach said in a natural way`;
+
+    // Add recent conversation context if available
+    if (context?.recentMessages && context.recentMessages.length > 0) {
+      const recentContext = context.recentMessages.slice(-3).map((msg: any) => 
+        `${msg.sender}: ${msg.message}`
+      ).join('\n');
+      activityPrompt += `\n\nRecent conversation:\n${recentContext}`;
+    }
+
+    // Use existing AI service with group activity context
+    const response = await aiChatService.generateCharacterResponse(
+      {
+        characterId: characterId || characterName.toLowerCase().replace(/\s+/g, '_'),
+        characterName: characterData.name,
+        personality: characterData.personality,
+        historicalPeriod: characterData.historicalPeriod,
+        mythology: characterData.mythology,
+        currentBondLevel: context?.bondLevel || 60, // Slightly higher for group activities
+        previousMessages: context?.recentMessages || []
+      },
+      activityPrompt,
+      req.user.id,
+      db,
+      { isInBattle: false }
+    );
+
+    res.json({
+      message: response.message,
+      character: characterData.name,
+      characterId: characterId || characterName.toLowerCase().replace(/\s+/g, '_'),
+      eventType,
+      timestamp: new Date().toISOString(),
+      bondIncrease: response.bondIncrease
+    });
+
+  } catch (error) {
+    console.error('Group activity coaching error:', error);
+    res.status(500).json({ error: 'Failed to generate group activity response' });
+  }
+});
+
 export default router;

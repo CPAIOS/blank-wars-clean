@@ -372,25 +372,25 @@ RECENT CONVERSATION:`;
     if (context.trigger) {
       prompt += `
 
-IMMEDIATE SITUATION: ${context.trigger}`;
+===== MOST IMPORTANT - RESPOND TO THIS =====
+${context.trigger}
+===== MOST IMPORTANT - RESPOND TO THIS =====`;
     }
 
     prompt += `
 
 CRITICAL: YOU ARE NOT THE THERAPIST. You are ${context.characterId} IN GROUP THERAPY.
 
-The therapist or another group member just spoke. You must respond AS ${context.characterId} who is receiving therapy, not conducting it.
-
-CHARACTER RESPONSE GUIDELINES:
+RESPONSE INSTRUCTIONS:
 1. You are a PATIENT in group therapy, not the therapist
-2. Respond to what was just said TO YOU or ABOUT the group situation
+2. Respond ONLY to what the therapist just asked the group (shown above in the highlighted section)
 3. Express YOUR personal feelings about the group dynamics and conflicts
 4. Do NOT ask therapeutic questions or give advice to others
-5. React emotionally/authentically to other group members and the therapist
+5. React emotionally/authentically as your character
 6. Keep responses 1-2 sentences, personal and character-authentic
-7. This is YOUR therapy session - be vulnerable, defensive, or reactive as fits your character
+7. IGNORE old conversation - respond only to the current therapist question
 
-RESPOND AS ${context.characterId} THE GROUP THERAPY PATIENT: React personally to what was just said in this group therapy session.`;
+RESPOND AS ${context.characterId} THE GROUP THERAPY PATIENT: Answer the therapist's current question personally and authentically.`;
 
     return prompt;
   }

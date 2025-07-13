@@ -46,7 +46,7 @@ export default function IndividualSessionsWrapper() {
   }, []);
 
   return (
-    <div className="h-full bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -59,15 +59,15 @@ export default function IndividualSessionsWrapper() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
+        <div className="flex gap-6">
           {/* Character Selection Sidebar */}
-          <div className="bg-black/40 rounded-lg p-4 h-full overflow-y-auto">
+          <div className="w-80 bg-black/40 rounded-lg p-4 h-fit">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Users className="w-5 h-5" />
               Team Members
             </h2>
             
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-96 overflow-y-auto">
               {charactersLoading ? (
                 <div className="text-center text-gray-400 py-4">Loading characters...</div>
               ) : (
@@ -95,7 +95,7 @@ export default function IndividualSessionsWrapper() {
           </div>
 
           {/* Coaching Session Area */}
-          <div className="lg:col-span-3 h-full">
+          <div className="flex-1">
             {selectedCharacter ? (
               <CoachingSessionChat 
                 selectedCharacterId={selectedCharacter}
@@ -103,7 +103,7 @@ export default function IndividualSessionsWrapper() {
                 onCharacterChange={setSelectedCharacter}
               />
             ) : (
-              <div className="bg-black/40 rounded-lg p-6 h-full flex flex-col items-center justify-center text-center">
+              <div className="bg-black/40 rounded-lg p-6 min-h-[600px] flex flex-col items-center justify-center text-center">
                 <MessageCircle className="w-16 h-16 text-gray-500 mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Select a Team Member
