@@ -39,6 +39,13 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
     
     setIsLoading(true);
     setError(null);
+    
+    // For immediate post-registration, add a small delay to let cookies settle
+    if (retryCount === 0) {
+      console.log('⏳ NewUserStarterPack: Waiting for authentication cookies to settle...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
     try {
       const response = await characterAPI.getUserCharacters();
       console.log('📦 Raw API response:', response);
@@ -95,9 +102,20 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
     } catch (err: any) {
       console.error('Error fetching starter characters:', err);
       
-      // Don't retry if it's an authentication error (401/403) or marked as auth error
+      // For immediate post-registration, give cookies more time to settle before giving up
       if (err.response?.status === 401 || err.response?.status === 403 || err.isAuthenticationError || err.status === 401 || err.message?.includes('AUTHENTICATION_REQUIRED_NO_RETRY') || err.name === 'AuthenticationError') {
-        console.log('🚫 NewUserStarterPack: Authentication error detected, stopping retries');
+        
+        // If this is early in the process (first few retries), it might just be cookies not ready yet
+        if (retryCount < 3) {
+          console.log(`⏳ NewUserStarterPack: Auth error on attempt ${retryCount + 1}, retrying in case cookies need time to settle...`);
+          setError('Setting up your account, please wait...');
+          setTimeout(() => {
+            fetchStarterCharacters(retryCount + 1);
+          }, 2000); // Longer delay for cookie settling
+          return;
+        }
+        
+        console.log('🚫 NewUserStarterPack: Authentication error detected after retries, stopping');
         setAuthErrorDetected(true);
         setError('Please log in to access your characters.');
         setIsLoading(false);
