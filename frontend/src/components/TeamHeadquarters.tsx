@@ -454,6 +454,7 @@ export default function TeamHeadquarters() {
   }
 
   return (
+    <>
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <motion.div 
@@ -1891,5 +1892,6 @@ export default function TeamHeadquarters() {
       {/* Tutorial System */}
       <Tutorial />
       {/* Real Estate Agent removed - now in Facilities tab */}
-    );
+    </>
+  );
 }
