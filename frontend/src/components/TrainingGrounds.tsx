@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Dumbbell, 
@@ -78,59 +78,69 @@ interface TrainingGroundsProps {
   availableCharacters: any[];
 }
 
-export default function TrainingGrounds({
-  globalSelectedCharacterId,
-  setGlobalSelectedCharacterId,
-  selectedCharacter: globalCharacter,
-  availableCharacters
+export default function TrainingGrounds({ 
+  globalSelectedCharacterId, 
+  setGlobalSelectedCharacterId, 
+  selectedCharacter: globalCharacter, 
+  availableCharacters 
 }: TrainingGroundsProps) {
-  // Early return if no character selected
-  if (!globalCharacter) {
-    return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center py-12">
-          <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-400 mb-2">No Character Selected</h3>
-          <p className="text-gray-500">
-            Please select a character from the sidebar to begin training.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Safe character data access
-  const currentCharacter = useMemo(() => {
+  // Convert global character to training character format and make it state
+  const createTrainingCharacter = (characterToUse: any): Character => {
+    if (!characterToUse) {
+      // Create default character if no characters available
+      const level = 12;
+      const levelData = getLevelData(level);
+      const baseStats = getBaseStatsForLevel(level, 'warrior');
+      
+      return {
+        id: 'achilles',
+        name: 'Achilles',
+        level,
+        xp: 2400,
+        xpToNext: levelData?.xpToNext || 800,
+        hp: baseStats.hp,
+        maxHp: baseStats.hp,
+        atk: baseStats.atk,
+        def: baseStats.def,
+        spd: baseStats.spd,
+        energy: 75,
+        maxEnergy: 100,
+        avatar: '⚔️',
+        archetype: 'warrior',
+        trainingBonuses: {
+          strength: 5,
+          defense: 3,
+          speed: 4,
+          special: 2
+        }
+      };
+    }
+    
+    // Convert from global character format to training character format
+    console.log('🔍 Converting character:', characterToUse.name, 'Level from API:', characterToUse.level);
     return {
-      id: globalCharacter.baseName || globalCharacter.id,
-      name: globalCharacter.name,
-      level: globalCharacter.level || 1,
-      energy: globalCharacter.energy || 75,
-      maxEnergy: globalCharacter.maxEnergy || 100,
-      avatar: globalCharacter.avatar,
-      archetype: globalCharacter.archetype,
-      baseStats: {
-        strength: globalCharacter.baseStats?.strength || globalCharacter.base_attack || 50,
-        vitality: globalCharacter.baseStats?.vitality || globalCharacter.base_health || 50,
-        agility: globalCharacter.baseStats?.agility || globalCharacter.base_speed || 50,
-        intelligence: globalCharacter.baseStats?.intelligence || globalCharacter.base_special || 50
-      },
-      // Add other properties needed by the HEAD version's logic
-      xp: globalCharacter.experience?.currentXP || 0,
-      xpToNext: globalCharacter.experience?.xpToNextLevel || 1000,
-      hp: globalCharacter.combatStats?.health || globalCharacter.baseStats?.vitality * 10 || 200,
-      maxHp: globalCharacter.combatStats?.maxHealth || globalCharacter.baseStats?.vitality * 10 || 200,
-      atk: globalCharacter.combatStats?.attack || globalCharacter.baseStats?.strength || 50,
-      def: globalCharacter.combatStats?.defense || globalCharacter.baseStats?.vitality || 40,
-      spd: globalCharacter.combatStats?.speed || globalCharacter.baseStats?.agility || 60,
+      id: characterToUse.baseName || characterToUse.id,
+      name: characterToUse.name,
+      level: characterToUse.level || 1,
+      xp: characterToUse.experience?.currentXP || 0,
+      xpToNext: characterToUse.experience?.xpToNextLevel || 1000,
+      hp: characterToUse.combatStats?.health || characterToUse.baseStats?.vitality * 10 || 200,
+      maxHp: characterToUse.combatStats?.maxHealth || characterToUse.baseStats?.vitality * 10 || 200,
+      atk: characterToUse.combatStats?.attack || characterToUse.baseStats?.strength || 50,
+      def: characterToUse.combatStats?.defense || characterToUse.baseStats?.vitality || 40,
+      spd: characterToUse.combatStats?.speed || characterToUse.baseStats?.agility || 60,
+      energy: characterToUse.energy || 75,
+      maxEnergy: characterToUse.maxEnergy || 100,
+      avatar: characterToUse?.avatar || '⚔️',
+      archetype: characterToUse.archetype,
       trainingBonuses: {
-        strength: Math.floor(globalCharacter.level / 3),
-        defense: Math.floor(globalCharacter.level / 4),
-        speed: Math.floor(globalCharacter.level / 3.5),
-        special: Math.floor(globalCharacter.level / 2.5)
+        strength: Math.floor(characterToUse.level / 3),
+        defense: Math.floor(characterToUse.level / 4),
+        speed: Math.floor(characterToUse.level / 3.5),
+        special: Math.floor(characterToUse.level / 2.5)
       }
     };
-  }, [globalCharacter]);
+  };
 
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
 
@@ -150,10 +160,13 @@ export default function TrainingGrounds({
       return;
     }
     
+    const newCharacter = createTrainingCharacter(globalCharacter);
+    setSelectedCharacter(newCharacter);
+    
     // Only trigger Argock analysis if character actually changed
-    if (currentCharacter && currentCharacter.id !== previousCharacterId) {
-      console.log('🔄 Character changed from', previousCharacterId, 'to', currentCharacter.id);
-      setPreviousCharacterId(currentCharacter.id);
+    if (newCharacter.id !== previousCharacterId) {
+      console.log('🔄 Character changed from', previousCharacterId, 'to', newCharacter.id);
+      setPreviousCharacterId(newCharacter.id);
       
       // Clear chat when character changes to start fresh
       setChatMessages([]);
@@ -168,7 +181,7 @@ export default function TrainingGrounds({
       
       // Trigger analysis after a short delay to ensure state is settled
       analysisTimeoutRef.current = setTimeout(() => {
-        triggerArgockAnalysis(currentCharacter);
+        triggerArgockAnalysis(newCharacter);
         analysisTimeoutRef.current = null;
       }, 500);
     }
@@ -179,7 +192,7 @@ export default function TrainingGrounds({
         clearTimeout(analysisTimeoutRef.current);
       }
     };
-  }, [globalCharacter, currentCharacter]);
+  }, [globalCharacter]);
 
 
   // Auto-trigger Argock analysis when character is selected
@@ -208,9 +221,8 @@ export default function TrainingGrounds({
     setIsAutoAnalyzing(true);
     
     try {
-      // Get available characters for context
-      const availableCharacters = createDemoCharacterCollection();
-      const currentCharacterContext = availableCharacters.find(c => c.name === character.name) || availableCharacters[0];
+      // Use the real character directly - NO FALLBACKS
+      const currentCharacter = character;
       
       // Get character-specific training activities for context
       const characterActivities = generateCharacterTrainingActivities(character);
@@ -225,8 +237,8 @@ export default function TrainingGrounds({
 
       // Prepare training context
       const trainingContext = {
-        character: currentCharacterContext,
-        teammates: availableCharacters.filter(c => c.id !== currentCharacterContext.id).slice(0, 5),
+        character: currentCharacter,
+        teammates: [], // No teammates for training - focus on individual character
         coachName: 'Coach',
         trainingEnvironment: {
           facilityTier: selectedFacility,
@@ -248,7 +260,7 @@ export default function TrainingGrounds({
       
       // Get Argock's immediate analysis with live AI call
       const agentResponses = await trainingChatService.startTrainingConversation(
-        currentCharacterContext,
+        currentCharacter,
         trainingContext,
         `${character.name} just walked into the training facility`,
         true // Character selection trigger
@@ -307,12 +319,15 @@ export default function TrainingGrounds({
     }
   };
 
-  // Local state for training session
   const [isTraining, setIsTraining] = useState(false);
-  const [currentActivity, setCurrentActivity] = useState<any>(null);
+  const [currentActivity, setCurrentActivity] = useState<TrainingActivity | null>(null);
   const [trainingProgress, setTrainingProgress] = useState(0);
   const [trainingTimeLeft, setTrainingTimeLeft] = useState(0);
+  // Removed tabs - TrainingGrounds now focuses only on training activities
+  const [membershipTier] = useState<MembershipTier>('free');
+  const [selectedFacility] = useState<FacilityType>('community');
   const [dailyTrainingSessions, setDailyTrainingSessions] = useState(0);
+  const [dailyEnergyRefills, setDailyEnergyRefills] = useState(0);
   const [trainingPoints, setTrainingPoints] = useState(0);
   
   // Training chat state
@@ -634,6 +649,7 @@ export default function TrainingGrounds({
   // Start training
   const startTraining = async (activity: TrainingActivity) => {
     if (!selectedCharacter || selectedCharacter.energy < activity.energyCost) return;
+    if (!canTrain()) return;
     
     try {
       console.log('🏋️ Starting character-specific training:', {
@@ -660,16 +676,10 @@ export default function TrainingGrounds({
       const multipliers = getTrainingMultipliers(membershipTier, selectedFacility);
       const energyCost = Math.ceil(activity.energyCost * multipliers.energyCost);
       
-      // Update currentCharacter state directly
-      // This is a simplified update, a real app would update global state or fetch from API
-      // For now, we'll update the local currentCharacter for immediate UI reflection
-      // This will trigger a re-render and re-evaluation of useMemo
-      const updatedEnergy = currentCharacter.energy - energyCost;
-      const updatedCharacter = { ...currentCharacter, energy: updatedEnergy };
-      // Note: In a real app, you'd dispatch an action to update the global character state
-      // For this component, we'll just update the local character object for display
-      // This is a temporary workaround for the rebase, not a final solution
-      // setSelectedCharacter(updatedCharacter); // This state no longer exists
+      setSelectedCharacter(prev => ({
+        ...prev,
+        energy: prev.energy - energyCost
+      }));
       
       console.log('✅ Character-specific training started successfully!');
       
@@ -680,7 +690,7 @@ export default function TrainingGrounds({
   };
 
   // Complete training
-  const completeTraining = useCallback(() => {
+  const completeTraining = React.useCallback(() => {
     if (!currentActivity) return;
     
     // Apply membership multipliers
@@ -692,21 +702,12 @@ export default function TrainingGrounds({
       : 0;
     
     // Apply rewards with progression system
-    // This is a simplified update, a real app would update global state or fetch from API
-    // For now, we'll update the local currentCharacter for immediate UI reflection
-    // This will trigger a re-render and re-evaluation of useMemo
-    const newXp = currentCharacter.xp + xpGain;
-    const leveledUp = newXp >= currentCharacter.xpToNext;
-    let newLevel = currentCharacter.level;
-    let remainingXp = newXp;
-    let newXpToNext = currentCharacter.xpToNext;
-    
-    // Handle level up with new progression system
-    if (leveledUp && newLevel < 50) {
-      newLevel = currentCharacter.level + 1;
-      remainingXp = newXp - currentCharacter.xpToNext;
-      const nextLevelData = getLevelData(newLevel + 1);
-      newXpToNext = nextLevelData?.xpToNext || currentCharacter.xpToNext;
+    setSelectedCharacter(prev => {
+      const newXp = prev.xp + xpGain;
+      const leveledUp = newXp >= prev.xpToNext;
+      let newLevel = prev.level;
+      let remainingXp = newXp;
+      let newXpToNext = prev.xpToNext;
       
       // Handle level up with new progression system
       if (leveledUp && newLevel < 50) {
@@ -791,7 +792,8 @@ export default function TrainingGrounds({
       setTrainingPhase('planning');
     }, 300000); // 5 minutes recovery discussion
     setTrainingProgress(0);
-  }, [currentActivity, membershipTier, selectedFacility, currentCharacter]);
+  }, [currentActivity, membershipTier, selectedFacility]);
+
   // Training timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -817,6 +819,14 @@ export default function TrainingGrounds({
     setCurrentActivity(null);
     setTrainingProgress(0);
     setTrainingTimeLeft(0);
+    
+    // Refund partial energy
+    if (currentActivity) {
+      setSelectedCharacter(prev => ({
+        ...prev,
+        energy: Math.min(prev.maxEnergy, prev.energy + Math.floor(currentActivity.energyCost * 0.5))
+      }));
+    }
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -853,9 +863,8 @@ export default function TrainingGrounds({
     setChatMessages(prev => [...prev, coachMessage]);
 
     try {
-      // Get available characters for context
-      const availableCharacters = createDemoCharacterCollection();
-      const currentCharacterContext = availableCharacters.find(c => c.name === selectedCharacter.name) || availableCharacters[0];
+      // Get available characters for context - use the real characters from props
+      const currentCharacter = availableCharacters.find(c => c.name === selectedCharacter.name) || availableCharacters[0];
       
       // Get character-specific training activities for context
       const characterActivities = generateCharacterTrainingActivities(selectedCharacter);
@@ -870,8 +879,8 @@ export default function TrainingGrounds({
 
       // Prepare training context with phase information
       const trainingContext = {
-        character: currentCharacterContext,
-        teammates: availableCharacters.filter(c => c.id !== currentCharacterContext.id).slice(0, 5),
+        character: currentCharacter,
+        teammates: availableCharacters.filter(c => c.id !== currentCharacter.id).slice(0, 5),
         coachName: 'Coach',
         trainingEnvironment: {
           facilityTier: selectedFacility,
@@ -894,7 +903,7 @@ export default function TrainingGrounds({
 
       // Get multi-agent responses with live AI calls
       const agentResponses = await trainingChatService.startTrainingConversation(
-        currentCharacterContext,
+        currentCharacter,
         trainingContext,
         messageText,
         false // Not character selection
@@ -919,7 +928,7 @@ export default function TrainingGrounds({
       const errorMessage = {
         id: `error_${Date.now()}`,
         sender: 'character' as const,
-        message: "Sorry, we're having trouble responding right now. Let's focus on training!",
+        message: 'Sorry, we\'re having trouble responding right now. Let\'s focus on training!',
         timestamp: new Date(),
         characterName: selectedCharacter.name
       };
@@ -1096,31 +1105,11 @@ export default function TrainingGrounds({
             animate={{ opacity: 1, x: 0 }}
           >
             <div className="text-center mb-6">
-              <div className="text-6xl mb-3">{currentCharacter?.avatar}</div>
-              <h3 className="text-2xl font-bold text-white">{currentCharacter?.name}</h3>
+              <div className="text-6xl mb-3">{selectedCharacter.avatar}</div>
+              <h3 className="text-2xl font-bold text-white">{selectedCharacter.name}</h3>
               <div className="flex items-center justify-center gap-2 text-yellow-400">
                 <Star className="w-4 h-4" />
-                <span>Level {currentCharacter?.level}</span>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">Strength</span>
-                <span className="text-red-400 font-bold">{currentCharacter?.baseStats?.strength}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">Vitality</span>
-                <span className="text-blue-400 font-bold">{currentCharacter?.baseStats?.vitality}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">Agility</span>
-                <span className="text-green-400 font-bold">{currentCharacter?.baseStats?.agility}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">Intelligence</span>
-                <span className="text-purple-400 font-bold">{currentCharacter?.baseStats?.intelligence}</span>
+                <span>Level {selectedCharacter.level}</span>
               </div>
             </div>
 
@@ -1131,89 +1120,43 @@ export default function TrainingGrounds({
                   <Battery className="w-4 h-4" />
                   Energy
                 </span>
-                <span>{currentCharacter?.energy}/{currentCharacter?.maxEnergy}</span>
+                <span>{selectedCharacter.energy}/{selectedCharacter.maxEnergy}</span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2">
                 <div 
                   className="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full transition-all duration-500"
                   style={{ 
-                    width: `${(currentCharacter?.energy / currentCharacter?.maxEnergy) * 100}%` 
+                    width: `${(selectedCharacter.energy / selectedCharacter.maxEnergy) * 100}%` 
                   }}
                 />
               </div>
             </div>
 
-            {/* Training Stats */}
-            <div className="p-3 bg-gray-800/50 rounded-lg">
-              <div className="text-sm text-white">
-                Sessions Today: {dailyTrainingSessions}
+            {/* Current Training Status */}
+            {isTraining && currentActivity ? (
+              <div className="bg-orange-900/30 border border-orange-500/50 rounded-xl p-4">
+                <div className="text-center">
+                  <div className="text-orange-400 text-lg mb-2">Training: {currentActivity.name}</div>
+                  <div className="text-gray-300 mb-4">
+                    <Clock className="w-4 h-4 inline mr-1" />
+                    {formatTime(trainingTimeLeft)} remaining
+                  </div>
+                  <button
+                    onClick={stopTraining}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Stop Training
+                  </button>
+                </div>
               </div>
-              <div className="text-sm text-yellow-400 flex items-center gap-1">
-                <Star className="w-3 h-3" />
-                Training Points: {trainingPoints}
+            ) : (
+              <div className="text-center text-gray-400 py-4">
+                Ready for training
               </div>
-            </div>
+            )}
           </motion.div>
 
-          {/* Current Training Status */}
-          {isTraining && currentActivity && (
-            <motion.div 
-              className="bg-orange-900/30 border border-orange-500/50 rounded-xl p-6 mt-4"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <div className="text-center">
-                <div className="text-orange-400 text-xl mb-2">Training in Progress</div>
-                <div className="text-white font-bold text-lg mb-3">{currentActivity.name}</div>
-                
-                {/* Progress Circle */}
-                <div className="relative w-24 h-24 mx-auto mb-4">
-                  <svg className="w-24 h-24 transform -rotate-90">
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="40"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="transparent"
-                      className="text-gray-700"
-                    />
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="40"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="transparent"
-                      strokeDasharray={`${2 * Math.PI * 40}`}
-                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - trainingProgress / 100)}`}
-                      className="text-orange-400 transition-all duration-1000"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white font-bold">{Math.round(trainingProgress)}%</span>
-                  </div>
-                </div>
-
-                <div className="text-gray-300 mb-4">
-                  <Clock className="w-4 h-4 inline mr-1" />
-                  {formatTime(trainingTimeLeft)} remaining
-                </div>
-
-                <button
-                  onClick={stopTraining}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 mx-auto"
-                >
-                  <Pause className="w-4 h-4" />
-                  Stop Training
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Training Activities */}
-        <div className="lg:col-span-3">
+          {/* Available Training Activities */}
           <motion.div 
             className="bg-gray-900/50 rounded-xl border border-gray-700 p-6"
             initial={{ opacity: 0, x: 20 }}
@@ -1227,7 +1170,7 @@ export default function TrainingGrounds({
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {availableActivities.slice(0, 5).map((activity) => {
                 const Icon = activity.icon;
-                const canStartTraining = !isTraining && currentCharacter && currentCharacter.energy >= activity.energyCost;
+                const canStartTraining = !isTraining && selectedCharacter.energy >= activity.energyCost;
                 
                 return (
                   <div
@@ -1272,16 +1215,6 @@ export default function TrainingGrounds({
                 );
               })}
             </div>
-
-            {availableActivities.length === 0 && (
-              <div className="text-center py-12">
-                <Battery className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-400 mb-2">No Training Available</h3>
-                <p className="text-gray-500">
-                  Your character needs more energy or higher level to access training activities.
-                </p>
-              </div>
-            )}
           </motion.div>
         </div>
       </div>
