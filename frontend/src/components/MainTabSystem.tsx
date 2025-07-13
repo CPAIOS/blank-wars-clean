@@ -43,9 +43,32 @@ import CombinedGroupActivitiesWrapper from './CombinedGroupActivitiesWrapper';
 import { createDemoCharacterCollection } from '@/data/characters';
 import { characterAPI } from '@/services/apiClient';
 
-// Lazy load non-critical components
+// Lazy load non-critical components with error handling
 const ImprovedBattleArena = lazy(() => import('./ImprovedBattleArena'));
 const TeamBuilder = lazy(() => import('./TeamBuilder'));
+
+// Error-wrapped Battle Arena component
+const BattleArenaWrapper = () => {
+  try {
+    console.log('Loading ImprovedBattleArena component...');
+    return <ImprovedBattleArena />;
+  } catch (error) {
+    console.error('ImprovedBattleArena component error:', error);
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-2xl font-bold mb-4 text-red-400">Battle Arena Error</h2>
+        <p className="text-gray-400">The battle arena is temporarily unavailable.</p>
+        <p className="text-sm text-gray-500 mt-2">Error: {(error as Error)?.message || 'Unknown error'}</p>
+        <details className="mt-4 text-left">
+          <summary className="cursor-pointer text-blue-400">Error Details</summary>
+          <pre className="text-xs text-gray-300 mt-2 overflow-auto">
+            {(error as Error)?.stack || JSON.stringify(error, null, 2)}
+          </pre>
+        </details>
+      </div>
+    );
+  }
+};
 
 // Placeholder components for debugging
 const PlaceholderComponent = () => (
@@ -1200,7 +1223,7 @@ export default function MainTabSystem() {
       icon: Sword,
       color: 'red',
       subTabs: [
-        { id: 'team-arena', label: 'Team Battle Arena', icon: Sword, component: ImprovedBattleArena, description: 'The main 3v3 combat arena, where psychology and team chemistry impact physical battles.' },
+        { id: 'team-arena', label: 'Team Battle Arena', icon: Sword, component: BattleArenaWrapper, description: 'The main 3v3 combat arena, where psychology and team chemistry impact physical battles.' },
         { id: 'gameplan', label: 'Strategy Tracker', icon: Activity, component: GameplanTrackerWrapper, description: 'Monitor team adherence to strategy' },
         { id: 'teams', label: 'Teams', icon: Users, component: TeamBuilderWrapper, description: 'Build your squads' },
         { id: 'packs', label: 'Packs', icon: Package, component: PackOpening, description: 'Get new characters' },
@@ -1259,7 +1282,7 @@ export default function MainTabSystem() {
       {/* Main Tab Navigation */}
       <div className="border-b border-gray-700 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
+          <div className="flex items-center justify-between py-2 sm:py-4">
             <div className="flex items-center gap-4 min-w-0">
               <button
                 onClick={() => setIsMainTabExpanded(!isMainTabExpanded)}
@@ -1285,10 +1308,10 @@ export default function MainTabSystem() {
                           setActiveMainTab(tab.id);
                           setActiveSubTab(tab.subTabs[0].id);
                         }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all flex-shrink-0 ${getColorClasses(tab.color, isActive)}`}
+                        className={`flex items-center gap-2 px-3 sm:px-4 py-3 sm:py-2 rounded-lg transition-all flex-shrink-0 min-h-[48px] ${getColorClasses(tab.color, isActive)}`}
                       >
-                        <Icon className="w-5 h-5" />
-                        <span className="font-semibold">{tab.label}</span>
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        <span className="font-semibold hidden sm:inline">{tab.label}</span>
                       </button>
                     );
                   })}
@@ -1318,14 +1341,14 @@ export default function MainTabSystem() {
                     <button
                       key={subTab.id}
                       onClick={() => setActiveSubTab(subTab.id)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap ${
+                      className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 sm:py-2 rounded-lg transition-all whitespace-nowrap min-h-[44px] ${
                         isActive
                           ? 'bg-gray-700 text-white'
                           : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span>{subTab.label}</span>
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-sm sm:text-base">{subTab.label}</span>
                     </button>
                   );
                 })}

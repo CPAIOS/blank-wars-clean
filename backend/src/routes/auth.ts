@@ -102,14 +102,16 @@ router.post('/refresh', async (req: Request, res: Response) => {
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined,
       maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
