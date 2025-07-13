@@ -119,21 +119,16 @@ router.get('/test', async (req: any, res) => {
   res.json({ success: true, message: 'Test endpoint working' });
 });
 
-// Get user's characters (temporarily bypassed auth for demo)
+// Get user's characters (PUBLIC DEMO ENDPOINT - NO AUTH REQUIRED)
 router.get('/characters', async (req: any, res) => {
   try {
-    console.log('🔍 [/characters] Auth check - req.user:', req.user ? 'Present' : 'None');
-    console.log('🔍 [/characters] Headers:', Object.keys(req.headers));
+    console.log('🎭 [/characters] PUBLIC DEMO ENDPOINT - Always returning demo characters');
+    console.log('🔍 [/characters] Headers present:', Object.keys(req.headers).length);
     
-    // For demo purposes, create demo characters if no user is authenticated
-    const userId = req.user?.id || 'demo-user';
-    console.log('🔍 [/characters] Using userId:', userId);
-    
-    // If no authenticated user, return demo characters with required UserCharacter structure
-    if (!req.user?.id) {
-      console.log('🎭 [/characters] No auth - returning demo characters');
-      const basicCharacters = await dbAdapter.characters.findAll();
-      const demoUserCharacters = basicCharacters.map(char => ({
+    // ALWAYS return demo characters (bypassing all authentication for demo purposes)
+    console.log('🎭 [/characters] Generating demo characters from database');
+    const basicCharacters = await dbAdapter.characters.findAll();
+    const demoUserCharacters = basicCharacters.map(char => ({
         id: `demo-${char.id}`,
         user_id: 'demo-user',
         character_id: char.id,
@@ -172,20 +167,11 @@ router.get('/characters', async (req: any, res) => {
         base_speed: char.base_speed
       }));
       
-      return res.json({
-        success: true,
-        characters: demoUserCharacters
-      });
-    }
-    console.log('🔍 [/characters] Getting characters for user:', userId);
-    
-    const userCharacters = await dbAdapter.userCharacters.findByUserId(userId);
-    console.log('📊 [/characters] Found characters:', userCharacters.length);
-    console.log('🔍 [/characters] First character sample:', userCharacters[0] ? JSON.stringify(userCharacters[0], null, 2) : 'None');
+    console.log('✅ [/characters] Generated', demoUserCharacters.length, 'demo characters');
     
     return res.json({
       success: true,
-      characters: userCharacters
+      characters: demoUserCharacters
     });
   } catch (error: any) {
     console.error('❌ Error getting user characters:', error);
