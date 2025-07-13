@@ -26,8 +26,46 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
     setError(null);
     try {
       const response = await characterAPI.getUserCharacters();
+      console.log('📦 Raw API response:', response);
+      
       if (response.success && response.characters) {
-        setStarterCharacters(response.characters.slice(0, 3)); // First 3 characters from starter pack
+        // Transform raw character data to TeamCharacter format if needed
+        const transformedCharacters = response.characters.slice(0, 3).map((char: any) => {
+          console.log('🔍 Character data structure:', char);
+          
+          // Ensure the character has the expected TeamCharacter structure
+          return {
+            ...char,
+            // Add default psychStats if missing
+            psychStats: char.psychStats || {
+              training: char.training || 75,
+              teamPlayer: char.teamPlayer || 75, 
+              ego: char.ego || 50,
+              mentalHealth: char.mentalHealth || 80,
+              communication: char.communication || 75
+            },
+            // Add default traditionalStats if missing
+            traditionalStats: char.traditionalStats || {
+              strength: char.strength || 70,
+              vitality: char.vitality || 70,
+              speed: char.speed || 70,
+              dexterity: char.dexterity || 70,
+              stamina: char.stamina || 70,
+              intelligence: char.intelligence || 70,
+              charisma: char.charisma || 70,
+              spirit: char.spirit || 70
+            },
+            // Add other required properties
+            currentHp: char.currentHp || char.maxHp || 100,
+            maxHp: char.maxHp || 100,
+            level: char.level || 1,
+            experience: char.experience || 0,
+            experienceToNext: char.experienceToNext || 100
+          };
+        });
+        
+        console.log('✅ Transformed characters:', transformedCharacters);
+        setStarterCharacters(transformedCharacters);
         setStep('reveal');
       } else {
         throw new Error('Failed to fetch starter characters');
