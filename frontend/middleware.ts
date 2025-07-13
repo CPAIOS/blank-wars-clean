@@ -33,11 +33,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Get token from cookies
-  const token = request.cookies.get('token')?.value;
+  const accessToken = request.cookies.get('accessToken')?.value;
   const refreshToken = request.cookies.get('refreshToken')?.value;
   
   // Check if user is authenticated (has valid tokens)
-  const isAuthenticated = !!(token || refreshToken);
+  const isAuthenticated = !!(accessToken || refreshToken);
   
   // Check if the current path is protected
   const isProtectedRoute = protectedRoutes.some(route => 
