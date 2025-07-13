@@ -56,11 +56,13 @@ interface AuthContextType {
   tokens: AuthTokens | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isNewUser: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<void>;
   updateProfile: (profileData: Partial<UserProfile>) => void;
+  clearNewUserFlag: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [tokens, setTokens] = useState<AuthTokens | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -133,6 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const response = await authService.register(credentials);
       
       setUser(response.user);
+      setIsNewUser(true); // Mark as new user for onboarding
       // SECURITY: Tokens are now in httpOnly cookies, don't store in state
       setTokens(null);
       
@@ -148,6 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(() => {
     setUser(null);
     setTokens(null);
+    setIsNewUser(false);
     
     // SECURITY: Don't need to clear localStorage anymore
     // httpOnly cookies are cleared by the server
@@ -177,6 +182,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(prev => prev ? { ...prev, ...profileData } : null);
   }, []);
 
+  const clearNewUserFlag = useCallback(() => {
+    setIsNewUser(false);
+  }, []);
+
   const isAuthenticated = !!user && !isLoading;
 
   const value: AuthContextType = {
@@ -184,11 +193,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     tokens,
     isAuthenticated,
     isLoading,
+    isNewUser,
     login,
     register,
     logout,
     refreshToken,
-    updateProfile
+    updateProfile,
+    clearNewUserFlag
   };
 
   return (

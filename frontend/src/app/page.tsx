@@ -7,9 +7,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import MainTabSystem from '@/components/MainTabSystem';
+import NewUserStarterPack from '@/components/NewUserStarterPack';
 
 function HomePageContent() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isNewUser } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const searchParams = useSearchParams();
@@ -96,6 +97,17 @@ function HomePageContent() {
     return (
       <>
         <MainTabSystem />
+        
+        {/* New User Starter Pack Experience */}
+        {isNewUser && (
+          <NewUserStarterPack
+            isOpen={isNewUser}
+            onComplete={() => {
+              // Handled by clearNewUserFlag in the component
+            }}
+            username={user.username}
+          />
+        )}
       </>
     );
   }
