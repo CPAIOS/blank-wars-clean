@@ -87,9 +87,12 @@ export const characterAPI = {
         // Check if this is an authentication error to prevent retries
         if (error.status === 401 || error.isAuthenticationError || error.response?.status === 401) {
           console.log('🚫 [characterAPI] Authentication error - stopping retries');
-          const authError = new Error('Authentication required');
+          // Clear the pending request to prevent any caching issues
+          pendingRequests.delete(requestKey);
+          const authError = new Error('AUTHENTICATION_REQUIRED_NO_RETRY');
           (authError as any).isAuthenticationError = true;
           (authError as any).status = 401;
+          (authError as any).name = 'AuthenticationError';
           throw authError;
         }
         

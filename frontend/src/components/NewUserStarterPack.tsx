@@ -96,7 +96,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
       console.error('Error fetching starter characters:', err);
       
       // Don't retry if it's an authentication error (401/403) or marked as auth error
-      if (err.response?.status === 401 || err.response?.status === 403 || err.isAuthenticationError || err.status === 401) {
+      if (err.response?.status === 401 || err.response?.status === 403 || err.isAuthenticationError || err.status === 401 || err.message?.includes('AUTHENTICATION_REQUIRED_NO_RETRY') || err.name === 'AuthenticationError') {
         console.log('🚫 NewUserStarterPack: Authentication error detected, stopping retries');
         setAuthErrorDetected(true);
         setError('Please log in to access your characters.');
