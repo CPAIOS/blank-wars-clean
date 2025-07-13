@@ -309,17 +309,8 @@ export const authenticateToken = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // SECURITY: Read token from httpOnly cookie first, fallback to Authorization header
-    let token = req.cookies.accessToken;
-    
-    // TEMPORARY: Fallback to Authorization header for cross-origin issues
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
-        console.log('🔑 Using Authorization header token');
-      }
-    }
+    // SECURITY: Read token from httpOnly cookie instead of Authorization header
+    const token = req.cookies.accessToken;
 
     if (!token) {
       res.status(401).json({ error: 'Access token required' });

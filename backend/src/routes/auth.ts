@@ -34,12 +34,8 @@ router.post('/register', async (req: Request, res: Response) => {
     
     return res.status(201).json({
       success: true,
-      user,
-      // TEMPORARY: Return tokens for debugging cross-origin cookie issues
-      tokens: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken
-      }
+      user
+      // SECURITY: Don't return tokens in response body
     });
   } catch (error: any) {
     return res.status(400).json({
