@@ -124,6 +124,12 @@ export class AuthService {
     console.log('✅ Tokens generated successfully');
 
     // --- CHARACTER ASSIGNMENT LOGIC ---
+    // Temporarily disabled ALL pack assignment to debug timeout issues
+    // TODO: Re-enable after fixing underlying timeout problems
+    console.log('🚨 ALL pack assignment temporarily disabled for debugging');
+    console.log('⚠️ Users will need packs manually assigned after timeout fix');
+    
+    /*
     console.log('🎁 Setting up starter characters for new user...');
     try {
       if (claimToken) {
@@ -140,6 +146,10 @@ export class AuthService {
         await this.packService.claimPack(userId, starterPackToken);
         console.log('✅ Starter pack claimed successfully');
 
+        // Temporarily disabled premium rewards to debug timeout issues
+        // TODO: Re-enable after fixing underlying timeout problems
+        console.log('⚠️ Premium rewards temporarily disabled for debugging');
+        
         // Check if this is a legendary tier user and give them premium rewards
         const userResult = await query('SELECT subscription_tier FROM users WHERE id = ?', [userId]);
         const subscriptionTier = userResult.rows[0]?.subscription_tier;
@@ -191,6 +201,7 @@ export class AuthService {
       // Don't fail registration if pack assignment fails
       console.log('⚠️ Continuing registration without starter pack');
     }
+    */
     // --- END CHARACTER ASSIGNMENT LOGIC ---
 
     // Cache user session - skip caching to avoid timeout
