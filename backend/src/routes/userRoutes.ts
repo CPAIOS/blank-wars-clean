@@ -144,7 +144,7 @@ router.get('/characters', authenticateToken, async (req: any, res) => {
     }
     
     // Transform database rows to proper character format
-    const characters = userCharacters.rows.map(row => ({
+    const characters = userCharacters.rows.map((row: any) => ({
       // User character data
       id: row.id, // user_characters.id
       user_id: row.user_id,

@@ -133,12 +133,44 @@ export class AuthService {
       } else {
         // New user gets a free starter pack with 3 characters
         console.log('🆓 Generating free starter pack...');
-        const starterPackToken = await this.packService.generatePack(userId, 'standard_starter');
+        const starterPackToken = await this.packService.generatePack('standard_starter');
         console.log(`📦 Generated starter pack token: ${starterPackToken}`);
         
         // Auto-claim the starter pack for immediate access
         await this.packService.claimPack(userId, starterPackToken);
         console.log('✅ Starter pack claimed successfully');
+
+        // Check if this is a legendary tier user and give them premium rewards
+        const userResult = await query('SELECT subscription_tier FROM users WHERE id = ?', [userId]);
+        const subscriptionTier = userResult.rows[0]?.subscription_tier;
+        
+        if (subscriptionTier === 'legendary') {
+          console.log('👑 Legendary tier user detected - granting premium rewards');
+          
+          // Give 5 additional characters (premium starter pack)
+          try {
+            const premiumPackToken = await this.packService.generatePack('premium_starter');
+            await this.packService.claimPack(userId, premiumPackToken);
+            console.log('✨ Granted premium starter pack with 5 characters');
+          } catch (error) {
+            console.error('❌ Error granting premium starter pack:', error);
+          }
+
+          // Give bonus currency and items
+          try {
+            await query(
+              `INSERT INTO user_currency (user_id, battle_tokens, premium_currency) 
+               VALUES (?, ?, ?) 
+               ON CONFLICT(user_id) DO UPDATE SET 
+                 battle_tokens = battle_tokens + ?, 
+                 premium_currency = premium_currency + ?`,
+              [userId, 500, 100, 500, 100] // 500 battle tokens, 100 premium currency
+            );
+            console.log('💰 Granted legendary tier bonus currency');
+          } catch (error) {
+            console.error('❌ Error granting bonus currency:', error);
+          }
+        }
       }
     } catch (packError) {
       console.error('❌ Error setting up starter characters:', packError);
