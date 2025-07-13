@@ -4,7 +4,7 @@
 import { CharacterExperience } from '../../../frontend/src/data/experience';
 import { CharacterAbilities } from '../../../frontend/src/data/abilities';
 import { CharacterSkills } from '../../../frontend/src/data/characterProgression';
-import { Equipment } from '../../../frontend/src/data/equipment';
+import { Equipment, allEquipment } from '../../../frontend/src/data/equipment';
 import { Item } from '../../../frontend/src/data/items';
 
 export type CharacterArchetype = 

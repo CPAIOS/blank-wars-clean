@@ -138,20 +138,9 @@ export class TherapyChatService {
 
     this.activeSessions.set(sessionId, session);
     
-    // Generate therapist group opening question
-    const openingQuestion = await this.generateGroupTherapistQuestion(context);
-    
-    const therapistMessage: TherapyMessage = {
-      id: `msg_${Date.now()}`,
-      sessionId,
-      speakerId: context.therapistId,
-      speakerType: 'therapist',
-      message: openingQuestion,
-      timestamp: new Date(),
-      messageType: 'question'
-    };
-    
-    session.sessionHistory.push(therapistMessage);
+    // Generate therapist group opening question using the new dual API
+    // Note: generateGroupTherapistQuestion already adds the message to session history
+    await this.generateGroupTherapistQuestion(sessionId);
     console.log('🧠 Group therapy session started:', sessionId);
     
     return session;
@@ -422,6 +411,177 @@ export class TherapyChatService {
   }
 
   /**
+   * Generate group therapist question (Step 1 of dual API for group therapy)
+   */
+  async generateGroupTherapistQuestion(
+    sessionId: string
+  ): Promise<string> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session || session.type !== 'group') {
+      throw new Error(`Group session ${sessionId} not found`);
+    }
+
+    if (!this.socket?.connected) {
+      throw new Error('Socket not connected to backend. Please refresh the page and try again.');
+    }
+
+    return new Promise((resolve, reject) => {
+      const messageId = `therapy_group_therapist_${Date.now()}_${session.therapistId}`;
+      
+      // Build group therapist prompt using template service
+      const therapistPrompt = this.buildGroupTherapistPrompt(session);
+      
+      const requestData = {
+        message: 'Generate group therapy question',
+        character: session.therapistId,
+        characterData: {
+          name: this.getTherapistName(session.therapistId),
+          personality: {
+            traits: ['Professional', 'Insightful', 'Group Facilitator'],
+            speechStyle: 'Therapeutic and group-focused',
+            motivations: ['Group healing', 'Interpersonal growth', 'Conflict resolution'],
+            fears: ['Group dysfunction', 'Escalating conflicts']
+          },
+          bondLevel: 5
+        },
+        promptOverride: therapistPrompt,
+        sessionType: 'therapy_group_therapist',
+        sessionId,
+        messageId,
+        groupSize: session.participantIds.length,
+        sessionStage: session.stage
+      };
+      
+      console.log('📤 Sending group therapist question request:', {
+        sessionId,
+        therapistId: session.therapistId,
+        messageId,
+        groupSize: session.participantIds.length,
+        promptLength: therapistPrompt.length
+      });
+      
+      this.socket!.emit('chat_message', requestData);
+
+      const timeout = setTimeout(() => {
+        console.warn('⏰ Group therapist question timeout for:', messageId);
+        reject(new Error('Group therapist response timeout'));
+      }, 30000);
+
+      const responseHandler = (data: any) => {
+        if (data.messageId === messageId || data.character === session.therapistId) {
+          clearTimeout(timeout);
+          this.socket!.off('chat_response', responseHandler);
+          
+          const therapistMessage: TherapyMessage = {
+            id: messageId,
+            sessionId,
+            speakerId: session.therapistId,
+            speakerType: 'therapist',
+            message: data.message || 'Welcome to group therapy. Let\'s explore what\'s happening between you three.',
+            timestamp: new Date(),
+            messageType: 'question'
+          };
+          
+          session.sessionHistory.push(therapistMessage);
+          resolve(data.message || 'Group therapist response unavailable');
+        }
+      };
+
+      this.socket!.on('chat_response', responseHandler);
+    });
+  }
+
+  /**
+   * Generate group patient response (Step 2 of dual API for group therapy)
+   */
+  async generateGroupPatientResponse(
+    sessionId: string,
+    characterId: string,
+    therapistQuestion: string
+  ): Promise<string> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session || session.type !== 'group') {
+      throw new Error(`Group session ${sessionId} not found`);
+    }
+
+    if (!this.socket?.connected) {
+      throw new Error('Socket not connected to backend. Please refresh the page and try again.');
+    }
+
+    return new Promise(async (resolve, reject) => {
+      const messageId = `therapy_group_patient_${Date.now()}_${characterId}`;
+      
+      try {
+        // Build character-specific group therapy prompt
+        const patientPrompt = await this.buildGroupPatientPrompt(session, characterId, therapistQuestion);
+        
+        const requestData = {
+          message: therapistQuestion,
+          character: characterId,
+          characterData: null, // Let backend load character data
+          promptOverride: patientPrompt,
+          sessionType: 'therapy_group_patient',
+          sessionId,
+          messageId,
+          groupMembers: session.participantIds,
+          therapistId: session.therapistId,
+          sessionStage: session.stage
+        };
+        
+        console.log('📤 Sending group patient response request:', {
+          sessionId,
+          characterId,
+          messageId,
+          groupSize: session.participantIds.length,
+          promptLength: patientPrompt.length,
+          therapistQuestion: therapistQuestion.substring(0, 100) + '...'
+        });
+        
+        this.socket!.emit('chat_message', requestData);
+
+        const timeout = setTimeout(() => {
+          console.warn('⏰ Group patient response timeout for:', messageId);
+          reject(new Error('Group patient response timeout'));
+        }, 30000);
+
+        const responseHandler = (data: any) => {
+          if (data.messageId === messageId || data.character === characterId) {
+            clearTimeout(timeout);
+            this.socket!.off('chat_response', responseHandler);
+            
+            if (data.error) {
+              console.error('❌ Group patient response error:', data.error);
+              reject(new Error(data.error));
+            } else {
+              console.log('🎭 Group patient response generated:', data.message?.substring(0, 100) + '...');
+              
+              // Add character message to session history
+              const characterMessage: TherapyMessage = {
+                id: messageId,
+                sessionId,
+                speakerId: characterId,
+                speakerType: 'character',
+                message: data.message || 'AI response unavailable',
+                timestamp: new Date(),
+                messageType: 'response'
+              };
+              
+              session.sessionHistory.push(characterMessage);
+              resolve(data.message || 'AI response unavailable');
+            }
+          }
+        };
+
+        this.socket!.on('chat_response', responseHandler);
+        
+      } catch (error) {
+        console.error('❌ Error building group patient prompt:', error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
    * Generate therapist intervention or follow-up question
    */
   async generateTherapistIntervention(
@@ -514,17 +674,6 @@ export class TherapyChatService {
   }
 
 
-  /**
-   * Generate initial therapist question for group therapy
-   */
-  private async generateGroupTherapistQuestion(context: GroupTherapyContext): Promise<string> {
-    return TherapyPromptTemplateService.generateGroupOpeningQuestion(
-      context.therapistId,
-      context.characters,
-      context.groupDynamics,
-      context.sessionStage
-    );
-  }
 
   /**
    * Build character-specific therapy prompt
@@ -674,6 +823,93 @@ export class TherapyChatService {
     });
   }
 
+
+  /**
+   * Build group therapist prompt for dual API system
+   */
+  private buildGroupTherapistPrompt(session: TherapySession): string {
+    if (session.type !== 'group') {
+      throw new Error('buildGroupTherapistPrompt called on non-group session');
+    }
+
+    const isOpeningQuestion = session.sessionHistory.length <= 1; // Only therapist opening exists
+    
+    console.log('🎭 Group therapist prompt type:', isOpeningQuestion ? 'OPENING' : 'FOLLOW-UP', 'history length:', session.sessionHistory.length);
+    console.log('🎭 Recent session history:', session.sessionHistory.slice(-3).map(msg => `${msg.speakerType}: ${msg.message.substring(0, 50)}...`));
+    
+    if (isOpeningQuestion) {
+      // Use opening question prompt for first question
+      console.log('🎭 Using OPENING question prompt for group therapist');
+      return TherapyPromptTemplateService.generateTherapistPrompt({
+        therapistId: session.therapistId,
+        sessionType: 'group',
+        sessionStage: session.stage,
+        sessionHistory: session.sessionHistory,
+        isOpeningQuestion: true
+      });
+    } else {
+      // Use intervention prompt for follow-up questions
+      console.log('🎭 Using FOLLOW-UP intervention prompt for group therapist');
+      return TherapyPromptTemplateService.generateTherapistInterventionPrompt({
+        therapistId: session.therapistId,
+        sessionType: 'group',
+        sessionStage: session.stage,
+        sessionHistory: session.sessionHistory,
+        interventionType: 'question',
+        groupDynamics: session.groupDynamics
+      });
+    }
+  }
+
+  /**
+   * Build group patient prompt for dual API system
+   */
+  private async buildGroupPatientPrompt(session: TherapySession, characterId: string, therapistQuestion: string): Promise<string> {
+    if (session.type !== 'group') {
+      throw new Error('buildGroupPatientPrompt called on non-group session');
+    }
+
+    try {
+      console.log('🏗️ Building group patient prompt for:', characterId, 'in group session');
+      console.log('🏗️ Using therapist question:', therapistQuestion.substring(0, 100) + '...');
+      
+      // Use the existing group therapy prompt from template service
+      const groupPrompt = TherapyPromptTemplateService.generateGroupTherapyPrompt({
+        characterId,
+        therapistId: session.therapistId,
+        participantIds: session.participantIds,
+        groupDynamics: session.groupDynamics || [],
+        sessionStage: session.stage,
+        sessionHistory: session.sessionHistory,
+        trigger: `Therapist just asked the group: "${therapistQuestion}"`
+      });
+      
+      console.log('🏗️ Trigger in prompt:', `Therapist just asked the group: "${therapistQuestion.substring(0, 50)}..."`)
+      
+      console.log('✅ Group patient prompt generated successfully, length:', groupPrompt.length);
+      return groupPrompt;
+      
+    } catch (error) {
+      console.error('❌ Error building group patient prompt:', error);
+      // Fallback prompt if template service fails
+      return `
+You are ${characterId} in group therapy with ${session.participantIds.filter(id => id !== characterId).join(', ')}.
+
+The therapist just asked the group: "${therapistQuestion}"
+
+CRITICAL INSTRUCTIONS:
+1. You are a PATIENT in group therapy, not the therapist
+2. Respond to what the therapist just asked the GROUP
+3. Express YOUR personal feelings about the group dynamics and conflicts
+4. Do NOT ask questions or give advice to others
+5. React authentically to the other group members and therapist
+6. Keep your response 1-2 sentences, personal and character-authentic
+7. This is YOUR therapy session - be vulnerable, defensive, or reactive as fits your character
+
+RESPOND AS ${characterId} THE GROUP THERAPY PATIENT: Answer the therapist's question personally and authentically.
+      `.trim();
+    }
+  }
 
   /**
    * Build therapist prompt for dual API system

@@ -150,7 +150,7 @@ export class PhysicalBattleEngine {
   
   static calculateWeaponDamage(attacker: BattleCharacter, action: ExecutedAction): number {
     // Get equipped weapon stats from equipment system
-    const weapon = attacker?.character?.equipment?.weapon;
+    const weapon = attacker?.character?.equippedItems?.weapon;
     if (!weapon || !weapon.stats || !weapon.stats.atk) return 0;
     
     // BOUNDS CHECK: Cap weapon attack value
@@ -175,7 +175,7 @@ export class PhysicalBattleEngine {
     const baseDefense = Math.max(0, Math.min(999, target?.character?.combatStats?.defense || 0));
     
     // Get equipped armor stats
-    const armor = target?.character?.equipment?.armor;
+    const armor = target?.character?.equippedItems?.armor;
     // BOUNDS CHECK: Cap armor defense value
     const armorDefense = Math.max(0, Math.min(999, armor?.stats?.def || 0));
     

@@ -359,43 +359,96 @@ const TherapyModule = () => {
       console.log('📌 SESSION STARTED - Setting up auto-play');
       console.log('📌 Session history length:', session.sessionHistory.length);
       
-      // Immediately trigger first patient response since we have the session object
-      if (session.sessionHistory.length > 0 && selectedCharacter) {
-        console.log('🚀 IMMEDIATE AUTO-START: Triggering first patient response');
-        // Use the session object directly and call the service
-        setTimeout(() => {
-          setExchangesInRound(1);
-          setIsGeneratingResponse(true);
-          
-          // Get the last therapist message
-          const lastTherapistMessage = session.sessionHistory
-            .slice()
-            .reverse()
-            .find(msg => msg.speakerType === 'therapist');
-          
-          const therapistQuestion = lastTherapistMessage?.message || 'What brings you to therapy today?';
-          
-          console.log('🚀 Calling therapyChatService.generatePatientResponse directly');
-          therapyChatService.generatePatientResponse(
-            session.id,
-            selectedCharacter.id,
-            therapistQuestion
-          ).then((response) => {
-            console.log('🚀 First patient response generated:', response);
-            setExchangesInRound(0);
-            setIsGeneratingResponse(false);
+      // Auto-start logic based on therapy type
+      if (session.sessionHistory.length > 0) {
+        if (therapyType === 'individual' && selectedCharacter) {
+          console.log('🚀 IMMEDIATE AUTO-START: Triggering first individual patient response');
+          // Individual therapy auto-start
+          setTimeout(() => {
+            setExchangesInRound(1);
+            setIsGeneratingResponse(true);
             
-            // Continue automatically to next therapist question
-            console.log('🚀 Continuing to next therapist question...');
-            setTimeout(() => {
-              setExchangesInRound(0); // Ensure therapist turn
-              autoAdvanceTherapy();
-            }, 2000);
-          }).catch(error => {
-            console.error('❌ Direct patient response failed:', error);
-            setIsGeneratingResponse(false);
-          });
-        }, 2000);
+            // Get the last therapist message
+            const lastTherapistMessage = session.sessionHistory
+              .slice()
+              .reverse()
+              .find(msg => msg.speakerType === 'therapist');
+            
+            const therapistQuestion = lastTherapistMessage?.message || 'What brings you to therapy today?';
+            
+            console.log('🚀 Calling therapyChatService.generatePatientResponse directly');
+            therapyChatService.generatePatientResponse(
+              session.id,
+              selectedCharacter.id,
+              therapistQuestion
+            ).then((response) => {
+              console.log('🚀 First individual patient response generated:', response);
+              setExchangesInRound(0);
+              setIsGeneratingResponse(false);
+              
+              // Continue automatically to next therapist question
+              console.log('🚀 Continuing to next therapist question...');
+              setTimeout(() => {
+                setExchangesInRound(0); // Ensure therapist turn
+                autoAdvanceTherapy();
+              }, 2000);
+            }).catch(error => {
+              console.error('❌ Direct patient response failed:', error);
+              setIsGeneratingResponse(false);
+            });
+          }, 2000);
+        } else if (therapyType === 'group' && selectedGroupMembers.length === 3) {
+          console.log('🚀 IMMEDIATE AUTO-START: Triggering first group patient responses');
+          // Group therapy auto-start - session already has therapist opening, just get patient responses
+          setTimeout(async () => {
+            setExchangesInRound(1);
+            setIsGeneratingResponse(true);
+            
+            // Get the FIRST (original) therapist message, not the duplicate
+            const firstTherapistMessage = session.sessionHistory.find(msg => msg.speakerType === 'therapist');
+            const therapistQuestion = firstTherapistMessage?.message || 'Welcome to group therapy. Let\'s explore what\'s happening between you three.';
+            
+            console.log('🚀 Starting group patient responses to ORIGINAL opening question');
+            console.log('🚀 Using therapist question:', therapistQuestion.substring(0, 100) + '...');
+            
+            try {
+              // Get all three characters to respond in sequence to the ORIGINAL opening question
+              for (let i = 0; i < selectedGroupMembers.length; i++) {
+                const character = selectedGroupMembers[i];
+                console.log(`🎬 GROUP: Patient ${i + 1}/3 responding (${character.name})`);
+                
+                try {
+                  await therapyChatService.generateGroupPatientResponse(
+                    session.id,
+                    character.id,
+                    therapistQuestion
+                  );
+                  
+                  console.log(`🎬 GROUP: Patient ${i + 1}/3 response generated (${character.name})`);
+                  
+                  // Small delay between responses for readability
+                  if (i < selectedGroupMembers.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                  }
+                } catch (error) {
+                  console.error(`❌ GROUP: Patient ${i + 1} failed (${character.name}):`, error);
+                  // Continue with other patients even if one fails
+                }
+              }
+              
+              // All patients have responded, now pause for user to continue
+              console.log('🚀 All group patients responded, pausing for user');
+              setExchangesInRound(0);
+              setRoundCount(prev => prev + 1);
+              setIsPaused(true);
+              setIsGeneratingResponse(false);
+              
+            } catch (error) {
+              console.error('❌ GROUP AUTO-START ERROR:', error);
+              setIsGeneratingResponse(false);
+            }
+          }, 2000);
+        }
       }
       
       // Reset round counters
@@ -417,6 +470,63 @@ const TherapyModule = () => {
       setIsSessionActive(false);
     } finally {
       setIsGeneratingResponse(false);
+    }
+  };
+
+  // Auto-advance group therapy session with dual API
+  const autoAdvanceGroupTherapy = async (therapistQuestion: string) => {
+    console.log('🎬 Auto-advance GROUP therapy called:', { 
+      hasSession: !!activeSession, 
+      isPaused, 
+      isGeneratingResponse, 
+      exchangesInRound,
+      groupSize: selectedGroupMembers.length
+    });
+    
+    if (!activeSession || activeSession.type !== 'group' || isPaused || isGeneratingResponse) {
+      console.log('🚫 GROUP AUTO-ADVANCE BLOCKED');
+      return;
+    }
+
+    try {
+      setIsGeneratingResponse(true);
+      
+      // Get all three characters to respond in sequence
+      for (let i = 0; i < selectedGroupMembers.length; i++) {
+        const character = selectedGroupMembers[i];
+        console.log(`🎬 GROUP: Patient ${i + 1}/3 responding (${character.name})`);
+        
+        try {
+          await therapyChatService.generateGroupPatientResponse(
+            activeSession.id,
+            character.id,
+            therapistQuestion
+          );
+          
+          console.log(`🎬 GROUP: Patient ${i + 1}/3 response generated (${character.name})`);
+          
+          // Small delay between responses for readability
+          if (i < selectedGroupMembers.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
+        } catch (error) {
+          console.error(`❌ GROUP: Patient ${i + 1} failed (${character.name}):`, error);
+          // Continue with other patients even if one fails
+        }
+      }
+      
+      // All patients have responded, now pause for user to continue
+      setExchangesInRound(0);
+      setRoundCount(prev => prev + 1);
+      setIsPaused(true);
+      setIsGeneratingResponse(false);
+      
+      console.log('🎬 GROUP ROUND COMPLETE: All 3 patients responded, paused for user');
+      
+    } catch (error) {
+      console.error('❌ GROUP AUTO-ADVANCE ERROR:', error);
+      setIsGeneratingResponse(false);
+      setIsPaused(true);
     }
   };
 
@@ -534,29 +644,27 @@ const TherapyModule = () => {
             setIsPaused(true); // Stop the loop if patient fails
           }
         }
-      } else if (activeSession.type === 'group') {
-        // Group therapy: therapist → char1 → char2 → char3 (1 round = 4 exchanges)
+      } else if (activeSession.type === 'group' && selectedGroupMembers.length === 3) {
+        // Group therapy with dual API: therapist question → all 3 patients respond → pause
         if (exchangesInRound === 0) {
-          // Therapist intervention
-          await handleTherapistIntervention('question');
-          setExchangesInRound(1);
-          setTimeout(() => autoAdvanceTherapy(), 2000);
-        } else if (exchangesInRound <= 3 && selectedGroupMembers[exchangesInRound - 1]) {
-          // Characters respond in order
-          const character = selectedGroupMembers[exchangesInRound - 1];
-          await handleCharacterResponse(character.id);
-          setExchangesInRound(prev => prev + 1);
-          
-          if (exchangesInRound === 3) {
-            // Complete round, pause for user
-            setRoundCount(prev => prev + 1);
-            setExchangesInRound(0);
+          // Therapist asks question using dual API
+          console.log('🎬 GROUP THERAPIST TURN: generating question');
+          try {
+            const therapistQuestion = await therapyChatService.generateGroupTherapistQuestion(activeSession.id);
+            console.log('🎬 GROUP THERAPIST DONE: question generated');
+            
+            // Now get all patients to respond to this question
+            setExchangesInRound(1);
+            setTimeout(() => {
+              console.log('🎬 GROUP: Starting patient responses to:', therapistQuestion.substring(0, 100) + '...');
+              autoAdvanceGroupTherapy(therapistQuestion);
+            }, 2000);
+          } catch (error) {
+            console.error('❌ GROUP THERAPIST FAILED:', error);
             setIsPaused(true);
-          } else {
-            // Continue to next character
-            setTimeout(() => autoAdvanceTherapy(), 2000);
           }
         }
+        // Note: Patient responses are handled by autoAdvanceGroupTherapy
       }
     } catch (error) {
       console.error('Error in auto-advance therapy:', error);
@@ -631,13 +739,17 @@ const TherapyModule = () => {
         // Use new dual API system for individual therapy
         response = await therapyChatService.generateTherapistQuestion(activeSession.id);
         console.log('🧠 Therapist question generated (dual API):', response);
+      } else if (activeSession.type === 'group') {
+        // Use new dual API system for group therapy
+        response = await therapyChatService.generateGroupTherapistQuestion(activeSession.id);
+        console.log('🧠 Group therapist question generated (dual API):', response);
       } else {
-        // Use old method for group therapy (will implement dual API for group later)
+        // Fallback to old method
         response = await therapyChatService.generateTherapistIntervention(
           activeSession.id,
           interventionType
         );
-        console.log('🧠 Therapist intervention generated (old API):', response);
+        console.log('🧠 Therapist intervention generated (fallback API):', response);
       }
       // The response will be automatically added to sessionMessages via subscription
       
@@ -1093,10 +1205,61 @@ Remember: This is group therapy for entertainment value. Drama, conflict, and ch
           {/* Continue/Pause Controls */}
           <div className="flex justify-center gap-3 mt-4 mb-4">
             <button
-              onClick={() => {
+              onClick={async () => {
                 console.log('🔧 Continue button clicked');
                 setIsPaused(false);
-                autoAdvanceTherapy();
+                
+                // Handle group therapy directly to avoid closure issues
+                if (activeSession?.type === 'group' && selectedGroupMembers.length === 3) {
+                  console.log('🔧 Continue: Group therapy direct handling');
+                  setIsGeneratingResponse(true);
+                  
+                  try {
+                    // Step 1: Generate therapist question
+                    console.log('🔧 Continue: Generating group therapist question');
+                    const therapistQuestion = await therapyChatService.generateGroupTherapistQuestion(activeSession.id);
+                    console.log('🔧 Continue: Therapist question generated:', therapistQuestion.substring(0, 100) + '...');
+                    
+                    // Small delay to let the therapist question settle
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Step 2: Get all patients to respond to the NEW question
+                    for (let i = 0; i < selectedGroupMembers.length; i++) {
+                      const character = selectedGroupMembers[i];
+                      console.log(`🔧 Continue: Patient ${i + 1}/3 responding to NEW question (${character.name})`);
+                      
+                      try {
+                        await therapyChatService.generateGroupPatientResponse(
+                          activeSession.id,
+                          character.id,
+                          therapistQuestion
+                        );
+                        console.log(`🔧 Continue: Patient ${i + 1}/3 response generated (${character.name})`);
+                        
+                        // Small delay between responses
+                        if (i < selectedGroupMembers.length - 1) {
+                          await new Promise(resolve => setTimeout(resolve, 1500));
+                        }
+                      } catch (error) {
+                        console.error(`❌ Continue: Patient ${i + 1} failed (${character.name}):`, error);
+                      }
+                    }
+                    
+                    // Step 3: Pause for next continue
+                    setRoundCount(prev => prev + 1);
+                    setIsPaused(true);
+                    console.log('🔧 Continue: Group round complete, paused for user');
+                    
+                  } catch (error) {
+                    console.error('❌ Continue: Group therapy error:', error);
+                    setIsPaused(true);
+                  } finally {
+                    setIsGeneratingResponse(false);
+                  }
+                } else {
+                  // Individual therapy or fallback
+                  autoAdvanceTherapy();
+                }
               }}
               disabled={isGeneratingResponse}
               className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
