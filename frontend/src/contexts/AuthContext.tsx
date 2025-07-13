@@ -136,8 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const response = await authService.register(credentials);
       
       setUser(response.user);
-      // Don't automatically trigger new user flow - let user decide when to open packs
-      setIsNewUser(false);
+      setIsNewUser(true); // Mark as new user for onboarding
       // SECURITY: Tokens are now in httpOnly cookies, don't store in state
       setTokens(null);
       
