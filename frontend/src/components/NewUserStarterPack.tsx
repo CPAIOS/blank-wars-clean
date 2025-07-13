@@ -19,6 +19,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
   const [starterCharacters, setStarterCharacters] = useState<TeamCharacter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authErrorDetected, setAuthErrorDetected] = useState(false);
   const { clearNewUserFlag, user } = useAuth();
 
   // Don't show if user is not authenticated
@@ -30,6 +31,12 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
   }
 
   const fetchStarterCharacters = async (retryCount = 0) => {
+    // Don't retry if authentication error was already detected
+    if (authErrorDetected) {
+      console.log('🚫 NewUserStarterPack: Auth error already detected, stopping');
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     try {
@@ -88,8 +95,10 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
     } catch (err: any) {
       console.error('Error fetching starter characters:', err);
       
-      // Don't retry if it's an authentication error (401/403)
-      if (err.response?.status === 401 || err.response?.status === 403) {
+      // Don't retry if it's an authentication error (401/403) or marked as auth error
+      if (err.response?.status === 401 || err.response?.status === 403 || err.isAuthenticationError || err.status === 401) {
+        console.log('🚫 NewUserStarterPack: Authentication error detected, stopping retries');
+        setAuthErrorDetected(true);
         setError('Please log in to access your characters.');
         setIsLoading(false);
         return;
@@ -104,11 +113,11 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
         return; // Don't setIsLoading(false) yet
       } else {
         setError('Failed to load your starter characters. Your pack is being prepared - please try refreshing the page in a moment.');
-      }
-    } finally {
-      if (retryCount >= 10) {
         setIsLoading(false);
       }
+    } finally {
+      // setIsLoading(false) is handled in individual error cases
+      // to ensure proper state management based on retry logic
     }
   };
 
