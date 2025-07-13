@@ -260,42 +260,131 @@ export const initializeDatabase = async (): Promise<void> => {
   }
 };
 
-// Import character data from frontend
-import { characterTemplates } from '../../frontend/src/data/characters';
-
-// Seed initial character data for PostgreSQL using frontend data
+// Use existing character data from SQLite seeding
 const seedCharacters = async (): Promise<void> => {
-  // Convert frontend character templates to database format
-  const characters = Object.entries(characterTemplates).map(([templateId, template]) => ({
-    id: templateId,
-    name: template.name,
-    title: template.title || '',
-    archetype: template.archetype,
-    origin_era: template.historicalPeriod || '',
-    rarity: template.rarity,
-    base_health: template.combatStats.maxHealth,
-    base_attack: template.combatStats.attack,
-    base_defense: template.combatStats.defense,
-    base_speed: template.combatStats.speed,
-    base_special: Math.round((template.combatStats.magicAttack + template.combatStats.magicDefense) / 2),
-    personality_traits: JSON.stringify(template.personality.traits),
-    conversation_style: template.personality.speechStyle,
-    backstory: template.description,
-    conversation_topics: JSON.stringify(template.personality.motivations),
-    avatar_emoji: template.avatar,
-    abilities: JSON.stringify({
-      baseStats: template.baseStats,
-      combatStats: template.combatStats,
-      battleAI: {
-        aggression: template.combatAI?.aggression || 50,
-        defensiveness: template.combatAI?.defensiveness || 50,
-        riskTaking: template.combatAI?.riskTaking || 50,
-        adaptability: template.combatAI?.adaptability || 50,
-        preferredStrategies: template.combatAI?.preferredStrategies || []
-      },
-      battleQuotes: template.customization?.battleQuotes || []
-    })
-  }));
+  // Character data from existing backend seeding
+  const characters = [
+    {
+      id: 'achilles',
+      name: 'Achilles',
+      title: 'Hero of Troy',
+      archetype: 'warrior',
+      origin_era: 'Ancient Greece (1200 BCE)',
+      rarity: 'legendary',
+      base_health: 1200,
+      base_attack: 185,
+      base_defense: 120,
+      base_speed: 140,
+      base_special: 90,
+      personality_traits: JSON.stringify(['Honorable', 'Wrathful', 'Courageous', 'Prideful']),
+      conversation_style: 'Noble and passionate',
+      backstory: 'The greatest warrior of the Trojan War, nearly invincible in combat but driven by rage and honor.',
+      conversation_topics: JSON.stringify(['Glory', 'Honor', 'Revenge', 'Troy', 'Combat']),
+      avatar_emoji: '⚔️',
+      abilities: JSON.stringify({
+        baseStats: { strength: 95, agility: 85, intelligence: 60, vitality: 90, wisdom: 45, charisma: 80 },
+        combatStats: { maxHealth: 1200, maxMana: 300, magicAttack: 50, magicDefense: 80, criticalChance: 25, criticalDamage: 200, accuracy: 90, evasion: 20 },
+        battleAI: { aggression: 90, defensiveness: 30, riskTaking: 80, adaptability: 60, preferredStrategies: ['frontal_assault', 'berserker_rush', 'honor_duel'] },
+        battleQuotes: ['For glory and honor!', 'Face me if you dare!', 'The gods smile upon me!', 'None can stand against my might!']
+      })
+    },
+    {
+      id: 'merlin',
+      name: 'Merlin',
+      title: 'Archmage of Camelot',
+      archetype: 'mage',
+      origin_era: 'Medieval Britain (5th-6th century)',
+      rarity: 'mythic',
+      base_health: 800,
+      base_attack: 60,
+      base_defense: 80,
+      base_speed: 90,
+      base_special: 100,
+      personality_traits: JSON.stringify(['Wise', 'Mysterious', 'Patient', 'Calculating']),
+      conversation_style: 'Archaic and profound',
+      backstory: 'The legendary wizard advisor to King Arthur, master of ancient magic and prophecy.',
+      conversation_topics: JSON.stringify(['Knowledge', 'Balance', 'Protecting the realm', 'Magic', 'Time']),
+      avatar_emoji: '🔮',
+      abilities: JSON.stringify({
+        baseStats: { strength: 30, agility: 50, intelligence: 98, vitality: 70, wisdom: 95, charisma: 85 },
+        combatStats: { maxHealth: 800, maxMana: 2000, magicAttack: 200, magicDefense: 180, criticalChance: 15, criticalDamage: 300, accuracy: 95, evasion: 25 },
+        battleAI: { aggression: 40, defensiveness: 80, riskTaking: 30, adaptability: 95, preferredStrategies: ['spell_weaving', 'defensive_barriers', 'elemental_control'] },
+        battleQuotes: ['The ancient words have power...', 'Magic flows through all things', 'By the old ways, I command thee!', 'Witness the might of ages past']
+      })
+    },
+    {
+      id: 'fenrir',
+      name: 'Fenrir',
+      title: 'The Great Wolf',
+      archetype: 'beast',
+      origin_era: 'Norse Age (8th-11th century)',
+      rarity: 'legendary',
+      base_health: 1400,
+      base_attack: 170,
+      base_defense: 100,
+      base_speed: 180,
+      base_special: 95,
+      personality_traits: JSON.stringify(['Savage', 'Loyal', 'Vengeful', 'Primal']),
+      conversation_style: 'Growling and direct',
+      backstory: 'The monstrous wolf of Norse mythology, prophesied to devour Odin during Ragnarök.',
+      conversation_topics: JSON.stringify(['Freedom', 'Vengeance', 'Pack loyalty', 'The hunt']),
+      avatar_emoji: '🐺',
+      abilities: JSON.stringify({
+        baseStats: { strength: 90, agility: 95, intelligence: 40, vitality: 95, wisdom: 30, charisma: 50 },
+        combatStats: { maxHealth: 1400, maxMana: 200, magicAttack: 30, magicDefense: 60, criticalChance: 30, criticalDamage: 220, accuracy: 88, evasion: 30 },
+        battleAI: { aggression: 95, defensiveness: 20, riskTaking: 85, adaptability: 40, preferredStrategies: ['savage_rush', 'pack_tactics', 'intimidation'] },
+        battleQuotes: ['*Fierce growling*', 'The hunt begins!', '*Howls menacingly*', 'You smell of fear...']
+      })
+    },
+    {
+      id: 'cleopatra',
+      name: 'Cleopatra VII',
+      title: 'Last Pharaoh of Egypt',
+      archetype: 'mystic',
+      origin_era: 'Ptolemaic Egypt (69-30 BCE)',
+      rarity: 'epic',
+      base_health: 900,
+      base_attack: 80,
+      base_defense: 95,
+      base_speed: 110,
+      base_special: 95,
+      personality_traits: JSON.stringify(['Brilliant', 'Charismatic', 'Ambitious', 'Diplomatic']),
+      conversation_style: 'Regal and commanding',
+      backstory: 'The brilliant and charismatic final pharaoh of Ancient Egypt, master of politics and ancient mysteries.',
+      conversation_topics: JSON.stringify(['Power', 'Legacy', 'Egyptian restoration', 'Politics']),
+      avatar_emoji: '👑',
+      abilities: JSON.stringify({
+        baseStats: { strength: 45, agility: 65, intelligence: 90, vitality: 70, wisdom: 85, charisma: 98 },
+        combatStats: { maxHealth: 900, maxMana: 1600, magicAttack: 150, magicDefense: 160, criticalChance: 20, criticalDamage: 150, accuracy: 80, evasion: 35 },
+        battleAI: { aggression: 50, defensiveness: 70, riskTaking: 60, adaptability: 85, preferredStrategies: ['strategic_planning', 'diplomatic_solutions', 'resource_manipulation'] },
+        battleQuotes: ['I am the daughter of Ra!', 'Egypt\'s glory shall not fade', 'Bow before the true pharaoh', 'The gods favor the worthy']
+      })
+    },
+    {
+      id: 'holmes',
+      name: 'Sherlock Holmes',
+      title: 'The Great Detective',
+      archetype: 'scholar',
+      origin_era: 'Victorian England (1880s-1920s)',
+      rarity: 'rare',
+      base_health: 700,
+      base_attack: 85,
+      base_defense: 70,
+      base_speed: 120,
+      base_special: 100,
+      personality_traits: JSON.stringify(['Analytical', 'Observant', 'Eccentric', 'Brilliant']),
+      conversation_style: 'Precise and deductive',
+      backstory: 'The world\'s greatest consulting detective, master of observation and logical deduction.',
+      conversation_topics: JSON.stringify(['Truth', 'Justice', 'Intellectual challenge', 'Crime', 'Logic']),
+      avatar_emoji: '🕵️',
+      abilities: JSON.stringify({
+        baseStats: { strength: 60, agility: 80, intelligence: 98, vitality: 55, wisdom: 90, charisma: 70 },
+        combatStats: { maxHealth: 700, maxMana: 1400, magicAttack: 120, magicDefense: 100, criticalChance: 35, criticalDamage: 250, accuracy: 95, evasion: 40 },
+        battleAI: { aggression: 30, defensiveness: 60, riskTaking: 40, adaptability: 95, preferredStrategies: ['analytical_combat', 'precision_strikes', 'enemy_prediction'] },
+        battleQuotes: ['Elementary, my dear Watson', 'The game is afoot!', 'I observe everything', 'Logic is my weapon']
+      })
+    }
+  ];
 
   try {
     for (const char of characters) {
