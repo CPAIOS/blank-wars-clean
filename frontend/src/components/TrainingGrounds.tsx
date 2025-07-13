@@ -536,7 +536,6 @@ export default function TrainingGrounds({
           requirements: { level: 1 }
         });
       });
->>>>>>> origin/gabes-unmerged-changes
     }
 
     // Intermediate (11-25)
