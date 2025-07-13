@@ -1272,7 +1272,7 @@ export default function MainTabSystem() {
                 )}
               </button>
               
-              <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
+              <div className="flex-1 min-w-0 overflow-x-auto">
                 <div className="flex gap-2">
                   {mainTabs.map((tab) => {
                     const Icon = tab.icon;
