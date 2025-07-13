@@ -124,38 +124,16 @@ export class AuthService {
     console.log('✅ Tokens generated successfully');
 
     // --- CHARACTER ASSIGNMENT LOGIC ---
-    console.log('🎁 Setting up starter characters for new user...');
-    try {
-      if (claimToken) {
-        // User has a claim token (gifted pack)
-        console.log(`🎫 Claiming pack with token: ${claimToken}`);
-        await Promise.race([
-          this.packService.claimPack(userId, claimToken),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Pack claim timeout')), 10000))
-        ]);
-      } else {
-        // New user gets a free starter pack with 3 characters
-        console.log('🆓 Generating free starter pack...');
-        const starterPackToken = await Promise.race([
-          this.packService.generatePack('standard_starter'),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Pack generation timeout')), 10000))
-        ]) as string;
-        console.log(`📦 Generated starter pack token: ${starterPackToken}`);
-        
-        // Auto-claim the starter pack for immediate access
-        await Promise.race([
-          this.packService.claimPack(userId, starterPackToken),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Pack claim timeout')), 10000))
-        ]);
-        console.log('✅ Starter pack claimed successfully');
-
-        // Premium rewards temporarily disabled for stability
-        console.log('⚠️ Premium rewards temporarily disabled for debugging');
+    // Pack assignment moved to post-registration for faster response times
+    console.log('📝 Registration completed - pack assignment will be handled after login');
+    // Store claim token in user record if provided for later processing
+    if (claimToken) {
+      console.log('🎫 Storing claim token for post-login processing');
+      try {
+        await query('UPDATE users SET claim_token = ? WHERE id = ?', [claimToken, userId]);
+      } catch (error) {
+        console.log('⚠️ Could not store claim_token (column may not exist), will use standard starter pack');
       }
-    } catch (packError) {
-      console.error('❌ Error setting up starter characters:', packError);
-      // Don't fail registration if pack assignment fails
-      console.log('⚠️ Continuing registration without starter pack');
     }
     // --- END CHARACTER ASSIGNMENT LOGIC ---
 
@@ -199,6 +177,11 @@ export class AuthService {
     delete user.password_hash;
 
     const tokens = this.generateTokens(user.id);
+
+    // Check if user needs starter pack assignment (done asynchronously to not block login)
+    this.checkAndAssignStarterPack(user.id).catch(error => {
+      console.error('❌ Error in post-login pack assignment:', error);
+    });
 
     // Cache user session
     // await cache.set(`user:${user.id}`, JSON.stringify(user), 900); // 15 minutes
@@ -254,6 +237,62 @@ export class AuthService {
     // await cache.set(`user:${userId}`, JSON.stringify(user), 900);
     
     return user;
+  }
+
+  // Check and assign starter pack if user doesn't have characters
+  private async checkAndAssignStarterPack(userId: string): Promise<void> {
+    try {
+      console.log('🔍 Checking if user needs starter pack:', userId);
+      
+      // Check if user already has characters
+      const existingCharacters = await query(
+        'SELECT COUNT(*) as count FROM user_characters WHERE user_id = ?',
+        [userId]
+      );
+      
+      if (existingCharacters.rows[0].count > 0) {
+        console.log('✅ User already has characters, no pack needed');
+        return;
+      }
+      
+      // Check if user has a claim token (handle missing column gracefully)
+      let claimToken = null;
+      try {
+        const userResult = await query(
+          'SELECT claim_token FROM users WHERE id = ?',
+          [userId]
+        );
+        claimToken = userResult.rows[0]?.claim_token;
+      } catch (error) {
+        // claim_token column might not exist yet, skip claim token logic
+        console.log('⚠️ claim_token column not found, proceeding with standard starter pack');
+      }
+      
+      if (claimToken) {
+        // User has a claim token (gifted pack)
+        console.log(`🎫 Processing claim token: ${claimToken}`);
+        await this.packService.claimPack(userId, claimToken);
+        // Clear the claim token (handle missing column gracefully)
+        try {
+          await query('UPDATE users SET claim_token = NULL WHERE id = ?', [userId]);
+        } catch (error) {
+          console.log('⚠️ Could not clear claim_token (column may not exist)');
+        }
+        console.log('✅ Claim token processed successfully');
+      } else {
+        // New user gets a free starter pack
+        console.log('🆓 Generating starter pack for new user');
+        const starterPackToken = await this.packService.generatePack('standard_starter');
+        console.log(`📦 Generated starter pack token: ${starterPackToken}`);
+        
+        // Auto-claim the starter pack
+        await this.packService.claimPack(userId, starterPackToken);
+        console.log('✅ Starter pack assigned successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error in checkAndAssignStarterPack:', error);
+      // Don't throw - this is a background operation
+    }
   }
 
   // Logout (invalidate tokens)
