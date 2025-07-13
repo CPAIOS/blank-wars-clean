@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { UserService } from '../services/userService';
 import { authenticateToken } from '../services/auth';
 import { dbAdapter } from '../services/databaseAdapter';
+import { query } from '../database';
 
 const router = Router();
 const userService = new UserService();
@@ -119,59 +120,76 @@ router.get('/test', async (req: any, res) => {
   res.json({ success: true, message: 'Test endpoint working' });
 });
 
-// Get user's characters (PUBLIC DEMO ENDPOINT - NO AUTH REQUIRED)
-router.get('/characters', async (req: any, res) => {
+// Get user's characters (AUTHENTICATED ENDPOINT)
+router.get('/characters', authenticateToken, async (req: any, res) => {
   try {
-    console.log('🎭 [/characters] PUBLIC DEMO ENDPOINT - Always returning demo characters');
-    console.log('🔍 [/characters] Headers present:', Object.keys(req.headers).length);
+    const userId = req.user.id;
+    console.log('👤 [/characters] Getting characters for authenticated user:', userId);
     
-    // ALWAYS return demo characters (bypassing all authentication for demo purposes)
-    console.log('🎭 [/characters] Generating demo characters from database');
-    const basicCharacters = await dbAdapter.characters.findAll();
-    const demoUserCharacters = basicCharacters.map(char => ({
-        id: `demo-${char.id}`,
-        user_id: 'demo-user',
-        character_id: char.id,
-        serial_number: null,
-        nickname: null,
-        level: 1,
-        experience: 0,
-        bond_level: 0,
-        total_battles: 0,
-        total_wins: 0,
-        current_health: char.base_health,
-        max_health: char.base_health,
-        is_injured: false,
-        recovery_time: null,
-        equipment: [],
-        enhancements: [],
-        conversation_memory: [],
-        significant_memories: [],
-        personality_drift: {},
-        acquired_at: new Date(),
-        last_battle_at: null,
-        // Include character data (excluding id to avoid conflict)
-        name: char.name,
-        title: char.title,
-        avatar_emoji: char.avatar_emoji,
-        archetype: char.archetype,
-        rarity: char.rarity,
-        origin_era: char.origin_era,
-        personality_traits: char.personality_traits,
-        conversation_topics: char.conversation_topics,
-        conversation_style: char.conversation_style,
-        backstory: char.backstory,
-        base_health: char.base_health,
-        base_attack: char.base_attack,
-        base_defense: char.base_defense,
-        base_speed: char.base_speed
-      }));
+    // Get user's actual owned characters from user_characters table
+    console.log('🔍 [/characters] Querying user_characters table for user:', userId);
+    const userCharacters = await query(
+      `SELECT uc.*, c.* FROM user_characters uc 
+       JOIN characters c ON uc.character_id = c.id 
+       WHERE uc.user_id = ?`,
+      [userId]
+    );
+    if (userCharacters.rows.length === 0) {
+      console.log('⚠️ [/characters] No characters found for user:', userId);
+      return res.json({
+        success: true,
+        characters: [],
+        message: 'No characters found. Complete registration to get your starter pack!'
+      });
+    }
+    
+    // Transform database rows to proper character format
+    const characters = userCharacters.rows.map(row => ({
+      // User character data
+      id: row.id, // user_characters.id
+      user_id: row.user_id,
+      character_id: row.character_id,
+      serial_number: row.serial_number,
+      nickname: row.nickname,
+      level: row.level || 1,
+      experience: row.experience || 0,
+      bond_level: row.bond_level || 0,
+      total_battles: row.total_battles || 0,
+      total_wins: row.total_wins || 0,
+      current_health: row.current_health || row.base_health,
+      max_health: row.max_health || row.base_health,
+      is_injured: row.is_injured || false,
+      recovery_time: row.recovery_time,
+      equipment: row.equipment ? JSON.parse(row.equipment) : [],
+      enhancements: row.enhancements ? JSON.parse(row.enhancements) : [],
+      conversation_memory: row.conversation_memory ? JSON.parse(row.conversation_memory) : [],
+      significant_memories: row.significant_memories ? JSON.parse(row.significant_memories) : [],
+      personality_drift: row.personality_drift ? JSON.parse(row.personality_drift) : {},
+      acquired_at: row.acquired_at,
+      last_battle_at: row.last_battle_at,
       
-    console.log('✅ [/characters] Generated', demoUserCharacters.length, 'demo characters');
+      // Character template data
+      name: row.name,
+      title: row.title,
+      avatar_emoji: row.avatar_emoji,
+      archetype: row.archetype,
+      rarity: row.rarity,
+      origin_era: row.origin_era,
+      personality_traits: row.personality_traits ? JSON.parse(row.personality_traits) : [],
+      conversation_topics: row.conversation_topics ? JSON.parse(row.conversation_topics) : [],
+      conversation_style: row.conversation_style,
+      backstory: row.backstory,
+      base_health: row.base_health,
+      base_attack: row.base_attack,
+      base_defense: row.base_defense,
+      base_speed: row.base_speed
+    }));
+      
+    console.log('✅ [/characters] Found', characters.length, 'characters for user:', userId);
     
     return res.json({
       success: true,
-      characters: demoUserCharacters
+      characters: characters
     });
   } catch (error: any) {
     console.error('❌ Error getting user characters:', error);
