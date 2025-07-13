@@ -399,4 +399,59 @@ router.put('/characters/:characterId/bond', authenticateToken, async (req: any, 
   }
 });
 
+// Assign starter pack to new user (separate from registration)
+router.post('/assign-starter-pack', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    console.log('🎁 Assigning starter pack for user:', userId);
+
+    // Check if user already has characters
+    const existingCharacters = await query(
+      'SELECT COUNT(*) as count FROM user_characters WHERE user_id = ?',
+      [userId]
+    );
+
+    if (existingCharacters.rows[0].count > 0) {
+      return res.json({
+        success: true,
+        message: 'User already has characters',
+        characters: existingCharacters.rows[0].count
+      });
+    }
+
+    // Import PackService here to avoid circular dependencies
+    const { PackService } = require('../services/packService');
+    const packService = new PackService();
+
+    // Generate and claim starter pack
+    console.log('🆓 Generating starter pack...');
+    const starterPackToken = await packService.generatePack('standard_starter');
+    console.log(`📦 Generated starter pack token: ${starterPackToken}`);
+    
+    await packService.claimPack(userId, starterPackToken);
+    console.log('✅ Starter pack assigned successfully');
+
+    // Get the assigned characters to return
+    const userCharacters = await query(
+      `SELECT uc.*, c.* FROM user_characters uc 
+       JOIN characters c ON uc.character_id = c.id 
+       WHERE uc.user_id = ?`,
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Starter pack assigned successfully',
+      characters: userCharacters.rows.length
+    });
+
+  } catch (error: any) {
+    console.error('❌ Error assigning starter pack:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 export default router;

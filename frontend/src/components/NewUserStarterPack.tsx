@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, Star, Sparkles, Users, ArrowRight, Loader } from 'lucide-react';
 import TradingCard from './TradingCard';
 import { TeamCharacter } from '@/data/teamBattleSystem';
-import { characterAPI } from '@/services/apiClient';
+import { characterAPI, apiClient } from '@/services/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface NewUserStarterPackProps {
@@ -47,8 +47,14 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
     }
     
     try {
+      // First, try to assign starter pack if user doesn't have characters
+      console.log('🎁 Attempting to assign starter pack...');
+      const assignResponse = await apiClient.post('/user/assign-starter-pack');
+      console.log('📦 Pack assignment response:', assignResponse.data);
+      
+      // Then get the characters
       const response = await characterAPI.getUserCharacters();
-      console.log('📦 Raw API response:', response);
+      console.log('📦 Characters after pack assignment:', response);
       
       if (response.success && response.characters && response.characters.length > 0) {
         // Transform raw character data to TeamCharacter format if needed
