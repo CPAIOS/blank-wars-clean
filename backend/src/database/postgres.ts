@@ -262,6 +262,9 @@ export const initializeDatabase = async (): Promise<void> => {
 
 // Use existing character data from SQLite seeding
 const seedCharacters = async (): Promise<void> => {
+  // Get database URL to determine database type
+  const databaseUrl = process.env.DATABASE_URL;
+  
   // Character data from existing backend seeding
   const characters = [
     {
@@ -387,20 +390,41 @@ const seedCharacters = async (): Promise<void> => {
   ];
 
   try {
+    // Check if we're using PostgreSQL or SQLite to use correct parameter syntax
+    const isPostgres = databaseUrl && databaseUrl.startsWith('postgres');
+    
     for (const char of characters) {
-      await query(`
-        INSERT INTO characters (
-          id, name, title, archetype, origin_era, rarity,
-          base_health, base_attack, base_defense, base_speed, base_special,
-          personality_traits, conversation_style, backstory, conversation_topics,
-          avatar_emoji, abilities
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-      `, [
-        char.id, char.name, char.title, char.archetype, char.origin_era, char.rarity,
-        char.base_health, char.base_attack, char.base_defense, char.base_speed, char.base_special,
-        char.personality_traits, char.conversation_style, char.backstory, char.conversation_topics,
-        char.avatar_emoji, char.abilities
-      ]);
+      if (isPostgres) {
+        // PostgreSQL syntax with $1, $2, etc.
+        await query(`
+          INSERT INTO characters (
+            id, name, title, archetype, origin_era, rarity,
+            base_health, base_attack, base_defense, base_speed, base_special,
+            personality_traits, conversation_style, backstory, conversation_topics,
+            avatar_emoji, abilities
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        `, [
+          char.id, char.name, char.title, char.archetype, char.origin_era, char.rarity,
+          char.base_health, char.base_attack, char.base_defense, char.base_speed, char.base_special,
+          char.personality_traits, char.conversation_style, char.backstory, char.conversation_topics,
+          char.avatar_emoji, char.abilities
+        ]);
+      } else {
+        // SQLite syntax with ? placeholders
+        await query(`
+          INSERT INTO characters (
+            id, name, title, archetype, origin_era, rarity,
+            base_health, base_attack, base_defense, base_speed, base_special,
+            personality_traits, conversation_style, backstory, conversation_topics,
+            avatar_emoji, abilities
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          char.id, char.name, char.title, char.archetype, char.origin_era, char.rarity,
+          char.base_health, char.base_attack, char.base_defense, char.base_speed, char.base_special,
+          char.personality_traits, char.conversation_style, char.backstory, char.conversation_topics,
+          char.avatar_emoji, char.abilities
+        ]);
+      }
     }
     console.log(`✅ Seeded ${characters.length} characters with complete data`);
   } catch (error) {
