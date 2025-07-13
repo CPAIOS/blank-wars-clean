@@ -30,7 +30,12 @@ apiClient.interceptors.response.use(
         // Refresh failed, redirect to login
         console.log('Token refresh failed, user needs to log in again');
         // Don't redirect here since this is a service - let the auth context handle it
-        return Promise.reject(refreshError);
+        
+        // Create a custom error to indicate authentication failure
+        const authError = new Error('Authentication failed - user needs to log in');
+        (authError as any).isAuthenticationError = true;
+        (authError as any).status = 401;
+        return Promise.reject(authError);
       }
     }
     
@@ -53,14 +58,46 @@ export const paymentAPI = {
   },
 };
 
+// Request deduplication to prevent multiple concurrent requests
+const pendingRequests = new Map<string, Promise<any>>();
+
 export const characterAPI = {
   getUserCharacters: async () => {
+    const requestKey = 'getUserCharacters';
+    
+    // Check if request is already in progress
+    if (pendingRequests.has(requestKey)) {
+      console.log('🔄 [characterAPI] Request already in progress, reusing...');
+      return pendingRequests.get(requestKey)!;
+    }
+    
     console.log('🔄 [characterAPI] Making request to:', '/user/characters');
     console.log('🔄 [characterAPI] Base URL:', apiClient.defaults.baseURL);
-    const response = await apiClient.get('/user/characters');
-    console.log('🔄 [characterAPI] Response status:', response.status);
-    console.log('🔄 [characterAPI] Response data:', response.data);
-    return response.data;
+    
+    const requestPromise = apiClient.get('/user/characters')
+      .then(response => {
+        console.log('🔄 [characterAPI] Response status:', response.status);
+        console.log('🔄 [characterAPI] Response data:', response.data);
+        pendingRequests.delete(requestKey);
+        return response.data;
+      })
+      .catch(error => {
+        pendingRequests.delete(requestKey);
+        
+        // Check if this is an authentication error to prevent retries
+        if (error.status === 401 || error.isAuthenticationError || error.response?.status === 401) {
+          console.log('🚫 [characterAPI] Authentication error - stopping retries');
+          const authError = new Error('Authentication required');
+          (authError as any).isAuthenticationError = true;
+          (authError as any).status = 401;
+          throw authError;
+        }
+        
+        throw error;
+      });
+    
+    pendingRequests.set(requestKey, requestPromise);
+    return requestPromise;
   },
 };
 
