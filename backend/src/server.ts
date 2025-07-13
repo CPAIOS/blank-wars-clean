@@ -46,10 +46,15 @@ const lobbyService = new LobbyService();
 const app = express();
 const httpServer = createServer(app);
 
+// CORS configuration for production
+const corsOrigin = process.env.NODE_ENV === 'production' 
+  ? ['https://www.blankwars.com', 'https://blankwars.com'] 
+  : (process.env.FRONTEND_URL || 'http://localhost:3007');
+
 // Initialize Socket.io with CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3007',
+    origin: corsOrigin,
     credentials: true,
   },
 });
@@ -57,7 +62,7 @@ const io = new Server(httpServer, {
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3007',
+  origin: corsOrigin,
   credentials: true,
 }));
 app.use(morgan('dev'));

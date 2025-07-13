@@ -19,14 +19,16 @@ router.post('/register', async (req: Request, res: Response) => {
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined, // Set domain for production
       maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined, // Set domain for production
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
@@ -55,14 +57,16 @@ router.post('/login', async (req: Request, res: Response) => {
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined, // Set domain for production
       maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined, // Set domain for production
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
@@ -130,13 +134,15 @@ router.post('/logout', authenticateToken, async (req: any, res: Response) => {
     res.clearCookie('accessToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined
     });
     
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined
     });
     
     return res.json({
