@@ -238,9 +238,84 @@ export const initializeDatabase = async (): Promise<void> => {
       }
     }
 
+    // Seed characters if none exist
+    const characterCountResult = await query('SELECT COUNT(*) as count FROM characters');
+    const characterCount = parseInt(characterCountResult.rows[0].count);
+    
+    if (characterCount === 0) {
+      console.log('📚 Seeding initial character data...');
+      try {
+        await seedCharacters();
+        console.log('✅ Character seeding completed successfully');
+      } catch (error) {
+        console.error('❌ Character seeding failed:', error);
+        throw error;
+      }
+    }
+
     console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
+    throw error;
+  }
+};
+
+// Import character data from frontend
+import { characterTemplates } from '../../frontend/src/data/characters';
+
+// Seed initial character data for PostgreSQL using frontend data
+const seedCharacters = async (): Promise<void> => {
+  // Convert frontend character templates to database format
+  const characters = Object.entries(characterTemplates).map(([templateId, template]) => ({
+    id: templateId,
+    name: template.name,
+    title: template.title || '',
+    archetype: template.archetype,
+    origin_era: template.historicalPeriod || '',
+    rarity: template.rarity,
+    base_health: template.combatStats.maxHealth,
+    base_attack: template.combatStats.attack,
+    base_defense: template.combatStats.defense,
+    base_speed: template.combatStats.speed,
+    base_special: Math.round((template.combatStats.magicAttack + template.combatStats.magicDefense) / 2),
+    personality_traits: JSON.stringify(template.personality.traits),
+    conversation_style: template.personality.speechStyle,
+    backstory: template.description,
+    conversation_topics: JSON.stringify(template.personality.motivations),
+    avatar_emoji: template.avatar,
+    abilities: JSON.stringify({
+      baseStats: template.baseStats,
+      combatStats: template.combatStats,
+      battleAI: {
+        aggression: template.combatAI?.aggression || 50,
+        defensiveness: template.combatAI?.defensiveness || 50,
+        riskTaking: template.combatAI?.riskTaking || 50,
+        adaptability: template.combatAI?.adaptability || 50,
+        preferredStrategies: template.combatAI?.preferredStrategies || []
+      },
+      battleQuotes: template.customization?.battleQuotes || []
+    })
+  }));
+
+  try {
+    for (const char of characters) {
+      await query(`
+        INSERT INTO characters (
+          id, name, title, archetype, origin_era, rarity,
+          base_health, base_attack, base_defense, base_speed, base_special,
+          personality_traits, conversation_style, backstory, conversation_topics,
+          avatar_emoji, abilities
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      `, [
+        char.id, char.name, char.title, char.archetype, char.origin_era, char.rarity,
+        char.base_health, char.base_attack, char.base_defense, char.base_speed, char.base_special,
+        char.personality_traits, char.conversation_style, char.backstory, char.conversation_topics,
+        char.avatar_emoji, char.abilities
+      ]);
+    }
+    console.log(`✅ Seeded ${characters.length} characters with complete data`);
+  } catch (error) {
+    console.error('❌ Character seeding failed:', error);
     throw error;
   }
 };

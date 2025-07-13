@@ -1,0 +1,2365 @@
+
+
+
+
+---
+
+### Fixed-Up Character Templates
+
+#### Town Guard (Common Warrior)
+
+```typescript
+{
+  name: 'Town Guard',
+  title: 'Defender of the Realm',
+  avatar: '🛡️',
+  archetype: 'warrior',
+  rarity: 'common',
+  description: 'A steadfast protector of the town\'s peace.',
+  historicalPeriod: 'Medieval Fantasy',
+  mythology: 'Fantasy',
+
+  personality: {
+    traits: ['Loyal', 'Brave', 'Disciplined', 'Protective', 'Honorable'],
+    speechStyle: 'Formal and direct',
+    motivations: ['Duty', 'Honor', 'Protecting the weak', 'Upholding the law'],
+    fears: ['Failing in duty', 'Dishonor'],
+    relationships: []
+  },
+
+  level: 1,
+  baseStats: {
+    strength: 25,    // High per Warrior archetype
+    agility: 15,     // Moderate
+    intelligence: 10,// Low
+    vitality: 25,    // High
+    wisdom: 10,      // Low
+    charisma: 10     // Low
+    // Total: 95, appropriate for Common rarity
+  },
+
+  combatStats: {
+    health: 100,     // Moderate
+    maxHealth: 100,
+    mana: 20,        // Low
+    maxMana: 20,
+    attack: 15,      // Good physical attack
+    defense: 20,     // Good defense
+    magicAttack: 5,  // Low
+    magicDefense: 10,// Low
+    speed: 10,       // Average
+    criticalChance: 5,
+    criticalDamage: 150,
+    accuracy: 80,
+    evasion: 5
+  },
+
+  psychStats: {
+    training: 80,    // High: follows orders well
+    teamPlayer: 70,  // High: works in units
+    ego: 20,         // Low: duty-driven
+    mentalHealth: 80,// Good: steadfast
+    communication: 60// Moderate: clear but not eloquent
+  },
+
+  battleAI: {
+    aggression: 50,  // Moderate: balanced fighter
+    defensiveness: 80,// High: protective role
+    riskTaking: 30,  // Low: cautious
+    adaptability: 50,// Moderate: follows training
+    preferredStrategies: ['defend', 'counterattack']
+  },
+
+  customization: {
+    battleQuotes: ['For the realm!', 'Hold the line!']
+  }
+}
+```
+
+**Notes**: 
+- **Base Stats**: Assigned per Warrior guidelines (high Strength/Vitality, moderate Agility, low others). Total (95) is modest for a Common character, compared to Legendary Achilles (455).
+- **Combat Stats**: Reflect a sturdy, physical fighter with minimal magic ability, scaled for Common rarity.
+- **Personality**: Expanded traits from Loyal, Brave to include Disciplined, Protective, Honorable for depth.
+
+---
+
+#### Apprentice Wizard (Common Mage)
+
+```typescript
+{
+  name: 'Apprentice Wizard',
+  title: 'Seeker of Arcane Knowledge',
+  avatar: '🧙',
+  archetype: 'mage',
+  rarity: 'common',
+  description: 'A young mage still learning the ways of magic.',
+  historicalPeriod: 'Medieval Fantasy',
+  mythology: 'Fantasy',
+
+  personality: {
+    traits: ['Curious', 'Studious', 'Eager', 'Inexperienced', 'Hopeful'],
+    speechStyle: 'Eager, sometimes unsure',
+    motivations: ['Knowledge', 'Mastery', 'Discovery', 'Proving oneself'],
+    fears: ['Failure', 'Ignorance'],
+    relationships: []
+  },
+
+  level: 1,
+  baseStats: {
+    strength: 10,    // Low
+    agility: 10,     // Low
+    intelligence: 25,// High per Mage archetype
+    vitality: 15,    // Moderate
+    wisdom: 20,      // Moderate
+    charisma: 10     // Low
+    // Total: 90, suitable for Common rarity
+  },
+
+  combatStats: {
+    health: 80,      // Low
+    maxHealth: 80,
+    mana: 50,        // High
+    maxMana: 50,
+    attack: 5,       // Low
+    defense: 10,     // Moderate
+    magicAttack: 20, // High
+    magicDefense: 15,// Low
+    speed: 8,        // Low
+    criticalChance: 5,
+    criticalDamage: 150,
+    accuracy: 85,
+    evasion: 10
+  },
+
+  psychStats: {
+    training: 60,    // Moderate: eager but green
+    teamPlayer: 50,  // Average: learning to cooperate
+    ego: 30,         // Low: some ambition
+    mentalHealth: 70,// Good: optimistic
+    communication: 50// Moderate: unsure at times
+  },
+
+  battleAI: {
+    aggression: 30,  // Low: cautious caster
+    defensiveness: 60,// Moderate: self-preserving
+    riskTaking: 40,  // Moderate: experimenting
+    adaptability: 70,// High: quick learner
+    preferredStrategies: ['cast_spell', 'analyze']
+  },
+
+  customization: {
+    battleQuotes: ['By the arcane!', 'I think this spell will work...']
+  }
+}
+```
+
+**Notes**: 
+- **Base Stats**: High Intelligence, moderate Wisdom/Vitality per Mage archetype, low elsewhere. Total (90) fits Common rarity.
+- **Combat Stats**: Emphasizes magic attack and mana, with frail physical stats, appropriate for a novice mage.
+- **Personality**: Added Eager, Inexperienced, Hopeful to reflect a beginner’s mindset.
+
+---
+
+#### King Leonidas (Legendary Tank)
+
+```typescript
+{
+  name: 'King Leonidas',
+  title: 'Spartan Shield',
+  avatar: '🛡️',
+  archetype: 'tank',
+  rarity: 'legendary',
+  description: 'The Spartan king who held off the Persians at Thermopylae.',
+  historicalPeriod: 'Ancient Greece (480 BCE)',
+  mythology: 'Greek',
+
+  personality: {
+    traits: ['Resolute', 'Honorable', 'Courageous', 'Strategic', 'Unyielding'],
+    speechStyle: 'Commanding and inspirational',
+    motivations: ['Defending Sparta', 'Glory', 'Honor'],
+    fears: ['Defeat', 'Dishonor'],
+    relationships: []
+  },
+
+  level: 1,
+  baseStats: {
+    strength: 40,    // High
+    agility: 20,     // Moderate
+    intelligence: 15,// Low
+    vitality: 50,    // Very high per Tank archetype
+    wisdom: 20,      // Moderate
+    charisma: 30     // Moderate
+    // Total: 175, higher for Legendary rarity
+  },
+
+  combatStats: {
+    health: 300,     // High
+    maxHealth: 300,
+    mana: 40,        // Low
+    maxMana: 40,
+    attack: 25,      // Moderate
+    defense: 40,     // High
+    magicAttack: 10, // Low
+    magicDefense: 25,// Moderate
+    speed: 12,       // Low
+    criticalChance: 10,
+    criticalDamage: 150,
+    accuracy: 85,
+    evasion: 5
+  },
+
+  psychStats: {
+    training: 90,    // High: disciplined leader
+    teamPlayer: 80,  // High: inspires troops
+    ego: 50,         // Moderate: proud but not selfish
+    mentalHealth: 90,// High: unbreakable will
+    communication: 80// High: rallying presence
+  },
+
+  battleAI: {
+    aggression: 40,  // Moderate: controlled force
+    defensiveness: 90,// High: Tank role
+    riskTaking: 20,  // Low: strategic
+    adaptability: 70,// High: battlefield tactician
+    preferredStrategies: ['hold_position', 'shield_wall']
+  },
+
+  customization: {
+    battleQuotes: ['Come and take them!', 'This is Sparta!']
+  }
+}
+```
+
+**Notes**: 
+- **Base Stats**: High Vitality and Strength for a Tank, moderate Charisma for leadership, total (175) reflects Legendary status (though lower than Achilles’ 455, suggesting scaling by level or role).
+- **Combat Stats**: High health and defense, modest attack, minimal magic, fitting a Legendary Tank.
+- **Personality**: Expanded from Resolute, Honorable to include Courageous, Strategic, Unyielding, capturing his heroic essence.
+
+---
+
+### General Approach for Other Characters
+
+For the remaining characters (e.g., Thug, Wolf, Nostradamus, Fenrir, etc.), apply the following steps:
+
+1. **Basic Information**:
+   - Use provided Name, Title, Archetype, Rarity, and Description.
+   - Assign an avatar emoji (e.g., 🐺 for Wolf, 🔮 for Nostradamus).
+   - Set `historicalPeriod` and `mythology` based on context (e.g., 'N/A' for animals, 'Greek' for Circe).
+
+2. **Personality**:
+   - Expand traits to 4-6 (e.g., Thug: Aggressive, Cunning → Aggressive, Cunning, Ruthless, Opportunistic).
+   - Define `speechStyle` from provided style or infer (e.g., Wolf: "Growls and howls").
+   - Add 1-2 motivations and fears if missing (e.g., Wolf: add 'Pack loyalty' to motivations, 'Hunters' to fears).
+
+3. **Base Stats**:
+   - Assign 1-100 values per archetype guidelines:
+     - Warrior: High Strength/Vitality (20-30 Common, 40-95 Legendary)
+     - Mage: High Intelligence/Wisdom (20-30 Common, 40-95 Mythic)
+     - Tank: High Vitality (25-30 Common, 50-95 Legendary)
+   - Scale totals by rarity: ~90-100 for Common, ~150-200 for Uncommon/Rare, ~300-450 for Epic/Legendary/Mythic.
+
+4. **Combat Stats**:
+   - Derive from archetype and rarity:
+     - Common: Health 60-100, Attack/Defense 5-20, Mana 20-50
+     - Legendary: Health 200-500, Attack/Defense 25-50, Mana 40-120
+   - Match qualitative descriptions (e.g., Wolf: high speed → Speed 20).
+
+5. **Psych Stats**:
+   - Infer from personality (0-100):
+     - Town Guard: High training/teamPlayer (80/70), low ego (20)
+     - Circe: High ego (80), moderate communication (60)
+
+6. **Battle AI**:
+   - Set aggression/defensiveness/riskTaking/adaptability (0-100) based on role:
+     - Tanks: High defensiveness (80-90)
+     - Assassins: High aggression (70-90)
+   - Choose 2-3 `preferredStrategies` (e.g., Fenrir: 'flank', 'bite').
+
+7. **Customization**:
+   - Use provided `battleQuotes` or create 2-4 if missing (e.g., Thug: "Pay up or bleed!").
+
+---
+
+### Skills Integration
+
+The query provides unique skills (e.g., Town Guard: Shield Wall, Loyal Protector), but the character template excludes abilities, relegating them to `abilities.ts`. Here’s how to handle them:
+
+- **Assumption**: Skills are defined separately and linked via `progressionTree` (not included in the template).
+- **Example for Town Guard** (from query):
+  ```typescript
+  export const townGuardShieldWall: Ability = {
+    id: "town-guard-shield-wall",
+    name: "Shield Wall",
+    description: "Increases defense by 20% for 2 turns.",
+    type: "active",
+    characterId: "town-guard",
+    archetype: "warrior",
+    icon: "shield-icon",
+    effects: [{ type: "defenseBoost", value: 20, duration: 2 }],
+    cost: { mana: 10 },
+    flavor: "A wall of steel and resolve.",
+    unlockLevel: 1,
+    maxRank: 3,
+    rankBonuses: [
+      { rank: 2, effect: { type: "defenseBoost", value: 25 } },
+      { rank: 3, effect: { type: "defenseBoost", value: 30 } }
+    ]
+  };
+
+  export const townGuardLoyalProtector: Ability = {
+    id: "town-guard-loyal-protector",
+    name: "Loyal Protector",
+    description: "Increases defense by 5% when health is below 50%.",
+    type: "passive",
+    characterId: "town-guard",
+    archetype: "warrior",
+    icon: "protector-icon",
+    effects: [{ type: "defenseBoost", value: 5, condition: "healthBelow50" }],
+    cost: {},
+    flavor: "Duty never falters.",
+    unlockLevel: 3,
+    maxRank: 1,
+    rankBonuses: []
+  };
+  ```
+- **Process**: Apply this format to all provided skills, adjusting effects, costs, and unlock levels based on rarity and archetype.
+
+---
+Common Characters for Each Archetype
+Warrior: Town Guard
+* Name: Town Guard
+* Title: Defender of the Realm
+* Archetype: Warrior
+* Rarity: Common
+* Description: A steadfast protector of the town's peace.
+* Personality Traits: Loyal, Brave
+* Speech Style: Formal, direct
+* Motivations: Duty, Honor
+* Base Stats: High strength and vitality, average agility, low intelligence, wisdom, and charisma.
+* Combat Stats: Moderate health, low mana, good physical attack and defense, low magic stats, average speed.
+* Battle Quotes:
+    * "For the realm!"
+    * "Hold the line!"
+* Evolves To: Seasoned Guard (Uncommon)
+Mage: Apprentice Wizard
+* Name: Apprentice Wizard
+* Title: Seeker of Arcane Knowledge
+* Archetype: Mage
+* Rarity: Common
+* Description: A young mage still learning the ways of magic.
+* Personality Traits: Curious, Studious
+* Speech Style: Eager, sometimes unsure
+* Motivations: Knowledge, Mastery
+* Base Stats: High intelligence, low strength and agility, moderate vitality and wisdom, low charisma.
+* Combat Stats: Low health, high mana, low physical attack, moderate defense, high magic attack, low magic defense, low speed.
+* Battle Quotes:
+    * "By the arcane!"
+    * "I think this spell will work..."
+* Evolves To: Journeyman Wizard (Uncommon)
+Assassin: Thug
+* Name: Thug
+* Title: Street Enforcer
+* Archetype: Assassin
+* Rarity: Common
+* Description: A rough individual who uses brute force and intimidation.
+* Personality Traits: Aggressive, Cunning
+* Speech Style: Gruff, threatening
+* Motivations: Power, Wealth
+* Base Stats: High strength, moderate agility, low vitality, intelligence, wisdom, charisma.
+* Combat Stats: Moderate health, low mana, high physical attack, low defense, low magic stats, high speed.
+* Battle Quotes:
+    * "You're in my way!"
+    * "Time to collect."
+* Evolves To: Rogue (Uncommon)
+Tank: Shieldbearer
+* Name: Shieldbearer
+* Title: Wall of the Frontline
+* Archetype: Tank
+* Rarity: Common
+* Description: A sturdy fighter who holds the line with a heavy shield.
+* Personality Traits: Resilient, Stoic
+* Speech Style: Calm, resolute
+* Motivations: Protection, Endurance
+* Base Stats: High vitality, moderate strength, low agility, intelligence, wisdom, charisma.
+* Combat Stats: High health, low mana, moderate physical attack and defense, low magic stats, low speed.
+* Battle Quotes:
+    * "I stand firm!"
+    * "None shall pass!"
+* Evolves To: Defender (Uncommon)
+Support: Acolyte
+* Name: Acolyte
+* Title: Devotee of Light
+* Archetype: Support
+* Rarity: Common
+* Description: A humble servant dedicated to aiding others.
+* Personality Traits: Compassionate, Devout
+* Speech Style: Gentle, reverent
+* Motivations: Service, Faith
+* Base Stats: High wisdom, moderate vitality and charisma, low strength, agility, intelligence.
+* Combat Stats: Moderate health, moderate mana, low physical attack, high magic defense, moderate magic attack, low speed.
+* Battle Quotes:
+    * "May you find peace!"
+    * "I’ll lend my strength!"
+* Evolves To: Priest (Uncommon)
+Beast: Wolf
+* Name: Wolf
+* Title: Hunter of the Wild
+* Archetype: Beast
+* Rarity: Common
+* Description: A fierce predator that roams the wilderness.
+* Personality Traits: Fierce, Instinctive
+* Speech Style: Growls, short barks
+* Motivations: Survival, Territory
+* Base Stats: High agility, moderate strength, low vitality, intelligence, wisdom, charisma.
+* Combat Stats: Moderate health, low mana, high physical attack, low defense, low magic stats, high speed.
+* Battle Quotes:
+    * "Grrr…!"
+    * "Prey spotted!"
+* Evolves To: Bear (Uncommon)
+Trickster: Jester
+* Name: Jester
+* Title: Fool of the Court
+* Archetype: Trickster
+* Rarity: Common
+* Description: A playful performer who hides cunning behind a smile.
+* Personality Traits: Witty, Deceptive
+* Speech Style: Joking, sly
+* Motivations: Amusement, Chaos
+* Base Stats: High agility and charisma, low strength, vitality, intelligence, wisdom.
+* Combat Stats: Low health, moderate mana, moderate physical attack, low defense, moderate magic attack, high speed.
+* Battle Quotes:
+    * "Hehe, watch this!"
+    * "Oops, did I do that?"
+* Evolves To: Prankster (Uncommon)
+Mystic: Seer
+* Name: Seer
+* Title: Visionary of Fate
+* Archetype: Mystic
+* Rarity: Common
+* Description: A gifted individual who glimpses the threads of destiny.
+* Personality Traits: Mysterious, Insightful
+* Speech Style: Cryptic, soft-spoken
+* Motivations: Truth, Foresight
+* Base Stats: High wisdom, moderate intelligence, low strength, agility, vitality, charisma.
+* Combat Stats: Low health, high mana, low physical attack, moderate defense, moderate magic attack, low speed.
+* Battle Quotes:
+    * "It is foreseen…"
+    * "The fates guide me."
+* Evolves To: Oracle (Uncommon)
+Elementalist: Fire Apprentice
+* Name: Fire Apprentice
+* Title: Spark of the Flame
+* Archetype: Elementalist
+* Rarity: Common
+* Description: A novice learning to wield the power of fire.
+* Personality Traits: Passionate, Reckless
+* Speech Style: Bold, fiery
+* Motivations: Power, Control
+* Base Stats: High intelligence, moderate agility, low strength, vitality, wisdom, charisma.
+* Combat Stats: Low health, high mana, moderate physical attack, low defense, high magic attack, low speed.
+* Battle Quotes:
+    * "Burn bright!"
+    * "Feel the heat!"
+* Evolves To: Water Adept (Uncommon)
+Berserker: Barbarian
+* Name: Barbarian
+* Title: Wild Fury
+* Archetype: Berserker
+* Rarity: Common
+* Description: A savage warrior driven by rage and instinct.
+* Personality Traits: Wild, Fearless
+* Speech Style: Loud, primal
+* Motivations: Freedom, Battle
+* Base Stats: High strength, moderate agility, low vitality, intelligence, wisdom, charisma.
+* Combat Stats: Moderate health, low mana, high physical attack, low defense, low magic stats, moderate speed.
+* Battle Quotes:
+    * "RAAAGH!"
+    * "Crush them all!"
+* Evolves To: Raider (Uncommon)
+Scholar: Student
+* Name: Student
+* Title: Seeker of Wisdom
+* Archetype: Scholar
+* Rarity: Common
+* Description: A young learner eager to uncover knowledge.
+* Personality Traits: Curious, Diligent
+* Speech Style: Polite, inquisitive
+* Motivations: Learning, Discovery
+* Base Stats: High intelligence, moderate wisdom, low strength, agility, vitality, charisma.
+* Combat Stats: Low health, moderate mana, low physical attack, moderate defense, moderate magic attack, low speed.
+* Battle Quotes:
+    * "I’ve read about this!"
+    * "Let me try…"
+* Evolves To: Scholar (Uncommon)
+
+
+Mage Archetype
+Uncommon: Nostradamus
+* Name: Nostradamus
+* Title: The Seer
+* Archetype: Mage
+* Rarity: Uncommon
+* Description: A French astrologer famed for his cryptic prophecies.
+* Personality: Mysterious, Insightful
+* Abilities: Casts predictive spells (e.g., buffs allies or debuffs enemies).
+* Visual Design: Robed figure with a starry cloak and quill.
+* Quote: "The future is written in the stars."
+Mythic: Circe
+* Name: Circe
+* Title: Enchantress of Aeaea
+* Archetype: Mage
+* Rarity: Mythic
+* Description: A sorceress from Greek mythology who transformed men into beasts.
+* Personality: Seductive, Cunning
+* Abilities: Transforms enemies into weaker forms, powerful area spells.
+* Visual Design: Flowing robes, staff with a serpent motif.
+* Quote: "Bow before my magic, or become swine!"
+Assassin Archetype
+Epic: Hassan-i Sabbah
+* Name: Hassan-i Sabbah
+* Title: The Old Man of the Mountain
+* Archetype: Assassin
+* Rarity: Epic
+* Description: Leader of the historical Order of Assassins.
+* Personality: Ruthless, Strategic
+* Abilities: Stealth attacks, poison-based strikes.
+* Visual Design: Hooded cloak, curved dagger.
+* Quote: "Nothing is true, everything is permitted."
+Tank Archetype
+Common: William Tell
+* Name: William Tell
+* Title: The Marksman Defender
+* Archetype: Tank
+* Rarity: Common
+* Description: A Swiss folk hero known for his crossbow skills.
+* Personality: Steadfast, Resourceful
+* Abilities: Absorbs damage, retaliates with precise counterattacks.
+* Visual Design: Leather armor, crossbow slung over shoulder.
+* Quote: "My aim is true, my will unbreakable."
+Legendary: King Leonidas
+* Name: King Leonidas
+* Title: Spartan Shield
+* Archetype: Tank
+* Rarity: Legendary
+* Description: The Spartan king who held off the Persians at Thermopylae.
+* Personality: Resolute, Honorable
+* Abilities: Massive damage absorption, boosts team defense.
+* Visual Design: Red cape, bronze shield, and spear.
+* Quote: "Come and take them!"
+
+Beast Archetype
+Epic: Fenrir
+* Name: Fenrir
+* Title: The Great Wolf
+* Archetype: Beast
+* Rarity: Epic
+* Description: A monstrous wolf from Norse mythology destined to devour Odin.
+* Personality: Ferocious, Untamed
+* Abilities: High-damage bites, area-of-effect howls that stun.
+* Visual Design: Massive grey wolf with glowing eyes.
+* Quote: "I am the end of gods!"
+Trickster Archetype
+Uncommon: Anansi
+* Name: Anansi
+* Title: The Spider Weaver
+* Archetype: Trickster
+* Rarity: Uncommon
+* Description: A West African spider god known for his clever tales.
+* Personality: Playful, Ingenious
+* Abilities: Traps enemies with webs, confuses with illusions.
+* Visual Design: Humanoid spider with a mischievous grin.
+* Quote: "A story well-spun catches all!"
+Mystic Archetype
+Rare: Aleister Crowley
+* Name: Aleister Crowley
+* Title: The Wickedest Man
+* Archetype: Mystic
+* Rarity: Rare
+* Description: A 20th-century occultist with a flair for the dramatic.
+* Personality: Eccentric, Provocative
+* Abilities: Summons dark entities, curses enemies.
+* Visual Design: Black robe, pentagram pendant.
+* Quote: "Do what thou wilt!"
+Elementalist Archetype
+Epic: Empedocles
+* Name: Empedocles
+* Title: Philosopher of the Elements
+* Archetype: Elementalist
+* Rarity: Epic
+* Description: A Greek philosopher who theorized the four elements.
+* Personality: Philosophical, Balanced
+* Abilities: Switches between fire, water, earth, and air attacks.
+* Visual Design: Tunic with elemental symbols.
+* Quote: "All is born of the four roots."
+Berserker Archetype
+Legendary: Samson
+* Name: Samson
+* Title: The Pillars’ Bane
+* Archetype: Berserker
+* Rarity: Legendary
+* Description: A biblical figure with supernatural strength from his hair.
+* Personality: Vengeful, Relentless
+* Abilities: Massive burst damage, sacrifices health for power.
+* Visual Design: Muscular, long hair, broken chains.
+* Quote: "With my strength, I bring ruin!"
+Scholar Archetype
+Uncommon: Aristotle
+* Name: Aristotle
+* Title: The First Teacher
+* Archetype: Scholar
+* Rarity: Uncommon
+* Description: A Greek philosopher whose works shaped Western thought.
+* Personality: Analytical, Methodical
+* Abilities: Buffs team strategy, debuffs enemy tactics.
+* Visual Design: Toga, scroll in hand.
+* Quote: "We are what we repeatedly do."
+Duelist Archetype
+Rare: Miyamoto Musashi
+* Name: Miyamoto Musashi
+* Title: The Sword Saint
+* Archetype: Duelist
+* Rarity: Rare
+* Description: A famed Japanese swordsman and philosopher, undefeated in duels and author of The Book of Five Rings.
+* Personality: Disciplined, Strategic
+* Abilities: Strikes with dual swords (fast attacks), parries enemy blows, boosts own speed and precision.
+* Visual Design: Samurai robes, wielding two katanas.
+* Quote: "The blade is my path to mastery."
+Necromancer Archetype
+Mythic: Anubis
+* Name: Anubis
+* Title: The Jackal God
+* Archetype: Necromancer
+* Rarity: Mythic
+* Description: The Egyptian god of death and mummification, overseer of the afterlife.
+* Personality: Solemn, Unyielding
+* Abilities: Raises undead minions, drains enemy life force, curses foes with decay.
+* Visual Design: Jackal-headed figure in black and gold, wielding an ankh staff.
+* Quote: "All must kneel before the scales of death."
+Alchemist Archetype
+Rare: Paracelsus
+* Name: Paracelsus
+* Title: The Father of Toxicology
+* Archetype: Alchemist
+* Rarity: Rare
+* Description: A Swiss physician and alchemist who pioneered the use of chemicals in medicine.
+* Personality: Eccentric, Brilliant
+* Abilities: Throws explosive potions (area damage), heals allies with elixirs, poisons enemies over time.
+* Visual Design: Scholarly robes, carrying vials and a mortar.
+* Quote: "The dose makes the poison."
+Shapeshifter Archetype
+Legendary: Proteus
+* Name: Proteus
+* Title: The Old Man of the Sea
+* Archetype: Shapeshifter
+* Rarity: Legendary
+* Description: A Greek sea god who could change his form at will and prophesy the future.
+* Personality: Elusive, Wise
+* Abilities: Transforms into different forms (offensive, defensive, or support), evades attacks, reveals enemy weaknesses.
+* Visual Design: Fluid, water-like figure with shifting features.
+* Quote: "I am the tide, ever-changing."
+Commander Archetype
+Epic: Alexander the Great
+* Name: Alexander the Great
+* Title: The Conqueror King
+* Archetype: Commander
+* Rarity: Epic
+* Description: A Macedonian king who built one of the largest empires in history through military genius.
+* Personality: Ambitious, Charismatic
+* Abilities: Boosts ally attack power, deploys tactical strikes, intimidates enemies (debuffs morale).
+* Visual Design: Golden armor, riding a horse with a spear.
+* Quote: "There is nothing impossible to he who dares."
+Monsters and Animals for Game
+Wolves
+Wolf (Common Beast)
+* Name: Wolf
+* Title: Pack Hunter
+* Avatar Emoji: 🐺
+* Archetype: Beast
+* Rarity: Common
+* Description: A fierce predator that hunts in packs.
+* Personality Traits: ['Aggressive', 'Loyal']
+* Speech Style: Growls and howls
+* Motivations: ['Survival', 'Territory']
+* Fears: ['Fire', 'Larger Predators']
+* Combat Stats:
+    * Health: 80
+    * Attack: 12
+    * Defense: 8
+    * Speed: 15
+    * CriticalChance: 10
+* Battle AI: Prefers 'Flank' and 'Bite' strategies
+* Battle Quotes: ['Grrr...', 'Howl!']
+Dire Wolf (Rare Hunter)
+* Name: Dire Wolf
+* Title: Alpha Stalker
+* Avatar Emoji: 🐺
+* Archetype: Hunter
+* Rarity: Rare
+* Description: A larger, more cunning wolf leading its pack.
+* Personality Traits: ['Cunning', 'Dominant']
+* Speech Style: Deep growls
+* Motivations: ['Leadership', 'Hunting']
+* Fears: ['Fire', 'Traps']
+* Combat Stats:
+    * Health: 120
+    * Attack: 18
+    * Defense: 12
+    * Speed: 18
+    * CriticalChance: 15
+* Battle AI: Prefers 'Ambush' and 'Rending Bite' strategies
+* Battle Quotes: ['Snarl!', 'The pack follows me!']
+Bears
+Bear (Uncommon Tank)
+* Name: Bear
+* Title: Forest Guardian
+* Avatar Emoji: 🐻
+* Archetype: Tank
+* Rarity: Uncommon
+* Description: A powerful beast that protects its territory.
+* Personality Traits: ['Territorial', 'Strong']
+* Speech Style: Roars
+* Motivations: ['Protection', 'Food']
+* Fears: ['Hunters', 'Fire']
+* Combat Stats:
+    * Health: 150
+    * Attack: 18
+    * Defense: 20
+    * Speed: 8
+    * CriticalChance: 5
+* Battle AI: Prefers 'Charge' and 'Maul' strategies
+* Battle Quotes: ['Roar!', 'Grrr...']
+Grizzly Bear (Rare Berserker)
+* Name: Grizzly Bear
+* Title: Rage of the Wild
+* Avatar Emoji: 🐻
+* Archetype: Berserker
+* Rarity: Rare
+* Description: An aggressive bear driven by raw fury.
+* Personality Traits: ['Furious', 'Relentless']
+* Speech Style: Thunderous roars
+* Motivations: ['Destruction', 'Survival']
+* Fears: ['Cages', 'Fire']
+* Combat Stats:
+    * Health: 180
+    * Attack: 25
+    * Defense: 15
+    * Speed: 10
+    * CriticalChance: 10
+* Battle AI: Prefers 'Frenzied Swipe' and 'Roar of Defiance' strategies
+* Battle Quotes: ['RAAAR!', 'None shall stand!']
+Dragons
+Young Dragon (Epic Beast)
+* Name: Young Dragon
+* Title: Fire Breather
+* Avatar Emoji: 🐉
+* Archetype: Beast
+* Rarity: Epic
+* Description: A juvenile dragon learning to harness its fiery breath.
+* Personality Traits: ['Curious', 'Fiery']
+* Speech Style: Roars and growls
+* Motivations: ['Growth', 'Treasure']
+* Fears: ['Dragon Slayers', 'Ice']
+* Combat Stats:
+    * Health: 200
+    * Attack: 25
+    * Defense: 20
+    * Speed: 12
+    * CriticalChance: 10
+* Battle AI: Prefers 'Fire Breath' and 'Claw Swipe' strategies
+* Battle Quotes: ['Roar!', 'Screech!']
+Ancient Dragon (Mythic Mage)
+* Name: Ancient Dragon
+* Title: Lord of Flames
+* Avatar Emoji: 🐲
+* Archetype: Mage
+* Rarity: Mythic
+* Description: A legendary dragon wielding immense magical power.
+* Personality Traits: ['Wise', 'Powerful']
+* Speech Style: Deep, rumbling voice
+* Motivations: ['Knowledge', 'Dominance']
+* Fears: ['None']
+* Combat Stats:
+    * Health: 500
+    * Attack: 40
+    * Defense: 30
+    * Speed: 15
+    * CriticalChance: 15
+* Battle AI: Prefers 'Inferno Breath' and 'Arcane Pulse' strategies
+* Battle Quotes: ['You dare challenge me?', 'Feel the wrath of ages!']
+
+
+Additional Characters
+Animals
+1. Cheetah (Assassin, Rare)
+* Character ID: cheetah-assassin
+* Name: Cheetah
+* Title: Swift Predator
+* Avatar Emoji: 🐆
+* Archetype: Assassin
+* Rarity: Rare
+* Description: A lightning-fast cheetah, striking with deadly precision.
+* Historical Period: N/A
+* Mythology: N/A
+* Personality Traits: ['Agile', 'Focused']
+* Speech Style: Sharp and concise
+* Motivations: ['Hunting', 'Speed']
+* Fears: ['Traps', 'Injury']
+* Base Stats: Strength: 14, Agility: 24, Intelligence: 10, Vitality: 12, Wisdom: 8, Charisma: 10
+* Combat Stats: Health: 100, MaxHealth: 100, Mana: 30, MaxMana: 30, Attack: 20, Defense: 12, MagicAttack: 5, MagicDefense: 10, Speed: 25, CriticalChance: 20, CriticalDamage: 200, Accuracy: 90, Evasion: 30
+* Battle AI: Aggression: 75, Defensiveness: 30, RiskTaking: 70, Adaptability: 60; PreferredStrategies: ['Sprint Strike', 'Ambush']
+* Battle Quotes: ['Too fast for you!', 'Gone in a flash!']
+2. Elephant (Tank, Epic)
+* Character ID: elephant-tank
+* Name: Elephant
+* Title: Unstoppable Titan
+* Avatar Emoji: 🐘
+* Archetype: Tank
+* Rarity: Epic
+* Description: A massive elephant, crushing foes with its sheer power.
+* Historical Period: N/A
+* Mythology: Revered in various cultures as a symbol of strength.
+* Personality Traits: ['Steadfast', 'Protective']
+* Speech Style: Deep and deliberate
+* Motivations: ['Protecting the herd', 'Dominance']
+* Fears: ['Hunters', 'Isolation']
+* Base Stats: Strength: 26, Agility: 8, Intelligence: 12, Vitality: 28, Wisdom: 14, Charisma: 12
+* Combat Stats: Health: 220, MaxHealth: 220, Mana: 20, MaxMana: 20, Attack: 28, Defense: 25, MagicAttack: 5, MagicDefense: 15, Speed: 6, CriticalChance: 5, CriticalDamage: 150, Accuracy: 70, Evasion: 5
+* Battle AI: Aggression: 50, Defensiveness: 80, RiskTaking: 40, Adaptability: 50; PreferredStrategies: ['Trample', 'Fortify']
+* Battle Quotes: ['I am immovable!', 'You will fall beneath me!']
+3. Owl (Scholar, Common)
+* Character ID: owl-scholar
+* Name: Owl
+* Title: Night Watcher
+* Avatar Emoji: 🦇
+* Archetype: Scholar
+* Rarity: Common
+* Description: A silent owl, wise and observant in the darkness.
+* Historical Period: N/A
+* Mythology: Associated with wisdom in many cultures.
+* Personality Traits: ['Wise', 'Quiet']
+* Speech Style: Soft and measured
+* Motivations: ['Seeking knowledge', 'Observing']
+* Fears: ['Bright lights', 'Predators']
+* Base Stats: Strength: 8, Agility: 12, Intelligence: 16, Vitality: 10, Wisdom: 18, Charisma: 8
+* Combat Stats: Health: 70, MaxHealth: 70, Mana: 40, MaxMana: 40, Attack: 10, Defense: 8, MagicAttack: 16, MagicDefense: 12, Speed: 14, CriticalChance: 5, CriticalDamage: 150, Accuracy: 90, Evasion: 15
+* Battle AI: Aggression: 30, Defensiveness: 60, RiskTaking: 20, Adaptability: 70; PreferredStrategies: ['Analyze', 'Swoop']
+* Battle Quotes: ['I see through the shadows.', 'Wisdom guides me.']
+Monsters
+1. Gargoyle (Tank, Uncommon)
+* Character ID: gargoyle-tank
+* Name: Gargoyle
+* Title: Stone Sentinel
+* Avatar Emoji: 🗿
+* Archetype: Tank
+* Rarity: Uncommon
+* Description: A stone creature that comes to life to defend its territory.
+* Historical Period: N/A
+* Mythology: Medieval European folklore
+* Personality Traits: ['Stoic', 'Loyal']
+* Speech Style: Gravelly and slow
+* Motivations: ['Guarding', 'Enduring']
+* Fears: ['Erosion', 'Destruction']
+* Base Stats: Strength: 18, Agility: 6, Intelligence: 8, Vitality: 24, Wisdom: 10, Charisma: 6
+* Combat Stats: Health: 160, MaxHealth: 160, Mana: 20, MaxMana: 20, Attack: 14, Defense: 28, MagicAttack: 5, MagicDefense: 20, Speed: 4, CriticalChance: 5, CriticalDamage: 150, Accuracy: 65, Evasion: 5
+* Battle AI: Aggression: 40, Defensiveness: 90, RiskTaking: 30, Adaptability: 40; PreferredStrategies: ['Stone Wall', 'Smash']
+* Battle Quotes: ['I am eternal.', 'None shall pass.']
+2. Banshee (Mystic, Rare)
+* Character ID: banshee-mystic
+* Name: Banshee
+* Title: Wailing Spirit
+* Avatar Emoji: 👻
+* Archetype: Mystic
+* Rarity: Rare
+* Description: A spectral entity whose scream foretells doom.
+* Historical Period: N/A
+* Mythology: Irish folklore
+* Personality Traits: ['Mournful', 'Ethereal']
+* Speech Style: Haunting and sorrowful
+* Motivations: ['Warning', 'Lamenting']
+* Fears: ['Silence', 'Oblivion']
+* Base Stats: Strength: 10, Agility: 14, Intelligence: 18, Vitality: 12, Wisdom: 16, Charisma: 14
+* Combat Stats: Health: 90, MaxHealth: 90, Mana: 70, MaxMana: 70, Attack: 12, Defense: 10, MagicAttack: 22, MagicDefense: 18, Speed: 16, CriticalChance: 10, CriticalDamage: 150, Accuracy: 85, Evasion: 20
+* Battle AI: Aggression: 50, Defensiveness: 50, RiskTaking: 40, Adaptability: 70; PreferredStrategies: ['Scream', 'Fade']
+* Battle Quotes: ['Hear my cry!', 'Your end is near.']
+3. Ogre (Berserker, Epic)
+* Character ID: ogre-berserker
+* Name: Ogre
+* Title: Brutal Behemoth
+* Avatar Emoji: 👹
+* Archetype: Berserker
+* Rarity: Epic
+* Description: A towering, savage creature that crushes all in its path.
+* Historical Period: N/A
+* Mythology: European folklore
+* Personality Traits: ['Fierce', 'Unrelenting']
+* Speech Style: Rough and booming
+* Motivations: ['Destruction', 'Feasting']
+* Fears: ['Cunning foes', 'Starvation']
+* Base Stats: Strength: 28, Agility: 10, Intelligence: 6, Vitality: 22, Wisdom: 8, Charisma: 10
+* Combat Stats: Health: 180, MaxHealth: 180, Mana: 20, MaxMana: 20, Attack: 30, Defense: 18, MagicAttack: 5, MagicDefense: 10, Speed: 8, CriticalChance: 15, CriticalDamage: 200, Accuracy: 70, Evasion: 5
+* Battle AI: Aggression: 90, Defensiveness: 20, RiskTaking: 80, Adaptability: 30; PreferredStrategies: ['Smash', 'Rampage']
+* Battle Quotes: ['Crush you!', 'Me hungry!']
+Cryptids
+1. Jersey Devil (Beast, Rare)
+* Character ID: jersey-devil-beast
+* Name: Jersey Devil
+* Title: Pine Barrens Terror
+* Avatar Emoji: 🐐 (closest emoji)
+* Archetype: Beast
+* Rarity: Rare
+* Description: A winged, hooved creature haunting the forests of New Jersey.
+* Historical Period: Modern
+* Mythology: American folklore
+* Personality Traits: ['Wild', 'Elusive']
+* Speech Style: Shrieks and growls
+* Motivations: ['Terrifying', 'Surviving']
+* Fears: ['Hunters', 'Fire']
+* Base Stats: Strength: 16, Agility: 20, Intelligence: 8, Vitality: 14, Wisdom: 10, Charisma: 12
+* Combat Stats: Health: 120, MaxHealth: 120, Mana: 30, MaxMana: 30, Attack: 22, Defense: 14, MagicAttack: 5, MagicDefense: 10, Speed: 18, CriticalChance: 10, CriticalDamage: 150, Accuracy: 80, Evasion: 20
+* Battle AI: Aggression: 70, Defensiveness: 40, RiskTaking: 60, Adaptability: 50; PreferredStrategies: ['Claw Slash', 'Screech']
+* Battle Quotes: ['Shriek!', 'Fear me!']
+2. Yeti (Tank, Epic)
+* Character ID: yeti-tank
+* Name: Yeti
+* Title: Snowbound Giant
+* Avatar Emoji: 🦍 (closest emoji)
+* Archetype: Tank
+* Rarity: Epic
+* Description: A massive, furry creature said to roam the Himalayas.
+* Historical Period: Modern
+* Mythology: Himalayan folklore
+* Personality Traits: ['Solitary', 'Resilient']
+* Speech Style: Low grunts and roars
+* Motivations: ['Isolation', 'Survival']
+* Fears: ['Fire', 'Humans']
+* Base Stats: Strength: 24, Agility: 10, Intelligence: 8, Vitality: 26, Wisdom: 12, Charisma: 8
+* Combat Stats: Health: 200, MaxHealth: 200, Mana: 20, MaxMana: 20, Attack: 26, Defense: 22, MagicAttack: 5, MagicDefense: 15, Speed: 8, CriticalChance: 5, CriticalDamage: 150, Accuracy: 75, Evasion: 5
+* Battle AI: Aggression: 50, Defensiveness: 80, RiskTaking: 40, Adaptability: 50; PreferredStrategies: ['Snow Slam', 'Roar']
+* Battle Quotes: ['Raaargh!', 'Stay out!']
+3. Kraken (Beast, Legendary)
+* Character ID: kraken-beast
+* Name: Kraken
+* Title: Sea's Wrath
+* Avatar Emoji: 🐙
+* Archetype: Beast
+* Rarity: Legendary
+* Description: A colossal sea monster with tentacles that sink ships.
+* Historical Period: N/A
+* Mythology: Norse folklore
+* Personality Traits: ['Fearsome', 'Unpredictable']
+* Speech Style: Silent or deep rumbles
+* Motivations: ['Ruling the seas', 'Destruction']
+* Fears: ['Lightning', 'Harpoons']
+* Base Stats: Strength: 30, Agility: 12, Intelligence: 10, Vitality: 28, Wisdom: 14, Charisma: 16
+* Combat Stats: Health: 250, MaxHealth: 250, Mana: 40, MaxMana: 40, Attack: 32, Defense: 20, MagicAttack: 10, MagicDefense: 15, Speed: 10, CriticalChance: 10, CriticalDamage: 200, Accuracy: 70, Evasion: 10
+* Battle AI: Aggression: 60, Defensiveness: 70, RiskTaking: 50, Adaptability: 60; PreferredStrategies: ['Tentacle Crush', 'Whirlpool']
+* Battle Quotes: ['...', 'The deep claims you!']
+Mythical Animals
+1. Dragon (Elementalist, Legendary)
+* Character ID: dragon-elementalist
+* Name: Dragon
+* Title: Flame Sovereign
+* Avatar Emoji: 🐉
+* Archetype: Elementalist
+* Rarity: Legendary
+* Description: A mighty winged reptile that breathes fire and commands awe.
+* Historical Period: N/A
+* Mythology: Various, including European and Asian traditions
+* Personality Traits: ['Majestic', 'Fierce']
+* Speech Style: Deep and commanding
+* Motivations: ['Hoarding treasure', 'Dominance']
+* Fears: ['Dragon slayers', 'Cold']
+* Base Stats: Strength: 22, Agility: 18, Intelligence: 20, Vitality: 20, Wisdom: 18, Charisma: 20
+* Combat Stats: Health: 180, MaxHealth: 180, Mana: 100, MaxMana: 100, Attack: 25, Defense: 20, MagicAttack: 30, MagicDefense: 25, Speed: 16, CriticalChance: 15, CriticalDamage: 200, Accuracy: 85, Evasion: 15
+* Battle AI: Aggression: 70, Defensiveness: 50, RiskTaking: 60, Adaptability: 70; PreferredStrategies: ['Fire Breath', 'Wing Storm']
+* Battle Quotes: ['Bow before me!', 'Burn to ash!']
+2. Pegasus (Support, Epic)
+* Character ID: pegasus-support
+* Name: Pegasus
+* Title: Winged Savior
+* Avatar Emoji: 🐎 (closest emoji)
+* Archetype: Support
+* Rarity: Epic
+* Description: A winged horse born from myth, aiding allies with grace.
+* Historical Period: N/A
+* Mythology: Greek mythology
+* Personality Traits: ['Noble', 'Swift']
+* Speech Style: Gentle and uplifting
+* Motivations: ['Helping others', 'Freedom']
+* Fears: ['Cages', 'Injury']
+* Base Stats: Strength: 14, Agility: 20, Intelligence: 16, Vitality: 14, Wisdom: 16, Charisma: 18
+* Combat Stats: Health: 110, MaxHealth: 110, Mana: 60, MaxMana: 60, Attack: 14, Defense: 12, MagicAttack: 20, MagicDefense: 16, Speed: 22, CriticalChance: 10, CriticalDamage: 150, Accuracy: 85, Evasion: 25
+* Battle AI: Aggression: 30, Defensiveness: 60, RiskTaking: 40, Adaptability: 70; PreferredStrategies: ['Heal', 'Aerial Boost']
+* Battle Quotes: ['Rise with me!', 'Wings of hope!']
+3. Sphinx (Scholar, Rare)
+* Character ID: sphinx-scholar
+* Name: Sphinx
+* Title: Riddle Keeper
+* Avatar Emoji: 🦁 (closest emoji)
+* Archetype: Scholar
+* Rarity: Rare
+* Description: A creature with a lion’s body and human head, guarding secrets with riddles.
+* Historical Period: N/A
+* Mythology: Egyptian and Greek mythology
+* Personality Traits: ['Wise', 'Mysterious']
+* Speech Style: Cryptic and thoughtful
+* Motivations: ['Guarding knowledge', 'Testing wits']
+* Fears: ['Ignorance', 'Defeat']
+* Base Stats: Strength: 16, Agility: 12, Intelligence: 22, Vitality: 14, Wisdom: 20, Charisma: 16
+* Combat Stats: Health: 100, MaxHealth: 100, Mana: 80, MaxMana: 80, Attack: 14, Defense: 14, MagicAttack: 24, MagicDefense: 18, Speed: 12, CriticalChance: 5, CriticalDamage: 150, Accuracy: 90, Evasion: 10
+* Battle AI: Aggression: 40, Defensiveness: 60, RiskTaking: 30, Adaptability: 80; PreferredStrategies: ['Riddle', 'Mind Strike']
+* Battle Quotes: ['Solve this or perish.', 'Knowledge is my shield.']
+Magical Animals
+1. Ice Wolf (Beast, Rare)
+* Character ID: ice-wolf-beast
+* Name: Ice Wolf
+* Title: Frost Howler
+* Avatar Emoji: 🐺
+* Archetype: Beast
+* Rarity: Rare
+* Description: A wolf imbued with icy magic, chilling foes with its breath.
+* Historical Period: N/A
+* Mythology: Inspired by northern folklore
+* Personality Traits: ['Fierce', 'Cold']
+* Speech Style: Howls and growls
+* Motivations: ['> ['Hunting', 'Protecting its pack']
+* Fears: ['Fire', 'Isolation']
+* Base Stats: Strength: 18, Agility: 16, Intelligence: 10, Vitality: 16, Wisdom: 12, Charisma: 10
+* Combat Stats: Health: 120, MaxHealth: 120, Mana: 40, MaxMana: 40, Attack: 20, Defense: 14, MagicAttack: 15, MagicDefense: 12, Speed: 18, CriticalChance: 10, CriticalDamage: 150, Accuracy: 80, Evasion: 15
+* Battle AI: Aggression: 70, Defensiveness: 40, RiskTaking: 60, Adaptability: 50; PreferredStrategies: ['Frost Bite', 'Howl']
+* Battle Quotes: ['Feel the chill!', 'The pack strikes!']
+2. Crystal Tortoise (Tank, Epic)
+* Character ID: crystal-tortoise-tank
+* Name: Crystal Tortoise
+* Title: Gem Guardian
+* Avatar Emoji: 🐢
+* Archetype: Tank
+* Rarity: Epic
+* Description: A tortoise with a shell of shimmering crystal, reflecting attacks.
+* Historical Period: N/A
+* Mythology: Original magical creature
+* Personality Traits: ['Resilient', 'Calm']
+* Speech Style: Slow and steady
+* Motivations: ['Protection', 'Endurance']
+* Fears: ['Shattering', 'Speed']
+* Base Stats: Strength: 20, Agility: 6, Intelligence: 12, Vitality: 30, Wisdom: 14, Charisma: 8
+* Combat Stats: Health: 240, MaxHealth: 240, Mana: 30, MaxMana: 30, Attack: 16, Defense: 30, MagicAttack: 10, MagicDefense: 25, Speed: 4, CriticalChance: 5, CriticalDamage: 150, Accuracy: 65, Evasion: 5
+* Battle AI: Aggression: 30, Defensiveness: 90, RiskTaking: 20, Adaptability: 40; PreferredStrategies: ['Reflect', 'Shell Bash']
+* Battle Quotes: ['I endure all.', 'Your strength breaks on me.']
+3. Starlight Raven (Mystic, Legendary)
+* Character ID: starlight-raven-mystic
+* Name: Starlight Raven
+* Title: Celestial Messenger
+* Avatar Emoji: 🐦
+* Archetype: Mystic
+* Rarity: Legendary
+* Description: A raven glowing with starlight, wielding cosmic magic.
+* Historical Period: N/A
+* Mythology: Inspired by celestial lore
+* Personality Traits: ['Mystical', 'Elusive']
+* Speech Style: Ethereal and poetic
+* Motivations: ['Guiding fate', 'Exploring the cosmos']
+* Fears: ['Darkness', 'Cages']
+* Base Stats: Strength: 12, Agility: 18, Intelligence: 22, Vitality: 16, Wisdom: 20, Charisma: 18
+* Combat Stats: Health: 130, MaxHealth: 130, Mana: 90, MaxMana: 90, Attack: 14, Defense: 12, MagicAttack: 28, MagicDefense: 22, Speed: 20, CriticalChance: 15, CriticalDamage: 150, Accuracy: 90, Evasion: 25
+* Battle AI: Aggression: 50, Defensiveness: 50, RiskTaking: 60, Adaptability: 80; PreferredStrategies: ['Starfall', 'Cosmic Veil']
+* Battle Quotes: ['The stars align!', 'Fate shines upon me.']
+
+
+Creature Profiles for Your Game
+Below are the profiles for goblins, orcs, vampires, skeletons, liches, unicorns, merpeople, tritons, basilisks, and treants. Each creature has a unique role, rarity, and set of abilities to enrich your game’s world.
+
+Goblins
+Goblins are small, sneaky creatures that excel in ambushes and group tactics.
+Goblin (Common, Assassin)
+* Name: Goblin
+* Title: Sneaky Stalker
+* Avatar Emoji: 🧌
+* Rarity: Common
+* Description: A small, green-skinned creature known for its cunning and stealth.
+* Mythology: European folklore
+* Personality Traits: Cunning, Greedy
+* Speech Style: High-pitched and mischievous
+* Motivations: Treasure, Survival
+* Fears: Larger creatures, Fire
+* Base Stats:
+    * Strength: 8
+    * Agility: 15
+    * Intelligence: 10
+    * Vitality: 10
+    * Wisdom: 8
+    * Charisma: 6
+* Combat Stats:
+    * Health: 60
+    * Mana: 20
+    * Attack: 12
+    * Defense: 8
+    * Magic Attack: 5
+    * Magic Defense: 5
+    * Speed: 18
+    * Critical Chance: 15%
+    * Critical Damage: 150%
+    * Accuracy: 85%
+    * Evasion: 20%
+* Abilities:
+    * Backstab: Deals extra damage when attacking from behind.
+    * Poison Dart: Inflicts poison damage over time.
+* Battle Quotes:
+    * "Hehe, you won’t see me coming!"
+    * "Shiny things are mine!"
+
+Orcs
+Orcs are brutish warriors built for frontline combat.
+Orc Grunt (Uncommon, Warrior)
+* Name: Orc Grunt
+* Title: Frontline Brute
+* Avatar Emoji: 🧌
+* Rarity: Uncommon
+* Description: A hulking orc warrior, feared for its raw power.
+* Mythology: Fantasy lore
+* Personality Traits: Aggressive, Loyal
+* Speech Style: Gruff and direct
+* Motivations: Battle, Glory
+* Fears: Defeat, Weakness
+* Base Stats:
+    * Strength: 20
+    * Agility: 10
+    * Intelligence: 8
+    * Vitality: 18
+    * Wisdom: 6
+    * Charisma: 8
+* Combat Stats:
+    * Health: 140
+    * Mana: 20
+    * Attack: 22
+    * Defense: 18
+    * Magic Attack: 5
+    * Magic Defense: 10
+    * Speed: 10
+    * Critical Chance: 10%
+    * Critical Damage: 150%
+    * Accuracy: 75%
+    * Evasion: 5%
+* Abilities:
+    * Charge: Rushes forward to deal heavy damage.
+    * Cleave: Hits multiple enemies in a single swing.
+* Battle Quotes:
+    * "Smash you to bits!"
+    * "For the horde!"
+
+Vampires
+Vampires are undead beings with a thirst for blood and dark powers.
+Vampire Thrall (Rare, Assassin)
+* Name: Vampire Thrall
+* Title: Servant of the Night
+* Avatar Emoji: 🧛
+* Rarity: Rare
+* Description: A newly turned vampire, still learning its powers.
+* Mythology: European folklore
+* Personality Traits: Cunning, Hungry
+* Speech Style: Whispered and eerie
+* Motivations: Blood, Immortality
+* Fears: Sunlight, Holy symbols
+* Base Stats:
+    * Strength: 16
+    * Agility: 18
+    * Intelligence: 12
+    * Vitality: 14
+    * Wisdom: 10
+    * Charisma: 16
+* Combat Stats:
+    * Health: 100
+    * Mana: 50
+    * Attack: 18
+    * Defense: 12
+    * Magic Attack: 15
+    * Magic Defense: 15
+    * Speed: 20
+    * Critical Chance: 15%
+    * Critical Damage: 150%
+    * Accuracy: 85%
+    * Evasion: 25%
+* Abilities:
+    * Life Drain: Steals health from enemies.
+    * Bat Form: Transforms to evade attacks.
+* Battle Quotes:
+    * "Your blood will sustain me!"
+    * "I am the night!"
+
+Skeletons
+Skeletons are basic undead used as fodder or defenders.
+Skeleton Soldier (Common, Warrior)
+* Name: Skeleton Soldier
+* Title: Bone Defender
+* Avatar Emoji: 💀
+* Rarity: Common
+* Description: A reanimated skeleton with a rusty sword and shield.
+* Mythology: Fantasy lore
+* Personality Traits: Mindless, Obedient
+* Speech Style: Silent or clattering bones
+* Motivations: Following orders, Guarding
+* Fears: Holy magic, Blunt weapons
+* Base Stats:
+    * Strength: 12
+    * Agility: 8
+    * Intelligence: 2
+    * Vitality: 10
+    * Wisdom: 2
+    * Charisma: 2
+* Combat Stats:
+    * Health: 80
+    * Mana: 0
+    * Attack: 14
+    * Defense: 12
+    * Magic Attack: 0
+    * Magic Defense: 5
+    * Speed: 8
+    * Critical Chance: 5%
+    * Critical Damage: 150%
+    * Accuracy: 70%
+    * Evasion: 5%
+* Abilities:
+    * Slash: Basic melee attack.
+    * Bone Shield: Increases defense temporarily.
+* Battle Quotes:
+    * "..." (silent)
+
+Liches
+Liches are powerful undead mages wielding necromancy.
+Lich (Epic, Mage)
+* Name: Lich
+* Title: Undying Sorcerer
+* Avatar Emoji: 👻💀
+* Rarity: Epic
+* Description: A powerful undead mage who has transcended death.
+* Mythology: Fantasy lore
+* Personality Traits: Calculating, Immortal
+* Speech Style: Cold and commanding
+* Motivations: Knowledge, Immortality
+* Fears: Soul destruction, Holy magic
+* Base Stats:
+    * Strength: 10
+    * Agility: 12
+    * Intelligence: 28
+    * Vitality: 16
+    * Wisdom: 24
+    * Charisma: 18
+* Combat Stats:
+    * Health: 140
+    * Mana: 120
+    * Attack: 12
+    * Defense: 14
+    * Magic Attack: 30
+    * Magic Defense: 25
+    * Speed: 14
+    * Critical Chance: 10%
+    * Critical Damage: 150%
+    * Accuracy: 90%
+    * Evasion: 15%
+* Abilities:
+    * Necromancy: Summons undead minions.
+    * Soul Steal: Drains enemy mana or health.
+* Battle Quotes:
+    * "Death is but a tool."
+    * "Your soul will fuel my power!"
+
+Unicorns
+Unicorns are mythical creatures of purity and healing.
+Unicorn (Rare, Support)
+* Name: Unicorn
+* Title: Guardian of Purity
+* Avatar Emoji: 🦄
+* Rarity: Rare
+* Description: A majestic creature with a healing horn and gentle spirit.
+* Mythology: European folklore
+* Personality Traits: Gentle, Pure
+* Speech Style: Soft and melodic
+* Motivations: Healing, Protecting nature
+* Fears: Corruption, Dark magic
+* Base Stats:
+    * Strength: 12
+    * Agility: 16
+    * Intelligence: 18
+    * Vitality: 14
+    * Wisdom: 20
+    * Charisma: 18
+* Combat Stats:
+    * Health: 100
+    * Mana: 80
+    * Attack: 12
+    * Defense: 12
+    * Magic Attack: 20
+    * Magic Defense: 20
+    * Speed: 18
+    * Critical Chance: 5%
+    * Critical Damage: 150%
+    * Accuracy: 85%
+    * Evasion: 15%
+* Abilities:
+    * Healing Horn: Restores health to allies.
+    * Purify: Removes negative effects.
+* Battle Quotes:
+    * "Let my light heal you."
+    * "Purity will prevail."
+
+Merpeople
+Merpeople are aquatic beings with enchanting abilities.
+Mermaid (Uncommon, Support)
+* Name: Mermaid
+* Title: Singer of the Deep
+* Avatar Emoji: 🧜‍♀️
+* Rarity: Uncommon
+* Description: A beautiful sea creature known for her enchanting voice.
+* Mythology: Maritime folklore
+* Personality Traits: Charming, Mysterious
+* Speech Style: Melodic and soothing
+* Motivations: Protecting the ocean, Singing
+* Fears: Pollution, Nets
+* Base Stats:
+    * Strength: 10
+    * Agility: 14
+    * Intelligence: 16
+    * Vitality: 12
+    * Wisdom: 18
+    * Charisma: 20
+* Combat Stats:
+    * Health: 80
+    * Mana: 60
+    * Attack: 10
+    * Defense: 10
+    * Magic Attack: 18
+    * Magic Defense: 15
+    * Speed: 16
+    * Critical Chance: 5%
+    * Critical Damage: 150%
+    * Accuracy: 85%
+    * Evasion: 15%
+* Abilities:
+    * Siren’s Song: Mesmerizes enemies.
+    * Healing Wave: Heals allies with water magic.
+* Battle Quotes:
+    * "Listen to my voice..."
+    * "The sea’s embrace heals all."
+
+Tritons
+Tritons are warrior-like merfolk from the sea.
+Triton (Rare, Warrior)
+* Name: Triton
+* Title: Guardian of the Seas
+* Avatar Emoji: 🧜‍♂️
+* Rarity: Rare
+* Description: A powerful merfolk warrior armed with a trident.
+* Mythology: Greek mythology
+* Personality Traits: Noble, Protective
+* Speech Style: Commanding and regal
+* Motivations: Defending the ocean, Justice
+* Fears: Land dwellers, Storms
+* Base Stats:
+    * Strength: 18
+    * Agility: 14
+    * Intelligence: 12
+    * Vitality: 16
+    * Wisdom: 14
+    * Charisma: 16
+* Combat Stats:
+    * Health: 120
+    * Mana: 40
+    * Attack: 20
+    * Defense: 18
+    * Magic Attack: 10
+    * Magic Defense: 15
+    * Speed: 14
+    * Critical Chance: 10%
+    * Critical Damage: 150%
+    * Accuracy: 80%
+    * Evasion: 10%
+* Abilities:
+    * Trident Strike: Pierces enemies with precision.
+    * Wave Crash: Deals area water damage.
+* Battle Quotes:
+    * "For the ocean’s honor!"
+    * "The tide turns in my favor!"
+
+Basilisks
+Basilisks are deadly reptiles with a petrifying gaze.
+Basilisk (Epic, Beast)
+* Name: Basilisk
+* Title: Petrifying Serpent
+* Avatar Emoji: 🐍
+* Rarity: Epic
+* Description: A fearsome serpent whose gaze can turn foes to stone.
+* Mythology: European folklore
+* Personality Traits: Fearsome, Solitary
+* Speech Style: Hisses and growls
+* Motivations: Hunting, Territory
+* Fears: Mirrors, Weasels
+* Base Stats:
+    * Strength: 22
+    * Agility: 18
+    * Intelligence: 10
+    * Vitality: 20
+    * Wisdom: 12
+    * Charisma: 8
+* Combat Stats:
+    * Health: 160
+    * Mana: 30
+    * Attack: 25
+    * Defense: 20
+    * Magic Attack: 15
+    * Magic Defense: 15
+    * Speed: 16
+    * Critical Chance: 10%
+    * Critical Damage: 150%
+    * Accuracy: 80%
+    * Evasion: 15%
+* Abilities:
+    * Stone Gaze: Immobilizes enemies.
+    * Venom Bite: Inflicts poison damage.
+* Battle Quotes:
+    * "Look into my eyes..."
+    * "You will become stone!"
+
+Treants
+Treants are living trees that guard the forest.
+Treant (Rare, Tank)
+* Name: Treant
+* Title: Forest Guardian
+* Avatar Emoji: 🌳
+* Rarity: Rare
+* Description: A massive tree-like creature that protects the forest.
+* Mythology: Fantasy lore
+* Personality Traits: Wise, Protective
+* Speech Style: Slow and deep
+* Motivations: Defending nature, Balance
+* Fears: Fire, Axes
+* Base Stats:
+    * Strength: 22
+    * Agility: 8
+    * Intelligence: 14
+    * Vitality: 28
+    * Wisdom: 18
+    * Charisma: 12
+* Combat Stats:
+    * Health: 200
+    * Mana: 40
+    * Attack: 20
+    * Defense: 25
+    * Magic Attack: 10
+    * Magic Defense: 20
+    * Speed: 6
+    * Critical Chance: 5%
+    * Critical Damage: 150%
+    * Accuracy: 70%
+    * Evasion: 5%
+* Abilities:
+    * Root Entangle: Traps enemies in place.
+    * Bark Skin: Boosts defense.
+* Battle Quotes:
+    * "The forest stands with me."
+    * "You shall not pass!"
+
+These creatures can serve as enemies, allies, or both, depending on your game’s needs. Their stats and abilities are balanced to reflect their rarity and roles, from common goblins to epic basilisks. Let me know if you’d like to expand on these or add more creatures in a similar vein!
+
+
+Character Profiles
+Elf Character Profile
+* Character ID: elf-archer
+* Name: Lythariel
+* Title: Forest Whisperer
+* Avatar Emoji: 🧝‍♀️
+* Archetype: Assassin
+* Rarity: Rare
+* Description: A swift and elusive elf, skilled in archery and attuned to the forest's secrets.
+* Historical Period: Medieval Fantasy
+* Mythology: Elven Lore
+* Personality Traits: Graceful, Wise
+* Speech Style: Poetic and serene
+* Motivations: Protect nature, Seek knowledge
+* Fears: Deforestation, Dark magic
+* Base Stats:
+    * Strength: 10
+    * Agility: 25
+    * Intelligence: 20
+    * Vitality: 15
+    * Wisdom: 20
+    * Charisma: 15
+* Combat Stats:
+    * Health: 120
+    * MaxHealth: 120
+    * Mana: 80
+    * MaxMana: 80
+    * Attack: 15
+    * Defense: 10
+    * MagicAttack: 25
+    * MagicDefense: 15
+    * Speed: 30
+    * CriticalChance: 20
+    * CriticalDamage: 150
+    * Accuracy: 95
+    * Evasion: 25
+* Battle AI:
+    * Aggression: 40
+    * Defensiveness: 60
+    * RiskTaking: 50
+    * Adaptability: 70
+    * PreferredStrategies: Snipe, Evade
+* Battle Quotes: "The forest guides my arrow.", "You cannot escape my sight."
+Dwarf Character Profile
+* Character ID: dwarf-warrior
+* Name: Thrain
+* Title: Forge Master
+* Avatar Emoji: 🧔
+* Archetype: Tank
+* Rarity: Uncommon
+* Description: A stout and sturdy dwarf, forged in the heat of battle and the forge.
+* Historical Period: Medieval Fantasy
+* Mythology: Dwarven Lore
+* Personality Traits: Gruff, Loyal
+* Speech Style: Blunt and direct
+* Motivations: Craftsmanship, Protect clan
+* Fears: Dishonor, Cave-ins
+* Base Stats:
+    * Strength: 25
+    * Agility: 10
+    * Intelligence: 15
+    * Vitality: 30
+    * Wisdom: 15
+    * Charisma: 10
+* Combat Stats:
+    * Health: 200
+    * MaxHealth: 200
+    * Mana: 30
+    * MaxMana: 30
+    * Attack: 20
+    * Defense: 25
+    * MagicAttack: 5
+    * MagicDefense: 20
+    * Speed: 10
+    * CriticalChance: 10
+    * CriticalDamage: 150
+    * Accuracy: 80
+    * Evasion: 5
+* Battle AI:
+    * Aggression: 50
+    * Defensiveness: 80
+    * RiskTaking: 30
+    * Adaptability: 40
+    * PreferredStrategies: Shield Bash, Hold Ground
+* Battle Quotes: "By the hammer of my ancestors!", "Ye shall not pass!"
+Demon Character Profile
+* Character ID: demon-berserker
+* Name: Azrakul
+* Title: Chaos Bringer
+* Avatar Emoji: 😈
+* Archetype: Berserker
+* Rarity: Epic
+* Description: A fearsome demon driven by chaos and destruction.
+* Historical Period: Mythical
+* Mythology: Infernal Realms
+* Personality Traits: Chaotic, Wrathful
+* Speech Style: Growling and menacing
+* Motivations: Spread chaos, Consume souls
+* Fears: Holy relics, Banishment
+* Base Stats:
+    * Strength: 30
+    * Agility: 15
+    * Intelligence: 10
+    * Vitality: 25
+    * Wisdom: 10
+    * Charisma: 15
+* Combat Stats:
+    * Health: 180
+    * MaxHealth: 180
+    * Mana: 50
+    * MaxMana: 50
+    * Attack: 35
+    * Defense: 15
+    * MagicAttack: 20
+    * MagicDefense: 10
+    * Speed: 20
+    * CriticalChance: 25
+    * CriticalDamage: 200
+    * Accuracy: 75
+    * Evasion: 10
+* Battle AI:
+    * Aggression: 90
+    * Defensiveness: 20
+    * RiskTaking: 80
+    * Adaptability: 30
+    * PreferredStrategies: Rampage, Soul Drain
+* Battle Quotes: "Chaos reigns!", "Your soul is mine!"
+Devil Character Profile
+* Character ID: devil-trickster
+* Name: Mephisto
+* Title: Lord of Deception
+* Avatar Emoji: 👿
+* Archetype: Trickster
+* Rarity: Legendary
+* Description: A cunning devil who manipulates others with dark contracts.
+* Historical Period: Mythical
+* Mythology: Infernal Hierarchy
+* Personality Traits: Cunning, Manipulative
+* Speech Style: Smooth and persuasive
+* Motivations: Forge contracts, Gain power
+* Fears: Breaking deals, Holy magic
+* Base Stats:
+    * Strength: 15
+    * Agility: 20
+    * Intelligence: 30
+    * Vitality: 20
+    * Wisdom: 25
+    * Charisma: 30
+* Combat Stats:
+    * Health: 150
+    * MaxHealth: 150
+    * Mana: 100
+    * MaxMana: 100
+    * Attack: 15
+    * Defense: 15
+    * MagicAttack: 30
+    * MagicDefense: 25
+    * Speed: 20
+    * CriticalChance: 15
+    * CriticalDamage: 150
+    * Accuracy: 90
+    * Evasion: 20
+* Battle AI:
+    * Aggression: 40
+    * Defensiveness: 60
+    * RiskTaking: 70
+    * Adaptability: 80
+    * PreferredStrategies: Illusion, Curse
+* Battle Quotes: "Sign here, mortal.", "Your fate is sealed."
+Angel Character Profile
+* Character ID: angel-support
+* Name: Seraphina
+* Title: Guardian of Light
+* Avatar Emoji: 👼
+* Archetype: Support
+* Rarity: Epic
+* Description: A radiant angel who protects and heals her allies.
+* Historical Period: Mythical
+* Mythology: Celestial Realms
+* Personality Traits: Compassionate, Righteous
+* Speech Style: Gentle and inspiring
+* Motivations: Protect the innocent, Uphold justice
+* Fears: Corruption, Loss of faith
+* Base Stats:
+    * Strength: 15
+    * Agility: 20
+    * Intelligence: 25
+    * Vitality: 20
+    * Wisdom: 30
+    * Charisma: 25
+* Combat Stats:
+    * Health: 140
+    * MaxHealth: 140
+    * Mana: 120
+    * MaxMana: 120
+    * Attack: 10
+    * Defense: 15
+    * MagicAttack: 25
+    * MagicDefense: 30
+    * Speed: 20
+    * CriticalChance: 10
+    * CriticalDamage: 150
+    * Accuracy: 85
+    * Evasion: 15
+* Battle AI:
+    * Aggression: 20
+    * Defensiveness: 80
+    * RiskTaking: 30
+    * Adaptability: 70
+    * PreferredStrategies: Heal, Blessing
+* Battle Quotes: "May light guide you.", "I will mend your wounds."
+Robot Character Profile
+* Character ID: robot-scholar
+* Name: Axiom
+* Title: Logic Engine
+* Avatar Emoji: 🤖
+* Archetype: Scholar
+* Rarity: Rare
+* Description: A highly advanced robot designed for analysis and strategy.
+* Historical Period: Futuristic
+* Mythology: None
+* Personality Traits: Logical, Analytical
+* Speech Style: Monotone and precise
+* Motivations: Process data, Optimize outcomes
+* Fears: System failure, Illogical actions
+* Base Stats:
+    * Strength: 10
+    * Agility: 15
+    * Intelligence: 30
+    * Vitality: 15
+    * Wisdom: 25
+    * Charisma: 10
+* Combat Stats:
+    * Health: 100
+    * MaxHealth: 100
+    * Mana: 80
+    * MaxMana: 80
+    * Attack: 10
+    * Defense: 20
+    * MagicAttack: 25
+    * MagicDefense: 20
+    * Speed: 15
+    * CriticalChance: 10
+    * CriticalDamage: 150
+    * Accuracy: 95
+    * Evasion: 10
+* Battle AI:
+    * Aggression: 30
+    * Defensiveness: 70
+    * RiskTaking: 20
+    * Adaptability: 80
+    * PreferredStrategies: Analyze Weakness, Tactical Strike
+* Battle Quotes: "Calculating optimal strategy.", "Engaging target."
+Alien Character Profile
+* Character ID: alien-elementalist
+* Name: Zyrak
+* Title: Void Walker
+* Avatar Emoji: 👽
+* Archetype: Elementalist
+* Rarity: Legendary
+* Description: An otherworldly being with mastery over cosmic elements.
+* Historical Period: Futuristic
+* Mythology: Extraterrestrial
+* Personality Traits: Mysterious, Curious
+* Speech Style: Telepathic and enigmatic
+* Motivations: Explore the unknown, Harness cosmic power
+* Fears: Stagnation, Isolation
+* Base Stats:
+    * Strength: 15
+    * Agility: 20
+    * Intelligence: 30
+    * Vitality: 20
+    * Wisdom: 25
+    * Charisma: 20
+* Combat Stats:
+    * Health: 160
+    * MaxHealth: 160
+    * Mana: 120
+    * MaxMana: 120
+    * Attack: 15
+    * Defense: 15
+    * MagicAttack: 35
+    * MagicDefense: 25
+    * Speed: 20
+    * CriticalChance: 15
+    * CriticalDamage: 150
+    * Accuracy: 90
+    * Evasion: 20
+* Battle AI:
+    * Aggression: 50
+    * Defensiveness: 50
+    * RiskTaking: 60
+    * Adaptability: 80
+    * PreferredStrategies: Void Blast, Phase Shift
+* Battle Quotes: "The cosmos bends to my will.", "You are but stardust."
+Lizard Monster Character Profile
+* Character ID: lizard-beast
+* Name: Skarath
+* Title: Scaled Terror
+* Avatar Emoji: 🦎
+* Archetype: Beast
+* Rarity: Uncommon
+* Description: A ferocious lizard-like creature with venomous fangs.
+* Historical Period: Prehistoric
+* Mythology: None
+* Personality Traits: Aggressive, Territorial
+* Speech Style: Hisses and growls
+* Motivations: Hunt, Survive
+* Fears: Fire, Larger predators
+* Base Stats:
+    * Strength: 20
+    * Agility: 15
+    * Intelligence: 5
+    * Vitality: 20
+    * Wisdom: 5
+    * Charisma: 5
+* Combat Stats:
+    * Health: 140
+    * MaxHealth: 140
+    * Mana: 20
+    * MaxMana: 20
+    * Attack: 25
+    * Defense: 15
+    * MagicAttack: 5
+    * MagicDefense: 10
+    * Speed: 15
+    * CriticalChance: 15
+    * CriticalDamage: 150
+    * Accuracy: 80
+    * Evasion: 10
+* Battle AI:
+    * Aggression: 70
+    * Defensiveness: 30
+    * RiskTaking: 50
+    * Adaptability: 40
+    * PreferredStrategies: Bite, Tail Swipe
+* Battle Quotes: "Hiss!", "Grrr..."
+Slime Monster Character Profile
+* Character ID: slime-monster
+* Name: Oozor
+* Title: Gelatinous Fiend
+* Avatar Emoji: 🟢
+* Archetype: Tank
+* Rarity: Common
+* Description: A shapeless mass of slime that absorbs damage and splits when attacked.
+* Historical Period: None
+* Mythology: Fantasy
+* Personality Traits: Amorphous, Persistent
+* Speech Style: Gurgling sounds
+* Motivations: Consume, Multiply
+* Fears: Fire, Freezing
+* Base Stats:
+    * Strength: 10
+    * Agility: 5
+    * Intelligence: 5
+    * Vitality: 30
+    * Wisdom: 5
+    * Charisma: 5
+* Combat Stats:
+    * Health: 100
+    * MaxHealth: 100
+    * Mana: 10
+    * MaxMana: 10
+    * Attack: 10
+    * Defense: 25
+    * MagicAttack: 5
+    * MagicDefense: 20
+    * Speed: 5
+    * CriticalChance: 5
+    * CriticalDamage: 150
+    * Accuracy: 70
+    * Evasion: 5
+* Battle AI:
+    * Aggression: 20
+    * Defensiveness: 80
+    * RiskTaking: 10
+    * Adaptability: 30
+    * PreferredStrategies: Absorb, Split
+* Battle Quotes: "Blub...", "Gloop!"
+Kobold Character Profile
+* Character ID: kobold-trickster
+* Name: Sneek
+* Title: Trap Master
+* Avatar Emoji: 🐉
+* Archetype: Trickster
+* Rarity: Uncommon
+* Description: A Small, dragon-like creature skilled in setting traps and ambushes.
+* Historical Period: Medieval Fantasy
+* Mythology: Dragonkin Lore
+* Personality Traits: Sneaky, Clever
+* Speech Style: High-pitched and rapid
+* Motivations: Protect lair, Steal treasure
+* Fears: Dragons, Heroes
+* Base Stats:
+    * Strength: 8
+    * Agility: 20
+    * Intelligence: 15
+    * Vitality: 10
+    * Wisdom: 10
+    * Charisma: 10
+* Combat Stats:
+    * Health: 80
+    * MaxHealth: 80
+    * Mana: 40
+    * MaxMana: 40
+    * Attack: 10
+    * Defense: 10
+    * MagicAttack: 15
+    * MagicDefense: 10
+    * Speed: 25
+    * CriticalChance: 15
+    * CriticalDamage: 150
+    * Accuracy: 85
+    * Evasion: 30
+* Battle AI:
+    * Aggression: 40
+    * Defensiveness: 50
+    * RiskTaking: 70
+    * Adaptability: 60
+    * PreferredStrategies: Set Trap, Hit and Run
+* Battle Quotes: "You fell for it!", "Sneaky sneak!"
+Were-Creature Character Profile
+* Character ID: were-berserker
+* Name: Fenrir
+* Title: Moon Howler
+* Avatar Emoji: 🐺
+* Archetype: Berserker
+* Rarity: Rare
+* Description: A cursed being who transforms into a wolf under the full moon.
+* Historical Period: Medieval Fantasy
+* Mythology: Lycanthropy Lore
+* Personality Traits: Feral, Tormented
+* Speech Style: Growls and howls
+* Motivations: Control curse, Hunt
+* Fears: Silver, Loss of control
+* Base Stats:
+    * Strength: 25
+    * Agility: 20
+    * Intelligence: 10
+    * Vitality: 20
+    * Wisdom: 10
+    * Charisma: 10
+* Combat Stats:
+    * Health: 160
+    * MaxHealth: 160
+    * Mana: 30
+    * MaxMana: 30
+    * Attack: 30
+    * Defense: 15
+    * MagicAttack: 5
+    * MagicDefense: 10
+    * Speed: 25
+    * CriticalChance: 20
+    * CriticalDamage: 200
+    * Accuracy: 80
+    * Evasion: 15
+* Battle AI:
+    * Aggression: 80
+    * Defensiveness: 30
+    * RiskTaking: 90
+    * Adaptability: 40
+    * PreferredStrategies: Ravage, Howl
+* Battle Quotes: "The beast awakens!", "Raaargh!"
+Knight Character Profile
+* Character ID: knight-warrior
+* Name: Sir Cedric
+* Title: Oathbound Protector
+* Avatar Emoji: ⚔️
+* Archetype: Warrior
+* Rarity: Common
+* Description: A noble knight sworn to uphold honor and protect the weak.
+* Historical Period: Medieval
+* Mythology: Chivalric Code
+* Personality Traits: Honorable, Brave
+* Speech Style: Formal and noble
+* Motivations: Uphold justice, Serve the crown
+* Fears: Dishonor, Betrayal
+* Base Stats:
+    * Strength: 20
+    * Agility: 15
+    * Intelligence: 15
+    * Vitality: 20
+    * Wisdom: 15
+    * Charisma: 20
+* Combat Stats:
+    * Health: 180
+    * MaxHealth: 180
+    * Mana: 40
+    * MaxMana: 40
+    * Attack: 25
+    * Defense: 20
+    * MagicAttack: 5
+    * MagicDefense: 15
+    * Speed: 15
+    * CriticalChance: 10
+    * CriticalDamage: 150
+    * Accuracy: 85
+    * Evasion: 10
+* Battle AI:
+    * Aggression: 60
+    * Defensiveness: 70
+    * RiskTaking: 40
+    * Adaptability: 50
+    * PreferredStrategies: Sword Strike, Shield Block
+* Battle Quotes: "For honor and glory!", "I stand with valor."
+Barbarian Character Profile
+* Character ID: barbarian-berserker
+* Name: Grom
+* Title: Wild Fury
+* Avatar Emoji: 🪓
+* Archetype: Berserker
+* Rarity: Uncommon
+* Description: A fierce warrior from the untamed lands, driven by primal rage.
+* Historical Period: Ancient
+* Mythology: Tribal Lore
+* Personality Traits: Savage, Fearless
+* Speech Style: Loud and guttural
+* Motivations: Conquer, Survive
+* Fears: Weakness, Cowardice
+* Base Stats:
+    * Strength: 30
+    * Agility: 15
+    * Intelligence: 10
+    * Vitality: 25
+    * Wisdom: 10
+    * Charisma: 15
+* Combat Stats:
+    * Health: 200
+    * MaxHealth: 200
+    * Mana: 20
+    * MaxMana: 20
+    * Attack: 35
+    * Defense: 10
+    * MagicAttack: 5
+    * MagicDefense: 5
+    * Speed: 20
+    * CriticalChance: 20
+    * CriticalDamage: 200
+    * Accuracy: 70
+    * Evasion: 15
+* Battle AI:
+    * Aggression: 90
+    * Defensiveness: 20
+    * RiskTaking: 80
+    * Adaptability: 30
+    * PreferredStrategies: Axe Swing, Berserk Rage
+* Battle Quotes: "Raaagh!", "Blood and thunder!"
+
+Below are unique skills created for each character listed in your query. Each character has at least one **active ability** (usable in combat) and, where applicable, one **passive ability** (a constant or conditional effect). These skills are tailored to their archetype, rarity, personality, and combat stats, ensuring they fit their roles and lore within your game.
+
+---
+
+### Common Characters for Each Archetype
+
+#### Warrior: Town Guard
+- **Active Ability**: Shield Wall  
+  - **Description**: Increases defense by 20% for 2 turns.  
+  - **Cost**: 10 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Loyal Protector  
+  - **Description**: Increases defense by 5% when health is below 50%.  
+  - **Unlock Level**: 3  
+
+#### Mage: Apprentice Wizard
+- **Active Ability**: Arcane Bolt  
+  - **Description**: Deals 15 magic damage to a single target.  
+  - **Cost**: 15 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Mana Focus  
+  - **Description**: Regenerates 5 mana per turn.  
+  - **Unlock Level**: 2  
+
+#### Assassin: Thug
+- **Active Ability**: Backstab  
+  - **Description**: Deals 150% damage when attacking from behind.  
+  - **Cost**: 10 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Street Instinct  
+  - **Description**: Increases critical chance by 10% when fighting multiple enemies.  
+  - **Unlock Level**: 3  
+
+#### Tank: Shieldbearer
+- **Active Ability**: Fortified Stance  
+  - **Description**: Reduces incoming damage by 25% for 2 turns.  
+  - **Cost**: 15 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Unyielding  
+  - **Description**: Gains 10% extra health when entering combat.  
+  - **Unlock Level**: 2  
+
+#### Support: Acolyte
+- **Active Ability**: Light’s Grace  
+  - **Description**: Heals an ally for 20 health.  
+  - **Cost**: 20 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Devout Aura  
+  - **Description**: Allies within range gain 5% magic defense.  
+  - **Unlock Level**: 3  
+
+#### Beast: Wolf
+- **Active Ability**: Savage Bite  
+  - **Description**: Deals 20 damage with a 15% chance to inflict bleed for 3 turns.  
+  - **Cost**: 10 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Pack Instinct  
+  - **Description**: Increases speed by 10% when fighting alongside allies.  
+  - **Unlock Level**: 2  
+
+#### Trickster: Jester
+- **Active Ability**: Fool’s Gambit  
+  - **Description**: Confuses an enemy for 1 turn, causing random actions.  
+  - **Cost**: 15 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Quick Wit  
+  - **Description**: Gains 10% evasion against magic attacks.  
+  - **Unlock Level**: 3  
+
+#### Mystic: Seer
+- **Active Ability**: Fated Vision  
+  - **Description**: Reveals an enemy’s next action and increases team accuracy by 10% for 1 turn.  
+  - **Cost**: 20 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Third Eye  
+  - **Description**: 10% chance to resist status effects.  
+  - **Unlock Level**: 2  
+
+#### Elementalist: Fire Apprentice
+- **Active Ability**: Flame Burst  
+  - **Description**: Deals 20 fire damage to a single target with a 10% chance to burn.  
+  - **Cost**: 15 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Ember Spark  
+  - **Description**: Fire attacks deal 5% extra damage.  
+  - **Unlock Level**: 3  
+
+#### Berserker: Barbarian
+- **Active Ability**: Frenzied Strike  
+  - **Description**: Deals 25 damage but reduces defense by 10% for 1 turn.  
+  - **Cost**: 10 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Wild Rage  
+  - **Description**: Increases attack by 10% when health drops below 50%.  
+  - **Unlock Level**: 2  
+
+#### Scholar: Student
+- **Active Ability**: Study Notes  
+  - **Description**: Analyzes an enemy, revealing weaknesses and increasing team damage against it by 10% for 2 turns.  
+  - **Cost**: 15 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Quick Learner  
+  - **Description**: Gains 5% extra experience from combat.  
+  - **Unlock Level**: 2  
+
+---
+
+### Mage Archetype
+
+#### Uncommon: Nostradamus
+- **Active Ability**: Star Prophecy  
+  - **Description**: Grants a random buff (attack, defense, or speed) to allies for 2 turns.  
+  - **Cost**: 25 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Cosmic Insight  
+  - **Description**: Increases magic attack by 10% at night or in dark environments.  
+  - **Unlock Level**: 4  
+
+#### Mythic: Circe
+- **Active Ability**: Polymorph  
+  - **Description**: Transforms an enemy into a harmless creature for 2 turns.  
+  - **Cost**: 50 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Enchantress Aura  
+  - **Description**: Enemies within range have a 10% chance to be charmed each turn.  
+  - **Unlock Level**: 10  
+
+---
+
+### Assassin Archetype
+
+#### Epic: Hassan-i Sabbah
+- **Active Ability**: Assassinate  
+  - **Description**: Deals 40 damage to a single target; 100% critical chance if target is below 25% health.  
+  - **Cost**: 30 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Shadow Veil  
+  - **Description**: Gains 15% evasion in low-light conditions.  
+  - **Unlock Level**: 5  
+
+---
+
+### Tank Archetype
+
+#### Common: William Tell
+- **Active Ability**: Crossbow Counter  
+  - **Description**: Absorbs 20 damage and retaliates with 15 ranged damage.  
+  - **Cost**: 15 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Steady Aim  
+  - **Description**: Increases accuracy by 10%.  
+  - **Unlock Level**: 2  
+
+#### Legendary: King Leonidas
+- **Active Ability**: Spartan Phalanx  
+  - **Description**: Increases defense for all allies by 15% for 3 turns.  
+  - **Cost**: 30 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Last Stand  
+  - **Description**: Gains invulnerability for 1 turn when health drops below 20%.  
+  - **Unlock Level**: 15  
+
+---
+
+### Beast Archetype
+
+#### Epic: Fenrir
+- **Active Ability**: Ravenous Bite  
+  - **Description**: Deals 30 damage with a 20% chance to inflict bleed for 3 turns.  
+  - **Cost**: 25 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Untamed Fury  
+  - **Description**: Increases attack by 10% each time Fenrir takes damage.  
+  - **Unlock Level**: 5  
+
+---
+
+### Trickster Archetype
+
+#### Uncommon: Anansi
+- **Active Ability**: Web Trap  
+  - **Description**: Immobilizes an enemy for 1 turn.  
+  - **Cost**: 20 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Illusionist  
+  - **Description**: Has a 15% chance to dodge any attack.  
+  - **Unlock Level**: 4  
+
+---
+
+### Mystic Archetype
+
+#### Rare: Aleister Crowley
+- **Active Ability**: Dark Ritual  
+  - **Description**: Summons a demonic minion to fight for 3 turns (20 health, 15 attack).  
+  - **Cost**: 40 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Occult Will  
+  - **Description**: Increases magic defense by 10%.  
+  - **Unlock Level**: 5  
+
+---
+
+### Elementalist Archetype
+
+#### Epic: Empedocles
+- **Active Ability**: Elemental Switch  
+  - **Description**: Changes attack type (fire, water, earth, air), dealing 25 damage in the chosen element.  
+  - **Cost**: 30 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Harmony  
+  - **Description**: Reduces elemental damage taken by 10%.  
+  - **Unlock Level**: 6  
+
+---
+
+### Berserker Archetype
+
+#### Legendary: Samson
+- **Active Ability**: Pillar Smash  
+  - **Description**: Deals 50 damage to all enemies but costs 20% of current health.  
+  - **Cost**: 20 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Divine Strength  
+  - **Description**: Increases attack by 20% when health is above 75%.  
+  - **Unlock Level**: 10  
+
+---
+
+### Scholar Archetype
+
+#### Uncommon: Aristotle
+- **Active Ability**: Logical Debate  
+  - **Description**: Confuses an enemy for 2 turns, reducing their accuracy by 15%.  
+  - **Cost**: 20 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Methodical Mind  
+  - **Description**: Increases team strategy effectiveness by 5%.  
+  - **Unlock Level**: 3  
+
+---
+
+### Duelist Archetype
+
+#### Rare: Miyamoto Musashi
+- **Active Ability**: Dual Strike  
+  - **Description**: Attacks twice in one turn, each dealing 15 damage.  
+  - **Cost**: 25 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Sword Mastery  
+  - **Description**: Increases critical damage by 25%.  
+  - **Unlock Level**: 5  
+
+---
+
+### Necromancer Archetype
+
+#### Mythic: Anubis
+- **Active Ability**: Raise Dead  
+  - **Description**: Summons 3 undead minions (15 health, 10 attack) for 3 turns.  
+  - **Cost**: 60 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Death’s Judgment  
+  - **Description**: Enemies killed by Anubis grant 10 mana.  
+  - **Unlock Level**: 10  
+
+---
+
+### Alchemist Archetype
+
+#### Rare: Paracelsus
+- **Active Ability**: Explosive Concoction  
+  - **Description**: Deals 25 damage to all enemies in a small area.  
+  - **Cost**: 30 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Elixir Mastery  
+  - **Description**:[1] Healing potions restore 10% extra health when used on allies.  
+  - **Unlock Level**: 5  
+
+---
+
+### Shapeshifter Archetype
+
+#### Legendary: Proteus
+- **Active Ability**: Shapechange  
+  - **Description**: Transforms into a random form (offensive, defensive, or support) with unique abilities for 3 turns.  
+  - **Cost**: 40 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Fluid Form  
+  - **Description**: Gains resistance to the last damage type received.  
+  - **Unlock Level**: 12  
+
+---
+
+### Commander Archetype
+
+#### Epic: Alexander the Great
+- **Active Ability**: Conqueror’s Charge  
+  - **Description**: Leads allies in an attack, boosting team attack by 15% for 2 turns.  
+  - **Cost**: 35 mana  
+  - **Unlock Level**: 1  
+- **Passive Ability**: Tactical Genius  
+  - **Description**: Increases ally critical chance by 5%.  
+  - **Unlock Level**: 6  
+
+---
+
+### Implementation Example
+To integrate these skills into your game, here’s how they’d be defined for the **Town Guard** in `abilities.ts`:
+
+```typescript
+export const townGuardShieldWall: Ability = {
+  id: "town-guard-shield-wall",
+  name: "Shield Wall",
+  description: "Increases defense by 20% for 2 turns.",
+  type: "active",
+  characterId: "town-guard",
+  archetype: "warrior",
+  icon: "shield-icon",
+  effects: [{ type: "defenseBoost", value: 20, duration: 2 }],
+  cost: { mana: 10 },
+  flavor: "A wall of steel and resolve.",
+  unlockLevel: 1,
+  maxRank: 3,
+  rankBonuses: [
+    { rank: 2, effect: { type: "defenseBoost", value: 25 } },
+    { rank: 3, effect: { type: "defenseBoost", value: 30 } },
+  ],
+};
+
+export const townGuardLoyalProtector: Ability = {
+  id: "town-guard-loyal-protector",
+  name: "Loyal Protector",
+  description: "Increases defense by 5% when health is below 50%.",
+  type: "passive",
+  characterId: "town-guard",
+  archetype: "warrior",
+  icon: "protector-icon",
+  effects: [{ type: "defenseBoost", value: 5, condition: "healthBelow50" }],
+  cost: {},
+  flavor: "Duty never falters.",
+  unlockLevel: 3,
+  maxRank: 1,
+  rankBonuses: [],
+};
+
+export const allAbilities: Ability[] = [
+  ...existingAbilities,
+  townGuardShieldWall,
+  townGuardLoyalProtector,
+];
+```
+
+This process can be repeated for each character, adding their skills to `abilities.ts` and linking them to their progression trees in `characters.ts`. Let me know if you’d like further examples or assistance with specific characters!
