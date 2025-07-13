@@ -122,11 +122,16 @@ router.get('/test', async (req: any, res) => {
 // Get user's characters (temporarily bypassed auth for demo)
 router.get('/characters', async (req: any, res) => {
   try {
+    console.log('🔍 [/characters] Auth check - req.user:', req.user ? 'Present' : 'None');
+    console.log('🔍 [/characters] Headers:', Object.keys(req.headers));
+    
     // For demo purposes, create demo characters if no user is authenticated
     const userId = req.user?.id || 'demo-user';
+    console.log('🔍 [/characters] Using userId:', userId);
     
     // If no authenticated user, return demo characters with required UserCharacter structure
     if (!req.user?.id) {
+      console.log('🎭 [/characters] No auth - returning demo characters');
       const basicCharacters = await dbAdapter.characters.findAll();
       const demoUserCharacters = basicCharacters.map(char => ({
         id: `demo-${char.id}`,
@@ -150,8 +155,21 @@ router.get('/characters', async (req: any, res) => {
         personality_drift: {},
         acquired_at: new Date(),
         last_battle_at: null,
-        // Include character data
-        ...char
+        // Include character data (excluding id to avoid conflict)
+        name: char.name,
+        title: char.title,
+        avatar_emoji: char.avatar_emoji,
+        archetype: char.archetype,
+        rarity: char.rarity,
+        origin_era: char.origin_era,
+        personality_traits: char.personality_traits,
+        conversation_topics: char.conversation_topics,
+        conversation_style: char.conversation_style,
+        backstory: char.backstory,
+        base_health: char.base_health,
+        base_attack: char.base_attack,
+        base_defense: char.base_defense,
+        base_speed: char.base_speed
       }));
       
       return res.json({
