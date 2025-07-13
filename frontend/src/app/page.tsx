@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import MainTabSystem from '@/components/MainTabSystem';
-import LogoutButton from '@/components/LogoutButton';
 
 function HomePageContent() {
   const { user, isLoading } = useAuth();
@@ -96,7 +95,6 @@ function HomePageContent() {
   if (user && !isLoading) {
     return (
       <>
-        <LogoutButton />
         <MainTabSystem />
       </>
     );
@@ -104,7 +102,6 @@ function HomePageContent() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white relative overflow-hidden">
-      <LogoutButton />
       {/* Background elements - subtle blend of arena and living quarters */}
       <div className="absolute inset-0 z-0">
         {/* Arena-like gradient */}
