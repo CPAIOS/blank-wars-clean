@@ -6,6 +6,17 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
+// Add request interceptor to include tokens from localStorage if cookies fail
+apiClient.interceptors.request.use((config) => {
+  // If we have tokens in localStorage (fallback for cross-origin issues), add them
+  const accessToken = localStorage.getItem('accessToken');
+  if (accessToken && !config.headers['Authorization']) {
+    config.headers['Authorization'] = `Bearer ${accessToken}`;
+    console.log('🔑 Using localStorage token for request');
+  }
+  return config;
+});
+
 // Add response interceptor to handle token refresh
 apiClient.interceptors.response.use(
   (response) => response,

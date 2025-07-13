@@ -137,11 +137,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       setUser(response.user);
       setIsNewUser(true); // Mark as new user for onboarding
-      // SECURITY: Tokens are now in httpOnly cookies, don't store in state
-      setTokens(null);
       
-      // SECURITY: Don't store tokens in localStorage anymore
-      // Tokens are automatically sent via httpOnly cookies
+      // TEMPORARY: Use returned tokens to bypass cookie issues
+      if (response.tokens) {
+        console.log('📝 Registration: Using returned tokens temporarily');
+        setTokens(response.tokens);
+        // Store in localStorage temporarily for cross-origin issues
+        localStorage.setItem('accessToken', response.tokens.accessToken);
+        localStorage.setItem('refreshToken', response.tokens.refreshToken);
+      } else {
+        // SECURITY: Tokens are now in httpOnly cookies, don't store in state
+        setTokens(null);
+      }
       
     } catch (error) {
       console.error('Registration failed:', error);
