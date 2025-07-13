@@ -27,7 +27,7 @@ export default function SimpleChatDemo() {
 
   // Initialize socket connection
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
+    const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
     console.log('🔌 Connecting to:', socketUrl);
     
     socketRef.current = io(socketUrl, {

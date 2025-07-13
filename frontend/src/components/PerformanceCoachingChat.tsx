@@ -169,8 +169,8 @@ export default function PerformanceCoachingChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
-    console.log('🔌 [PerformanceCoaching] Connecting to local backend:', socketUrl);
+    const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
+    console.log('🔌 [PerformanceCoaching] Connecting to backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],

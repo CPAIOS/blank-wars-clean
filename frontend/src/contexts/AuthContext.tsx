@@ -90,8 +90,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const profile = await authService.getProfile();
         setUser(profile);
       } catch (error) {
-        console.log('No valid session found');
-        setUser(null);
+        // If profile fetch fails, try to refresh token first
+        console.log('Initial profile fetch failed, attempting token refresh...');
+        try {
+          await authService.refreshToken();
+          console.log('Token refresh successful, retrying profile fetch...');
+          // If refresh succeeds, try to get profile again
+          const profile = await authService.getProfile();
+          setUser(profile);
+          console.log('Profile restored successfully after token refresh');
+        } catch (refreshError) {
+          console.log('Token refresh failed:', refreshError);
+          console.log('No valid session found');
+          setUser(null);
+        }
       } finally {
         setIsLoading(false);
       }

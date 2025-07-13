@@ -123,8 +123,8 @@ export default function FacilitiesManager({
 
   // --- Real Estate Agent Chat Logic ---
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
-    console.log('🔌 [FacilitiesManager] Connecting to local backend:', socketUrl);
+    const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
+    console.log('🔌 [FacilitiesManager] Connecting to backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],

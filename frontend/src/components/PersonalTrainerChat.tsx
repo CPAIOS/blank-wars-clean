@@ -196,8 +196,8 @@ export default function PersonalTrainerChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
-    console.log('🔌 [PersonalTrainer] Connecting to local backend:', socketUrl);
+    const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
+    console.log('🔌 [PersonalTrainer] Connecting to backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],

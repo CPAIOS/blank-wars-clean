@@ -304,6 +304,7 @@ export const battleWebSocket = {
   isConnected: () => getBattleWebSocket().isConnected(),
   isAuthenticated: () => getBattleWebSocket().isAuthenticated(),
   getCurrentUser: () => getBattleWebSocket().getCurrentUser(),
+  getSocket: () => getBattleWebSocket().getSocket(),
 };
 
 export default BattleWebSocketService;

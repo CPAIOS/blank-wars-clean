@@ -120,8 +120,8 @@ export default function ChatDemo() {
 
   // Initialize socket connection
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
-    console.log('🔌 [FIXED] Connecting to local backend:', socketUrl);
+    const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
+    console.log('🔌 [FIXED] Connecting to backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
