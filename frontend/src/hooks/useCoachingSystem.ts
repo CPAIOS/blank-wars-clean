@@ -403,28 +403,26 @@ export const useCoachingSystem = ({
   }, [state.player1, actions, speak]);
 
   const handleCharacterStrategyChange = useCallback((characterId: string, category: 'attack' | 'defense' | 'special', strategy: string) => {
-    actions.setCharacterStrategies(prev => {
-      const newMap = new Map(prev);
-      const currentStrategy = newMap.get(characterId) || {
-        characterId,
-        attack: null,
-        defense: null,
-        special: null,
-        isComplete: false
-      };
-      
-      const updatedStrategy = {
-        ...currentStrategy,
-        [category]: strategy
-      };
-      
-      // Check if all categories are selected
-      updatedStrategy.isComplete = !!(updatedStrategy.attack && updatedStrategy.defense && updatedStrategy.special);
-      
-      newMap.set(characterId, updatedStrategy);
-      return newMap;
-    });
-  }, [actions]);
+    const newMap = new Map(state.characterStrategies);
+    const currentStrategy = newMap.get(characterId) || {
+      characterId,
+      attack: null,
+      defense: null,
+      special: null,
+      isComplete: false
+    };
+    
+    const updatedStrategy = {
+      ...currentStrategy,
+      [category]: strategy
+    };
+    
+    // Check if all categories are selected
+    updatedStrategy.isComplete = !!(updatedStrategy.attack && updatedStrategy.defense && updatedStrategy.special);
+    
+    newMap.set(characterId, updatedStrategy);
+    actions.setCharacterStrategies(newMap);
+  }, [actions, state.characterStrategies]);
 
   const initializeCharacterStrategies = useCallback(() => {
     const newMap = new Map<string, any>();

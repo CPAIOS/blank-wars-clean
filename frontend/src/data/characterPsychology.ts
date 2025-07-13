@@ -550,10 +550,31 @@ export function calculateDeviationRisk(
     riskFactors.push('Rejecting coach guidance');
   }
   
-  // Risk from low health
-  if (character.currentHp < character.maxHp * 0.3) {
-    baseRisk += 10;
-    riskFactors.push('Critically wounded');
+  // Enhanced HP-based psychology triggers - the lower the HP, the higher the risk
+  const hpPercentage = character.currentHp / character.maxHp;
+  const nature = ARCHETYPE_NATURES[character.archetype] || ARCHETYPE_NATURES['warrior'];
+  
+  if (hpPercentage <= 0.1) {
+    // Near death - extreme desperation/berserker rage
+    const desperationRisk = 50 + (nature.berserkerTendency * 0.4); // 50-86 risk
+    baseRisk += desperationRisk;
+    riskFactors.push('Near-death desperation - berserker rage likely');
+  } else if (hpPercentage <= 0.25) {
+    // Critically wounded - high deviation risk
+    const criticalRisk = 25 + (nature.berserkerTendency * 0.3); // 25-52 risk  
+    baseRisk += criticalRisk;
+    riskFactors.push('Critically wounded - losing control');
+  } else if (hpPercentage <= 0.5) {
+    // Bloodied - moderate risk increase
+    const bloodiedRisk = 15 + (nature.berserkerTendency * 0.2); // 15-33 risk
+    baseRisk += bloodiedRisk;
+    riskFactors.push('Bloodied and frustrated');
+  }
+  
+  // High ego characters get additional risk when wounded (pride damage)
+  if (hpPercentage < 0.5 && character.psychStats?.ego > 75) {
+    baseRisk += 15;
+    riskFactors.push('Wounded pride driving reckless behavior');
   }
   
   // Risk from relationship conflicts

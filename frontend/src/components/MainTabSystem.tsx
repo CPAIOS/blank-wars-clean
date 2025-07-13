@@ -214,27 +214,74 @@ export default function MainTabSystem() {
 
   // Component wrappers
   const ProgressionDashboardWrapper = () => {
-    // Get the real 17 characters from the game
-    const availableCharacters = createDemoCharacterCollection().map(char => {
-      // Extract base name from the random ID
-      const baseName = char.id.split('_')[0];
-      return {
-        ...char,
-        baseName,
-        trainingBonuses: {
-          strength: Math.floor(char.level / 3),
-          defense: Math.floor(char.level / 4),
-          speed: Math.floor(char.level / 3.5),
-          special: Math.floor(char.level / 2.5)
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [charactersLoading, setCharactersLoading] = useState(true);
+    
+    // Load real characters from API
+    useEffect(() => {
+      const loadCharacters = async () => {
+        try {
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const enhancedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.character_id || char.id;
+            return {
+              ...char,
+              baseName,
+              name: char.name,
+              level: char.level || 1,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar || '⚔️',
+              base_attack: char.base_attack,
+              base_health: char.base_health,
+              base_defense: char.base_defense,
+              base_speed: char.base_speed,
+              base_special: char.base_special,
+              current_health: char.current_health,
+              max_health: char.max_health,
+              experience: char.experience,
+              bond_level: char.bond_level,
+              inventory: char.inventory || [],
+              equipment: char.equipment || {},
+              abilities: char.abilities || [],
+              trainingBonuses: {
+                strength: Math.floor((char.level || 1) / 3),
+                defense: Math.floor((char.level || 1) / 4),
+                speed: Math.floor((char.level || 1) / 3.5),
+                special: Math.floor((char.level || 1) / 2.5)
+              }
+            };
+          });
+          
+          setAvailableCharacters(enhancedCharacters);
+          setCharactersLoading(false);
+        } catch (error) {
+          console.error('Error loading characters:', error);
+          setCharactersLoading(false);
         }
       };
-    });
-    
+      
+      loadCharacters();
+    }, []);
+
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
-    console.log('Progression - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
+    console.log('Progression - Real character data:', selectedCharacter?.name, 'Level:', selectedCharacter?.level, 'Base Attack:', selectedCharacter?.base_attack);
+    console.log('Progression - Training bonuses:', selectedCharacter?.trainingBonuses);
     
+    if (charactersLoading) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-orange-600/30 border-t-orange-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading real character data...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
     <div className="space-y-6">
       <div className="flex gap-6">
@@ -275,10 +322,10 @@ export default function MainTabSystem() {
             {/* Selected Character Header */}
             <div className="bg-gray-800/50 rounded-xl p-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                <div className="text-3xl">{selectedCharacter.avatar}</div>
+                <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
                 <div>
-                  <div>{selectedCharacter.name}</div>
-                  <div className="text-sm text-gray-400">Level {selectedCharacter.level} {selectedCharacter.archetype}</div>
+                  <div>{selectedCharacter?.name || 'Loading...'}</div>
+                  <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
                 </div>
               </h2>
             </div>
@@ -287,41 +334,43 @@ export default function MainTabSystem() {
             <PerformanceCoachingChat 
               selectedCharacterId={globalSelectedCharacterId}
               onCharacterChange={setGlobalSelectedCharacterId}
+              selectedCharacter={selectedCharacter}
+              availableCharacters={availableCharacters}
             />
             
             <ProgressionDashboard
               character={selectedCharacter}
-              onAllocateSkillPoint={(skill) => console.log(`${selectedCharacter.name} allocated skill point to ${skill}`)}
-              onAllocateStatPoint={(stat) => console.log(`${selectedCharacter.name} allocated stat point to ${stat}`)}
-              onViewDetails={(section) => console.log(`${selectedCharacter.name} viewing details for ${section}`)}
+              onAllocateSkillPoint={(skill) => console.log(`${selectedCharacter?.name || 'Character'} allocated skill point to ${skill}`)}
+              onAllocateStatPoint={(stat) => console.log(`${selectedCharacter?.name || 'Character'} allocated stat point to ${stat}`)}
+              onViewDetails={(section) => console.log(`${selectedCharacter?.name || 'Character'} viewing details for ${section}`)}
             />
             
             {/* Training Enhancement Banner */}
             <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-xl p-4 border border-orange-500/30">
               <div className="flex items-center gap-2 mb-2">
                 <Dumbbell className="w-5 h-5 text-orange-400" />
-                <span className="text-orange-300 font-semibold">Training Enhanced Stats for {selectedCharacter.name}</span>
+                <span className="text-orange-300 font-semibold">Training Enhanced Stats for {selectedCharacter?.name || 'Character'}</span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div className="text-center">
-                  <div className="text-red-400 font-bold">+{selectedCharacter.trainingBonuses.strength}</div>
+                  <div className="text-red-400 font-bold">+{selectedCharacter?.trainingBonuses?.strength || 0}</div>
                   <div className="text-gray-400">Strength</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-blue-400 font-bold">+{selectedCharacter.trainingBonuses.defense}</div>
+                  <div className="text-blue-400 font-bold">+{selectedCharacter?.trainingBonuses?.defense || 0}</div>
                   <div className="text-gray-400">Defense</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-green-400 font-bold">+{selectedCharacter.trainingBonuses.speed}</div>
+                  <div className="text-green-400 font-bold">+{selectedCharacter?.trainingBonuses?.speed || 0}</div>
                   <div className="text-gray-400">Speed</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-purple-400 font-bold">+{selectedCharacter.trainingBonuses.special}</div>
+                  <div className="text-purple-400 font-bold">+{selectedCharacter?.trainingBonuses?.special || 0}</div>
                   <div className="text-gray-400">Special</div>
                 </div>
               </div>
               <div className="mt-2 text-xs text-orange-200">
-                Training Points Available: {selectedCharacter.trainingPoints || (selectedCharacter.level * 2)} • Training Level: {selectedCharacter.trainingLevel || 75}%
+                Training Points Available: {selectedCharacter?.trainingPoints || ((selectedCharacter?.level || 1) * 2)} • Training Level: {selectedCharacter?.trainingLevel || 75}%
               </div>
             </div>
           </div>
@@ -332,28 +381,74 @@ export default function MainTabSystem() {
 
   const EquipmentManagerWrapper = () => {
     const [characterEquipment, setCharacterEquipment] = useState<Record<string, any>>({});
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [charactersLoading, setCharactersLoading] = useState(true);
     
-    // Get the real 17 characters from the game
-    const availableCharacters = createDemoCharacterCollection().map(char => {
-      // Extract base name from the random ID (e.g., "achilles" from "achilles_1751593197366_8ivu34rgc")
-      const baseName = char.id.split('_')[0];
-      return {
-        ...char,
-        baseName,
-        trainingBonuses: {
-          strength: Math.floor(char.level / 3),
-          defense: Math.floor(char.level / 4),
-          speed: Math.floor(char.level / 3.5),
-          special: Math.floor(char.level / 2.5)
+    // Load real characters from API
+    useEffect(() => {
+      const loadCharacters = async () => {
+        try {
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const enhancedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.character_id || char.id;
+            return {
+              ...char,
+              baseName,
+              name: char.name,
+              level: char.level || 1,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar || '⚔️',
+              base_attack: char.base_attack,
+              base_health: char.base_health,
+              base_defense: char.base_defense,
+              base_speed: char.base_speed,
+              base_special: char.base_special,
+              current_health: char.current_health,
+              max_health: char.max_health,
+              experience: char.experience,
+              bond_level: char.bond_level,
+              inventory: char.inventory || [],
+              equipment: char.equipment || {},
+              abilities: char.abilities || [],
+              trainingBonuses: {
+                strength: Math.floor((char.level || 1) / 3),
+                defense: Math.floor((char.level || 1) / 4),
+                speed: Math.floor((char.level || 1) / 3.5),
+                special: Math.floor((char.level || 1) / 2.5)
+              },
+              equippedItems: char.equippedItems || char.equipment || {}
+            };
+          });
+          
+          setAvailableCharacters(enhancedCharacters);
+          setCharactersLoading(false);
+        } catch (error) {
+          console.error('Error loading characters:', error);
+          setCharactersLoading(false);
         }
       };
-    });
-    
+      
+      loadCharacters();
+    }, []);
+
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
-    console.log('Equipment - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
+    console.log('Equipment - Real character data:', selectedCharacter?.name, 'Inventory count:', selectedCharacter?.inventory?.length, 'Equipment:', selectedCharacter?.equipment);
     
+    if (charactersLoading) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading real character data...</p>
+          </div>
+        </div>
+      );
+    }
+
     // Handle equipment changes
     const handleEquip = (equipment: any) => {
       console.log('🔧 handleEquip called:', equipment);
@@ -424,10 +519,10 @@ export default function MainTabSystem() {
             {/* Selected Character Header */}
             <div className="bg-gray-800/50 rounded-xl p-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                <div className="text-3xl">{selectedCharacter.avatar}</div>
+                <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
                 <div>
-                  <div>{selectedCharacter.name}</div>
-                  <div className="text-sm text-gray-400">Level {selectedCharacter.level} {selectedCharacter.archetype}</div>
+                  <div>{selectedCharacter?.name || 'Loading...'}</div>
+                  <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
                 </div>
               </h2>
             </div>
@@ -436,6 +531,8 @@ export default function MainTabSystem() {
             <EquipmentAdvisorChat 
               selectedCharacterId={globalSelectedCharacterId}
               onCharacterChange={setGlobalSelectedCharacterId}
+              selectedCharacter={selectedCharacter}
+              availableCharacters={availableCharacters}
             />
             
             <EquipmentManager
@@ -452,27 +549,27 @@ export default function MainTabSystem() {
           <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl p-4 border border-blue-500/30">
             <div className="flex items-center gap-2 mb-3">
               <Crown className="w-5 h-5 text-blue-400" />
-              <span className="text-blue-300 font-semibold">Training-Enhanced Equipment Effectiveness for {selectedCharacter.name}</span>
+              <span className="text-blue-300 font-semibold">Training-Enhanced Equipment Effectiveness for {selectedCharacter?.name || 'Character'}</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="bg-gray-800/50 rounded-lg p-3">
                 <div className="text-red-300 font-semibold">⚔️ Weapon Mastery</div>
-                <div className="text-gray-400">Training Bonus: +{selectedCharacter.trainingBonuses.strength}</div>
+                <div className="text-gray-400">Training Bonus: +{selectedCharacter?.trainingBonuses?.strength || 0}</div>
                 <div className="text-red-200">Enhanced weapon damage scaling</div>
               </div>
               <div className="bg-gray-800/50 rounded-lg p-3">
                 <div className="text-blue-300 font-semibold">🛡️ Armor Proficiency</div>
-                <div className="text-gray-400">Training Bonus: +{selectedCharacter.trainingBonuses.defense}</div>
+                <div className="text-gray-400">Training Bonus: +{selectedCharacter?.trainingBonuses?.defense || 0}</div>
                 <div className="text-blue-200">Improved defense effectiveness</div>
               </div>
               <div className="bg-gray-800/50 rounded-lg p-3">
                 <div className="text-green-300 font-semibold">💨 Agility Training</div>
-                <div className="text-gray-400">Training Bonus: +{selectedCharacter.trainingBonuses.speed}</div>
+                <div className="text-gray-400">Training Bonus: +{selectedCharacter?.trainingBonuses?.speed || 0}</div>
                 <div className="text-green-200">Faster attack speed with all weapons</div>
               </div>
             </div>
             <div className="mt-3 text-xs text-blue-200">
-              💡 {selectedCharacter.name}'s equipment stats are enhanced by training bonuses
+              💡 {selectedCharacter?.name || 'Character'}'s equipment stats are enhanced by training bonuses
             </div>
           </div>
           </div>
@@ -483,28 +580,74 @@ export default function MainTabSystem() {
 
   const AbilityManagerWrapper = () => {
     const [characterAbilities, setCharacterAbilities] = useState<Record<string, any>>({});
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [charactersLoading, setCharactersLoading] = useState(true);
     
-    // Get the real 17 characters from the game
-    const availableCharacters = createDemoCharacterCollection().map(char => {
-      // Extract base name from the random ID
-      const baseName = char.id.split('_')[0];
-      return {
-        ...char,
-        baseName,
-        trainingBonuses: {
-          strength: Math.floor(char.level / 3),
-          defense: Math.floor(char.level / 4),
-          speed: Math.floor(char.level / 3.5),
-          special: Math.floor(char.level / 2.5)
+    // Load real characters from API
+    useEffect(() => {
+      const loadCharacters = async () => {
+        try {
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const enhancedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.character_id || char.id;
+            return {
+              ...char,
+              baseName,
+              name: char.name,
+              level: char.level || 1,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar || '⚔️',
+              base_attack: char.base_attack,
+              base_health: char.base_health,
+              base_defense: char.base_defense,
+              base_speed: char.base_speed,
+              base_special: char.base_special,
+              current_health: char.current_health,
+              max_health: char.max_health,
+              experience: char.experience,
+              bond_level: char.bond_level,
+              inventory: char.inventory || [],
+              equipment: char.equipment || {},
+              abilities: char.abilities || [],
+              trainingBonuses: {
+                strength: Math.floor((char.level || 1) / 3),
+                defense: Math.floor((char.level || 1) / 4),
+                speed: Math.floor((char.level || 1) / 3.5),
+                special: Math.floor((char.level || 1) / 2.5)
+              }
+            };
+          });
+          
+          setAvailableCharacters(enhancedCharacters);
+          setCharactersLoading(false);
+        } catch (error) {
+          console.error('Error loading characters:', error);
+          setCharactersLoading(false);
         }
       };
-    });
-    
+      
+      loadCharacters();
+    }, []);
+
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
-    const currentTrainingPoints = characterAbilities[globalSelectedCharacterId]?.trainingPoints || (selectedCharacter.level * 2);
+    const currentTrainingPoints = characterAbilities[globalSelectedCharacterId]?.trainingPoints || (selectedCharacter?.level * 2);
+    console.log('Skills - Real character data:', selectedCharacter?.name, 'Abilities count:', selectedCharacter?.abilities?.length, 'Level:', selectedCharacter?.level);
     
+    if (charactersLoading) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-purple-600/30 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading real character data...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
     <div className="space-y-6">
       <div className="flex gap-6">
@@ -545,10 +688,10 @@ export default function MainTabSystem() {
             {/* Selected Character Header */}
             <div className="bg-gray-800/50 rounded-xl p-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                <div className="text-3xl">{selectedCharacter.avatar}</div>
+                <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
                 <div>
-                  <div>{selectedCharacter.name}</div>
-                  <div className="text-sm text-gray-400">Level {selectedCharacter.level} {selectedCharacter.archetype}</div>
+                  <div>{selectedCharacter?.name || 'Loading...'}</div>
+                  <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
                 </div>
               </h2>
             </div>
@@ -557,6 +700,8 @@ export default function MainTabSystem() {
             <SkillDevelopmentChat
               selectedCharacterId={globalSelectedCharacterId}
               onCharacterChange={setGlobalSelectedCharacterId}
+              selectedCharacter={selectedCharacter}
+              availableCharacters={availableCharacters}
             />
             
             <AbilityManager

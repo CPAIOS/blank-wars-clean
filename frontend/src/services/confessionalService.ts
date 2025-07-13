@@ -125,13 +125,21 @@ export const generateCharacterResponse = async (
   confessionalTimeouts: React.MutableRefObject<Set<NodeJS.Timeout>>,
   setConfessionalData: React.Dispatch<React.SetStateAction<ConfessionalData>>
 ) => {
-  console.log('🎪 Generating response for characterName:', characterName);
+  console.log('🎪 [ENTRY] generateCharacterResponse for:', characterName, 'questionCount:', confessionalData.questionCount);
+  console.log('🎪 [ENTRY] isPaused:', confessionalData.isPaused, 'isInterviewing:', confessionalData.isInterviewing);
   const character = availableCharacters.find(c => c.id === characterName);
   console.log('🎨 Character found:', character?.name, 'ID:', character?.id);
   if (!character) return;
 
   // Check if interview is paused or stopped
   if (confessionalData.isPaused || !confessionalData.isInterviewing) {
+    console.log('🚫 Skipping - interview paused or stopped');
+    return;
+  }
+
+  // Prevent duplicate calls by checking if already loading
+  if (confessionalData.isLoading) {
+    console.log('🚫 Skipping - already generating response');
     return;
   }
 
@@ -269,11 +277,23 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
 
         // Only continue automatically for first 3 character responses, then pause for user control
         // Stop after 3 total character responses (questionCount will be 3 after this hostmaster question)
+        console.log('🔍 Question count check:', confessionalData.questionCount + 1, '<=', 3, '?', confessionalData.questionCount + 1 <= 3);
         if (confessionalData.questionCount + 1 <= 3) {
+          console.log('✅ Scheduling next character response');
+          
+          // Clear any existing timeouts to prevent duplicates
+          clearAllConfessionalTimeouts(confessionalTimeouts);
+          
           const continueTimeoutId = setTimeout(() => {
             // Get current confessional state instead of using stale closure
             setConfessionalData(currentData => {
-              generateCharacterResponse(characterName, data.hostmasterResponse, availableCharacters, headquarters, currentData, confessionalTimeouts, setConfessionalData);
+              // Double-check we're still under the limit and not already generating
+              if (currentData.questionCount <= 3 && !currentData.isLoading && !currentData.isPaused) {
+                console.log('🔄 About to call generateCharacterResponse with currentData questionCount:', currentData.questionCount);
+                generateCharacterResponse(characterName, data.hostmasterResponse, availableCharacters, headquarters, currentData, confessionalTimeouts, setConfessionalData);
+              } else {
+                console.log('🚫 Skipping timeout callback - conditions changed');
+              }
               return currentData;
             });
           }, 3000);
@@ -305,10 +325,18 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
 
         // Only continue if under the limit - check incremented count  
         if (confessionalData.questionCount + 1 <= 3) {
+          // Clear any existing timeouts to prevent duplicates
+          clearAllConfessionalTimeouts(confessionalTimeouts);
+          
           const fallbackTimeoutId = setTimeout(() => {
             // Get current confessional state instead of using stale closure
             setConfessionalData(currentData => {
-              generateCharacterResponse(characterName, fallbackQuestion, availableCharacters, headquarters, currentData, confessionalTimeouts, setConfessionalData);
+              // Double-check conditions
+              if (currentData.questionCount <= 3 && !currentData.isLoading && !currentData.isPaused) {
+                generateCharacterResponse(characterName, fallbackQuestion, availableCharacters, headquarters, currentData, confessionalTimeouts, setConfessionalData);
+              } else {
+                console.log('🚫 Skipping fallback timeout callback - conditions changed');
+              }
               return currentData;
             });
           }, 3000);

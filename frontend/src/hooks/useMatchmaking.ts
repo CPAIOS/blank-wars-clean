@@ -23,7 +23,7 @@ export const useMatchmaking = ({
   const handleOpponentSelection = useCallback((opponent: MatchmakingResult) => {
     actions.setSelectedOpponent(opponent);
     actions.setShowMatchmaking(false);
-    actions.setPhase('pre_battle_huddle');
+    actions.setPhase('pre-battle');
     actions.setCurrentAnnouncement(`Opponent selected: Level ${opponent.opponent.teamLevel} team. Prepare for battle!`);
     
     // Adjust opponent team stats based on selected level

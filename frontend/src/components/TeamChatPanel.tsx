@@ -118,7 +118,7 @@ export default function TeamChatPanel({
     return () => {
       socketRef.current?.disconnect();
     };
-  }, [playerTeam.characters]);
+  }, []); // Remove dependency to prevent constant reconnects
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

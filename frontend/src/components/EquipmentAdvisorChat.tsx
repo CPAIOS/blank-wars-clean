@@ -145,27 +145,36 @@ const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
 interface EquipmentAdvisorChatProps {
   selectedCharacterId?: string;
   onCharacterChange?: (characterId: string) => void;
+  selectedCharacter?: EnhancedCharacter;
+  availableCharacters?: EnhancedCharacter[];
 }
 
 export default function EquipmentAdvisorChat({ 
   selectedCharacterId, 
-  onCharacterChange 
+  onCharacterChange,
+  selectedCharacter: propSelectedCharacter,
+  availableCharacters: propAvailableCharacters
 }: EquipmentAdvisorChatProps) {
-  const [availableCharacters, setAvailableCharacters] = useState<EnhancedCharacter[]>([]);
+  // Use props if available, otherwise fallback to loading
+  const [localAvailableCharacters, setLocalAvailableCharacters] = useState<EnhancedCharacter[]>([]);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState(selectedCharacterId || 'achilles');
-  const [charactersLoading, setCharactersLoading] = useState(true);
+  const [charactersLoading, setCharactersLoading] = useState(!propAvailableCharacters);
 
-  // Load characters on component mount
+  // Only load characters if not provided via props
   useEffect(() => {
-    const loadCharacters = async () => {
-      setCharactersLoading(true);
-      const characters = await loadUserCharacters();
-      setAvailableCharacters(characters);
+    if (!propAvailableCharacters) {
+      const loadCharacters = async () => {
+        setCharactersLoading(true);
+        const characters = await loadUserCharacters();
+        setLocalAvailableCharacters(characters);
+        setCharactersLoading(false);
+      };
+      
+      loadCharacters();
+    } else {
       setCharactersLoading(false);
-    };
-    
-    loadCharacters();
-  }, []);
+    }
+  }, [propAvailableCharacters]);
 
   // Update internal state when prop changes and clear messages
   useEffect(() => {
@@ -177,7 +186,10 @@ export default function EquipmentAdvisorChat({
       setIsTyping(false);
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
-  const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+
+  // Use props if available, otherwise use local state
+  const availableCharacters = propAvailableCharacters || localAvailableCharacters;
+  const selectedCharacter = propSelectedCharacter || availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -222,7 +234,7 @@ export default function EquipmentAdvisorChat({
         type: 'character',
         content: data.message || 'Let me consider that equipment choice...',
         timestamp: new Date(),
-        bondIncrease: data.bondIncrease || Math.random() > 0.6,
+        bondIncrease: data.bondIncrease || false,
       };
       
       setMessages(prev => [...prev, characterMessage]);
@@ -248,6 +260,17 @@ export default function EquipmentAdvisorChat({
 
   const sendMessage = (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
+      console.log('❌ Equipment chat cannot send message:', { 
+        hasContent: !!content.trim(), 
+        isTyping, 
+        connected, 
+        hasSocket: !!socketRef.current 
+      });
+      return;
+    }
+
+    if (!selectedCharacter) {
+      console.log('❌ Equipment chat: No selected character for message');
       return;
     }
 
@@ -271,14 +294,14 @@ export default function EquipmentAdvisorChat({
 
     setIsTyping(true);
 
-    // Generate dynamic equipment context
-    const currentGearTier = Math.floor(Math.random() * 5) + 1; // Tier 1-5
-    const weaponLevel = Math.floor(Math.random() * 20) + 1;
-    const armorLevel = Math.floor(Math.random() * 20) + 1;
+    // Use real character equipment data instead of fake data
+    const currentEquipment = selectedCharacter.equippedItems || selectedCharacter.equipment || {};
+    const inventory = selectedCharacter.inventory || [];
+    const characterLevel = selectedCharacter.level || 1;
     
     socketRef.current.emit('chat_message', {
       message: content,
-      character: selectedCharacter.baseName,
+      character: selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id,
       characterData: {
         name: selectedCharacter?.name,
         archetype: selectedCharacter.archetype,
@@ -299,38 +322,32 @@ export default function EquipmentAdvisorChat({
         injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Equipment-specific context
-        conversationContext: `This is an equipment advisory session. The user is the coach who makes equipment decisions for ${selectedCharacter?.name}. The character should advocate for gear choices that fit their archetype (${selectedCharacter.archetype}), stats, and personality. Focus on their actual stats: Base Stats - Strength: ${selectedCharacter.baseStats?.strength || 'Unknown'}, Vitality: ${selectedCharacter.baseStats?.vitality || 'Unknown'}, Agility: ${selectedCharacter.baseStats?.agility || 'Unknown'}, Intelligence: ${selectedCharacter.baseStats?.intelligence || 'Unknown'}. Combat Stats - Attack: ${selectedCharacter.combatStats?.attack || 'Unknown'}, Defense: ${selectedCharacter.combatStats?.defense || 'Unknown'}, Speed: ${selectedCharacter.combatStats?.speed || 'Unknown'}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance || 'Unknown'}%. The character should suggest equipment that enhances their strengths or compensates for weaknesses.`,
+        conversationContext: `This is an equipment advisory session. The user is the coach who makes equipment decisions for ${selectedCharacter.name}. The character should advocate for gear choices that fit their archetype (${selectedCharacter.archetype}), stats, and personality. Focus on their REAL stats from the database: Base Attack: ${selectedCharacter.base_attack}, Base Health: ${selectedCharacter.base_health}, Base Defense: ${selectedCharacter.base_defense}, Base Speed: ${selectedCharacter.base_speed}, Base Special: ${selectedCharacter.base_special}. Current Health: ${selectedCharacter.current_health}/${selectedCharacter.max_health}, Level: ${selectedCharacter.level}. Current Equipment: ${Object.keys(currentEquipment).length > 0 ? JSON.stringify(currentEquipment) : 'None equipped'}. Inventory Items: ${inventory.length} items available. The character should suggest equipment that enhances their strengths or compensates for weaknesses based on these actual stats.`,
         equipmentData: {
-          currentWeapon: {
-            type: selectedCharacter.archetype === 'warrior' ? 'melee weapon' : 
-                  selectedCharacter.archetype === 'mage' ? 'magical staff' : 
-                  selectedCharacter.archetype === 'assassin' ? 'precision weapon' : 'versatile weapon',
-            level: weaponLevel,
-            tier: `Tier ${currentGearTier}`,
-            statRequirements: selectedCharacter.archetype === 'warrior' ? 'High Strength' :
-                             selectedCharacter.archetype === 'mage' ? 'High Intelligence' :
-                             selectedCharacter.archetype === 'assassin' ? 'High Agility' : 'Balanced',
-            upgradeAvailable: Math.random() > 0.5
-          },
-          currentArmor: {
-            type: (selectedCharacter.baseStats?.vitality || 70) < 70 ? 'needs heavy armor' : 'can use light armor',
-            level: armorLevel,
-            tier: `Tier ${currentGearTier}`,
-            defenseRating: 50 + (armorLevel * 5),
-            speedPenalty: (selectedCharacter.combatStats?.speed || 70) > 85 ? 'avoid heavy armor' : 'heavy armor acceptable'
+          currentEquipment: currentEquipment,
+          inventory: inventory,
+          characterLevel: characterLevel,
+          realCharacterStats: {
+            base_attack: selectedCharacter.base_attack,
+            base_health: selectedCharacter.base_health,
+            base_defense: selectedCharacter.base_defense,
+            base_speed: selectedCharacter.base_speed,
+            base_special: selectedCharacter.base_special,
+            current_health: selectedCharacter.current_health,
+            max_health: selectedCharacter.max_health,
+            level: selectedCharacter.level,
+            archetype: selectedCharacter.archetype
           },
           statBasedRecommendations: {
-            strengthBased: (selectedCharacter.baseStats?.strength || 0) > 80,
-            intelligenceBased: (selectedCharacter.baseStats?.intelligence || 0) > 80,
-            agilityBased: (selectedCharacter.baseStats?.agility || 0) > 80,
-            speedBased: (selectedCharacter.combatStats?.speed || 0) > 80,
-            needsVitalityBoost: (selectedCharacter.baseStats?.vitality || 100) < 70
-          },
-          personalityGearPrefs: {
-            egotistical: (selectedCharacter.psychStats?.ego || 0) > 80,
-            honorable: selectedCharacter.personality?.traits?.includes('Honorable'),
-            prideful: selectedCharacter.personality?.traits?.includes('Prideful'),
-            practical: selectedCharacter.personality?.traits?.includes('Practical')
+            strengthBased: selectedCharacter.base_attack > 80,
+            speedBased: selectedCharacter.base_speed > 80,
+            defenseBased: selectedCharacter.base_defense > 80,
+            healthBased: selectedCharacter.base_health > 80,
+            specialBased: selectedCharacter.base_special > 80,
+            needsAttackBoost: selectedCharacter.base_attack < 60,
+            needsHealthBoost: selectedCharacter.base_health < 60,
+            needsDefenseBoost: selectedCharacter.base_defense < 60,
+            needsSpeedBoost: selectedCharacter.base_speed < 60
           }
         }
       },

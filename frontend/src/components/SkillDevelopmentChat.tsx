@@ -156,27 +156,36 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
 interface SkillDevelopmentChatProps {
   selectedCharacterId?: string;
   onCharacterChange?: (characterId: string) => void;
+  selectedCharacter?: EnhancedCharacter;
+  availableCharacters?: EnhancedCharacter[];
 }
 
 export default function SkillDevelopmentChat({ 
   selectedCharacterId, 
-  onCharacterChange 
+  onCharacterChange,
+  selectedCharacter: propSelectedCharacter,
+  availableCharacters: propAvailableCharacters
 }: SkillDevelopmentChatProps) {
-  const [availableCharacters, setAvailableCharacters] = useState<EnhancedCharacter[]>([]);
+  // Use props if available, otherwise fallback to loading
+  const [localAvailableCharacters, setLocalAvailableCharacters] = useState<EnhancedCharacter[]>([]);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState(selectedCharacterId || 'achilles');
-  const [charactersLoading, setCharactersLoading] = useState(true);
+  const [charactersLoading, setCharactersLoading] = useState(!propAvailableCharacters);
 
-  // Load characters on component mount
+  // Only load characters if not provided via props
   useEffect(() => {
-    const loadCharacters = async () => {
-      setCharactersLoading(true);
-      const characters = await loadUserCharacters();
-      setAvailableCharacters(characters);
+    if (!propAvailableCharacters) {
+      const loadCharacters = async () => {
+        setCharactersLoading(true);
+        const characters = await loadUserCharacters();
+        setLocalAvailableCharacters(characters);
+        setCharactersLoading(false);
+      };
+      
+      loadCharacters();
+    } else {
       setCharactersLoading(false);
-    };
-    
-    loadCharacters();
-  }, []);
+    }
+  }, [propAvailableCharacters]);
 
   // Update internal state when prop changes and clear messages
   useEffect(() => {
@@ -187,7 +196,10 @@ export default function SkillDevelopmentChat({
       setIsTyping(false);
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
-  const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+
+  // Use props if available, otherwise use local state
+  const availableCharacters = propAvailableCharacters || localAvailableCharacters;
+  const selectedCharacter = propSelectedCharacter || availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -232,7 +244,7 @@ export default function SkillDevelopmentChat({
         type: 'character',
         content: data.message || 'Let me think about that skill development...',
         timestamp: new Date(),
-        bondIncrease: data.bondIncrease || Math.random() > 0.6,
+        bondIncrease: data.bondIncrease || false,
       };
       
       setMessages(prev => [...prev, characterMessage]);
@@ -258,6 +270,17 @@ export default function SkillDevelopmentChat({
 
   const sendMessage = (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
+      console.log('❌ Skill chat cannot send message:', { 
+        hasContent: !!content.trim(), 
+        isTyping, 
+        connected, 
+        hasSocket: !!socketRef.current 
+      });
+      return;
+    }
+
+    if (!selectedCharacter) {
+      console.log('❌ Skill chat: No selected character for message');
       return;
     }
 
@@ -276,7 +299,7 @@ export default function SkillDevelopmentChat({
 
     socketRef.current.emit('chat_message', {
       message: content,
-      character: selectedCharacter.baseName,
+      character: selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id,
       characterData: {
         name: selectedCharacter?.name,
         archetype: selectedCharacter.archetype,
@@ -305,13 +328,13 @@ export default function SkillDevelopmentChat({
         experience: selectedCharacter.experience,
         bondLevel: selectedCharacter.displayBondLevel,
         // Skill-specific context
-        conversationContext: `This is a skill development session. The user is the coach who makes skill point allocation decisions for ${selectedCharacter?.name}. 
+        conversationContext: `This is a skill development session. The user is the coach who makes skill point allocation decisions for ${selectedCharacter.name}. 
 
 CURRENT CHARACTER STATUS:
-- Base Stats: Strength: ${selectedCharacter.baseStats?.strength}, Vitality: ${selectedCharacter.baseStats?.vitality}, Agility: ${selectedCharacter.baseStats?.agility}, Intelligence: ${selectedCharacter.baseStats?.intelligence}, Wisdom: ${selectedCharacter.baseStats?.wisdom}, Charisma: ${selectedCharacter.baseStats?.charisma}
-- Combat Stats: Health: ${selectedCharacter.combatStats?.health}/${selectedCharacter.combatStats?.maxHealth}, Attack: ${selectedCharacter.combatStats?.attack}, Defense: ${selectedCharacter.combatStats?.defense}, Speed: ${selectedCharacter.combatStats?.speed}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance}%, Accuracy: ${selectedCharacter.combatStats?.accuracy}%
-- Level: ${selectedCharacter.level}, Archetype: ${selectedCharacter.archetype}
-- Current Abilities: ${selectedCharacter.abilities?.length || 0} learned abilities
+- Base Stats: Attack: ${selectedCharacter.base_attack}, Health: ${selectedCharacter.base_health}, Defense: ${selectedCharacter.base_defense}, Speed: ${selectedCharacter.base_speed}, Special: ${selectedCharacter.base_special}
+- Current Status: Health: ${selectedCharacter.current_health}/${selectedCharacter.max_health}, Level: ${selectedCharacter.level}, Experience: ${selectedCharacter.experience}, Bond Level: ${selectedCharacter.bond_level}
+- Archetype: ${selectedCharacter.archetype}
+- Current Abilities: ${selectedCharacter.abilities?.length} learned abilities
 - Available Training Points: ${Math.floor(selectedCharacter.level * 1.5)}
 
 GAME MECHANICS KNOWLEDGE:
@@ -326,31 +349,39 @@ GAME MECHANICS KNOWLEDGE:
 COACHING ROLE: You should advocate for skill development paths that optimize this character's combat effectiveness, consider their personality traits, and suggest training priorities based on their current weaknesses and strengths. Reference specific game mechanics when explaining why certain skills would benefit them.`,
         skillData: {
           availableSkillPoints: Math.floor(selectedCharacter.level * 1.5),
-          currentAbilities: selectedCharacter.abilities.map(a => ({
-            name: a.name,
-            type: a.type,
-            requiresSkillInvestment: a.power < 50
-          })),
+          currentAbilities: selectedCharacter.abilities || [],
+          realCharacterStats: {
+            base_attack: selectedCharacter.base_attack,
+            base_health: selectedCharacter.base_health,
+            base_defense: selectedCharacter.base_defense,
+            base_speed: selectedCharacter.base_speed,
+            base_special: selectedCharacter.base_special,
+            current_health: selectedCharacter.current_health,
+            max_health: selectedCharacter.max_health,
+            level: selectedCharacter.level,
+            experience: selectedCharacter.experience,
+            bond_level: selectedCharacter.bond_level,
+            archetype: selectedCharacter.archetype
+          },
           statFocusRecommendations: {
-            strengthBased: (selectedCharacter.baseStats?.strength || 0) > 75,
-            intelligenceBased: (selectedCharacter.baseStats?.intelligence || 0) > 75,
-            agilityBased: (selectedCharacter.baseStats?.agility || 0) > 75,
-            speedBased: (selectedCharacter.combatStats?.speed || 0) > 90,
-            vitalityBased: (selectedCharacter.baseStats?.vitality || 0) > 75
+            attackBased: selectedCharacter.base_attack > 75,
+            specialBased: selectedCharacter.base_special > 75,
+            speedBased: selectedCharacter.base_speed > 75,
+            defenseBased: selectedCharacter.base_defense > 75,
+            healthBased: selectedCharacter.base_health > 75,
+            needsAttackFocus: selectedCharacter.base_attack < 60,
+            needsSpeedFocus: selectedCharacter.base_speed < 60,
+            needsDefenseFocus: selectedCharacter.base_defense < 60
           },
           learningCapacity: {
             currentLevel: selectedCharacter.level,
-            experience: selectedCharacter.experience || 0,
-            canLearnAdvanced: selectedCharacter.level > 10 && (selectedCharacter.baseStats?.intelligence || 0) > 70,
-            preferredLearningStyle: selectedCharacter.personality?.traits?.includes('Analytical') ? 'systematic' :
-                                   selectedCharacter.personality?.traits?.includes('Impatient') ? 'quick_results' : 'balanced'
+            experience: selectedCharacter.experience,
+            canLearnAdvanced: selectedCharacter.level > 10 && selectedCharacter.base_special > 70,
+            bondLevel: selectedCharacter.bond_level
           },
           archetypeSkillTrees: {
-            primary: selectedCharacter.archetype === 'warrior' ? 'combat_mastery' :
-                    selectedCharacter.archetype === 'mage' ? 'spell_mastery' :
-                    selectedCharacter.archetype === 'detective' ? 'investigation_mastery' : 'versatile_skills',
-            secondary: 'team_coordination',
-            suggested: selectedCharacter.abilities.length > 2 ? 'ability_synergy' : 'foundation_building'
+            primary: selectedCharacter.archetype,
+            abilityCount: selectedCharacter.abilities?.length || 0
           }
         }
       },

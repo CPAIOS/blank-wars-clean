@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BattleRewards from './BattleRewards';
 import CombatSkillProgression from './CombatSkillProgression';
@@ -17,8 +17,12 @@ import TeamOverview from './TeamOverview';
 import MatchmakingPanel from './MatchmakingPanel';
 import ChaosPanel from './ChaosPanel';
 import TeamChatPanel from './TeamChatPanel';
+import CompetitiveMatchmaking from './CompetitiveMatchmaking';
 import { combatRewards, createBattleStats, BattleStats } from '@/data/combatRewards';
+import { type MatchmakingCriteria, type OpponentProfile } from '@/data/competitiveMatchmaking';
 import { BattlePhase } from '@/data/battleFlow';
+import { createDemoCharacterCollection, type Character } from '@/data/characters';
+import { createBattleReadyCharacter } from '@/data/teamBattleSystem';
 import { generateAIResponse } from '@/utils/aiChatResponses';
 import { createBattlePerformance, CombatSkillEngine, CombatSkillReward } from '@/data/combatSkillProgression';
 import { type MatchmakingResult, getTeamWeightClass, calculateWeightClassXP } from '@/data/weightClassSystem';
@@ -90,6 +94,9 @@ export default function ImprovedBattleArena() {
   // Memory leak prevention with timeout manager
   const timeoutManager = useTimeoutManager();
   const { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout, clearAllTimeouts } = timeoutManager;
+  
+  // Ref to store clearQueue function for cleanup
+  const clearQueueRef = useRef<(() => void) | null>(null);
   
   // Battle Announcer Integration with error handling (moved before cleanup effect)
   const battleAnnouncer = useBattleAnnouncer();
@@ -185,19 +192,56 @@ export default function ImprovedBattleArena() {
     unlockedThemes: ['victorian_study', 'greek_classical']
   };
 
-  // Calculate headquarters bonuses AND penalties
-  const headquartersEffects = calculateNetHeadquartersEffect(mockHeadquarters);
+  // Calculate headquarters bonuses AND penalties - memoized to prevent infinite loops
+  const headquartersEffects = useMemo(() => 
+    calculateNetHeadquartersEffect(mockHeadquarters), []
+  );
   
   // Use centralized state management instead of individual useState hooks
   const { state, actions } = useBattleState();
   
-  // Initialize player team with headquarters effects if not already set
+  // Team selection state
+  const [showTeamSelection, setShowTeamSelection] = useState(false);
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
+  const coachRoster = createDemoCharacterCollection(); // TODO: Replace with actual coach's roster
+  
+  // Competitive matchmaking state (additional local state not in battle state)
+  const [currentOpponent, setCurrentOpponent] = useState<OpponentProfile | null>(null);
+  const [matchmakingCriteria, setMatchmakingCriteria] = useState<MatchmakingCriteria | null>(null);
+  
+  // Mock player stats for matchmaking (TODO: Replace with actual player stats)
+  const playerStats = {
+    level: 25,
+    wins: 45,
+    rating: 1250,
+    completedChallenges: ['tournament_finalist', 'weight_class_champion']
+  };
+  
+  // Initialize player team with 3 random characters from roster
   useEffect(() => {
     if (state.playerTeam.characters.length === 0) {
-      const teamWithEffects = createDemoPlayerTeamWithBonuses(headquartersEffects.bonuses, headquartersEffects.penalties);
-      actions.setPlayerTeam(teamWithEffects);
+      // Select 3 random characters from coach's roster
+      const shuffled = [...coachRoster].sort(() => 0.5 - Math.random());
+      const randomTeam = shuffled.slice(0, 3);
+      
+      // Convert to team format
+      const team = {
+        id: 'player_team',
+        name: 'Player Team',
+        coachName: 'Player',
+        characters: randomTeam,
+        coachingPoints: 3,
+        consecutiveLosses: 0,
+        teamChemistry: 75,
+        overallMorale: 80
+      };
+      
+      actions.setPlayerTeam(team);
+      
+      // Set selected team members for the UI
+      setSelectedTeamMembers(randomTeam.map(char => char.id));
     }
-  }, [headquartersEffects, actions, state.playerTeam.characters.length]);
+  }, [state.playerTeam.characters.length]);
   
   // Destructure state for easier access (maintaining original variable names)
   const {
@@ -359,10 +403,19 @@ export default function ImprovedBattleArena() {
     headquartersEffects
   });
 
+  // Initialize Battle Flow Hook (needed by coaching system)
+  const battleFlow = useBattleFlow({
+    state,
+    actions
+  });
+
   // Initialize Coaching System Hook
   const coachingSystem = useCoachingSystem({
     state,
-    actions,
+    actions: {
+      ...actions,
+      startStrategySelection: battleFlow.startStrategySelection
+    },
     timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
     speak
   });
@@ -391,7 +444,12 @@ export default function ImprovedBattleArena() {
   // Initialize Battle Simulation Hook (must be before battleEngineLogic)
   const battleSimulation = useBattleSimulation({
     state,
-    actions,
+    actions: {
+      ...actions,
+      calculateTeamPower: uiPresentation.calculateTeamPower,
+      checkForChaos: psychologySystem.checkForChaos,
+      announceMessage: uiPresentation.announceMessage
+    },
     timeoutManager: { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout },
     calculateBattleRewards: battleRewardsHook.calculateBattleRewards,
     announceAction
@@ -451,12 +509,6 @@ export default function ImprovedBattleArena() {
     headquartersEffects
   });
 
-  // Initialize Battle Flow Hook
-  const battleFlow = useBattleFlow({
-    state,
-    actions
-  });
-
   // Initialize Battle Communication Hook
   const battleCommunication = useBattleCommunication({
     state,
@@ -483,6 +535,25 @@ export default function ImprovedBattleArena() {
     actions
   });
 
+  // Auto-select a demo opponent for testing
+  useEffect(() => {
+    if (!state.selectedOpponent && state.opponentTeam.characters.length > 0) {
+      const demoOpponent = {
+        opponent: { 
+          teamLevel: 25,
+          weightClass: 'amateur' as const,
+          levelDifference: 0
+        },
+        estimatedWaitTime: 0,
+        confidence: 95,
+        riskLevel: 'moderate' as const,
+        expectedXpMultiplier: 1.0,
+        description: 'Demo opponent team'
+      };
+      matchmaking.handleOpponentSelection(demoOpponent);
+    }
+  }, [state.selectedOpponent, state.opponentTeam.characters.length, matchmaking]);
+
   // Extract battle functions from hook
   const { 
     startTeamBattle, 
@@ -490,14 +561,17 @@ export default function ImprovedBattleArena() {
     endBattle, 
     proceedToRoundCombat,
     handleRoundEnd,
-    calculateBattleOutcome,
-    // Fast Battle System
+    calculateBattleOutcome
+  } = battleEngineLogic;
+
+  // Extract fast battle functions from simulation hook
+  const {
     isOpponentAI,
     handleFastBattleRequest,
     startFastBattle,
     resolveFastBattle,
     calculateFastBattleResult
-  } = battleEngineLogic;
+  } = battleSimulation;
 
   // Initialize Battle Timer Hook
   const battleTimer = useBattleTimer({
@@ -569,7 +643,7 @@ export default function ImprovedBattleArena() {
     if (!player2.id) {
       setPlayer2(uiPresentation.getCurrentOpponentFighter());
     }
-  }, [player1.id, player2.id, uiPresentation]);
+  }, [player1.id, player2.id]);
 
   // Update fighters when round changes
   useEffect(() => {
@@ -578,7 +652,7 @@ export default function ImprovedBattleArena() {
     // Reset battle stats for new round
     setPlayer1BattleStats(createBattleStats());
     setPlayer2BattleStats(createBattleStats());
-  }, [currentRound, uiPresentation]);
+  }, [currentRound]);
 
   // Clear announcement ref when content changes
   useEffect(() => {
@@ -600,7 +674,7 @@ export default function ImprovedBattleArena() {
   useEffect(() => {
     if (isTimerActive && timer !== null && timer > 0) {
       const interval = setInterval(() => {
-        setTimer(prev => prev !== null ? prev - 1 : null);
+        setTimer(timer !== null ? timer - 1 : null);
       }, 1000);
       return () => clearInterval(interval);
     } else if (timer === 0) {
@@ -823,7 +897,37 @@ export default function ImprovedBattleArena() {
   // Initialize card collection on mount
   useEffect(() => {
     cardCollectionSystem.initializeCardCollection();
-  }, [cardCollectionSystem]);
+  }, []);
+
+  // Competitive Matchmaking Handlers
+  const handleMatchFound = (opponent: OpponentProfile, criteria: MatchmakingCriteria) => {
+    setCurrentOpponent(opponent);
+    setMatchmakingCriteria(criteria);
+    setShowMatchmaking(false);
+    
+    // Set announcement and start battle preparation
+    setCurrentAnnouncement(`Match found! Preparing to face ${criteria.weightClass} opponent (Power: ${opponent.teamPower})`);
+    
+    // Generate AI opponent team based on the opponent profile
+    // This would normally come from the backend, but we'll generate it locally for now
+    const aiOpponentTeam = createDemoOpponentTeam(); // TODO: Create team based on opponent profile
+    setOpponentTeam(aiOpponentTeam);
+    
+    // Start the battle flow with the matched opponent
+    setPhase('pre_battle_huddle');
+    
+    setCurrentAnnouncement(`⚔️ Competitive Match Found! Weight Class: ${criteria.weightClass.replace('_', ' ').toUpperCase()}`);
+    // Additional announcement for reward info
+    setTimeout(() => {
+      setCurrentAnnouncement(`🎯 Difficulty: ${criteria.difficultyTier} • Expected Reward: ${opponent.rewardMultiplier.toFixed(1)}x`);
+    }, 3000);
+  };
+
+  const handleMatchmakingCancel = () => {
+    setShowMatchmaking(false);
+    setCurrentOpponent(null);
+    setMatchmakingCriteria(null);
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -961,50 +1065,14 @@ export default function ImprovedBattleArena() {
         </div>
       </div>
 
-      {/* Matchmaking Panel - Positioned after Team Communication Hub */}
+
+      {/* Matchmaking Panel */}
       {phase === 'matchmaking' && (
         <MatchmakingPanel
           playerTeamLevels={playerTeam.characters.map(char => char.level)}
           onSelectOpponent={matchmaking.handleOpponentSelection}
           isVisible={showMatchmaking}
         />
-      )}
-
-
-      {/* Start Battle Button */}
-      {phase === 'pre-battle' && selectedOpponent && (
-        <div className="text-center space-y-4">
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={startTeamBattle}
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg text-white font-bold text-xl shadow-lg transition-all transform hover:scale-105"
-            >
-              Begin Team Battle!
-            </button>
-            
-            {/* Fast Battle Button */}
-            <button
-              onClick={handleFastBattleRequest}
-              className="px-6 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform hover:scale-105 flex items-center gap-2"
-              title={isOpponentAI() ? "Instant battle resolution" : "Request fast battle (requires opponent consent)"}
-            >
-              ⚡ Fast Battle
-            </button>
-          </div>
-          
-          <p className="text-gray-400 text-sm">
-            3v3 Team Combat • Psychology & Chemistry Matter • Coach Wisely
-          </p>
-          
-          {/* Fast Battle Status for PvP */}
-          {!isOpponentAI() && fastBattleConsent.player1 && (
-            <div className="bg-orange-900/30 border border-orange-500/50 rounded-lg p-3">
-              <p className="text-orange-300 text-sm">
-                ⚡ Fast Battle requested! Waiting for opponent consent...
-              </p>
-            </div>
-          )}
-        </div>
       )}
 
       {/* Battle End - Victory/Restart */}
@@ -1178,6 +1246,163 @@ export default function ImprovedBattleArena() {
         playerCurrency={playerCurrency}
         onCurrencySpent={cardCollectionSystem.handleCurrencySpent}
       />
+
+      {/* Team Selection and Battle Controls */}
+      <div className="max-w-4xl mx-auto mt-48 mb-8 space-y-6">
+          {/* Current Team Display */}
+          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Current Team</h3>
+              <button
+                onClick={() => setShowTeamSelection(!showTeamSelection)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-semibold transition-colors"
+              >
+                {showTeamSelection ? 'Hide Selection' : 'Change Team'}
+              </button>
+            </div>
+            
+            {/* Current team members */}
+            <div className="flex gap-4">
+              {playerTeam.characters.slice(0, 3).map((character, index) => (
+                <div key={character.id} className="flex-1 bg-slate-800/50 rounded-lg p-3 text-center">
+                  <div className="text-2xl mb-1">{character.avatar}</div>
+                  <div className="text-white font-semibold text-sm">{character.name}</div>
+                  <div className="text-gray-400 text-xs">Level {character.level}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Team Selection Panel */}
+          {showTeamSelection && (
+            <div className="bg-slate-900/80 rounded-lg p-6 border border-slate-700">
+              <h4 className="text-white font-bold mb-4">
+                Select Team Members ({selectedTeamMembers.length}/3)
+              </h4>
+              
+              <div className="grid grid-cols-3 gap-3 mb-4 max-h-60 overflow-y-auto">
+                {coachRoster.map((character) => {
+                  const isSelected = selectedTeamMembers.includes(character.id);
+                  const canSelect = !isSelected && selectedTeamMembers.length < 3;
+                  
+                  return (
+                    <button
+                      key={character.id}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedTeamMembers(prev => prev.filter(id => id !== character.id));
+                        } else if (canSelect) {
+                          setSelectedTeamMembers(prev => [...prev, character.id]);
+                        }
+                      }}
+                      disabled={!isSelected && !canSelect}
+                      className={`p-3 rounded-lg text-left transition-all text-sm ${
+                        isSelected
+                          ? 'bg-blue-600/40 border border-blue-500'
+                          : canSelect
+                          ? 'bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600'
+                          : 'bg-gray-800/30 border border-gray-700 opacity-50 cursor-not-allowed'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{character.avatar}</span>
+                        <div>
+                          <div className="text-white font-semibold">{character.name}</div>
+                          <div className="text-gray-400 text-xs">Level {character.level}</div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    if (selectedTeamMembers.length === 3) {
+                      // Update team with selected characters
+                      const selectedChars = selectedTeamMembers
+                        .map(id => coachRoster.find(char => char.id === id))
+                        .filter(Boolean);
+                      
+                      const newTeam = {
+                        id: 'player_team',
+                        name: 'Player Team',
+                        coachName: 'Player',
+                        characters: selectedChars,
+                        coachingPoints: 3,
+                        consecutiveLosses: 0,
+                        teamChemistry: 75,
+                        overallMorale: 80
+                      };
+                      
+                      actions.setPlayerTeam(newTeam);
+                      setShowTeamSelection(false);
+                    }
+                  }}
+                  disabled={selectedTeamMembers.length !== 3}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                    selectedTeamMembers.length === 3
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  Confirm Team
+                </button>
+                
+                <button
+                  onClick={() => setShowTeamSelection(false)}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Battle Buttons */}
+          <div className="text-center space-y-4 bg-slate-900/50 rounded-lg p-6 border border-slate-700">
+            <div className="flex justify-center gap-4 flex-wrap">
+            <button
+              onClick={startBattle}
+              className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg text-white font-bold text-xl shadow-lg transition-all transform hover:scale-105"
+            >
+              Begin Team Battle!
+            </button>
+            
+            <button
+              onClick={() => setShowMatchmaking(true)}
+              className="px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform hover:scale-105"
+            >
+              🏆 Competitive Match
+            </button>
+            
+            <button
+              onClick={handleFastBattleRequest}
+              className="px-6 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform hover:scale-105 flex items-center gap-2"
+              title="Fast battle mode"
+            >
+              ⚡ Fast Battle
+            </button>
+            </div>
+            
+            <p className="text-gray-400 text-sm">
+              3v3 Team Combat • Quick Battle or Competitive Matchmaking • Psychology & Chemistry Matter
+            </p>
+          </div>
+        </div>
+
+      {/* Competitive Matchmaking Overlay */}
+      {showMatchmaking && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <CompetitiveMatchmaking
+            playerTeam={playerTeam.characters}
+            playerStats={playerStats}
+            onMatchFound={handleMatchFound}
+            onCancel={handleMatchmakingCancel}
+          />
+        </div>
+      )}
 
     </div>
   );

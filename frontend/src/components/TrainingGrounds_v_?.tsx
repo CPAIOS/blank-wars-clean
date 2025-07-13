@@ -250,10 +250,7 @@ export default function TrainingGrounds({
           sessionDuration: 0,
           availableExercises: availableExercises.slice(0, 6) // Show first 6 exercises
         },
-        recentTrainingEvents: [
-          `${character.name} entered the training facility`,
-          `Available character-specific exercises: ${availableExercises.length}`
-        ]
+        recentTrainingEvents: [`${character.name} entered the training facility`]
       };
 
       console.log('🤖 Calling training chat service for auto-analysis...');
@@ -354,35 +351,10 @@ export default function TrainingGrounds({
     const archetype = character.archetype;
     const characterName = character.name?.toLowerCase() || '';
     
-    // Create character name mapping for more robust matching
-    const getCharacterKey = (name: string): string => {
-      const lowerName = name.toLowerCase();
-      if (lowerName.includes('sherlock') || lowerName.includes('holmes')) return 'sherlock holmes';
-      if (lowerName.includes('robin') && lowerName.includes('hood')) return 'robin hood';
-      if (lowerName.includes('frankenstein')) return "frankenstein's monster";
-      if (lowerName.includes('dracula') || lowerName.includes('count')) return 'count dracula';
-      if (lowerName.includes('sun') && lowerName.includes('wukong')) return 'sun wukong';
-      if (lowerName.includes('loki')) return 'loki';
-      if (lowerName.includes('achilles')) return 'achilles';
-      if (lowerName.includes('merlin')) return 'merlin';
-      return lowerName;
-    };
-    
-    const characterKey = getCharacterKey(characterName);
-    
-    // Debug logging to verify character matching
-    console.log('🏋️ Generating training for:', {
-      originalName: character.name,
-      characterName: characterName,
-      characterKey: characterKey,
-      level: level,
-      archetype: archetype
-    });
-    
     // Define character-specific exercise templates
     const exerciseTemplates = {
       // SHERLOCK HOLMES - Detective/Scholar exercises
-      'sherlock holmes': {
+      sherlock: {
         beginner: [
           { name: 'Basic Observation Drills', desc: 'Train your eye to notice minute details', type: 'special', xp: 40, energy: 12, bonus: 2 },
           { name: 'Simple Deduction Practice', desc: 'Practice logical reasoning with basic puzzles', type: 'special', xp: 45, energy: 15, bonus: 1 }
@@ -527,7 +499,7 @@ export default function TrainingGrounds({
     const allTemplates = { ...exerciseTemplates, ...additionalTemplates };
     
     // Determine which exercise set to use
-    let exerciseSet = allTemplates[characterKey as keyof typeof allTemplates] || 
+    let exerciseSet = allTemplates[characterName as keyof typeof allTemplates] || 
                      allTemplates[archetype as keyof typeof allTemplates] || 
                      allTemplates.warrior;
 
@@ -538,7 +510,7 @@ export default function TrainingGrounds({
     if (level >= 1) {
       exerciseSet.beginner.forEach((exercise, idx) => {
         activities.push({
-          id: `${characterKey.replace(/[^a-z0-9]/g, '_')}_beginner_${idx}`,
+          id: `${characterName}_beginner_${idx}`,
           name: exercise.name,
           description: exercise.desc,
           type: exercise.type as any,
@@ -557,7 +529,7 @@ export default function TrainingGrounds({
     if (level >= 11) {
       exerciseSet.intermediate.forEach((exercise, idx) => {
         activities.push({
-          id: `${characterKey.replace(/[^a-z0-9]/g, '_')}_intermediate_${idx}`,
+          id: `${characterName}_intermediate_${idx}`,
           name: exercise.name,
           description: exercise.desc,
           type: exercise.type as any,
@@ -576,7 +548,7 @@ export default function TrainingGrounds({
     if (level >= 26) {
       exerciseSet.expert.forEach((exercise, idx) => {
         activities.push({
-          id: `${characterKey.replace(/[^a-z0-9]/g, '_')}_expert_${idx}`,
+          id: `${characterName}_expert_${idx}`,
           name: exercise.name,
           description: exercise.desc,
           type: exercise.type as any,
@@ -595,7 +567,7 @@ export default function TrainingGrounds({
     if (level >= 41) {
       exerciseSet.legendary.forEach((exercise, idx) => {
         activities.push({
-          id: `${characterKey.replace(/[^a-z0-9]/g, '_')}_legendary_${idx}`,
+          id: `${characterName}_legendary_${idx}`,
           name: exercise.name,
           description: exercise.desc,
           type: exercise.type as any,
@@ -609,15 +581,6 @@ export default function TrainingGrounds({
         });
       });
     }
-
-    // Debug logging to verify activities are generated
-    console.log('🎯 Generated training activities:', {
-      characterKey: characterKey,
-      exerciseSetUsed: exerciseSet === allTemplates[characterKey as keyof typeof allTemplates] ? 'character-specific' : 
-                      exerciseSet === allTemplates[archetype as keyof typeof allTemplates] ? 'archetype-based' : 'warrior-fallback',
-      activitiesCount: activities.length,
-      activities: activities.map(a => ({ name: a.name, difficulty: a.difficulty, type: a.type }))
-    });
 
     return activities;
   };
@@ -652,15 +615,28 @@ export default function TrainingGrounds({
     if (!canTrain()) return;
     
     try {
-      console.log('🏋️ Starting character-specific training:', {
-        character: selectedCharacter.name,
-        activity: activity.name,
-        type: activity.type,
-        difficulty: activity.difficulty
-      });
+      // Get user ID from auth context (you'll need to implement this)
+      const userId = 'user123'; // Replace with actual user ID from auth context
       
-      // Skip the old training system and use our character-specific system directly
-      // This bypasses the legacy psychology-based training that was causing SyntaxError
+      // Load the training system manager - ensure client-side only
+      if (typeof window === 'undefined') {
+        console.warn('Training attempted during SSR, skipping');
+        return;
+      }
+      
+      const trainingManager = TrainingSystemManager.loadProgress();
+      
+      // Start training with usage tracking following battle service pattern
+      const session = await trainingManager.startTraining(
+        selectedCharacter.id, 
+        activity.id, 
+        userId, 
+        selectedFacility
+      );
+      
+      if (!session) {
+        throw new Error('Failed to start training session');
+      }
       
       setCurrentActivity(activity);
       setIsTraining(true);
@@ -680,8 +656,6 @@ export default function TrainingGrounds({
         ...prev,
         energy: prev.energy - energyCost
       }));
-      
-      console.log('✅ Character-specific training started successfully!');
       
     } catch (error) {
       console.error('Training failed:', error);
@@ -726,16 +700,10 @@ export default function TrainingGrounds({
           // Use progression-based stats as base, then apply training bonuses
           hp: newStats.hp,
           maxHp: newStats.hp,
-          atk: newStats.atk + (currentActivity.type === 'strength' ? statBonus : 0) + (currentActivity.type === 'special' ? statBonus : 0),
+          atk: newStats.atk + (currentActivity.type === 'strength' ? statBonus : 0),
           def: newStats.def + (currentActivity.type === 'defense' ? statBonus : 0),
           spd: newStats.spd + (currentActivity.type === 'speed' ? statBonus : 0),
-          // Update training bonuses for tracking permanent improvements
-          trainingBonuses: {
-            strength: prev.trainingBonuses.strength + (currentActivity.type === 'strength' ? statBonus : 0),
-            defense: prev.trainingBonuses.defense + (currentActivity.type === 'defense' ? statBonus : 0),
-            speed: prev.trainingBonuses.speed + (currentActivity.type === 'speed' ? statBonus : 0),
-            special: prev.trainingBonuses.special + (currentActivity.type === 'special' ? statBonus : 0)
-          },
+
           // Recover some energy after training
           energy: Math.min(prev.maxEnergy, prev.energy + 5)
         };
@@ -745,16 +713,9 @@ export default function TrainingGrounds({
           ...prev,
           xp: remainingXp,
           // Apply stat bonus based on training type
-          atk: (currentActivity.type === 'strength' || currentActivity.type === 'special') ? prev.atk + statBonus : prev.atk,
+          atk: currentActivity.type === 'strength' ? prev.atk + statBonus : prev.atk,
           def: currentActivity.type === 'defense' ? prev.def + statBonus : prev.def,
           spd: currentActivity.type === 'speed' ? prev.spd + statBonus : prev.spd,
-          // Update training bonuses for tracking permanent improvements
-          trainingBonuses: {
-            strength: prev.trainingBonuses.strength + (currentActivity.type === 'strength' ? statBonus : 0),
-            defense: prev.trainingBonuses.defense + (currentActivity.type === 'defense' ? statBonus : 0),
-            speed: prev.trainingBonuses.speed + (currentActivity.type === 'speed' ? statBonus : 0),
-            special: prev.trainingBonuses.special + (currentActivity.type === 'special' ? statBonus : 0)
-          },
           // Recover some energy after training
           energy: Math.min(prev.maxEnergy, prev.energy + 5)
         };
@@ -765,24 +726,6 @@ export default function TrainingGrounds({
     if (trainingPointsGain > 0) {
       setTrainingPoints(prev => prev + trainingPointsGain);
     }
-    
-    // Generate completion message based on exercise difficulty and character
-    const completionMessage = currentActivity.difficulty === 'extreme' 
-      ? `🔥 LEGENDARY TRAINING COMPLETE! ${selectedCharacter?.name} mastered "${currentActivity.name}"! Gained +${statBonus} ${currentActivity.type} and ${xpGain} XP!`
-      : currentActivity.difficulty === 'hard'
-      ? `⚡ EXPERT TRAINING COMPLETE! ${selectedCharacter?.name} conquered "${currentActivity.name}"! Gained +${statBonus} ${currentActivity.type} and ${xpGain} XP!`
-      : `✅ Training Complete: ${selectedCharacter?.name} finished "${currentActivity.name}" and gained +${statBonus} ${currentActivity.type} and ${xpGain} XP!`;
-    
-    console.log('⭐ Character-Specific Training Completed!', {
-      characterName: selectedCharacter?.name,
-      exerciseName: currentActivity.name,
-      exerciseType: currentActivity.type,
-      difficulty: currentActivity.difficulty,
-      xpGained: xpGain,
-      statBonus: statBonus,
-      trainingPointsGained: trainingPointsGain,
-      completionMessage
-    });
     
     setIsTraining(false);
     setTrainingPhase('recovery');
@@ -896,8 +839,7 @@ export default function TrainingGrounds({
           `Training phase: ${trainingPhase}`,
           `Completed ${dailyTrainingSessions} training sessions today`,
           `Current energy: ${selectedCharacter.energy}/${selectedCharacter.maxEnergy}`,
-          `Training points earned: ${trainingPoints}`,
-          currentActivity ? `Currently training: ${currentActivity.name} (${currentActivity.difficulty} difficulty)` : `Available character-specific exercises: ${availableExercises.length}`
+          `Training points earned: ${trainingPoints}`
         ]
       };
 
@@ -971,22 +913,9 @@ export default function TrainingGrounds({
           Training Grounds
           <Dumbbell className="w-8 h-8 text-orange-400" />
         </h1>
-        <p className="text-gray-400 text-lg mb-6">
+        <p className="text-gray-400 text-lg">
           Strengthen your warriors through focused training and unlock their true potential
         </p>
-        
-        {/* Argock the Inspirerer - Training Master */}
-        <div className="flex justify-center mb-8">
-          <div className="relative max-w-md mx-auto">
-            <img 
-              src="/images/argock-the-inspirerer.png" 
-              alt="Argock the Inspirerer - Training Master" 
-              className="rounded-xl border-2 border-orange-500/30 shadow-2xl"
-              style={{ maxHeight: '300px', width: 'auto' }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent rounded-xl pointer-events-none"></div>
-          </div>
-        </div>
       </div>
 
 
@@ -1177,7 +1106,7 @@ export default function TrainingGrounds({
           >
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-400" />
-              {selectedCharacter ? `${selectedCharacter.name}'s Training` : 'Available Training'}
+              Available Training
             </h2>
 
             <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -1190,12 +1119,7 @@ export default function TrainingGrounds({
                     key={activity.id}
                     className={`border rounded-lg p-3 transition-all ${
                       canStartTraining 
-                        ? `border-gray-600 hover:border-blue-500 cursor-pointer ${
-                            activity.difficulty === 'extreme' ? 'bg-gradient-to-r from-purple-900/20 to-red-900/20 border-purple-500/50' :
-                            activity.difficulty === 'hard' ? 'bg-gradient-to-r from-orange-900/20 to-yellow-900/20 border-orange-500/50' :
-                            activity.difficulty === 'medium' ? 'bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border-blue-500/50' :
-                            'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/50'
-                          }` 
+                        ? 'border-gray-600 hover:border-blue-500 cursor-pointer' 
                         : 'border-gray-700 opacity-50 cursor-not-allowed'
                     }`}
                     onClick={() => canStartTraining && startTraining(activity)}
@@ -1206,17 +1130,9 @@ export default function TrainingGrounds({
                       </div>
                       <div className="flex-1">
                         <div className="text-white font-medium">{activity.name}</div>
-                        <div className="text-xs text-gray-400 mb-1">
+                        <div className="text-xs text-gray-400">
                           {formatTime(activity.duration)} • {activity.energyCost} Energy • +{activity.xpGain} XP
                         </div>
-                        <div className="text-xs text-blue-300 capitalize">
-                          +{activity.statBonus} {activity.type} • {activity.difficulty} difficulty
-                        </div>
-                        {activity.description && (
-                          <div className="text-xs text-gray-500 mt-1 italic">
-                            {activity.description}
-                          </div>
-                        )}
                       </div>
                       {canStartTraining && (
                         <button className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded">

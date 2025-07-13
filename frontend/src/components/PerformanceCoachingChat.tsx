@@ -128,27 +128,36 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
 interface PerformanceCoachingChatProps {
   selectedCharacterId?: string;
   onCharacterChange?: (characterId: string) => void;
+  selectedCharacter?: EnhancedCharacter;
+  availableCharacters?: EnhancedCharacter[];
 }
 
 export default function PerformanceCoachingChat({ 
   selectedCharacterId, 
-  onCharacterChange 
+  onCharacterChange,
+  selectedCharacter: propSelectedCharacter,
+  availableCharacters: propAvailableCharacters
 }: PerformanceCoachingChatProps) {
-  const [availableCharacters, setAvailableCharacters] = useState<EnhancedCharacter[]>([]);
+  // Use props if available, otherwise fallback to loading
+  const [localAvailableCharacters, setLocalAvailableCharacters] = useState<EnhancedCharacter[]>([]);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState(selectedCharacterId || 'achilles');
-  const [charactersLoading, setCharactersLoading] = useState(true);
+  const [charactersLoading, setCharactersLoading] = useState(!propAvailableCharacters);
 
-  // Load characters on component mount
+  // Only load characters if not provided via props
   useEffect(() => {
-    const loadCharacters = async () => {
-      setCharactersLoading(true);
-      const characters = await loadUserCharacters();
-      setAvailableCharacters(characters);
+    if (!propAvailableCharacters) {
+      const loadCharacters = async () => {
+        setCharactersLoading(true);
+        const characters = await loadUserCharacters();
+        setLocalAvailableCharacters(characters);
+        setCharactersLoading(false);
+      };
+      
+      loadCharacters();
+    } else {
       setCharactersLoading(false);
-    };
-    
-    loadCharacters();
-  }, []);
+    }
+  }, [propAvailableCharacters]);
 
   // Update internal state when prop changes and clear messages
   useEffect(() => {
@@ -160,7 +169,10 @@ export default function PerformanceCoachingChat({
       setIsTyping(false);
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
-  const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+
+  // Use props if available, otherwise use local state
+  const availableCharacters = propAvailableCharacters || localAvailableCharacters;
+  const selectedCharacter = propSelectedCharacter || availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -205,7 +217,7 @@ export default function PerformanceCoachingChat({
         type: 'character',
         content: data.message || 'Let me think about my performance...',
         timestamp: new Date(),
-        bondIncrease: data.bondIncrease || Math.random() > 0.6,
+        bondIncrease: data.bondIncrease || false,
       };
       
       setMessages(prev => [...prev, characterMessage]);
@@ -231,6 +243,17 @@ export default function PerformanceCoachingChat({
 
   const sendMessage = (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
+      console.log('❌ Cannot send message:', { 
+        hasContent: !!content.trim(), 
+        isTyping, 
+        connected, 
+        hasSocket: !!socketRef.current 
+      });
+      return;
+    }
+
+    if (!selectedCharacter) {
+      console.log('❌ No selected character for message');
       return;
     }
 
@@ -254,15 +277,15 @@ export default function PerformanceCoachingChat({
 
     setIsTyping(true);
 
-    // Generate dynamic performance data for context
-    const recentBattles = Math.floor(Math.random() * 20) + 10;
-    const winRate = Math.floor(Math.random() * 30) + 50; // 50-80% win rate
-    const battlesWon = Math.floor(recentBattles * (winRate / 100));
-    const battlesLost = recentBattles - battlesWon;
+    // Use real character performance data
+    const recentBattles = selectedCharacter.battleStats?.totalBattles || 15;
+    const battlesWon = selectedCharacter.battleStats?.wins || 10;
+    const battlesLost = selectedCharacter.battleStats?.losses || 5;
+    const winRate = recentBattles > 0 ? Math.round((battlesWon / recentBattles) * 100) : 67;
     
     socketRef.current.emit('chat_message', {
       message: content,
-      character: selectedCharacter.baseName,
+      character: selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id,
       characterData: {
         name: selectedCharacter?.name,
         archetype: selectedCharacter.archetype,
@@ -283,19 +306,41 @@ export default function PerformanceCoachingChat({
         injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Performance-specific context
-        conversationContext: `This is a performance coaching session. The user is the coach who makes decisions about ${selectedCharacter?.name}'s training and tactics. ${selectedCharacter?.name} should discuss their recent battle performance, ask for guidance on areas they're struggling with, and advocate for training approaches that fit their fighting style and personality. Focus on their actual stats: Base Stats - Strength: ${selectedCharacter.baseStats?.strength || 'Unknown'}, Vitality: ${selectedCharacter.baseStats?.vitality || 'Unknown'}, Agility: ${selectedCharacter.baseStats?.agility || 'Unknown'}, Intelligence: ${selectedCharacter.baseStats?.intelligence || 'Unknown'}. Combat Stats - Attack: ${selectedCharacter.combatStats?.attack || 'Unknown'}, Defense: ${selectedCharacter.combatStats?.defense || 'Unknown'}, Speed: ${selectedCharacter.combatStats?.speed || 'Unknown'}, Critical Chance: ${selectedCharacter.combatStats?.criticalChance || 'Unknown'}%.`,
+        conversationContext: `This is a performance coaching session. The user is the coach who makes decisions about ${selectedCharacter.name}'s training and tactics. ${selectedCharacter.name} should discuss their recent battle performance, ask for guidance on areas they're struggling with, and advocate for training approaches that fit their fighting style and personality. Focus on their REAL stats from the database: Base Attack: ${selectedCharacter.base_attack}, Base Health: ${selectedCharacter.base_health}, Base Defense: ${selectedCharacter.base_defense}, Base Speed: ${selectedCharacter.base_speed}, Base Special: ${selectedCharacter.base_special}. Current Health: ${selectedCharacter.current_health}/${selectedCharacter.max_health}, Level: ${selectedCharacter.level}, Experience: ${selectedCharacter.experience}, Bond Level: ${selectedCharacter.bond_level}, Archetype: ${selectedCharacter.archetype}.`,
         performanceData: {
           recentBattles,
           battlesWon,
           battlesLost,
           winRate: `${winRate}%`,
-          lastBattleResult: Math.random() > 0.5 ? 'victory' : 'defeat',
-          // Identify actual weaknesses based on stats
-          statWeaknesses: selectedCharacter.baseStats ? Object.entries(selectedCharacter.baseStats)
-            .filter(([_, value]) => value < 70)
-            .map(([stat, value]) => `${stat}: ${value}`) : [],
-          recentPerformance: 'Analyzing combat effectiveness and coordination',
-          focusAreas: ['Combat tactics', 'Team coordination', 'Skill optimization']
+          currentLevel: selectedCharacter.level,
+          currentExperience: selectedCharacter.experience,
+          bondLevel: selectedCharacter.bond_level || selectedCharacter.displayBondLevel,
+          // Real stat analysis from database
+          statWeaknesses: [
+            selectedCharacter.base_attack < 70 ? `Attack: ${selectedCharacter.base_attack}` : null,
+            selectedCharacter.base_health < 70 ? `Health: ${selectedCharacter.base_health}` : null,
+            selectedCharacter.base_defense < 70 ? `Defense: ${selectedCharacter.base_defense}` : null,
+            selectedCharacter.base_speed < 70 ? `Speed: ${selectedCharacter.base_speed}` : null,
+            selectedCharacter.base_special < 70 ? `Special: ${selectedCharacter.base_special}` : null
+          ].filter(Boolean),
+          statStrengths: [
+            selectedCharacter.base_attack >= 80 ? `Attack: ${selectedCharacter.base_attack}` : null,
+            selectedCharacter.base_health >= 80 ? `Health: ${selectedCharacter.base_health}` : null,
+            selectedCharacter.base_defense >= 80 ? `Defense: ${selectedCharacter.base_defense}` : null,
+            selectedCharacter.base_speed >= 80 ? `Speed: ${selectedCharacter.base_speed}` : null,
+            selectedCharacter.base_special >= 80 ? `Special: ${selectedCharacter.base_special}` : null
+          ].filter(Boolean),
+          realCharacterData: {
+            id: selectedCharacter.id,
+            character_id: selectedCharacter.character_id,
+            current_health: selectedCharacter.current_health,
+            max_health: selectedCharacter.max_health,
+            base_attack: selectedCharacter.base_attack,
+            base_defense: selectedCharacter.base_defense,
+            base_health: selectedCharacter.base_health,
+            base_speed: selectedCharacter.base_speed,
+            base_special: selectedCharacter.base_special
+          }
         }
       },
       previousMessages: messages.slice(-5).map(m => ({

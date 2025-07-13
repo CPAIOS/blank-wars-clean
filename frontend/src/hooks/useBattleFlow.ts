@@ -121,7 +121,7 @@ export const useBattleFlow = ({
 
   // Start strategy selection phase with announcement and timer
   const startStrategySelection = useCallback(() => {
-    actions.setPhase('pre_battle_huddle');
+    actions.setPhase('strategy-selection');
     const announcement = `Strategy Planning Phase - Choose each character's approach for battle!`;
     actions.setCurrentAnnouncement(announcement);
     

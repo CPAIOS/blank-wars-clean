@@ -102,7 +102,7 @@ export default function TeamDisplay({
                   </div>
                   <span className="text-xs text-white">{character.currentHp}/{character.maxHp}</span>
                 </div>
-                {character.statusEffects.includes('Berserk') && (
+                {character.statusEffects?.includes('Berserk') && (
                   <div className="flex items-center gap-1 text-red-400">
                     <AlertTriangle className="w-3 h-3 animate-pulse" />
                     <span className="text-xs">BERSERK</span>
@@ -181,7 +181,7 @@ export default function TeamDisplay({
                   </div>
                   <span className="text-xs text-white">{character.currentHp}/{character.maxHp}</span>
                 </div>
-                {character.statusEffects.includes('Berserk') && (
+                {character.statusEffects?.includes('Berserk') && (
                   <div className="flex items-center gap-1 text-red-400">
                     <AlertTriangle className="w-3 h-3 animate-pulse" />
                     <span className="text-xs">BERSERK</span>

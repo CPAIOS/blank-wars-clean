@@ -229,7 +229,7 @@ export const usePsychologySystem = ({
     if (newPsychStates.size > 0) {
       actions.setCharacterPsychology(newPsychStates);
     }
-  }, [state.playerTeam, state.opponentTeam, state.characterPsychology, headquartersEffects]);
+  }, [state.playerTeam, state.opponentTeam, headquartersEffects]);
 
   // Auto-initialize when teams change
   useEffect(() => {
@@ -297,7 +297,7 @@ export const usePsychologySystem = ({
     } catch (error) {
       console.error('Error processing psychological effects for', character.name, ':', error);
     }
-  }, [state.characterPsychology, state.activeDeviations]);
+  }, [state.activeDeviations]);
 
   // Process judge decision for severe deviations
   const processJudgeDecision = useCallback(async (character: TeamCharacter, deviation: DeviationEvent) => {

@@ -60,9 +60,9 @@ export const useBattleSimulation = ({
       battleState
     } = state;
 
-    // Determine turn order based on speed
-    const p1Speed = player1.traditionalStats.speed + Math.random() * 20;
-    const p2Speed = player2.traditionalStats.speed + Math.random() * 20;
+    // Determine turn order based on speed (with defensive checks)
+    const p1Speed = (player1.traditionalStats?.speed || 50) + Math.random() * 20;
+    const p2Speed = (player2.traditionalStats?.speed || 50) + Math.random() * 20;
     
     const firstAttacker = p1Speed >= p2Speed ? player1 : player2;
     const secondAttacker = p1Speed >= p2Speed ? player2 : player1;

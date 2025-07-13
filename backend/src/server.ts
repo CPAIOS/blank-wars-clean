@@ -731,6 +731,7 @@ io.on('connection', async (socket) => {
         historicalPeriod: characterData?.historicalPeriod,
         mythology: characterData?.mythology,
         currentBondLevel: characterData?.bondLevel,
+        conversationContext: characterData?.conversationContext, // This contains the real character stats and context
         previousMessages
       };
       
