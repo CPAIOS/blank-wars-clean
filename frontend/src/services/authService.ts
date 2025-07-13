@@ -4,7 +4,7 @@ import type { UserProfile, LoginCredentials, RegisterCredentials, AuthTokens } f
 interface AuthResponse {
   success: boolean;
   user: UserProfile;
-  tokens: AuthTokens;
+  tokens?: AuthTokens; // Optional for cross-origin fallback
 }
 
 interface ProfileResponse {
@@ -42,7 +42,7 @@ class AuthService {
     }
   }
 
-  async login(credentials: LoginCredentials): Promise<{ user: UserProfile }> {
+  async login(credentials: LoginCredentials): Promise<{ user: UserProfile; tokens?: AuthTokens }> {
     try {
       const response = await this.fetchWithTimeout(`${this.baseURL}/api/auth/login`, {
         method: 'POST',
@@ -64,9 +64,10 @@ class AuthService {
         throw new Error(data.error || 'Login failed');
       }
 
-      // SECURITY: Tokens are now in httpOnly cookies, only return user
+      // SECURITY: Tokens are now in httpOnly cookies, but may include tokens for cross-origin fallback
       return {
-        user: data.user
+        user: data.user,
+        tokens: data.tokens
       };
     } catch (error) {
       console.error('Login error:', error);
@@ -74,7 +75,7 @@ class AuthService {
     }
   }
 
-  async register(credentials: RegisterCredentials): Promise<{ user: UserProfile }> {
+  async register(credentials: RegisterCredentials): Promise<{ user: UserProfile; tokens?: AuthTokens }> {
     try {
       const response = await this.fetchWithTimeout(`${this.baseURL}/api/auth/register`, {
         method: 'POST',
@@ -96,9 +97,10 @@ class AuthService {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // SECURITY: Tokens are now in httpOnly cookies, only return user
+      // SECURITY: Tokens are now in httpOnly cookies, but may include tokens for cross-origin fallback
       return {
-        user: data.user
+        user: data.user,
+        tokens: data.tokens
       };
     } catch (error) {
       console.error('Registration error:', error);

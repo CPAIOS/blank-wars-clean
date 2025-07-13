@@ -41,10 +41,12 @@ router.post('/register', async (req: Request, res: Response) => {
     
     console.log('🍪 Cookies set successfully');
     
+    // TEMPORARY: Also return tokens in response for cross-origin fallback
+    // This allows the frontend to use tokens if cookies don't work
     return res.status(201).json({
       success: true,
-      user
-      // SECURITY: Don't return tokens in response body
+      user,
+      tokens: process.env.NODE_ENV === 'production' ? tokens : undefined // Only in production where cookies might fail
     });
   } catch (error: any) {
     return res.status(400).json({
@@ -81,8 +83,8 @@ router.post('/login', async (req: Request, res: Response) => {
     
     return res.json({
       success: true,
-      user
-      // SECURITY: Don't return tokens in response body
+      user,
+      tokens: process.env.NODE_ENV === 'production' ? tokens : undefined // TEMPORARY: tokens for cross-origin fallback
     });
   } catch (error: any) {
     return res.status(400).json({

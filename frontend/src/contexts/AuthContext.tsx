@@ -119,11 +119,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const response = await authService.login(credentials);
       
       setUser(response.user);
-      // SECURITY: Tokens are now in httpOnly cookies, don't store in state
-      setTokens(null);
       
-      // SECURITY: Don't store tokens in localStorage anymore
-      // Tokens are automatically sent via httpOnly cookies
+      // TEMPORARY: Handle both cookie and token-based auth for cross-origin fallback
+      if (response.tokens) {
+        console.log('📝 Using token fallback for cross-origin authentication');
+        setTokens(response.tokens);
+        localStorage.setItem('authTokens', JSON.stringify(response.tokens));
+      } else {
+        // SECURITY: Tokens are in httpOnly cookies
+        setTokens(null);
+      }
       
     } catch (error) {
       console.error('Login failed:', error);
@@ -137,11 +142,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       setUser(response.user);
       setIsNewUser(true); // Mark as new user for onboarding
-      // SECURITY: Tokens are now in httpOnly cookies, don't store in state
-      setTokens(null);
       
-      // SECURITY: Don't store tokens in localStorage anymore
-      // Tokens are automatically sent via httpOnly cookies
+      // TEMPORARY: Handle both cookie and token-based auth for cross-origin fallback
+      if (response.tokens) {
+        console.log('📝 Using token fallback for cross-origin authentication');
+        setTokens(response.tokens);
+        localStorage.setItem('authTokens', JSON.stringify(response.tokens));
+      } else {
+        // SECURITY: Tokens are in httpOnly cookies
+        setTokens(null);
+      }
       
     } catch (error) {
       console.error('Registration failed:', error);
