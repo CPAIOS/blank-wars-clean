@@ -1,7 +1,9 @@
 // Team Battle System - Revolutionary Character Management
 // Implements the psychological stat system and team dynamics
 
-import { getAllCharacters, type Character } from './characters';
+import { getAllCharacters, type Character, characterTemplates } from './characters';
+import { initializeCharacterWithStartingEquipment } from './characterInitialization';
+import { calculateFinalStats, getCharacterPowerLevel } from './characterEquipment';
 
 export interface TraditionalStats {
   strength: number; // Physical damage output (0-100)
@@ -92,7 +94,7 @@ export interface Team {
   id: string;
   name: string;
   coachName: string;
-  characters: TeamCharacter[];
+  characters: Character[];
   
   // Team Dynamics
   coachingPoints: number; // Points to spend on coaching actions
@@ -458,159 +460,54 @@ export function createDemoPlayerTeamWithBonuses(
   return baseTeam;
 }
 
+// Helper function to create a full Character from template
+// Create properly initialized character with equipment and real stats
+function createBattleReadyCharacter(templateKey: string, characterId: string, level: number = 1): Character {
+  // Use the proper initialization system that includes weapons!
+  const character = initializeCharacterWithStartingEquipment(templateKey, level);
+  
+  // Override the ID to match battle system naming
+  return {
+    ...character,
+    id: characterId
+  };
+}
+
 // Create demo teams for testing
 export function createDemoPlayerTeam(): Team {
-  const sherlock: TeamCharacter = {
-    id: 'holmes_001',
-    name: 'Sherlock Holmes',
-    avatar: '🕵️',
-    archetype: 'detective',
-    rarity: 'legendary',
-    level: 15,
-    experience: 2400,
-    experienceToNext: 800,
-    traditionalStats: {
-      strength: 60,
-      vitality: 70,
-      speed: 85,
-      dexterity: 90,
-      stamina: 75,
-      intelligence: 95,
-      charisma: 70,
-      spirit: 80
-    },
-    currentHp: 280,
-    maxHp: 280,
-    psychStats: {
-      training: 85, // Highly educated but...
-      teamPlayer: 45, // Prefers working alone
-      ego: 90, // Knows he's brilliant
-      mentalHealth: 75, // Generally stable
-      communication: 60 // Clear but condescending
-    },
-    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
-    personalityTraits: ['Brilliant', 'Arrogant', 'Observant', 'Impatient'],
-    speakingStyle: 'formal',
-    decisionMaking: 'logical',
-    conflictResponse: 'diplomatic',
-    statusEffects: [],
-    injuries: [],
-    restDaysNeeded: 0,
-    abilities: [
-      {
-        id: 'deduction',
-        name: 'Deductive Strike',
-        type: 'attack',
-        power: 25,
-        cooldown: 1,
-        currentCooldown: 0,
-        description: 'Analyzes opponent weakness for precise attack',
-        icon: '🔍',
-        mentalHealthRequired: 60
-      }
-    ],
-    specialPowers: []
-  };
+  // Create properly initialized characters with realistic levels and equipment
+  const achilles = createBattleReadyCharacter('achilles', 'achilles_001', 12);
+  const merlin = createBattleReadyCharacter('merlin', 'merlin_001', 15);  
+  const fenrir = createBattleReadyCharacter('fenrir', 'fenrir_001', 8);
   
-  const dracula: TeamCharacter = {
-    id: 'dracula_001',
-    name: 'Dracula',
-    avatar: '🧛',
-    archetype: 'monster',
-    rarity: 'legendary',
-    level: 18,
-    experience: 3200,
-    experienceToNext: 1000,
-    traditionalStats: {
-      strength: 85,
-      vitality: 90,
-      speed: 75,
-      dexterity: 80,
-      stamina: 85,
-      intelligence: 80,
-      charisma: 95,
-      spirit: 85
-    },
-    currentHp: 360,
-    maxHp: 360,
-    psychStats: {
-      training: 40, // Centuries of independence
-      teamPlayer: 25, // Extreme individualist
-      ego: 95, // Immortal superiority complex
-      mentalHealth: 60, // Centuries of isolation
-      communication: 80 // Commanding presence
-    },
-    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
-    personalityTraits: ['Ancient', 'Commanding', 'Ruthless', 'Aristocratic'],
-    speakingStyle: 'archaic',
-    decisionMaking: 'calculated',
-    conflictResponse: 'aggressive',
-    statusEffects: [],
-    injuries: [],
-    restDaysNeeded: 0,
-    abilities: [],
-    specialPowers: []
-  };
+  // Debug: Log weapon status to verify weapons are equipped
+  console.log('🗡️ WEAPON DEBUG:');
+  console.log(`Achilles weapon: ${achilles.equippedItems?.weapon?.name || 'NO WEAPON'}`);
+  console.log(`Merlin weapon: ${merlin.equippedItems?.weapon?.name || 'NO WEAPON'}`);
+  console.log(`Fenrir weapon: ${fenrir.equippedItems?.weapon?.name || 'NO WEAPON'}`);
   
-  const joan: TeamCharacter = {
-    id: 'joan_001',
-    name: 'Joan of Arc',
-    avatar: '⚔️',
-    archetype: 'leader',
-    rarity: 'legendary',
-    level: 16,
-    experience: 2800,
-    experienceToNext: 900,
-    traditionalStats: {
-      strength: 75,
-      vitality: 80,
-      speed: 70,
-      dexterity: 75,
-      stamina: 90,
-      intelligence: 70,
-      charisma: 90,
-      spirit: 95
-    },
-    currentHp: 320,
-    maxHp: 320,
-    psychStats: {
-      training: 95, // Divine mission focus
-      teamPlayer: 90, // Natural leader
-      ego: 30, // Humble servant
-      mentalHealth: 85, // Strong faith
-      communication: 95 // Inspiring speaker
-    },
-    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
-    personalityTraits: ['Devout', 'Inspiring', 'Brave', 'Righteous'],
-    speakingStyle: 'formal',
-    decisionMaking: 'emotional',
-    conflictResponse: 'diplomatic',
-    statusEffects: [],
-    injuries: [],
-    restDaysNeeded: 0,
-    abilities: [],
-    specialPowers: []
-  };
+  const characters = [achilles, merlin, fenrir] as Character[];
   
   const team: Team = {
     id: 'demo_team_001',
     name: 'Legendary Squad',
     coachName: 'Demo Coach',
-    characters: [sherlock, dracula, joan],
-    coachingPoints: 3, // Starting coaching points (3 points to distribute among team)
-    consecutiveLosses: 0, // Track losses for coaching degradation
-    teamChemistry: 45, // Will be calculated
-    teamCulture: 'divas', // High ego characters
-    averageLevel: 16.3,
-    totalPower: 850,
-    psychologyScore: 73,
-    wins: 12,
-    losses: 3,
-    battlesPlayed: 15,
+    characters: characters,
+    coachingPoints: 3,
+    consecutiveLosses: 0,
+    teamChemistry: 75, // Will be calculated below
+    teamCulture: 'balanced', // Team of diverse character types
+    // Calculate real averages from character data
+    averageLevel: Math.round(characters.reduce((sum, char) => sum + char.level, 0) / characters.length),
+    totalPower: characters.reduce((sum, char) => sum + getCharacterPowerLevel(char), 0),
+    psychologyScore: Math.round(characters.reduce((sum, char) => sum + char.psychStats.mentalHealth, 0) / characters.length),
+    wins: 0, // Fresh team starts with no battle history
+    losses: 0,
+    battlesPlayed: 0,
     lastBattleDate: new Date()
   };
   
-  // Calculate actual team chemistry (no headquarters effects for base demo team)
+  // Calculate actual team chemistry
   team.teamChemistry = calculateTeamChemistry(team.characters, undefined);
   
   return team;

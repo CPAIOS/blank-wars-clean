@@ -254,9 +254,6 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
 
         const data = await response.json();
         
-        // Get current question count before incrementing
-        const currentQuestionCount = confessionalData.questionCount;
-        
         // Increment question count and clear loading state
         setConfessionalData(prev => ({
           ...prev,
@@ -270,14 +267,20 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
           }]
         }));
 
-        // Only continue automatically for first 2 questions, then pause for user control
-        if (currentQuestionCount < 2) {
+        // Only continue automatically for first 3 character responses, then pause for user control
+        // Stop after 3 total character responses (questionCount will be 3 after this hostmaster question)
+        if (confessionalData.questionCount + 1 <= 3) {
           const continueTimeoutId = setTimeout(() => {
-            generateCharacterResponse(characterName, data.hostmasterResponse, availableCharacters, headquarters, confessionalData, confessionalTimeouts, setConfessionalData);
+            // Get current confessional state instead of using stale closure
+            setConfessionalData(currentData => {
+              generateCharacterResponse(characterName, data.hostmasterResponse, availableCharacters, headquarters, currentData, confessionalTimeouts, setConfessionalData);
+              return currentData;
+            });
           }, 3000);
           confessionalTimeouts.current.add(continueTimeoutId);
         } else {
-          // Pause after 2-3 questions
+          // Pause after 3 questions
+          console.log('🛑 Pausing confessional after 3 questions');
           setConfessionalData(prev => ({
             ...prev,
             isPaused: true
@@ -287,9 +290,6 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
       } catch (error) {
         console.error('Director prompt error:', error);
         const fallbackQuestion = "your thoughts on team dynamics and how you think your teammates would describe your role in the house";
-        
-        // Get current question count before checking
-        const currentQuestionCount = confessionalData.questionCount;
         
         setConfessionalData(prev => ({
           ...prev,
@@ -303,14 +303,19 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
           }]
         }));
 
-        // Only continue if under the limit
-        if (currentQuestionCount < 2) {
+        // Only continue if under the limit - check incremented count  
+        if (confessionalData.questionCount + 1 <= 3) {
           const fallbackTimeoutId = setTimeout(() => {
-            generateCharacterResponse(characterName, fallbackQuestion, availableCharacters, headquarters, confessionalData, confessionalTimeouts, setConfessionalData);
+            // Get current confessional state instead of using stale closure
+            setConfessionalData(currentData => {
+              generateCharacterResponse(characterName, fallbackQuestion, availableCharacters, headquarters, currentData, confessionalTimeouts, setConfessionalData);
+              return currentData;
+            });
           }, 3000);
           confessionalTimeouts.current.add(fallbackTimeoutId);
         } else {
-          // Pause after reaching limit
+          // Pause after reaching limit of 3 questions
+          console.log('🛑 Pausing confessional after 3 questions (fallback)');
           setConfessionalData(prev => ({
             ...prev,
             isPaused: true

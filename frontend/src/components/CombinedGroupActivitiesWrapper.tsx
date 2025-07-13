@@ -357,8 +357,6 @@ export default function CombinedGroupActivitiesWrapper() {
         )
       ) || [];
 
-      const facilitatorMessage = generateFacilitatorOpening(event, selectedParticipants, participantConflicts);
-      
       const session: ActiveSession = {
         eventId: event.id,
         eventTitle: event.title,
@@ -366,15 +364,7 @@ export default function CombinedGroupActivitiesWrapper() {
         participants: selectedParticipants,
         startTime: new Date(),
         isActive: true,
-        chatMessages: [{
-          id: 'welcome',
-          sender: 'facilitator',
-          senderName: 'Activity Facilitator',
-          senderAvatar: '🎯',
-          message: facilitatorMessage,
-          timestamp: new Date(),
-          conflictTriggered: participantConflicts.length > 0
-        }],
+        chatMessages: [],
         currentRound: 1,
         sessionStage: 'icebreaker',
         conflictContext: conflictContext || undefined,
@@ -385,13 +375,10 @@ export default function CombinedGroupActivitiesWrapper() {
       
       setActiveSession(session);
       setSelectedEvent(null);
-      setSelectedParticipants([]);
+      // DON'T clear participants - keep them selected
       setIsPaused(false);
       
-      // Auto-start the first round of character responses
-      setTimeout(() => {
-        triggerFirstRound(session);
-      }, 2000);
+      // Don't auto-start - let coach send first message
     }
   };
 
@@ -479,9 +466,6 @@ export default function CombinedGroupActivitiesWrapper() {
         )
       ) || [];
 
-      // Use more sophisticated activity-specific opening
-      const facilitatorMessage = generateActivitySpecificOpening(activity, selectedParticipants, participantConflicts);
-      
       const session: ActiveSession = {
         eventId: activity.id,
         eventTitle: activity.title,
@@ -489,15 +473,7 @@ export default function CombinedGroupActivitiesWrapper() {
         participants: selectedParticipants,
         startTime: new Date(),
         isActive: true,
-        chatMessages: [{
-          id: 'welcome',
-          sender: 'facilitator',
-          senderName: 'Activity Facilitator',
-          senderAvatar: '🎯',
-          message: facilitatorMessage,
-          timestamp: new Date(),
-          conflictTriggered: participantConflicts.length > 0
-        }],
+        chatMessages: [],
         currentRound: 1,
         sessionStage: activity.type === 'group_therapy' ? 'conflict_exploration' : 'icebreaker',
         conflictContext: conflictContext || undefined,
@@ -509,13 +485,10 @@ export default function CombinedGroupActivitiesWrapper() {
       setActiveSession(session);
       setOngoingActivities(prev => [...prev, { ...activity, id: `${activity.id}-${Date.now()}` }]);
       setSelectedActivity(null);
-      setSelectedParticipants([]);
+      // DON'T clear participants - keep them selected  
       setIsPaused(false);
       
-      // Auto-start the first round of character responses
-      setTimeout(() => {
-        triggerFirstRound(session);
-      }, 2000);
+      // Don't auto-start - let coach send first message
     }
   };
 
@@ -564,8 +537,12 @@ export default function CombinedGroupActivitiesWrapper() {
   const sendCoachMessage = async () => {
     if (!chatMessage.trim()) return;
     
+    console.log('🔍 DEBUG: selectedParticipants:', selectedParticipants);
+    console.log('🔍 DEBUG: selectedParticipants.length:', selectedParticipants.length);
+    
     // Use selected participants or create default if none selected
     const participants = selectedParticipants.length > 0 ? selectedParticipants : ['General Chat'];
+    console.log('🔍 DEBUG: Using participants:', participants);
     
     // Ensure we have an active session with conflict context
     if (!activeSession) {
@@ -615,19 +592,23 @@ export default function CombinedGroupActivitiesWrapper() {
 
     // Generate responses from all participants
     try {
-      for (let i = 0; i < activeSession.participants.length; i++) {
-        const characterName = activeSession.participants[i];
+      const currentParticipants = activeSession?.participants || participants;
+      console.log('👥 Generating responses from participants:', currentParticipants);
+      
+      for (let i = 0; i < currentParticipants.length; i++) {
+        const characterName = currentParticipants[i];
         const character = characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
         
         if (character) {
+          console.log(`🎭 Generating response from ${character.name} (${i + 1}/${currentParticipants.length})`);
           // Simulate API call delay
           await new Promise(resolve => setTimeout(resolve, 1500 + (i * 1000)));
           
           const characterResponse = await generateCharacterResponse(
             character,
             chatMessage,
-            activeSession.eventTitle,
-            activeSession.chatMessages
+            activeSession?.eventTitle || 'group_chat',
+            activeSession?.chatMessages || []
           );
 
           const characterMsg: ChatMessage = {
@@ -662,9 +643,6 @@ export default function CombinedGroupActivitiesWrapper() {
     console.log('🎭 Generating response for:', character.name, 'to message:', facilitatorMessage.substring(0, 50) + '...');
     
     try {
-      // Use the therapy chat service which is proven to work
-      console.log('🧠 Using therapy chat service for character response');
-      
       // Build conflict-aware character prompt
       const characterPrompt = await buildConflictAwareCharacterPrompt(
         character, 
@@ -675,40 +653,62 @@ export default function CombinedGroupActivitiesWrapper() {
       
       console.log('📝 Generated prompt length:', characterPrompt.length);
       
-      // Wait for socket connection
-      const isConnected = await therapyChatService.waitForConnection(5000);
-      if (!isConnected) {
-        console.warn('⚠️ Therapy service not connected, using fallback');
-        return generateFallbackResponse(character, facilitatorMessage, eventType);
+      // Use direct HTTP API call to working backend
+      const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
+      console.log('🌐 Making API call to:', `${BACKEND_URL}/api/coaching/group-activity`);
+      
+      const response = await fetch(`${BACKEND_URL}/api/coaching/group-activity`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          characterId: character.templateId || character.id,
+          characterName: character.name,
+          coachMessage: facilitatorMessage,
+          eventType: eventType,
+          promptOverride: characterPrompt,
+          context: {
+            sessionStage: activeSession?.sessionStage,
+            conflictContext: activeSession?.conflictContext,
+            relationshipDynamics: activeSession?.relationshipDynamics,
+            personality: {
+              traits: character.personality_traits || ['Determined'],
+              speechStyle: character.speaking_style || 'Direct',
+              motivations: ['Team success', 'Personal growth'],
+              fears: ['Failure', 'Rejection']
+            },
+            recentMessages: chatHistory.slice(-6).map(msg => ({
+              role: msg.sender === 'character' ? 'assistant' : 'user',
+              content: msg.message
+            }))
+          }
+        })
+      });
+
+      console.log('🌐 API Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Error:', response.status, errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ API Response data:', data);
+      
+      if (data.message) {
+        console.log('✅ Using real AI response:', data.message.substring(0, 100) + '...');
+        return data.message;
+      } else {
+        console.error('❌ No message in API response');
+        throw new Error('No message in API response');
       }
       
-      // Create a temporary therapy session for group activity response
-      const sessionId = `group_activity_${Date.now()}_${character.id}`;
-      const characterData = {
-        name: character.name,
-        personality: {
-          traits: character.personality_traits || ['Determined'],
-          speechStyle: character.speaking_style || 'Direct',
-          motivations: ['Team success', 'Personal growth'],
-          fears: ['Failure', 'Rejection']
-        },
-        bondLevel: character.bond_level || 5
-      };
-      
-      // Use the therapy service's character response method with custom prompt
-      const response = await therapyChatService.generateCharacterResponse(
-        sessionId,
-        character.templateId || character.id,
-        facilitatorMessage,
-        characterData
-      );
-      
-      console.log('✅ Got therapy service response:', response.substring(0, 100) + '...');
-      return response;
-      
     } catch (error) {
-      console.error('❌ Therapy service failed, using fallback:', error);
-      return generateFallbackResponse(character, facilitatorMessage, eventType);
+      console.error('❌ CRITICAL: Real API failed:', error);
+      throw error; // Don't use fallback - we need real API
     }
   };
 
@@ -794,12 +794,29 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
   };
 
   const generateFallbackResponse = (character: any, coachMessage: string, eventType: string): string => {
-    const responses = [
-      `That's an interesting perspective, Coach. As ${character.name}, I think we should consider the bigger picture here.`,
-      `I appreciate you bringing that up. Let me share my thoughts on this.`,
-      `This ${eventType} is exactly what our team needed. I'm glad we're all here together.`,
-      `Coach, your guidance always helps us see things more clearly. Thank you for organizing this.`,
-      `I agree with the direction we're taking. This kind of team bonding is essential for our success.`
+    // Character-specific responses based on archetype and personality
+    const characterResponses = {
+      'Merlin': [
+        `*adjusts robes thoughtfully* The arcane energies suggest this ${eventType} will yield interesting results. Magic flows stronger when minds unite.`,
+        `I sense wisdom in these words, though the future remains clouded. Perhaps we should explore this matter more deeply.`,
+        `*strokes beard* In my centuries of experience, such gatherings often reveal hidden truths about ourselves and others.`
+      ],
+      'Achilles': [
+        `*clenches fist* You speak truth! A warrior's strength comes not just from the blade, but from the bonds forged with comrades.`,
+        `This reminds me of the camaraderie before Troy. Even the greatest heroes need allies they can trust.`,
+        `Honor demands that I give my honest thoughts here. We must face our challenges head-on, together.`
+      ],
+      'Loki': [
+        `*grins mischievously* How delightfully... revealing. I wonder what secrets this little gathering might uncover?`,
+        `Truth is such a slippery thing, isn't it? But perhaps that's what makes it so entertaining to pursue.`,
+        `*chuckles* Oh, the stories I could tell about team dynamics. But where's the fun in spoiling the surprise?`
+      ]
+    };
+    
+    const responses = characterResponses[character.name as keyof typeof characterResponses] || [
+      `As ${character.name}, I believe this ${eventType} offers valuable insights into our team dynamics.`,
+      `*in character as ${character.name}* This discussion resonates with my experiences and perspectives.`,
+      `I appreciate the opportunity to share my thoughts with the group. Unity of purpose guides us forward.`
     ];
     
     return responses[Math.floor(Math.random() * responses.length)];
@@ -807,13 +824,17 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
 
   // Trigger first round of responses for a new session
   const triggerFirstRound = async (session: ActiveSession) => {
-    if (isGeneratingResponses) return;
+    if (isGeneratingResponses) {
+      console.log('⚠️ Already generating responses, skipping triggerFirstRound');
+      return;
+    }
     
     setIsPaused(false);
     setIsGeneratingResponses(true);
     
     try {
       console.log('🎯 Starting first round for session:', session.eventTitle);
+      console.log('👥 Participants to process:', session.participants);
       
       // Get responses from all participants in sequence
       for (let i = 0; i < session.participants.length; i++) {
@@ -852,6 +873,8 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
             }
           } catch (error) {
             console.error(`❌ Failed to get first response from ${character.name}:`, error);
+            // Continue to next character even if this one fails
+            console.log(`⏭️ Continuing to next character after ${character.name} failed`);
           }
         }
       }
@@ -1045,36 +1068,8 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
         ? prev.filter(name => name !== characterName)
         : [...prev, characterName];
       
-      // Auto-start general chat session when participants are selected
-      if (newParticipants.length > 0 && !activeSession) {
-        const session: ActiveSession = {
-          eventId: 'general-chat',
-          eventTitle: 'General Group Chat',
-          eventType: 'group_chat',
-          participants: newParticipants,
-          startTime: new Date(),
-          isActive: true,
-          chatMessages: [{
-            id: 'welcome',
-            sender: 'coach',
-            senderName: 'Coach',
-            senderAvatar: '👨‍💼',
-            message: `Welcome everyone! Let's have a productive group discussion. We have ${newParticipants.join(', ')} joining us today.`,
-            timestamp: new Date()
-          }],
-          currentRound: 1,
-          sessionStage: 'icebreaker',
-          facilitatorStyle: 'neutral',
-          activityObjectives: ['Open communication', 'Team interaction', 'General discussion'],
-          relationshipDynamics: buildRelationshipDynamics(newParticipants)
-        };
-        setActiveSession(session);
-        
-        // Auto-start the first round of character responses for general chat
-        setTimeout(() => {
-          triggerFirstRound(session);
-        }, 2000);
-      } else if (newParticipants.length === 0 && activeSession?.eventId === 'general-chat') {
+      // Clear session if no participants selected
+      if (newParticipants.length === 0 && activeSession?.eventId === 'general-chat') {
         setActiveSession(null);
       }
       
@@ -1124,7 +1119,7 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col bg-gray-900">
         {/* Chat Window at Top (Always Visible) */}
-        <div className="h-96 bg-gray-900 border-b border-gray-700 flex flex-col">
+        <div className="h-[600px] bg-gray-900 border-b border-gray-700 flex flex-col">
           {/* Chat Header */}
           <div className="p-4 border-b border-gray-700 bg-gray-800">
             <div className="flex items-center justify-between">
@@ -1175,6 +1170,13 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                   >
                     End Session
+                  </button>
+                  
+                  <button
+                    onClick={clearAllSessions}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                  >
+                    Clear All
                   </button>
                 </div>
               )}

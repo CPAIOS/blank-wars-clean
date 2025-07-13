@@ -24,6 +24,18 @@ export interface BaseStats {
   charisma: number;      // Social abilities, leadership
 }
 
+// Traditional stats from TeamCharacter (battle system compatibility)
+export interface TraditionalStats {
+  strength: number;      // Physical damage output (0-100)
+  vitality: number;      // HP and damage resistance (0-100)
+  speed: number;         // Turn order, dodge chance (0-100)
+  dexterity: number;     // Accuracy, critical chance (0-100)
+  stamina: number;       // Actions per turn (0-100)
+  intelligence: number;  // Spell power, tactics (0-100)
+  charisma: number;      // Social attacks, inspiration (0-100)
+  spirit: number;        // Special ability power (0-100)
+}
+
 export interface CombatStats {
   health: number;
   maxHealth: number;
@@ -85,6 +97,31 @@ export interface ProgressionNode {
   position: { x: number; y: number }; // For tree visualization
   isUnlocked: boolean;
   isActive: boolean;
+}
+
+// Battle-specific interfaces from TeamCharacter
+export interface BattleAbility {
+  id: string;
+  name: string;
+  type: 'attack' | 'defense' | 'special' | 'support';
+  power: number;
+  cooldown: number;
+  currentCooldown: number;
+  description: string;
+  icon: string;
+  mentalHealthRequired: number; // Minimum mental health to use reliably
+}
+
+export interface SpecialPower {
+  id: string;
+  name: string;
+  type: 'passive' | 'active' | 'combo';
+  description: string;
+  effect: string;
+  icon: string;
+  cooldown: number;
+  currentCooldown: number;
+  teamPlayerRequired?: number; // Some abilities require teamwork
 }
 
 export interface Character {
@@ -157,6 +194,28 @@ export interface Character {
     battleQuotes: string[];
     victoryAnimation?: string;
   };
+
+  // Battle-specific fields from TeamCharacter
+  traditionalStats: TraditionalStats;          // Battle system stats
+  temporaryStats: TraditionalStats;            // Coaching boosts (reset each battle)
+  currentHp: number;                           // Current HP in battle
+  maxHp: number;                              // Maximum HP in battle
+  experienceToNext: number;                   // Experience needed for next level
+  
+  // Battle personality traits (different from main personality)
+  personalityTraits: string[];                // ['Brilliant', 'Arrogant', etc.]
+  speakingStyle: 'formal' | 'casual' | 'archaic' | 'technical' | 'poetic' | 'gruff' | 'mysterious';
+  decisionMaking: 'logical' | 'emotional' | 'impulsive' | 'calculated';
+  conflictResponse: 'aggressive' | 'diplomatic' | 'withdrawn' | 'manipulative';
+  
+  // Battle status
+  statusEffects: string[];                    // Active status effects in battle
+  injuries: string[];                         // Current injuries affecting performance
+  restDaysNeeded: number;                     // Recovery time needed
+  
+  // Battle abilities (enhanced from abilities)
+  battleAbilities: BattleAbility[];           // Battle-specific abilities with cooldowns
+  specialPowers: SpecialPower[];              // Special powers with team requirements
 }
 
 // Character Templates
@@ -252,7 +311,55 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
         'The gods smile upon me!',
         'None can stand against my might!'
       ]
-    }
+    },
+
+    // Battle-specific fields from TeamCharacter merge
+    traditionalStats: {
+      strength: 95,      // Maps directly from baseStats.strength
+      vitality: 90,      // Maps directly from baseStats.vitality
+      speed: 85,         // Maps directly from baseStats.agility
+      dexterity: 85,     // Maps directly from baseStats.agility
+      stamina: 90,       // Maps directly from baseStats.vitality
+      intelligence: 60,  // Maps directly from baseStats.intelligence
+      charisma: 80,      // Maps directly from baseStats.charisma
+      spirit: 45         // Maps directly from baseStats.wisdom
+    },
+    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
+    currentHp: 1200,      // Maps directly from combatStats.health
+    maxHp: 1200,          // Maps directly from combatStats.maxHealth
+    experienceToNext: 100, // Level 1 → 2 requires 100 XP (from XP_CURVE_BASE)
+    personalityTraits: ['Honorable', 'Wrathful', 'Courageous', 'Prideful'],
+    speakingStyle: 'formal',
+    decisionMaking: 'emotional',
+    conflictResponse: 'aggressive',
+    statusEffects: [],
+    injuries: [],
+    restDaysNeeded: 0,
+    battleAbilities: [
+      {
+        id: 'divine_strike',
+        name: 'Divine Strike',
+        type: 'attack',
+        power: 35,
+        cooldown: 2,
+        currentCooldown: 0,
+        description: 'Channel divine power for devastating attack',
+        icon: '⚔️',
+        mentalHealthRequired: 60
+      }
+    ],
+    specialPowers: [
+      {
+        id: 'wrath_of_achilles',
+        name: 'Wrath of Achilles',
+        type: 'active',
+        description: 'Legendary rage increases damage but reduces defense',
+        effect: '+50% damage, -25% defense for 3 rounds',
+        icon: '🔥',
+        cooldown: 5,
+        currentCooldown: 0
+      }
+    ]
   },
 
   merlin: {
