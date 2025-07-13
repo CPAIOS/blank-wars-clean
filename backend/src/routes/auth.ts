@@ -16,21 +16,30 @@ router.post('/register', async (req: Request, res: Response) => {
     const { user, tokens } = await authService.register({ username, email, password, claimToken });
     
     // SECURITY: Set httpOnly cookies instead of returning tokens in response
-    res.cookie('accessToken', tokens.accessToken, {
+    console.log('🍪 Setting registration cookies for user:', user.id);
+    console.log('🍪 NODE_ENV:', process.env.NODE_ENV);
+    console.log('🍪 Request origin:', req.headers.origin);
+    
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
       // No domain restriction for cross-origin Railway deployment
+    };
+    
+    console.log('🍪 Cookie options:', cookieOptions);
+    
+    res.cookie('accessToken', tokens.accessToken, {
+      ...cookieOptions,
       maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
     res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
-      // No domain restriction for cross-origin Railway deployment
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
+    
+    console.log('🍪 Cookies set successfully');
     
     return res.status(201).json({
       success: true,
@@ -172,6 +181,22 @@ router.get('/profile', authenticateToken, async (req: any, res: Response) => {
       error: error.message
     });
   }
+});
+
+// DEBUG: Endpoint to check cookie status
+router.get('/debug-cookies', async (req: Request, res: Response) => {
+  console.log('🔍 DEBUG: Cookie check');
+  console.log('🔍 All cookies:', req.cookies);
+  console.log('🔍 Headers:', req.headers);
+  console.log('🔍 Origin:', req.headers.origin);
+  
+  res.json({
+    cookies: req.cookies,
+    hasAccessToken: !!req.cookies.accessToken,
+    hasRefreshToken: !!req.cookies.refreshToken,
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent']
+  });
 });
 
 export default router;
