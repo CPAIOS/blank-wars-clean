@@ -21,14 +21,14 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
   const [error, setError] = useState<string | null>(null);
   const { clearNewUserFlag } = useAuth();
 
-  const fetchStarterCharacters = async () => {
+  const fetchStarterCharacters = async (retryCount = 0) => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await characterAPI.getUserCharacters();
       console.log('📦 Raw API response:', response);
       
-      if (response.success && response.characters) {
+      if (response.success && response.characters && response.characters.length > 0) {
         // Transform raw character data to TeamCharacter format if needed
         const transformedCharacters = response.characters.slice(0, 3).map((char: any) => {
           console.log('🔍 Character data structure:', char);
@@ -67,14 +67,31 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
         console.log('✅ Transformed characters:', transformedCharacters);
         setStarterCharacters(transformedCharacters);
         setStep('reveal');
+      } else if (retryCount < 10) {
+        // Characters not ready yet, retry after delay
+        console.log(`⏳ Characters not ready, retrying in 3 seconds... (attempt ${retryCount + 1}/10)`);
+        setTimeout(() => {
+          fetchStarterCharacters(retryCount + 1);
+        }, 3000);
+        return; // Don't setIsLoading(false) yet
       } else {
-        throw new Error('Failed to fetch starter characters');
+        throw new Error('Characters are still being prepared. Please try again in a moment.');
       }
     } catch (err) {
       console.error('Error fetching starter characters:', err);
-      setError('Failed to load your starter characters. Please try refreshing the page.');
+      if (retryCount < 10) {
+        setError('Preparing your characters, please wait...');
+        setTimeout(() => {
+          fetchStarterCharacters(retryCount + 1);
+        }, 3000);
+        return; // Don't setIsLoading(false) yet
+      } else {
+        setError('Failed to load your starter characters. Your pack is being prepared - please try refreshing the page in a moment.');
+      }
     } finally {
-      setIsLoading(false);
+      if (retryCount >= 10) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -211,7 +228,13 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
                 {isLoading && (
                   <div className="flex items-center justify-center gap-2 text-purple-300">
                     <Loader className="w-5 h-5 animate-spin" />
-                    <span>Loading characters...</span>
+                    <span>Preparing your characters...</span>
+                  </div>
+                )}
+                
+                {error && (
+                  <div className="text-yellow-300 bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4">
+                    <p>{error}</p>
                   </div>
                 )}
               </div>
