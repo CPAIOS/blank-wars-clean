@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from 'dotenv';
 import { query, cache } from '../database';
 import { User, AuthRequest } from '../types';
-// import { PackService } from './packService'; // Temporarily disabled
+import { PackService } from './packService';
 
 // Load environment variables
 config();
@@ -17,7 +17,7 @@ const SALT_ROUNDS = 12;
 export class AuthService {
   private accessSecret: string;
   private refreshSecret: string;
-  // private packService: PackService; // Temporarily disabled
+  private packService: PackService;
 
   constructor() {
     // SECURITY: Never use default JWT secrets
@@ -27,7 +27,7 @@ export class AuthService {
     
     this.accessSecret = process.env.JWT_ACCESS_SECRET;
     this.refreshSecret = process.env.JWT_REFRESH_SECRET;
-    // this.packService = new PackService(); // Temporarily disabled
+    this.packService = new PackService();
     
     // Ensure secrets are strong enough
     if (this.accessSecret.length < 32 || this.refreshSecret.length < 32) {
@@ -123,13 +123,29 @@ export class AuthService {
     const tokens = this.generateTokens(userId);
     console.log('✅ Tokens generated successfully');
 
-    // --- NEW CHARACTER ASSIGNMENT LOGIC ---
-    // TODO: Re-implement character assignment after fixing PackService dependency
-    // For now, just log the claimToken for debugging
-    if (claimToken) {
-      console.log(`Claim token provided for user ${userId}: ${claimToken}`);
+    // --- CHARACTER ASSIGNMENT LOGIC ---
+    console.log('🎁 Setting up starter characters for new user...');
+    try {
+      if (claimToken) {
+        // User has a claim token (gifted pack)
+        console.log(`🎫 Claiming pack with token: ${claimToken}`);
+        await this.packService.claimPack(userId, claimToken);
+      } else {
+        // New user gets a free starter pack with 3 characters
+        console.log('🆓 Generating free starter pack...');
+        const starterPackToken = await this.packService.generatePack(userId, 'standard_starter');
+        console.log(`📦 Generated starter pack token: ${starterPackToken}`);
+        
+        // Auto-claim the starter pack for immediate access
+        await this.packService.claimPack(userId, starterPackToken);
+        console.log('✅ Starter pack claimed successfully');
+      }
+    } catch (packError) {
+      console.error('❌ Error setting up starter characters:', packError);
+      // Don't fail registration if pack assignment fails
+      console.log('⚠️ Continuing registration without starter pack');
     }
-    // --- END NEW CHARACTER ASSIGNMENT LOGIC ---
+    // --- END CHARACTER ASSIGNMENT LOGIC ---
 
     // Cache user session - skip caching to avoid timeout
     // await cache.set(`user:${userId}`, JSON.stringify(user), 900); // 15 minutes

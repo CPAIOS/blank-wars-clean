@@ -211,4 +211,192 @@ router.get('/team-stats', authenticateToken, async (req: any, res) => {
   }
 });
 
+// Add conversation to character memory
+router.post('/characters/:characterId/conversation', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { characterId } = req.params;
+    const { player_message, character_response, context, bond_increase = false } = req.body;
+
+    console.log('💬 [conversation] Saving conversation for user:', userId, 'character:', characterId);
+
+    // Verify user owns this character
+    const ownershipCheck = await query(
+      'SELECT id FROM user_characters WHERE user_id = ? AND character_id = ?',
+      [userId, characterId]
+    );
+
+    if (ownershipCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Character not found or not owned by user'
+      });
+    }
+
+    const userCharacterId = ownershipCheck.rows[0].id;
+
+    // Get current conversation memory, bond level, and user subscription tier
+    const currentData = await query(
+      `SELECT uc.conversation_memory, uc.bond_level, u.subscription_tier 
+       FROM user_characters uc 
+       JOIN users u ON uc.user_id = u.id 
+       WHERE uc.id = ?`,
+      [userCharacterId]
+    );
+
+    const currentConversation = currentData.rows[0].conversation_memory 
+      ? JSON.parse(currentData.rows[0].conversation_memory) 
+      : [];
+    const currentBondLevel = currentData.rows[0].bond_level || 0;
+    const subscriptionTier = currentData.rows[0].subscription_tier || 'free';
+
+    // Create new conversation entry
+    const newConversationEntry = {
+      player_message,
+      character_response,
+      timestamp: new Date().toISOString(),
+      context: context || null,
+      bond_increase
+    };
+
+    // Determine memory limit based on subscription tier
+    const memoryLimits = {
+      free: 20,        // Free tier: 20 conversations
+      premium: 50,     // Premium tier: 50 conversations
+      legendary: 100   // Legendary tier: 100 conversations
+    };
+    const memoryLimit = memoryLimits[subscriptionTier as keyof typeof memoryLimits] || memoryLimits.free;
+
+    // Add to conversation memory (keep last N conversations based on subscription tier)
+    const updatedConversation = [...currentConversation, newConversationEntry].slice(-memoryLimit);
+
+    // Update bond level if applicable
+    const newBondLevel = bond_increase ? Math.min(currentBondLevel + 1, 100) : currentBondLevel;
+
+    // Save to database
+    await query(
+      `UPDATE user_characters 
+       SET conversation_memory = ?, bond_level = ?, last_interaction_at = CURRENT_TIMESTAMP 
+       WHERE id = ?`,
+      [JSON.stringify(updatedConversation), newBondLevel, userCharacterId]
+    );
+
+    console.log('✅ [conversation] Saved conversation, bond level:', newBondLevel);
+
+    res.json({
+      success: true,
+      bond_level: newBondLevel,
+      conversation_count: updatedConversation.length,
+      bond_increased: bond_increase
+    });
+
+  } catch (error: any) {
+    console.error('❌ Error saving conversation:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get character conversation history
+router.get('/characters/:characterId/conversations', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { characterId } = req.params;
+    const { limit = 20 } = req.query;
+
+    console.log('📚 [conversations] Getting conversation history for user:', userId, 'character:', characterId);
+
+    // Verify user owns this character and get conversation memory
+    const result = await query(
+      `SELECT uc.conversation_memory, uc.bond_level, c.name as character_name 
+       FROM user_characters uc 
+       JOIN characters c ON uc.character_id = c.id 
+       WHERE uc.user_id = ? AND uc.character_id = ?`,
+      [userId, characterId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Character not found or not owned by user'
+      });
+    }
+
+    const { conversation_memory, bond_level, character_name } = result.rows[0];
+    const conversations = conversation_memory ? JSON.parse(conversation_memory) : [];
+
+    // Return most recent conversations (limited)
+    const recentConversations = conversations.slice(-parseInt(limit as string));
+
+    console.log('✅ [conversations] Found', conversations.length, 'total conversations');
+
+    res.json({
+      success: true,
+      character_name,
+      bond_level,
+      conversations: recentConversations,
+      total_conversations: conversations.length
+    });
+
+  } catch (error: any) {
+    console.error('❌ Error getting conversation history:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Update character bond level directly
+router.put('/characters/:characterId/bond', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { characterId } = req.params;
+    const { bond_change, reason } = req.body;
+
+    console.log('💖 [bond] Updating bond level for user:', userId, 'character:', characterId, 'change:', bond_change);
+
+    // Verify user owns this character
+    const result = await query(
+      'SELECT id, bond_level FROM user_characters WHERE user_id = ? AND character_id = ?',
+      [userId, characterId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Character not found or not owned by user'
+      });
+    }
+
+    const { id: userCharacterId, bond_level: currentBondLevel } = result.rows[0];
+    const newBondLevel = Math.max(0, Math.min(100, (currentBondLevel || 0) + bond_change));
+
+    // Update bond level
+    await query(
+      'UPDATE user_characters SET bond_level = ? WHERE id = ?',
+      [newBondLevel, userCharacterId]
+    );
+
+    console.log('✅ [bond] Updated bond level:', currentBondLevel, '->', newBondLevel);
+
+    res.json({
+      success: true,
+      old_bond_level: currentBondLevel,
+      new_bond_level: newBondLevel,
+      change: bond_change,
+      reason
+    });
+
+  } catch (error: any) {
+    console.error('❌ Error updating bond level:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 export default router;

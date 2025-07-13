@@ -20,7 +20,7 @@ router.post('/register', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
-      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined, // Set domain for production
+      // Remove domain restriction for cross-origin Railway deployment // Set domain for production
       maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
@@ -28,7 +28,7 @@ router.post('/register', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
-      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined, // Set domain for production
+      // Remove domain restriction for cross-origin Railway deployment // Set domain for production
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
@@ -58,7 +58,7 @@ router.post('/login', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
-      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined, // Set domain for production
+      // Remove domain restriction for cross-origin Railway deployment // Set domain for production
       maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
@@ -66,7 +66,7 @@ router.post('/login', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
-      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined, // Set domain for production
+      // Remove domain restriction for cross-origin Railway deployment // Set domain for production
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
@@ -103,7 +103,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined,
+      // Remove domain restriction for cross-origin Railway deployment
       maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
     
@@ -111,7 +111,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined,
+      // Remove domain restriction for cross-origin Railway deployment
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
@@ -137,14 +137,14 @@ router.post('/logout', authenticateToken, async (req: any, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined
+      // Remove domain restriction for cross-origin Railway deployment
     });
     
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      domain: process.env.NODE_ENV === 'production' ? '.blankwars.com' : undefined
+      // Remove domain restriction for cross-origin Railway deployment
     });
     
     return res.json({

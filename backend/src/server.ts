@@ -1009,6 +1009,71 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         bondIncrease: response.bondIncrease
       });
       
+      // Save conversation to database if user is authenticated
+      if (authenticatedUser) {
+        try {
+          // Check if user owns this character
+          const ownershipCheck = await query(
+            'SELECT id FROM user_characters WHERE user_id = ? AND character_id = ?',
+            [authenticatedUser.id, characterId]
+          );
+
+          if (ownershipCheck.rows.length > 0) {
+            const userCharacterId = ownershipCheck.rows[0].id;
+
+            // Get current conversation memory, bond level, and user subscription tier
+            const currentData = await query(
+              `SELECT uc.conversation_memory, uc.bond_level, u.subscription_tier 
+               FROM user_characters uc 
+               JOIN users u ON uc.user_id = u.id 
+               WHERE uc.id = ?`,
+              [userCharacterId]
+            );
+
+            const currentConversation = currentData.rows[0].conversation_memory 
+              ? JSON.parse(currentData.rows[0].conversation_memory) 
+              : [];
+            const currentBondLevel = currentData.rows[0].bond_level || 0;
+            const subscriptionTier = currentData.rows[0].subscription_tier || 'free';
+
+            // Create new conversation entry
+            const newConversationEntry = {
+              player_message: message,
+              character_response: response.message,
+              timestamp: new Date().toISOString(),
+              context: battleContext || null,
+              bond_increase: response.bondIncrease || false
+            };
+
+            // Determine memory limit based on subscription tier
+            const memoryLimits = {
+              free: 20,        // Free tier: 20 conversations
+              premium: 50,     // Premium tier: 50 conversations
+              legendary: 100   // Legendary tier: 100 conversations
+            };
+            const memoryLimit = memoryLimits[subscriptionTier as keyof typeof memoryLimits] || memoryLimits.free;
+
+            // Add to conversation memory (keep last N conversations based on subscription tier)
+            const updatedConversation = [...currentConversation, newConversationEntry].slice(-memoryLimit);
+
+            // Update bond level if applicable
+            const newBondLevel = response.bondIncrease ? Math.min(currentBondLevel + 1, 100) : currentBondLevel;
+
+            // Save to database
+            await query(
+              `UPDATE user_characters 
+               SET conversation_memory = ?, bond_level = ?, last_interaction_at = CURRENT_TIMESTAMP 
+               WHERE id = ?`,
+              [JSON.stringify(updatedConversation), newBondLevel, userCharacterId]
+            );
+
+            console.log('💾 [TeamChat] Saved conversation to database for character:', characterId);
+          }
+        } catch (error) {
+          console.error('❌ Error saving team chat conversation:', error);
+        }
+      }
+      
       // Send response back to the frontend
       socket.emit('team_chat_response', {
         character: character,

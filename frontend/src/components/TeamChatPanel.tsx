@@ -2,9 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Users, Brain, Target, Shield } from 'lucide-react';
+import { MessageCircle, Send, Users, Brain, Target, Shield, Heart } from 'lucide-react';
 import { TeamCharacter } from '@/data/teamBattleSystem';
 import { io, Socket } from 'socket.io-client';
+import { conversationService } from '@/services/conversationService';
 
 interface ChatMessage {
   id: string;
@@ -55,6 +56,66 @@ export default function TeamChatPanel({
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
+  // Load conversation history on component mount
+  useEffect(() => {
+    const loadConversationHistory = async () => {
+      if (playerTeam.characters.length === 0) return;
+      
+      try {
+        const allHistoryMessages: ChatMessage[] = [];
+        
+        for (const character of playerTeam.characters) {
+          try {
+            const history = await conversationService.getConversationHistory(character.character_id || character.id, 10);
+            
+            if (history.conversations && history.conversations.length > 0) {
+              const characterMessages = conversationService.formatConversationForDisplay(history.conversations);
+              
+              characterMessages.forEach(conv => {
+                if (conv.type === 'player') {
+                  allHistoryMessages.push({
+                    id: `history-coach-${Date.now()}-${Math.random()}`,
+                    sender: 'coach',
+                    senderName: 'Coach',
+                    senderAvatar: '🧑‍🏫',
+                    message: conv.message,
+                    timestamp: conv.timestamp,
+                    messageType: 'general'
+                  });
+                } else {
+                  allHistoryMessages.push({
+                    id: `history-${character.character_id || character.id}-${Date.now()}-${Math.random()}`,
+                    sender: character.character_id || character.id,
+                    senderName: character.name,
+                    senderAvatar: character.avatar_emoji || character.avatar,
+                    message: conv.message,
+                    timestamp: conv.timestamp,
+                    messageType: 'general'
+                  });
+                }
+              });
+            }
+          } catch (error) {
+            console.error('❌ Error loading conversation history for character:', character.name, error);
+          }
+        }
+        
+        // Sort messages by timestamp and take the most recent 20
+        allHistoryMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+        const recentHistory = allHistoryMessages.slice(-20);
+        
+        if (recentHistory.length > 0) {
+          console.log('📚 [TeamChat] Loaded', recentHistory.length, 'previous conversation messages');
+          setMessages(recentHistory);
+        }
+      } catch (error) {
+        console.error('❌ Error loading conversation history:', error);
+      }
+    };
+
+    loadConversationHistory();
+  }, [playerTeam.characters]);
+
   // Initialize socket connection for AI chat
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
@@ -75,7 +136,7 @@ export default function TeamChatPanel({
       setConnected(false);
     });
 
-    socketRef.current.on('team_chat_response', (data: { character: string; message: string; characterId: string }) => {
+    socketRef.current.on('team_chat_response', async (data: { character: string; message: string; characterId: string }) => {
       console.log('📨 Team chat response:', data);
       
       const respondingCharacter = playerTeam.characters.find(c => c.id === data.characterId);
@@ -90,7 +151,30 @@ export default function TeamChatPanel({
           messageType: 'general'
         };
         
-        setMessages(prev => [...prev, characterMessage]);
+        setMessages(prev => {
+          const newMessages = [...prev, characterMessage];
+          
+          // Save conversation to database
+          const lastCoachMessage = prev.slice().reverse().find(m => m.sender === 'coach');
+          if (lastCoachMessage) {
+            const shouldIncreaseBond = conversationService.shouldIncreaseBond(
+              lastCoachMessage.message, 
+              data.message
+            );
+            
+            conversationService.saveConversation(
+              respondingCharacter.character_id || respondingCharacter.id,
+              lastCoachMessage.message,
+              data.message,
+              { phase: phase.name, round: currentRound, match: currentMatch },
+              shouldIncreaseBond
+            ).catch(error => {
+              console.error('❌ Error saving conversation:', error);
+            });
+          }
+          
+          return newMessages;
+        });
       }
       setIsTyping(null);
     });
@@ -128,63 +212,70 @@ export default function TeamChatPanel({
   }, [messages]);
 
 
-  // Add initial team greeting
+  // Add initial team greeting (only if no conversation history exists)
   useEffect(() => {
     if (phase === 'strategy-selection' && messages.length === 0) {
-      const initialMessages: ChatMessage[] = [
-        {
-          id: 'coach-welcome',
-          sender: 'coach',
-          senderName: 'Coach',
-          senderAvatar: '🧑‍🏫',
-          message: `Alright team, this is Match ${currentMatch}, Round ${currentRound}. Let's discuss our strategy and coordinate our approach.`,
-          timestamp: new Date(),
-          messageType: 'strategy'
-        }
-      ];
+      // Wait a bit to see if conversation history loads first
+      const timer = setTimeout(() => {
+        if (messages.length === 0) {
+          const initialMessages: ChatMessage[] = [
+            {
+              id: 'coach-welcome',
+              sender: 'coach',
+              senderName: 'Coach',
+              senderAvatar: '🧑‍🏫',
+              message: `Alright team, this is Match ${currentMatch}, Round ${currentRound}. Let's discuss our strategy and coordinate our approach.`,
+              timestamp: new Date(),
+              messageType: 'strategy'
+            }
+          ];
 
-      // Add AI character introductions
-      if (connected && socketRef.current) {
-        playerTeam.characters.forEach((character, index) => {
-          setTimeout(() => {
-            socketRef.current?.emit('team_chat_message', {
-              message: 'Introduce yourself to the coach for this battle',
-              character: character.name,
-              characterId: character.id,
-              characterData: {
-                name: character.name,
-                archetype: character.archetype,
-                avatar: character.avatar,
-                personality: {
-                  traits: [character.archetype],
-                  speechStyle: character.archetype === 'warrior' ? 'Direct and bold' :
-                             character.archetype === 'mage' ? 'Wise and mystical' :
-                             character.archetype === 'trickster' ? 'Clever and playful' :
-                             character.archetype === 'beast' ? 'Instinctual and loyal' : 'Determined',
-                  motivations: [
-                    character.archetype === 'warrior' ? 'Protect the team through strength' :
-                    character.archetype === 'mage' ? 'Support through magical wisdom' :
-                    character.archetype === 'trickster' ? 'Outsmart enemies with cunning' :
-                    character.archetype === 'beast' ? 'Hunt as a pack' : 'Fight for victory'
-                  ]
-                },
-                battleContext: {
-                  phase: phase,
-                  round: currentRound,
-                  match: currentMatch,
-                  messageType: 'general'
-                }
-              },
-              previousMessages: [],
-              isIntroduction: true
+          // Add AI character introductions
+          if (connected && socketRef.current) {
+            playerTeam.characters.forEach((character, index) => {
+              setTimeout(() => {
+                socketRef.current?.emit('team_chat_message', {
+                  message: 'Introduce yourself to the coach for this battle',
+                  character: character.name,
+                  characterId: character.id,
+                  characterData: {
+                    name: character.name,
+                    archetype: character.archetype,
+                    avatar: character.avatar,
+                    personality: {
+                      traits: [character.archetype],
+                      speechStyle: character.archetype === 'warrior' ? 'Direct and bold' :
+                                 character.archetype === 'mage' ? 'Wise and mystical' :
+                                 character.archetype === 'trickster' ? 'Clever and playful' :
+                                 character.archetype === 'beast' ? 'Instinctual and loyal' : 'Determined',
+                      motivations: [
+                        character.archetype === 'warrior' ? 'Protect the team through strength' :
+                        character.archetype === 'mage' ? 'Support through magical wisdom' :
+                        character.archetype === 'trickster' ? 'Outsmart enemies with cunning' :
+                        character.archetype === 'beast' ? 'Hunt as a pack' : 'Fight for victory'
+                      ]
+                    },
+                    battleContext: {
+                      phase: phase,
+                      round: currentRound,
+                      match: currentMatch,
+                      messageType: 'general'
+                    }
+                  },
+                  previousMessages: [],
+                  isIntroduction: true
+                });
+              }, (index + 1) * 1000);
             });
-          }, (index + 1) * 1000);
-        });
-      }
+          }
 
-      setMessages(initialMessages);
+          setMessages(initialMessages);
+        }
+      }, 1000); // Wait 1 second for conversation history to load
+
+      return () => clearTimeout(timer);
     }
-  }, [phase, currentMatch, currentRound, playerTeam.characters]);
+  }, [phase, currentMatch, currentRound, playerTeam.characters, messages.length]);
 
   const handleSendCoachMessage = () => {
     if (!coachMessage.trim()) return;
