@@ -43,10 +43,11 @@ router.post('/register', async (req: Request, res: Response) => {
     
     // TEMPORARY: Also return tokens in response for cross-origin fallback
     // This allows the frontend to use tokens if cookies don't work
+    console.log('🎫 Returning tokens in response for cross-origin fallback');
     return res.status(201).json({
       success: true,
       user,
-      tokens: process.env.NODE_ENV === 'production' ? tokens : undefined // Only in production where cookies might fail
+      tokens: tokens // Always return tokens for cross-origin fallback
     });
   } catch (error: any) {
     return res.status(400).json({
@@ -81,10 +82,11 @@ router.post('/login', async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     
+    console.log('🎫 Returning tokens in login response for cross-origin fallback');
     return res.json({
       success: true,
       user,
-      tokens: process.env.NODE_ENV === 'production' ? tokens : undefined // TEMPORARY: tokens for cross-origin fallback
+      tokens: tokens // TEMPORARY: tokens for cross-origin fallback
     });
   } catch (error: any) {
     return res.status(400).json({
