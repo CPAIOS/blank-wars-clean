@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { migrateAddClaimablePacks } from './migrations/add-claimable-packs';
 
 const DB_PATH = path.join(__dirname, '../../data/blankwars.db');
 
@@ -266,11 +267,30 @@ export const initializeDatabase = async (): Promise<void> => {
       // Column already exists, ignore
     }
 
+    // Run migrations for existing databases
+    console.log('🔄 Running database migrations...');
+    try {
+      await runMigrations();
+      console.log('✅ Database migrations completed');
+    } catch (error) {
+      console.error('⚠️ Migration failed (continuing anyway):', error);
+    }
+
     console.log('✅ SQLite database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
     throw error;
   }
+};
+
+// Run database migrations
+const runMigrations = async (): Promise<void> => {
+  console.log('🔄 Checking for pending migrations...');
+  
+  // Run all available migrations
+  await migrateAddClaimablePacks();
+  
+  console.log('✅ All migrations completed');
 };
 
 // Seed initial character data
