@@ -341,6 +341,60 @@ router.get('/debug/characters', async (req, res) => {
   }
 });
 
+// Fix all users with 0 characters
+router.post('/fix/all-empty-users', async (req, res) => {
+  try {
+    // Find all users with 0 characters
+    const usersWithoutChars = await query(`
+      SELECT u.id, u.username 
+      FROM users u 
+      LEFT JOIN user_characters uc ON u.id = uc.user_id 
+      WHERE uc.user_id IS NULL
+    `, []);
+    
+    console.log(`Found ${usersWithoutChars.rows.length} users without characters`);
+    
+    const fixed = [];
+    for (const user of usersWithoutChars.rows) {
+      try {
+        // Get 3 random characters
+        const availableChars = await query('SELECT id, name, rarity FROM characters ORDER BY RANDOM() LIMIT 3', []);
+        
+        for (const char of availableChars.rows) {
+          const userCharId = `userchar_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const serialNumber = `${char.id.slice(-3)}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+          
+          await query(`
+            INSERT INTO user_characters (
+              id, user_id, character_id, serial_number, level, experience, bond_level,
+              total_battles, total_wins, current_health, max_health, is_injured,
+              equipment, enhancements, conversation_memory, significant_memories, personality_drift
+            ) VALUES (?, ?, ?, ?, 1, 0, 0, 0, 0, 100, 100, 0, '[]', '[]', '[]', '[]', '{}')
+          `, [userCharId, user.id, char.id, serialNumber]);
+        }
+        
+        fixed.push(user.username);
+        console.log(`Fixed user: ${user.username}`);
+      } catch (error) {
+        console.error(`Failed to fix user ${user.username}:`, error);
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Fixed ${fixed.length} users`,
+      fixedUsers: fixed
+    });
+    
+  } catch (error) {
+    console.error('❌ Bulk fix failed:', error);
+    res.status(500).json({ 
+      error: 'Bulk fix failed', 
+      details: error instanceof Error ? error.message : String(error) 
+    });
+  }
+});
+
 // Force fix for character assignment issues
 router.post('/fix/characters/:userId', async (req, res) => {
   try {
