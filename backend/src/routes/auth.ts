@@ -23,7 +23,7 @@ router.post('/register', async (req: Request, res: Response) => {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // Allow cross-site cookies in production
       // No domain restriction for cross-origin Railway deployment
     };
     
@@ -68,7 +68,7 @@ router.post('/login', async (req: Request, res: Response) => {
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // Allow cross-site cookies in production
       // No domain restriction for cross-origin Railway deployment
       maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
@@ -76,7 +76,7 @@ router.post('/login', async (req: Request, res: Response) => {
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // Allow cross-site cookies in production
       // No domain restriction for cross-origin Railway deployment
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
@@ -113,7 +113,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
       // No domain restriction for cross-origin Railway deployment
       maxAge: 4 * 60 * 60 * 1000 // 4 hours
     });
@@ -121,7 +121,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
       // No domain restriction for cross-origin Railway deployment
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
@@ -147,14 +147,14 @@ router.post('/logout', authenticateToken, async (req: any, res: Response) => {
     res.clearCookie('accessToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
       // No domain restriction for cross-origin Railway deployment
     });
     
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
       // No domain restriction for cross-origin Railway deployment
     });
     
