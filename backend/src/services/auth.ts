@@ -103,11 +103,27 @@ export class AuthService {
     // Create user
     console.log('👤 Creating user in database...');
     const userId = uuidv4();
-    await query(
-      `INSERT INTO users (id, username, email, password_hash, subscription_tier, level, experience, total_battles, total_wins, rating, character_slot_capacity)
-       VALUES (?, ?, ?, ?, 'free', 1, 0, 0, 0, 1000, 12)`,
-      [userId, username, email, passwordHash]
-    );
+    
+    // Try with character_slot_capacity, fallback without it for older databases
+    try {
+      await query(
+        `INSERT INTO users (id, username, email, password_hash, subscription_tier, level, experience, total_battles, total_wins, rating, character_slot_capacity)
+         VALUES (?, ?, ?, ?, 'free', 1, 0, 0, 0, 1000, 12)`,
+        [userId, username, email, passwordHash]
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('character_slot_capacity')) {
+        console.log('⚠️ character_slot_capacity column not found, using fallback');
+        await query(
+          `INSERT INTO users (id, username, email, password_hash, subscription_tier, level, experience, total_battles, total_wins, rating)
+           VALUES (?, ?, ?, ?, 'free', 1, 0, 0, 0, 1000)`,
+          [userId, username, email, passwordHash]
+        );
+      } else {
+        throw error;
+      }
+    }
 
     console.log('✅ User created successfully');
 

@@ -314,6 +314,69 @@ export const initializeDatabase = async (): Promise<void> => {
       console.log('📋 character_slot_capacity column already exists');
     }
 
+    // Update archetype constraint to include trickster and leader
+    try {
+      // SQLite doesn't support modifying constraints directly, so we need to recreate the table
+      console.log('🔄 Updating archetype constraint to include trickster and leader...');
+      
+      // Check if we need to update the constraint
+      const testResult = await db.exec(`
+        INSERT INTO characters (id, name, title, archetype, origin_era, rarity, base_health, base_attack, base_defense, base_speed, base_special, personality_traits, conversation_style, backstory, conversation_topics, avatar_emoji, abilities) 
+        VALUES ('test_trickster', 'Test', 'Test', 'trickster', 'Test', 'common', 100, 100, 100, 100, 100, '[]', 'Test', 'Test', '[]', '🎭', '{}')
+      `);
+      
+      // If we get here, trickster is already supported, clean up test record
+      await db.exec(`DELETE FROM characters WHERE id = 'test_trickster'`);
+      console.log('✅ Archetype constraint already includes trickster and leader');
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('CHECK constraint failed: archetype')) {
+        console.log('🔧 Archetype constraint needs updating, recreating characters table...');
+        
+        // Create a backup of existing characters
+        await db.exec(`CREATE TABLE IF NOT EXISTS characters_backup AS SELECT * FROM characters`);
+        
+        // Drop the existing table
+        await db.exec(`DROP TABLE characters`);
+        
+        // Recreate with updated constraint
+        await db.exec(`
+          CREATE TABLE characters (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            title TEXT,
+            archetype TEXT CHECK (archetype IN ('warrior', 'scholar', 'trickster', 'beast', 'leader', 'mage', 'mystic', 'tank', 'assassin')),
+            origin_era TEXT,
+            rarity TEXT CHECK (rarity IN ('common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic')),
+            base_health INTEGER NOT NULL,
+            base_attack INTEGER NOT NULL,
+            base_defense INTEGER NOT NULL,
+            base_speed INTEGER NOT NULL,
+            base_special INTEGER NOT NULL,
+            personality_traits TEXT,
+            conversation_style TEXT,
+            backstory TEXT,
+            conversation_topics TEXT,
+            avatar_emoji TEXT,
+            artwork_url TEXT,
+            abilities TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Restore data from backup
+        await db.exec(`INSERT INTO characters SELECT * FROM characters_backup`);
+        
+        // Drop backup table
+        await db.exec(`DROP TABLE characters_backup`);
+        
+        console.log('✅ Successfully updated archetype constraint');
+      } else {
+        console.log('📋 Archetype constraint check failed for other reason:', errorMessage);
+      }
+    }
+
     console.log('✅ SQLite database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
