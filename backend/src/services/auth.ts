@@ -68,6 +68,8 @@ export class AuthService {
     const { username, email, password, claimToken } = userData;
 
     console.log('🔄 Starting registration for:', username, email);
+    console.log('🔍 Environment check - NODE_ENV:', process.env.NODE_ENV);
+    console.log('🔍 PackService available:', !!this.packService);
 
     // Validate input
     if (!username || !email || !password) {
@@ -126,6 +128,7 @@ export class AuthService {
     // --- CHARACTER ASSIGNMENT USING PACKSERVICE ---
     // Use existing PackService to assign starter pack to new users
     console.log('🎁 Assigning starter pack using PackService...');
+    console.log('🔍 About to call PackService.generatePack with type: standard_starter');
     try {
       console.log('🆓 Generating standard_starter pack for new user');
       const starterPackToken = await this.packService.generatePack('standard_starter');
@@ -144,7 +147,10 @@ export class AuthService {
       }
       
     } catch (error) {
-      console.log('⚠️ Error assigning starter pack (continuing anyway):', error);
+      console.error('❌ Error assigning starter pack (continuing anyway):', error);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error message:', error instanceof Error ? error.message : String(error));
       // Fallback to background assignment if immediate pack assignment fails
       console.log('📋 Starter pack will be assigned via background process');
     }

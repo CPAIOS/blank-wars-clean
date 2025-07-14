@@ -49,6 +49,7 @@ export class PackService {
   // Generates a new pack based on predefined rules
   async generatePack(packType: string): Promise<string> {
     console.log(`🎁 Starting pack generation for type: ${packType}`);
+    console.log(`🔍 Available pack rules:`, Object.keys(this.packRules));
     const rules = this.packRules[packType];
     if (!rules) {
       throw new Error(`Pack type ${packType} not found.`);
@@ -130,6 +131,7 @@ export class PackService {
 
   // Claims a pack for a user, handling duplicates as echoes
   async claimPack(userId: string, claimToken: string): Promise<{ grantedCharacters: string[]; echoesGained: { character_id: string; count: number }[] }> {
+    console.log(`🎁 Starting pack claim for user: ${userId}, token: ${claimToken}`);
     const packResult = await query(
       'SELECT id, pack_type FROM claimable_packs WHERE id = ? AND is_claimed = FALSE',
       [claimToken]
