@@ -304,7 +304,8 @@ export const dbAdapter = {
     async create(data: Partial<UserCharacter> & { character_id: string, user_id: string }): Promise<UserCharacter | null> {
       try {
         const id = `userchar_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const serialNumber = `${data.character_id.slice(-3)}-${Date.now().toString().slice(-6)}`;
+        // Generate unique serial number with character prefix and timestamp + random
+        const serialNumber = `${data.character_id.slice(-3)}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
         
         // Get the base character data for health values
         const charResult = await query('SELECT * FROM characters WHERE id = ?', [data.character_id]);

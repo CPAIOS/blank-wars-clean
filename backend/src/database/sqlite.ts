@@ -246,6 +246,10 @@ export const initializeDatabase = async (): Promise<void> => {
       CREATE INDEX IF NOT EXISTS idx_battles_status ON battles(status);
       CREATE INDEX IF NOT EXISTS idx_chat_messages_user_character ON chat_messages(user_id, character_id);
       CREATE INDEX IF NOT EXISTS idx_user_currency_user_id ON user_currency(user_id);
+      CREATE INDEX IF NOT EXISTS idx_claimable_packs_claimed ON claimable_packs(is_claimed);
+      CREATE INDEX IF NOT EXISTS idx_claimable_packs_user ON claimable_packs(claimed_by_user_id);
+      CREATE INDEX IF NOT EXISTS idx_claimable_pack_contents_pack ON claimable_pack_contents(pack_id);
+      CREATE INDEX IF NOT EXISTS idx_user_character_echoes_user ON user_character_echoes(user_id);
     `);
 
     // Insert sample characters - Force re-seed to ensure we have all 17 characters
@@ -320,13 +324,13 @@ export const initializeDatabase = async (): Promise<void> => {
       console.log('🔄 Updating archetype constraint to include trickster and leader...');
       
       // Check if we need to update the constraint
-      const testResult = await db.exec(`
+      await query(`
         INSERT INTO characters (id, name, title, archetype, origin_era, rarity, base_health, base_attack, base_defense, base_speed, base_special, personality_traits, conversation_style, backstory, conversation_topics, avatar_emoji, abilities) 
         VALUES ('test_trickster', 'Test', 'Test', 'trickster', 'Test', 'common', 100, 100, 100, 100, 100, '[]', 'Test', 'Test', '[]', '🎭', '{}')
-      `);
+      `, []);
       
       // If we get here, trickster is already supported, clean up test record
-      await db.exec(`DELETE FROM characters WHERE id = 'test_trickster'`);
+      await query(`DELETE FROM characters WHERE id = 'test_trickster'`, []);
       console.log('✅ Archetype constraint already includes trickster and leader');
       
     } catch (error) {
@@ -335,13 +339,13 @@ export const initializeDatabase = async (): Promise<void> => {
         console.log('🔧 Archetype constraint needs updating, recreating characters table...');
         
         // Create a backup of existing characters
-        await db.exec(`CREATE TABLE IF NOT EXISTS characters_backup AS SELECT * FROM characters`);
+        await query(`CREATE TABLE IF NOT EXISTS characters_backup AS SELECT * FROM characters`, []);
         
         // Drop the existing table
-        await db.exec(`DROP TABLE characters`);
+        await query(`DROP TABLE characters`, []);
         
         // Recreate with updated constraint
-        await db.exec(`
+        await query(`
           CREATE TABLE characters (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -363,13 +367,13 @@ export const initializeDatabase = async (): Promise<void> => {
             abilities TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
-        `);
+        `, []);
         
         // Restore data from backup
-        await db.exec(`INSERT INTO characters SELECT * FROM characters_backup`);
+        await query(`INSERT INTO characters SELECT * FROM characters_backup`, []);
         
         // Drop backup table
-        await db.exec(`DROP TABLE characters_backup`);
+        await query(`DROP TABLE characters_backup`, []);
         
         console.log('✅ Successfully updated archetype constraint');
       } else {

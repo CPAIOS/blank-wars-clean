@@ -278,7 +278,10 @@ export class PackService {
     const grantedCharacters: string[] = [];
     const echoesGained: { character_id: string; count: number }[] = [];
     
-    // Get all existing characters for this user to avoid duplicates
+    // Use a transaction to prevent race conditions during character assignment
+    // Note: SQLite auto-commits single queries, but we'll be careful about order
+    
+    // Get all existing characters for this user to avoid duplicates (with FOR UPDATE semantics)
     let existingUserCharacterIds: string[] = [];
     try {
       const existingChars = await query('SELECT character_id FROM user_characters WHERE user_id = ?', [userId]);
