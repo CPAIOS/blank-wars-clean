@@ -248,11 +248,11 @@ export const initializeDatabase = async (): Promise<void> => {
       CREATE INDEX IF NOT EXISTS idx_user_currency_user_id ON user_currency(user_id);
     `);
 
-    // Insert sample characters if none exist
+    // Insert sample characters - Force re-seed to ensure we have all 17 characters
     const characterCount = db.prepare('SELECT COUNT(*) as count FROM characters').get() as { count: number };
     
     if (characterCount.count === 0) {
-      console.log('📚 Seeding initial character data...');
+      console.log('📚 Seeding initial character data (empty database)...');
       try {
         await seedCharacters();
         console.log('✅ Character seeding completed successfully');
@@ -260,6 +260,20 @@ export const initializeDatabase = async (): Promise<void> => {
         console.error('❌ Character seeding failed:', error);
         throw error;
       }
+    } else if (characterCount.count < 17) {
+      console.log(`📚 Database has ${characterCount.count} characters, but expected 17. Re-seeding...`);
+      try {
+        // Clear existing and reseed to ensure we have the correct character set
+        db.prepare('DELETE FROM user_characters').run();
+        db.prepare('DELETE FROM characters').run();
+        await seedCharacters();
+        console.log('✅ Character re-seeding completed successfully');
+      } catch (error) {
+        console.error('❌ Character re-seeding failed:', error);
+        throw error;
+      }
+    } else {
+      console.log(`📚 Database has ${characterCount.count} characters - seeding skipped`);
     }
 
     // Add training columns if they don't exist (migration)
