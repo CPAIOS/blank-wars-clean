@@ -270,7 +270,7 @@ export const initializeDatabase = async (): Promise<void> => {
     // Run migrations for existing databases
     console.log('🔄 Running database migrations...');
     try {
-      await runMigrations();
+      runMigrations();
       console.log('✅ Database migrations completed');
     } catch (error) {
       console.error('⚠️ Migration failed (continuing anyway):', error);
@@ -284,11 +284,11 @@ export const initializeDatabase = async (): Promise<void> => {
 };
 
 // Run database migrations
-const runMigrations = async (): Promise<void> => {
+const runMigrations = (): void => {
   console.log('🔄 Checking for pending migrations...');
   
   // Run all available migrations
-  await migrateAddClaimablePacks();
+  migrateAddClaimablePacks(db);
   
   console.log('✅ All migrations completed');
 };

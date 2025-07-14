@@ -1,20 +1,20 @@
-import { query } from '../index';
+import Database from 'better-sqlite3';
 
-export const migrateAddClaimablePacks = async (): Promise<void> => {
+export const migrateAddClaimablePacks = (db: Database.Database): void => {
   console.log('🔄 Running migration: add-claimable-packs');
   
   try {
     // Check if claimable_packs table exists
-    const tableExists = await query(`
+    const tableExists = db.prepare(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name='claimable_packs'
-    `);
+    `).all();
     
-    if (tableExists.rows.length === 0) {
+    if (tableExists.length === 0) {
       console.log('📦 Creating claimable_packs table...');
       
       // Create claimable_packs table
-      await query(`
+      db.exec(`
         CREATE TABLE claimable_packs (
           id TEXT PRIMARY KEY,
           pack_type TEXT NOT NULL,
@@ -33,16 +33,16 @@ export const migrateAddClaimablePacks = async (): Promise<void> => {
     }
     
     // Check if claimable_pack_contents table exists
-    const contentsTableExists = await query(`
+    const contentsTableExists = db.prepare(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name='claimable_pack_contents'
-    `);
+    `).all();
     
-    if (contentsTableExists.rows.length === 0) {
+    if (contentsTableExists.length === 0) {
       console.log('📦 Creating claimable_pack_contents table...');
       
       // Create claimable_pack_contents table
-      await query(`
+      db.exec(`
         CREATE TABLE claimable_pack_contents (
           id TEXT PRIMARY KEY,
           pack_id TEXT NOT NULL,
