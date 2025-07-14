@@ -40,7 +40,6 @@ import TeamManagementCoaching from './TeamManagementCoaching';
 import TherapyModule from './TherapyModule';
 import IndividualSessionsWrapper from './IndividualSessionsWrapper';
 import CombinedGroupActivitiesWrapper from './CombinedGroupActivitiesWrapper';
-import { createDemoCharacterCollection } from '@/data/characters';
 import { characterAPI } from '@/services/apiClient';
 
 // Lazy load non-critical components with error handling
@@ -237,21 +236,64 @@ export default function MainTabSystem() {
 
   // Component wrappers
   const ProgressionDashboardWrapper = () => {
-    // Get the real 17 characters from the game
-    const availableCharacters = createDemoCharacterCollection().map(char => {
-      // Extract base name from the random ID
-      const baseName = char.id.split('_')[0];
-      return {
-        ...char,
-        baseName,
-        trainingBonuses: {
-          strength: Math.floor(char.level / 3),
-          defense: Math.floor(char.level / 4),
-          speed: Math.floor(char.level / 3.5),
-          special: Math.floor(char.level / 2.5)
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const loadUserCharacters = async () => {
+        try {
+          setIsLoading(true);
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const mappedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+            return {
+              ...char,
+              baseName,
+              trainingBonuses: {
+                strength: Math.floor((char.level || 1) / 3),
+                defense: Math.floor((char.level || 1) / 4),
+                speed: Math.floor((char.level || 1) / 3.5),
+                special: Math.floor((char.level || 1) / 2.5)
+              },
+              // Map database fields to component expectations
+              baseStats: {
+                strength: char.base_attack || 70,
+                vitality: char.base_health || 80,
+                agility: char.base_speed || 70,
+                intelligence: char.base_special || 70,
+                wisdom: char.base_defense || 70,
+                charisma: char.bond_level || 5
+              },
+              level: char.level || 1,
+              experience: char.experience || 0,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar_emoji || char.avatar || '⚔️',
+              name: char.name || 'Unknown Character'
+            };
+          });
+          
+          setAvailableCharacters(mappedCharacters);
+        } catch (error) {
+          console.error('❌ Failed to load characters:', error);
+          // Fallback to empty array if no characters
+          setAvailableCharacters([]);
+        } finally {
+          setIsLoading(false);
         }
       };
-    });
+
+      loadUserCharacters();
+    }, []);
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white">Loading your characters...</div>
+        </div>
+      );
+    }
     
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
@@ -355,22 +397,63 @@ export default function MainTabSystem() {
 
   const EquipmentManagerWrapper = () => {
     const [characterEquipment, setCharacterEquipment] = useState<Record<string, any>>({});
-    
-    // Get the real 17 characters from the game
-    const availableCharacters = createDemoCharacterCollection().map(char => {
-      // Extract base name from the random ID (e.g., "achilles" from "achilles_1751593197366_8ivu34rgc")
-      const baseName = char.id.split('_')[0];
-      return {
-        ...char,
-        baseName,
-        trainingBonuses: {
-          strength: Math.floor(char.level / 3),
-          defense: Math.floor(char.level / 4),
-          speed: Math.floor(char.level / 3.5),
-          special: Math.floor(char.level / 2.5)
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const loadUserCharacters = async () => {
+        try {
+          setIsLoading(true);
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const mappedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+            return {
+              ...char,
+              baseName,
+              trainingBonuses: {
+                strength: Math.floor((char.level || 1) / 3),
+                defense: Math.floor((char.level || 1) / 4),
+                speed: Math.floor((char.level || 1) / 3.5),
+                special: Math.floor((char.level || 1) / 2.5)
+              },
+              // Map database fields to component expectations
+              baseStats: {
+                strength: char.base_attack || 70,
+                vitality: char.base_health || 80,
+                agility: char.base_speed || 70,
+                intelligence: char.base_special || 70,
+                wisdom: char.base_defense || 70,
+                charisma: char.bond_level || 5
+              },
+              level: char.level || 1,
+              experience: char.experience || 0,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar_emoji || char.avatar || '⚔️',
+              name: char.name || 'Unknown Character'
+            };
+          });
+          
+          setAvailableCharacters(mappedCharacters);
+        } catch (error) {
+          console.error('❌ Failed to load characters:', error);
+          setAvailableCharacters([]);
+        } finally {
+          setIsLoading(false);
         }
       };
-    });
+
+      loadUserCharacters();
+    }, []);
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white">Loading your characters...</div>
+        </div>
+      );
+    }
     
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
@@ -506,22 +589,63 @@ export default function MainTabSystem() {
 
   const AbilityManagerWrapper = () => {
     const [characterAbilities, setCharacterAbilities] = useState<Record<string, any>>({});
-    
-    // Get the real 17 characters from the game
-    const availableCharacters = createDemoCharacterCollection().map(char => {
-      // Extract base name from the random ID
-      const baseName = char.id.split('_')[0];
-      return {
-        ...char,
-        baseName,
-        trainingBonuses: {
-          strength: Math.floor(char.level / 3),
-          defense: Math.floor(char.level / 4),
-          speed: Math.floor(char.level / 3.5),
-          special: Math.floor(char.level / 2.5)
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const loadUserCharacters = async () => {
+        try {
+          setIsLoading(true);
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const mappedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+            return {
+              ...char,
+              baseName,
+              trainingBonuses: {
+                strength: Math.floor((char.level || 1) / 3),
+                defense: Math.floor((char.level || 1) / 4),
+                speed: Math.floor((char.level || 1) / 3.5),
+                special: Math.floor((char.level || 1) / 2.5)
+              },
+              // Map database fields to component expectations
+              baseStats: {
+                strength: char.base_attack || 70,
+                vitality: char.base_health || 80,
+                agility: char.base_speed || 70,
+                intelligence: char.base_special || 70,
+                wisdom: char.base_defense || 70,
+                charisma: char.bond_level || 5
+              },
+              level: char.level || 1,
+              experience: char.experience || 0,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar_emoji || char.avatar || '⚔️',
+              name: char.name || 'Unknown Character'
+            };
+          });
+          
+          setAvailableCharacters(mappedCharacters);
+        } catch (error) {
+          console.error('❌ Failed to load characters:', error);
+          setAvailableCharacters([]);
+        } finally {
+          setIsLoading(false);
         }
       };
-    });
+
+      loadUserCharacters();
+    }, []);
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white">Loading your characters...</div>
+        </div>
+      );
+    }
     
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
@@ -826,22 +950,68 @@ export default function MainTabSystem() {
 
   const TeamBuilderWrapper = () => {
     const [savedTeams, setSavedTeams] = useState<TeamComposition[]>([]);
-    
-    // Create demo characters from the character collection
-    const demoCharacters = createDemoCharacterCollection();
+    const [userCharacters, setUserCharacters] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const loadUserCharacters = async () => {
+        try {
+          setIsLoading(true);
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const mappedCharacters = characters.map((char: any) => {
+            return {
+              ...char,
+              // Map database fields to component expectations
+              baseStats: {
+                strength: char.base_attack || 70,
+                vitality: char.base_health || 80,
+                agility: char.base_speed || 70,
+                intelligence: char.base_special || 70,
+                wisdom: char.base_defense || 70,
+                charisma: char.bond_level || 5
+              },
+              level: char.level || 1,
+              experience: char.experience || 0,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar_emoji || char.avatar || '⚔️',
+              name: char.name || 'Unknown Character'
+            };
+          });
+          
+          setUserCharacters(mappedCharacters);
+        } catch (error) {
+          console.error('❌ Failed to load characters:', error);
+          setUserCharacters([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadUserCharacters();
+    }, []);
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white">Loading your characters...</div>
+        </div>
+      );
+    }
     
     // Convert characters to OwnedCharacter format
-    const ownedCharacters: OwnedCharacter[] = demoCharacters.map(char => ({
+    const ownedCharacters: OwnedCharacter[] = userCharacters.map(char => ({
       characterId: char.id,
       characterData: char,
       level: char.level || 1,
       experience: char.experience || 0,
-      bondLevel: char.bondLevel || 50,
-      trainingLevel: char.trainingLevel || 60,
+      bondLevel: char.bond_level || 50,
+      trainingLevel: char.training_level || 60,
       equipment: char.equipment || {},
       unlockedAbilities: char.abilities || [],
-      dateAcquired: new Date(),
-      battlesPlayed: 0,
+      dateAcquired: new Date(char.acquired_at || Date.now()),
+      battlesPlayed: char.total_battles || 0,
       wins: 0,
       losses: 0
     }));
