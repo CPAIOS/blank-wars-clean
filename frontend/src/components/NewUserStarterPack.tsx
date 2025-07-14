@@ -163,12 +163,12 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-purple-500/30"
+        className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl w-full max-w-4xl min-h-fit my-4 shadow-2xl border border-purple-500/30 overflow-y-auto max-h-[calc(100vh-2rem)]"
       >
         <AnimatePresence mode="wait">
           {step === 'welcome' && (
@@ -177,7 +177,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="p-8 text-center space-y-6"
+              className="p-4 sm:p-6 md:p-8 text-center space-y-6"
             >
               {/* Header */}
               <div className="space-y-4">
@@ -196,11 +196,11 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
                   <Gift className="w-12 h-12 text-white" />
                 </motion.div>
                 
-                <h1 className="text-4xl font-bold text-white">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
                   Welcome to Blank Wars, {username}!
                 </h1>
                 
-                <p className="text-xl text-purple-200">
+                <p className="text-lg sm:text-xl text-purple-200">
                   As a new commander, you've been granted a <span className="text-yellow-400 font-semibold">Free Starter Pack</span>!
                 </p>
               </div>
@@ -213,7 +213,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
                   <Sparkles className="w-6 h-6" />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                   <div className="bg-purple-800/40 rounded-lg p-4">
                     <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
                     <p className="text-white font-semibold">3 Characters</p>
@@ -239,7 +239,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
                 onClick={handleOpenPack}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-bold text-xl px-12 py-4 rounded-xl shadow-lg transition-all flex items-center gap-3 mx-auto"
+                className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-bold text-lg sm:text-xl px-6 sm:px-12 py-3 sm:py-4 rounded-xl shadow-lg transition-all flex items-center gap-3 mx-auto"
               >
                 <Gift className="w-6 h-6" />
                 Open Your Starter Pack!
@@ -254,7 +254,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="p-8 text-center space-y-8 min-h-[400px] flex flex-col justify-center"
+              className="p-4 sm:p-6 md:p-8 text-center space-y-8 min-h-[300px] sm:min-h-[400px] flex flex-col justify-center"
             >
               <motion.div
                 animate={{ 
@@ -299,7 +299,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="p-8 space-y-6"
+              className="p-4 sm:p-6 md:p-8 space-y-6"
             >
               <div className="text-center space-y-4">
                 <h2 className="text-3xl font-bold text-white flex items-center justify-center gap-3">
@@ -325,7 +325,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
               ) : (
                 <>
                   {/* Character Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {starterCharacters.map((character, index) => (
                       <motion.div
                         key={character.id}
@@ -364,7 +364,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
                       onClick={() => setStep('complete')}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold text-xl px-12 py-4 rounded-xl shadow-lg transition-all flex items-center gap-3 mx-auto"
+                      className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold text-lg sm:text-xl px-6 sm:px-12 py-3 sm:py-4 rounded-xl shadow-lg transition-all flex items-center gap-3 mx-auto"
                     >
                       Continue to Battle!
                       <ArrowRight className="w-6 h-6" />
@@ -381,7 +381,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="p-8 text-center space-y-6"
+              className="p-4 sm:p-6 md:p-8 text-center space-y-6"
             >
               <div className="space-y-4">
                 <motion.div
@@ -409,7 +409,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
 
               <div className="bg-black/30 rounded-xl p-6 space-y-4">
                 <h3 className="text-2xl font-semibold text-white">What's Next?</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                   <div className="bg-purple-800/40 rounded-lg p-4">
                     <h4 className="text-white font-semibold mb-2">🥊 Battle Arena</h4>
                     <p className="text-purple-300 text-sm">Test your team against AI opponents and other players</p>
@@ -426,7 +426,7 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
                 onClick={handleComplete}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white font-bold text-xl px-12 py-4 rounded-xl shadow-lg transition-all flex items-center gap-3 mx-auto"
+                className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white font-bold text-lg sm:text-xl px-6 sm:px-12 py-3 sm:py-4 rounded-xl shadow-lg transition-all flex items-center gap-3 mx-auto"
               >
                 Enter Blank Wars!
                 <ArrowRight className="w-6 h-6" />
