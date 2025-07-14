@@ -315,4 +315,85 @@ router.post('/prod-seed-characters', async (req, res) => {
   }
 });
 
+// Debug endpoint to check database contents
+router.get('/debug/characters', async (req, res) => {
+  try {
+    const allCharacters = await query('SELECT id, name, rarity, archetype FROM characters ORDER BY rarity, name', []);
+    const charsByRarity = await query(`
+      SELECT rarity, COUNT(*) as count 
+      FROM characters 
+      GROUP BY rarity 
+      ORDER BY count DESC
+    `, []);
+    
+    res.json({
+      success: true,
+      totalCharacters: allCharacters.rows.length,
+      characters: allCharacters.rows,
+      byRarity: charsByRarity.rows
+    });
+  } catch (error) {
+    console.error('❌ Debug query failed:', error);
+    res.status(500).json({ 
+      error: 'Debug query failed', 
+      details: error instanceof Error ? error.message : String(error) 
+    });
+  }
+});
+
+// Force fix for character assignment issues
+router.post('/fix/characters/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Check current characters
+    const currentChars = await query('SELECT character_id FROM user_characters WHERE user_id = ?', [userId]);
+    console.log(`User ${userId} currently has ${currentChars.rows.length} characters`);
+    
+    if (currentChars.rows.length >= 3) {
+      return res.json({ success: true, message: 'User already has enough characters' });
+    }
+    
+    // Get available characters
+    const availableChars = await query('SELECT id, name, rarity FROM characters ORDER BY RANDOM() LIMIT 10', []);
+    console.log(`Found ${availableChars.rows.length} available characters`);
+    
+    if (availableChars.rows.length < 3) {
+      return res.status(400).json({ error: 'Not enough characters in database' });
+    }
+    
+    // Assign 3 different characters
+    const toAssign = availableChars.rows.slice(0, 3);
+    const granted = [];
+    
+    for (const char of toAssign) {
+      const userCharId = `userchar_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const serialNumber = `${char.id.slice(-3)}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+      
+      await query(`
+        INSERT INTO user_characters (
+          id, user_id, character_id, serial_number, level, experience, bond_level,
+          total_battles, total_wins, current_health, max_health, is_injured,
+          equipment, enhancements, conversation_memory, significant_memories, personality_drift
+        ) VALUES (?, ?, ?, ?, 1, 0, 0, 0, 0, 100, 100, 0, '[]', '[]', '[]', '[]', '{}')
+      `, [userCharId, userId, char.id, serialNumber]);
+      
+      granted.push(char.name);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Assigned ${granted.length} characters to user`,
+      characters: granted
+    });
+    
+  } catch (error) {
+    console.error('❌ Character fix failed:', error);
+    res.status(500).json({ 
+      error: 'Character fix failed', 
+      details: error instanceof Error ? error.message : String(error) 
+    });
+  }
+});
+
 export default router;
