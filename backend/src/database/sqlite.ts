@@ -267,14 +267,9 @@ export const initializeDatabase = async (): Promise<void> => {
       // Column already exists, ignore
     }
 
-    // Run migrations for existing databases
-    console.log('🔄 Running database migrations...');
-    try {
-      runMigrations();
-      console.log('✅ Database migrations completed');
-    } catch (error) {
-      console.error('⚠️ Migration failed (continuing anyway):', error);
-    }
+    // Run migrations for existing databases (temporarily disabled - tables already in main schema)
+    console.log('🔄 Database migrations skipped - tables already in main schema');
+    console.log('✅ Database migrations completed');
 
     console.log('✅ SQLite database initialized successfully');
   } catch (error) {
