@@ -47,6 +47,9 @@ const lobbyService = new LobbyService();
 const app = express();
 const httpServer = createServer(app);
 
+// Trust proxy for Railway deployment (fixes X-Forwarded-For header issues)
+app.set('trust proxy', 1);
+
 // CORS configuration for production
 const corsOrigin = process.env.NODE_ENV === 'production' 
   ? ['https://www.blankwars.com', 'https://blankwars.com'] 
