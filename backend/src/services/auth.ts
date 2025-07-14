@@ -124,11 +124,57 @@ export class AuthService {
     console.log('✅ Tokens generated successfully');
 
     // --- CHARACTER ASSIGNMENT LOGIC ---
-    // Give new users 3 starter characters directly during registration
-    console.log('🎁 Assigning starter characters directly during registration...');
+    // Give new users 3 random starter characters with rarity-based probability
+    console.log('🎁 Assigning rarity-weighted starter characters directly during registration...');
     try {
-      // Define starter character IDs (using characters we know exist)
-      const starterCharacterIds = ['holmes', 'achilles', 'merlin'];
+      // Define rarity weights (higher = more likely)
+      const rarityWeights = {
+        'common': 0.7,     // 70% chance
+        'uncommon': 0.25,  // 25% chance
+        'rare': 0.05,      // 5% chance
+        'epic': 0.008,     // 0.8% chance
+        'legendary': 0.002, // 0.2% chance
+        'mythic': 0.0005   // 0.05% chance
+      };
+      
+      const starterCharacterIds: string[] = [];
+      
+      // Get 3 characters using weighted random selection
+      for (let i = 0; i < 3; i++) {
+        // Roll for rarity first
+        const random = Math.random();
+        let cumulativeWeight = 0;
+        let selectedRarity = 'common';
+        
+        for (const [rarity, weight] of Object.entries(rarityWeights)) {
+          cumulativeWeight += weight;
+          if (random <= cumulativeWeight) {
+            selectedRarity = rarity;
+            break;
+          }
+        }
+        
+        // Get a random character of the selected rarity
+        const charResult = await query(
+          'SELECT id FROM characters WHERE rarity = ? ORDER BY RANDOM() LIMIT 1',
+          [selectedRarity]
+        );
+        
+        if (charResult.rows.length > 0) {
+          starterCharacterIds.push(charResult.rows[0].id);
+          console.log(`🎲 Selected ${selectedRarity} character: ${charResult.rows[0].id}`);
+        } else {
+          // Fallback to common if no characters found for rarity
+          const fallbackResult = await query(
+            'SELECT id FROM characters WHERE rarity = ? ORDER BY RANDOM() LIMIT 1',
+            ['common']
+          );
+          if (fallbackResult.rows.length > 0) {
+            starterCharacterIds.push(fallbackResult.rows[0].id);
+            console.log(`🎲 Fallback to common character: ${fallbackResult.rows[0].id}`);
+          }
+        }
+      }
       
       for (const characterId of starterCharacterIds) {
         try {
