@@ -78,9 +78,11 @@ export class PackService {
     while (charactersToGrant.length < rules.count && attempts < maxAttempts) {
       attempts++;
       const randomChar = await this.getRandomCharacterByWeights(rules.rarity_weights);
-      if (randomChar) {
+      if (randomChar && !charactersToGrant.includes(randomChar)) {
         charactersToGrant.push(randomChar);
         console.log(`✅ Added random character: ${randomChar} (${charactersToGrant.length}/${rules.count})`);
+      } else if (randomChar) {
+        console.log(`⚠️ Duplicate character ${randomChar}, trying again (attempt ${attempts})`);
       } else {
         console.log(`⚠️ Failed to get random character (attempt ${attempts})`);
       }
@@ -259,20 +261,62 @@ export class PackService {
     return undefined;
   }
 
+  // Get all available character IDs from the database
+  private async getAllAvailableCharacterIds(): Promise<string[]> {
+    try {
+      const result = await query('SELECT id FROM characters ORDER BY RANDOM() LIMIT 10');
+      return result.rows.map((row: any) => row.id);
+    } catch (error) {
+      console.error('❌ Error fetching all character IDs:', error);
+      return [];
+    }
+  }
+
   // Direct character assignment fallback (when claimable_packs tables don't exist)
   private async directCharacterAssignment(userId: string, characterIds: string[]): Promise<{ grantedCharacters: string[]; echoesGained: { character_id: string; count: number }[] }> {
     console.log(`🎭 Direct character assignment for user: ${userId}, characters: ${characterIds.length}`);
     const grantedCharacters: string[] = [];
     const echoesGained: { character_id: string; count: number }[] = [];
+    
+    // Get all existing characters for this user to avoid duplicates
+    let existingUserCharacterIds: string[] = [];
+    try {
+      const existingChars = await query('SELECT character_id FROM user_characters WHERE user_id = ?', [userId]);
+      existingUserCharacterIds = existingChars.rows.map((row: any) => row.character_id);
+      console.log(`🔍 User already has ${existingUserCharacterIds.length} characters: ${existingUserCharacterIds.join(', ')}`);
+    } catch (error) {
+      console.log(`⚠️ Could not check existing characters, assuming none`);
+    }
 
-    for (const charId of characterIds) {
+    // Only grant characters the user doesn't already have
+    const uniqueCharacterIds = characterIds.filter(charId => !existingUserCharacterIds.includes(charId));
+    console.log(`🎯 Will grant ${uniqueCharacterIds.length} new characters: ${uniqueCharacterIds.join(', ')}`);
+
+    for (const charId of uniqueCharacterIds) {
       try {
-        // Check if user already has this character
-        const existingCharacter = await dbAdapter.userCharacters.findByUserIdAndCharacterId(userId, charId);
-
-        if (existingCharacter) {
-          // Character already owned, convert to echo
-          console.log(`🔮 User already has character ${charId}, adding echo`);
+        // Grant new character directly
+        console.log(`🎭 Granting new character ${charId} to user ${userId}`);
+        const newCharacter = await dbAdapter.userCharacters.create({
+          user_id: userId,
+          character_id: charId,
+          nickname: 'New Character', // Default nickname
+        });
+        if (newCharacter) {
+          grantedCharacters.push(newCharacter.character_id);
+          console.log(`✅ Successfully granted character: ${charId}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error assigning character ${charId}:`, error);
+        // Continue with other characters
+      }
+    }
+    
+    // Handle duplicates (characters user already had) - only if echo system is available
+    const duplicateCharacterIds = characterIds.filter(charId => existingUserCharacterIds.includes(charId));
+    if (duplicateCharacterIds.length > 0) {
+      console.log(`🔮 Processing ${duplicateCharacterIds.length} duplicate characters: ${duplicateCharacterIds.join(', ')}`);
+      for (const charId of duplicateCharacterIds) {
+        try {
           await this.characterEchoService.addEcho(userId, charId, 1);
           const existingEcho = echoesGained.find(e => e.character_id === charId);
           if (existingEcho) {
@@ -280,22 +324,37 @@ export class PackService {
           } else {
             echoesGained.push({ character_id: charId, count: 1 });
           }
-        } else {
-          // Grant new character directly
-          console.log(`🎭 Granting new character ${charId} to user ${userId}`);
-          const newCharacter = await dbAdapter.userCharacters.create({
-            user_id: userId,
-            character_id: charId,
-            nickname: 'New Character', // Default nickname
-          });
-          if (newCharacter) {
-            grantedCharacters.push(newCharacter.character_id);
-            console.log(`✅ Successfully granted character: ${charId}`);
+          console.log(`✅ Successfully added echo for duplicate character: ${charId}`);
+        } catch (echoError) {
+          console.log(`⚠️ Could not add echo for ${charId} (echo system unavailable), duplicate ignored`);
+        }
+      }
+    }
+
+    // If we didn't grant enough characters (due to duplicates or other issues), try to fill up with more
+    if (grantedCharacters.length < 3) {
+      console.log(`⚠️ Only granted ${grantedCharacters.length}/3 characters, trying to get more unique characters`);
+      const allCharacterIds = await this.getAllAvailableCharacterIds();
+      const userCharacterIds = [...grantedCharacters];
+      
+      for (const charId of allCharacterIds) {
+        if (grantedCharacters.length >= 3) break;
+        if (!userCharacterIds.includes(charId)) {
+          try {
+            const newCharacter = await dbAdapter.userCharacters.create({
+              user_id: userId,
+              character_id: charId,
+              nickname: 'New Character',
+            });
+            if (newCharacter) {
+              grantedCharacters.push(newCharacter.character_id);
+              userCharacterIds.push(charId);
+              console.log(`✅ Additional character granted: ${charId} (${grantedCharacters.length}/3)`);
+            }
+          } catch (error) {
+            console.error(`❌ Error granting additional character ${charId}:`, error);
           }
         }
-      } catch (error) {
-        console.error(`❌ Error assigning character ${charId}:`, error);
-        // Continue with other characters
       }
     }
 

@@ -221,6 +221,20 @@ export const initializeDatabase = async (): Promise<void> => {
         FOREIGN KEY (character_id) REFERENCES characters(id)
       );
 
+      -- User Character Echoes (for duplicate characters)
+      CREATE TABLE IF NOT EXISTS user_character_echoes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        character_id TEXT NOT NULL,
+        echo_count INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (character_id) REFERENCES characters(id),
+        UNIQUE(user_id, character_id)
+      );
+
       -- Create indexes for performance
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
