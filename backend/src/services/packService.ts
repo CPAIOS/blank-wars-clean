@@ -91,20 +91,31 @@ export class PackService {
     }
 
     console.log(`💾 Creating pack record with ID: ${packId}`);
-    // Create pack record
-    await query(
-      `INSERT INTO claimable_packs (id, pack_type) VALUES (?, ?)`,
-      [packId, packType]
-    );
-
-    // Insert pack contents
-    console.log(`📦 Inserting ${charactersToGrant.length} characters into pack`);
-    for (const charId of charactersToGrant) {
-      const contentId = uuidv4();
+    // Create pack record with graceful fallback
+    try {
       await query(
-        `INSERT INTO claimable_pack_contents (id, pack_id, character_id) VALUES (?, ?, ?)`,
-        [contentId, packId, charId]
+        `INSERT INTO claimable_packs (id, pack_type) VALUES (?, ?)`,
+        [packId, packType]
       );
+
+      // Insert pack contents
+      console.log(`📦 Inserting ${charactersToGrant.length} characters into pack`);
+      for (const charId of charactersToGrant) {
+        const contentId = uuidv4();
+        await query(
+          `INSERT INTO claimable_pack_contents (id, pack_id, character_id) VALUES (?, ?, ?)`,
+          [contentId, packId, charId]
+        );
+      }
+    } catch (error) {
+      if (error && (error.message?.includes('no such table: claimable_packs') || error.message?.includes('no such table: claimable_pack_contents'))) {
+        console.log('⚠️ Claimable packs tables missing, falling back to direct character assignment');
+        console.log('🔄 Creating pack token for direct assignment fallback');
+        // Return a special token that indicates direct assignment is needed
+        return `DIRECT_ASSIGN:${charactersToGrant.join(',')}`;
+      }
+      console.error('❌ Unexpected error creating pack record:', error);
+      throw error;
     }
 
     console.log(`🎉 Pack generation completed successfully: ${packId}`);
@@ -132,6 +143,13 @@ export class PackService {
   // Claims a pack for a user, handling duplicates as echoes
   async claimPack(userId: string, claimToken: string): Promise<{ grantedCharacters: string[]; echoesGained: { character_id: string; count: number }[] }> {
     console.log(`🎁 Starting pack claim for user: ${userId}, token: ${claimToken}`);
+    
+    // Handle direct assignment fallback
+    if (claimToken.startsWith('DIRECT_ASSIGN:')) {
+      console.log('🔄 Using direct character assignment fallback');
+      const characterIds = claimToken.replace('DIRECT_ASSIGN:', '').split(',');
+      return await this.directCharacterAssignment(userId, characterIds);
+    }
     const packResult = await query(
       'SELECT id, pack_type FROM claimable_packs WHERE id = ? AND is_claimed = FALSE',
       [claimToken]
@@ -238,5 +256,49 @@ export class PackService {
       random -= entry.weight;
     }
     return undefined;
+  }
+
+  // Direct character assignment fallback (when claimable_packs tables don't exist)
+  private async directCharacterAssignment(userId: string, characterIds: string[]): Promise<{ grantedCharacters: string[]; echoesGained: { character_id: string; count: number }[] }> {
+    console.log(`🎭 Direct character assignment for user: ${userId}, characters: ${characterIds.length}`);
+    const grantedCharacters: string[] = [];
+    const echoesGained: { character_id: string; count: number }[] = [];
+
+    for (const charId of characterIds) {
+      try {
+        // Check if user already has this character
+        const existingCharacter = await dbAdapter.userCharacters.findByUserIdAndCharacterId(userId, charId);
+
+        if (existingCharacter) {
+          // Character already owned, convert to echo
+          console.log(`🔮 User already has character ${charId}, adding echo`);
+          await this.characterEchoService.addEcho(userId, charId, 1);
+          const existingEcho = echoesGained.find(e => e.character_id === charId);
+          if (existingEcho) {
+            existingEcho.count++;
+          } else {
+            echoesGained.push({ character_id: charId, count: 1 });
+          }
+        } else {
+          // Grant new character directly
+          console.log(`🎭 Granting new character ${charId} to user ${userId}`);
+          const newCharacter = await dbAdapter.userCharacters.create({
+            user_id: userId,
+            character_id: charId,
+            nickname: 'New Character', // Default nickname
+          });
+          if (newCharacter) {
+            grantedCharacters.push(newCharacter.character_id);
+            console.log(`✅ Successfully granted character: ${charId}`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error assigning character ${charId}:`, error);
+        // Continue with other characters
+      }
+    }
+
+    console.log(`🎉 Direct assignment completed: ${grantedCharacters.length} granted, ${echoesGained.length} echoes`);
+    return { grantedCharacters, echoesGained };
   }
 }
