@@ -304,6 +304,15 @@ export const initializeDatabase = async (): Promise<void> => {
       console.error('❌ Migration failed:', error);
       console.log('⚠️ Continuing without migrations - fallback system will handle missing tables');
     }
+    
+    // Add character_slot_capacity column if it doesn't exist
+    try {
+      db.exec('ALTER TABLE users ADD COLUMN character_slot_capacity INTEGER DEFAULT 12');
+      console.log('✅ Added character_slot_capacity column to users table');
+    } catch (error) {
+      // Column already exists, which is fine
+      console.log('📋 character_slot_capacity column already exists');
+    }
 
     console.log('✅ SQLite database initialized successfully');
   } catch (error) {
