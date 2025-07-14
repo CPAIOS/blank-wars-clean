@@ -49,12 +49,8 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
     }
     
     try {
-      // First, try to assign starter pack if user doesn't have characters
-      console.log('🎁 Attempting to assign starter pack...');
-      const assignResponse = await apiClient.post('/user/assign-starter-pack');
-      console.log('📦 Pack assignment response:', assignResponse.data);
-      
-      // Then get the characters
+      // Get the characters (they should already be assigned during registration)
+      console.log('📦 Fetching user characters...');
       const response = await characterAPI.getUserCharacters();
       console.log('📦 Characters after pack assignment:', response);
       

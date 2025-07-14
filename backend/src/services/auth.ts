@@ -124,16 +124,44 @@ export class AuthService {
     console.log('✅ Tokens generated successfully');
 
     // --- CHARACTER ASSIGNMENT LOGIC ---
-    // Pack assignment moved to post-registration for faster response times
-    console.log('📝 Registration completed - pack assignment will be handled after login');
-    // Store claim token in user record if provided for later processing
-    if (claimToken) {
-      console.log('🎫 Storing claim token for post-login processing');
-      try {
-        await query('UPDATE users SET claim_token = ? WHERE id = ?', [claimToken, userId]);
-      } catch (error) {
-        console.log('⚠️ Could not store claim_token (column may not exist), will use standard starter pack');
+    // Give new users 3 starter characters directly during registration
+    console.log('🎁 Assigning starter characters directly during registration...');
+    try {
+      // Define starter character IDs (using characters we know exist)
+      const starterCharacterIds = ['holmes', 'achilles', 'merlin'];
+      
+      for (const characterId of starterCharacterIds) {
+        try {
+          const userCharacterId = uuidv4();
+          await query(`
+            INSERT INTO user_characters (
+              id, user_id, character_id, nickname, level, experience, 
+              bond_level, current_hp, max_hp, status, last_interaction,
+              created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            userCharacterId,
+            userId, 
+            characterId,
+            '', // Empty nickname initially
+            1, // level
+            0, // experience
+            0, // bond_level  
+            100, // current_hp
+            100, // max_hp
+            'available', // status
+            new Date().toISOString(), // last_interaction
+            new Date().toISOString(), // created_at
+            new Date().toISOString()  // updated_at
+          ]);
+          console.log(`✅ Added starter character: ${characterId}`);
+        } catch (charError) {
+          console.log(`⚠️ Failed to add character ${characterId}:`, charError);
+        }
       }
+      console.log('🎉 Starter characters assigned successfully');
+    } catch (error) {
+      console.log('⚠️ Error assigning starter characters (continuing anyway):', error);
     }
     // --- END CHARACTER ASSIGNMENT LOGIC ---
 
