@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Send, Heart, Star, User } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { createDemoCharacterCollection, Character } from '../data/characters';
+import ConflictContextService, { LivingContext } from '../services/conflictContextService';
 
 interface Message {
   id: number;
@@ -115,8 +116,10 @@ export default function ChatDemo() {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [livingContext, setLivingContext] = useState<LivingContext | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conflictService = ConflictContextService.getInstance();
 
   // Initialize socket connection
   useEffect(() => {

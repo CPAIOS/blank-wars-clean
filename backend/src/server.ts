@@ -732,9 +732,20 @@ io.on('connection', async (socket) => {
         mythology: characterData?.mythology,
         currentBondLevel: characterData?.bondLevel,
         conversationContext: characterData?.conversationContext, // This contains the real character stats and context
+        livingContext: characterData?.livingContext, // Kitchen table conflict awareness
         previousMessages
       };
       
+      // Log living context if present
+      if (characterData?.livingContext) {
+        console.log('🏠 Living context detected:', {
+          housingTier: characterData.livingContext.housingTier,
+          occupancy: `${characterData.livingContext.currentOccupancy}/${characterData.livingContext.roomCapacity}`,
+          conflicts: characterData.livingContext.activeConflicts?.length || 0,
+          roommates: characterData.livingContext.roommates?.length || 0
+        });
+      }
+
       // Generate AI response
       console.log('🤖 Calling AI Chat Service with context:', {
         characterId: chatContext.characterId,

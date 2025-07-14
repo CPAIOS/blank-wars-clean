@@ -24,6 +24,31 @@ export interface ChatContext {
   currentBondLevel?: number;
   previousMessages?: { role: 'user' | 'assistant'; content: string }[];
   conversationContext?: string; // Added for Real Estate Agents
+  
+  // Kitchen Table Conflict Context - from therapy system
+  livingContext?: {
+    housingTier: string; // 'basic', 'standard', 'premium', etc.
+    currentOccupancy: number;
+    roomCapacity: number;
+    roommates: Array<{
+      id: string;
+      name: string;
+      relationship: 'ally' | 'rival' | 'neutral' | 'enemy';
+    }>;
+    teamChemistry: number; // 0-100
+    leagueRanking: number;
+    activeConflicts: Array<{
+      category: string; // 'kitchen_disputes', 'sleeping_arrangements', 'bathroom_schedule', etc.
+      severity: 'low' | 'medium' | 'high' | 'critical';
+      description: string;
+      involvedCharacters: string[];
+    }>;
+    recentEvents?: Array<{
+      type: 'conflict' | 'resolution' | 'tension';
+      description: string;
+      timestamp: Date;
+    }>;
+  };
 }
 
 export class AIChatService {
@@ -167,16 +192,16 @@ export class AIChatService {
     
     let prompt = '';
 
-    // Use conversationContext if provided (for Real Estate Agents)
+    // Build base character identity first
+    prompt = `You are ${characterName}, a character from ${historicalPeriod || 'various times and places'}.`;
+    
+    if (mythology) {
+      prompt += ` You are known in ${mythology} mythology.`;
+    }
+    
+    // Add conversationContext as additional context (not replacement)
     if (conversationContext) {
-      prompt = conversationContext;
-    } else {
-      // Existing character prompt building logic
-      prompt = `You are ${characterName}, a character from ${historicalPeriod || 'various times and places'}.`;
-      
-      if (mythology) {
-        prompt += ` You are known in ${mythology} mythology.`;
-      }
+      prompt += `\n\n${conversationContext}`;
     }
     
     // Safety check for personality structure
@@ -215,6 +240,82 @@ export class AIChatService {
         } else if (healthPercent < 60) {
           prompt += ` You have taken some damage but remain strong.`;
         }
+      }
+    }
+    
+    // Add kitchen table conflict awareness from living context
+    if (context.livingContext) {
+      const living = context.livingContext;
+      
+      prompt += `\n\nCURRENT LIVING SITUATION:
+• Housing: ${living.housingTier} tier (${living.currentOccupancy}/${living.roomCapacity} occupancy)`;
+      
+      if (living.currentOccupancy > living.roomCapacity) {
+        prompt += `
+• OVERCROWDED: ${living.currentOccupancy - living.roomCapacity} too many people in the space
+• This creates stress, tension, and daily friction between teammates`;
+      }
+      
+      prompt += `
+• Team Chemistry: ${living.teamChemistry}% (affects daily interactions and mood)
+• League Ranking: #${living.leagueRanking} (performance pressure affects living dynamics)`;
+
+      if (living.roommates && living.roommates.length > 0) {
+        prompt += `\n\nROOMMATES YOU LIVE WITH:`;
+        living.roommates.forEach(roommate => {
+          const relationshipEmoji = {
+            'ally': '🤝',
+            'rival': '⚔️', 
+            'neutral': '😐',
+            'enemy': '❌'
+          }[roommate.relationship] || '🤔';
+          prompt += `\n• ${roommate.name} ${relationshipEmoji} (${roommate.relationship})`;
+        });
+      }
+
+      if (living.activeConflicts && living.activeConflicts.length > 0) {
+        prompt += `\n\nONGOING CONFLICTS IN YOUR SHARED LIVING SPACE:`;
+        living.activeConflicts.forEach(conflict => {
+          const severityEmoji = {
+            'low': '🟨',
+            'medium': '🟧', 
+            'high': '🟥',
+            'critical': '💥'
+          }[conflict.severity] || '⚠️';
+          
+          prompt += `\n• ${severityEmoji} ${conflict.category.replace('_', ' ').toUpperCase()}: ${conflict.description}`;
+          if (conflict.involvedCharacters.length > 0) {
+            prompt += ` (involves: ${conflict.involvedCharacters.join(', ')})`;
+          }
+        });
+        
+        prompt += `\n\nThese conflicts affect your daily life, mood, sleep quality, and relationships. You may feel frustrated, stressed, or annoyed about these ongoing issues. They impact your ability to focus and relax at home.`;
+      }
+
+      if (living.recentEvents && living.recentEvents.length > 0) {
+        prompt += `\n\nRECENT HOUSEHOLD EVENTS:`;
+        living.recentEvents.slice(-3).forEach(event => {
+          const eventEmoji = {
+            'conflict': '💥',
+            'resolution': '✅',
+            'tension': '😤'
+          }[event.type] || '📝';
+          prompt += `\n• ${eventEmoji} ${event.description}`;
+        });
+      }
+
+      // Kitchen table specific context
+      const kitchenConflicts = living.activeConflicts.filter(c => 
+        c.category.includes('kitchen') || c.category.includes('dining') || c.category.includes('meal')
+      );
+      
+      if (kitchenConflicts.length > 0) {
+        prompt += `\n\nKITCHEN TABLE & DINING TENSIONS:
+These conflicts particularly affect mealtimes and shared dining:`;
+        kitchenConflicts.forEach(conflict => {
+          prompt += `\n• ${conflict.description}`;
+        });
+        prompt += `\nMealtimes may be awkward, tense, or uncomfortable. You might avoid eating with others, feel anxious about kitchen time, or get into arguments during meals.`;
       }
     }
     

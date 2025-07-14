@@ -88,11 +88,17 @@ interface MainTab {
   subTabs: SubTab[];
 }
 
-export default function MainTabSystem() {
-  const [activeMainTab, setActiveMainTab] = useState('characters');
+interface MainTabSystemProps {
+  initialTab?: string;
+  initialSubTab?: string;
+}
+
+export default function MainTabSystem({ initialTab = 'characters', initialSubTab }: MainTabSystemProps) {
+  const [activeMainTab, setActiveMainTab] = useState(initialTab);
   const [activeSubTab, setActiveSubTab] = useState('progression');
   const [isMainTabExpanded, setIsMainTabExpanded] = useState(true);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState('achilles');
+  
   
   console.log('🔥 MainTabSystem state:', { activeMainTab, activeSubTab, globalSelectedCharacterId });
 
@@ -318,16 +324,84 @@ export default function MainTabSystem() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 space-y-6">
-            {/* Selected Character Header */}
-            <div className="bg-gray-800/50 rounded-xl p-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
-                <div>
-                  <div>{selectedCharacter?.name || 'Loading...'}</div>
-                  <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
+          <div className="flex-1 space-y-8">
+            {/* Character Image Display */}
+            <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-8 text-center mb-8">
+              <div className="flex flex-col items-center gap-6">
+                {/* Character Image */}
+                <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
+                  <img 
+                    src={(() => {
+                      // Map character names to their image file names
+                      const characterImageMap: Record<string, string> = {
+                        'achilles': 'Achilles 02.png',
+                        'agent x': 'Agent X 03.png',
+                        'billy the kid': 'Billy the Kid 02.png',
+                        'cleopatra': 'Cleopatra 01.png',
+                        'cyborg': 'Cyborg 03.png',
+                        'dracula': 'Dracula 02.png',
+                        'fenrir': 'Fenrir 01.png',
+                        'frankenstein': 'Frankenstein 01.png',
+                        'frankenstein\'s monster': 'Frankenstein 01.png',
+                        'frankensteins monster': 'Frankenstein 01.png', // Without apostrophe
+                        'genghis khan': 'Gengas Khan 01.png',
+                        'gengas khan': 'Gengas Khan 01.png', // Alternative spelling
+                        'joan of arc': 'Joan of ark 01.png',
+                        'joan of ark': 'Joan of ark 01.png', // Alternative spelling
+                        'merlin': 'Merlin 02.png',
+                        'sherlock holmes': 'Sherlock Holmes 01.png',
+                        'sun wukong': 'Sun Wukong 02.png',
+                        'tesla': 'Tesla 03.png',
+                        'nikola tesla': 'Tesla 03.png',
+                        'zeta': 'Zeta 01.png',
+                        'zeta reticulan': 'Zeta 01.png', // Alternative name
+                        'sammy "slugger" sullivan': 'sammy_slugger.png', // Real Sammy image
+                        'sammy_slugger': 'sammy_slugger.png', // Underscore version
+                        'robin hood': 'robin_hood.png', // Real Robin Hood image
+                        'robin_hood': 'robin_hood.png', // Underscore version  
+                        'count dracula': 'Dracula 02.png', // Count Dracula variation
+                        'cleopatra vii': 'Cleopatra 01.png', // Cleopatra VII variation
+                        'vega-x': 'Cyborg 03.png', // Vega-X uses Cyborg image
+                      };
+                      
+                      const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
+                      console.log('🖼️ Character Image Debug:', {
+                        originalName: selectedCharacter?.name,
+                        characterName,
+                        hasMapping: !!characterImageMap[characterName || ''],
+                        availableKeys: Object.keys(characterImageMap)
+                      });
+                      
+                      // Only use mapped images, no fallback to wrong character
+                      if (characterName && characterImageMap[characterName]) {
+                        return `/images/Character /Progression/${characterImageMap[characterName]}`;
+                      }
+                      
+                      // Return empty string if no match found - this will trigger alt text instead of wrong image
+                      return '';
+                    })()}
+                    alt={selectedCharacter?.name || 'Character'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('❌ Image failed to load:', e.currentTarget.src);
+                      // Hide the image element instead of showing wrong character
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
                 </div>
-              </h2>
+                
+                {/* Character Info */}
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
+                    <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
+                    <div>
+                      <div>{selectedCharacter?.name || 'Loading...'}</div>
+                      <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
+                    </div>
+                  </h2>
+                </div>
+              </div>
             </div>
 
             {/* Performance Coaching Chat */}
@@ -1384,9 +1458,19 @@ export default function MainTabSystem() {
     }
   ];
 
+
   const currentMainTab = mainTabs.find(tab => tab.id === activeMainTab);
   const currentSubTab = currentMainTab?.subTabs.find(tab => tab.id === activeSubTab);
   const ActiveComponent = currentSubTab?.component || CharacterDatabase;
+  
+  console.log('🔍 Tab Debug:', { 
+    activeMainTab, 
+    activeSubTab, 
+    currentMainTab: currentMainTab?.id,
+    currentSubTab: currentSubTab?.id,
+    hasComponent: !!currentSubTab?.component,
+    availableSubTabs: currentMainTab?.subTabs.map(s => s.id)
+  });
 
   const getColorClasses = (color: string, isActive: boolean) => {
     const colors = {
@@ -1405,18 +1489,7 @@ export default function MainTabSystem() {
       <div className="border-b border-gray-700 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsMainTabExpanded(!isMainTabExpanded)}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                {isMainTabExpanded ? (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-              
+            <div className="flex items-center gap-4 ml-32">
               <div className="flex gap-2">
                 {mainTabs.map((tab) => {
                   const Icon = tab.icon;
@@ -1443,47 +1516,40 @@ export default function MainTabSystem() {
       </div>
 
       {/* Sub Tab Navigation */}
-      <AnimatePresence>
-        {isMainTabExpanded && currentMainTab && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="border-b border-gray-700 bg-gray-800/50"
-          >
-            <div className="max-w-7xl mx-auto px-4 py-3">
-              <div className="flex gap-2 overflow-x-auto">
-                {currentMainTab.subTabs.map((subTab) => {
-                  const Icon = subTab.icon;
-                  const isActive = activeSubTab === subTab.id;
-                  
-                  return (
-                    <button
-                      key={subTab.id}
-                      onClick={() => setActiveSubTab(subTab.id)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap ${
-                        isActive
-                          ? 'bg-gray-700 text-white'
-                          : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{subTab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              
-              {/* Sub-tab description */}
-              {currentSubTab?.description && (
-                <div className="mt-2 text-sm text-gray-400">
-                  {currentSubTab.description}
-                </div>
-              )}
+      {currentMainTab && (
+        <div className="border-b border-gray-700 bg-gray-800/50">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex gap-2 overflow-x-auto">
+              {currentMainTab.subTabs.map((subTab) => {
+                const Icon = subTab.icon;
+                const isActive = activeSubTab === subTab.id;
+                
+                return (
+                  <button
+                    key={subTab.id}
+                    onClick={() => setActiveSubTab(subTab.id)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap ${
+                      isActive
+                        ? 'bg-gray-700 text-white'
+                        : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{subTab.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            
+            {/* Sub-tab description */}
+            {currentSubTab?.description && (
+              <div className="mt-2 text-sm text-gray-400">
+                {currentSubTab.description}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Active Component */}
       <div className="max-w-7xl mx-auto px-4 py-6">

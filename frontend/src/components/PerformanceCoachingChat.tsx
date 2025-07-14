@@ -6,6 +6,7 @@ import { Send, Heart, Star, User, TrendingUp, Activity, Target } from 'lucide-re
 import { io, Socket } from 'socket.io-client';
 import { characterAPI } from '../services/apiClient';
 import { Character } from '../data/characters';
+import ConflictContextService, { LivingContext } from '../services/conflictContextService';
 
 interface Message {
   id: number;
@@ -177,8 +178,10 @@ export default function PerformanceCoachingChat({
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [livingContext, setLivingContext] = useState<LivingContext | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conflictService = ConflictContextService.getInstance();
 
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
@@ -237,6 +240,25 @@ export default function PerformanceCoachingChat({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load living context when character changes
+  useEffect(() => {
+    const loadLivingContext = async () => {
+      if (selectedCharacter) {
+        try {
+          console.log('🏠 Loading living context for:', selectedCharacter.baseName || selectedCharacter.name);
+          const context = await conflictService.generateLivingContext(selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id);
+          setLivingContext(context);
+          console.log('✅ Living context loaded:', context);
+        } catch (error) {
+          console.error('❌ Failed to load living context:', error);
+          setLivingContext(null);
+        }
+      }
+    };
+
+    loadLivingContext();
+  }, [selectedCharacter?.id, conflictService]);
 
   // Generate coaching advice specific to the selected character
   const performanceQuickMessages = generateCoachingAdvice(selectedCharacter);
@@ -297,6 +319,8 @@ export default function PerformanceCoachingChat({
           fears: ['Defeat'],
           relationships: []
         },
+        // Add living context for kitchen table conflict awareness
+        livingContext: livingContext,
         // Real combat stats
         baseStats: selectedCharacter.baseStats,
         combatStats: selectedCharacter.combatStats,

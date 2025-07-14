@@ -6,7 +6,7 @@ import { Play, LogIn, UserPlus, BookOpen, Camera, Tv, Drama, Users, Sparkles, Cr
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
-import MainTabSystem from '@/components/MainTabSystem';
+import Homepage from '@/components/Homepage';
 import LogoutButton from '@/components/LogoutButton';
 
 function HomePageContent() {
@@ -92,12 +92,12 @@ function HomePageContent() {
     },
   ];
 
-  // If user is logged in, show the actual game interface
+  // If user is logged in, show the homepage
   if (user && !isLoading) {
     return (
       <>
         <LogoutButton />
-        <MainTabSystem />
+        <Homepage />
       </>
     );
   }

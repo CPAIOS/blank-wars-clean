@@ -115,9 +115,23 @@ export default function TeamHeadquarters() {
               
               // Parse JSON fields from database with error handling
               personality: {
-                traits: char.personality_traits ? JSON.parse(char.personality_traits) : ['Determined'],
+                traits: (() => {
+                  try {
+                    return char.personality_traits ? JSON.parse(char.personality_traits) : ['Determined'];
+                  } catch (error) {
+                    console.warn(`Error parsing personality_traits for ${char.name}:`, error);
+                    return ['Determined'];
+                  }
+                })(),
                 speechStyle: char.conversation_style || 'Direct',
-                motivations: char.conversation_topics ? JSON.parse(char.conversation_topics).slice(0, 3) : ['Victory'],
+                motivations: (() => {
+                  try {
+                    return char.conversation_topics ? JSON.parse(char.conversation_topics).slice(0, 3) : ['Victory'];
+                  } catch (error) {
+                    console.warn(`Error parsing conversation_topics for ${char.name}:`, error);
+                    return ['Victory'];
+                  }
+                })(),
                 fears: ['Defeat'], // Default fallback
                 relationships: []
               },
@@ -570,7 +584,7 @@ export default function TeamHeadquarters() {
                     <h3 className="font-semibold text-red-400">Team Performance</h3>
                   </div>
                   <div className="text-2xl font-bold text-red-300 mb-1">
-                    {calculateTeamChemistry().teamCoordination}%
+                    {calculateTeamChemistry(headquarters).teamCoordination}%
                   </div>
                   <div className="text-sm text-red-200">
                     DRAMA OVERLOAD - Viewers love conflict but battles suffer!

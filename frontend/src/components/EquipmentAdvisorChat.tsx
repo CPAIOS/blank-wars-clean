@@ -6,6 +6,7 @@ import { Send, Heart, Star, User, Sword, Shield, Zap } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { characterAPI } from '../services/apiClient';
 import { Character } from '../data/characters';
+import ConflictContextService, { LivingContext } from '../services/conflictContextService';
 
 interface Message {
   id: number;
@@ -194,8 +195,10 @@ export default function EquipmentAdvisorChat({
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [livingContext, setLivingContext] = useState<LivingContext | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conflictService = ConflictContextService.getInstance();
 
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
@@ -254,6 +257,26 @@ export default function EquipmentAdvisorChat({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load living context when character changes
+  useEffect(() => {
+    const loadLivingContext = async () => {
+      if (selectedCharacter) {
+        try {
+          console.log('🏠 EquipmentAdvisor loading living context for:', selectedCharacter.baseName || selectedCharacter.name);
+          const context = await conflictService.generateLivingContext(selectedCharacter.baseName || 
+            selectedCharacter.name?.toLowerCase() || selectedCharacter.id);
+          setLivingContext(context);
+          console.log('✅ EquipmentAdvisor living context loaded:', context);
+        } catch (error) {
+          console.error('❌ EquipmentAdvisor failed to load living context:', error);
+          setLivingContext(null);
+        }
+      }
+    };
+
+    loadLivingContext();
+  }, [selectedCharacter?.id, conflictService]);
 
   // Generate equipment advice specific to the selected character
   const equipmentQuickMessages = generateEquipmentAdvice(selectedCharacter);
@@ -349,7 +372,9 @@ export default function EquipmentAdvisorChat({
             needsDefenseBoost: selectedCharacter.base_defense < 60,
             needsSpeedBoost: selectedCharacter.base_speed < 60
           }
-        }
+        },
+        // Add living context for kitchen table conflict awareness
+        livingContext: livingContext
       },
       previousMessages: messages.slice(-5).map(m => ({
         role: m.type === 'player' ? 'user' : 'assistant',

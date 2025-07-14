@@ -10,7 +10,7 @@ export const purchaseBed = async (
   bedType: PurchasableBed,
   headquarters: HeadquartersState,
   setHeadquarters: (updater: (prev: HeadquartersState) => HeadquartersState) => void,
-  setMoveNotification: (notification: { message: string; type: string }) => void
+  setMoveNotification: (notification: { message: string; type: 'success' | 'warning' }) => void
 ) => {
   const room = headquarters.rooms.find(r => r.id === roomId);
   if (!room) return;
@@ -79,7 +79,7 @@ export const purchaseBed = async (
     console.error('Failed to purchase bed:', error);
     setMoveNotification({
       message: `Failed to purchase ${bedType.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      type: 'error'
+      type: 'warning'
     });
   }
 };

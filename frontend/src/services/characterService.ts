@@ -11,7 +11,7 @@ export const assignCharacterToRoom = (
   availableCharacters: Character[],
   headquarters: HeadquartersState,
   setHeadquarters: (updater: (prev: HeadquartersState) => HeadquartersState) => void,
-  setMoveNotification: (notification: { message: string; type: string } | null) => void,
+  setMoveNotification: (notification: { message: string; type: 'success' | 'warning' } | null) => void,
   setHighlightedRoom: (roomId: string | null) => void,
   notificationTimeout: React.MutableRefObject<NodeJS.Timeout | null>
 ) => {
