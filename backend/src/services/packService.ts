@@ -1,7 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '../database';
-// Import character templates - this should be moved to a shared location in a real app
-const characterTemplates: Record<string, any> = {}; // Placeholder for character data
 
 type CharacterRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 import { dbAdapter } from './databaseAdapter';
@@ -50,6 +48,7 @@ export class PackService {
 
   // Generates a new pack based on predefined rules
   async generatePack(packType: string): Promise<string> {
+    console.log(`🎁 Starting pack generation for type: ${packType}`);
     const rules = this.packRules[packType];
     if (!rules) {
       throw new Error(`Pack type ${packType} not found.`);
@@ -60,20 +59,37 @@ export class PackService {
 
     // Handle guaranteed rarity first
     if (rules.guaranteed_rarity) {
-      const guaranteedChar = this.getRandomCharacterByRarity(rules.guaranteed_rarity);
+      console.log(`🎯 Getting guaranteed character of rarity: ${rules.guaranteed_rarity}`);
+      const guaranteedChar = await this.getRandomCharacterByRarity(rules.guaranteed_rarity);
       if (guaranteedChar) {
         charactersToGrant.push(guaranteedChar);
+        console.log(`✅ Added guaranteed character: ${guaranteedChar}`);
+      } else {
+        console.log(`⚠️ No guaranteed character found for rarity: ${rules.guaranteed_rarity}`);
       }
     }
 
     // Fill the rest based on rarity weights
-    while (charactersToGrant.length < rules.count) {
-      const randomChar = this.getRandomCharacterByWeights(rules.rarity_weights);
+    console.log(`🎲 Filling remaining ${rules.count - charactersToGrant.length} slots with weighted random characters`);
+    let attempts = 0;
+    const maxAttempts = rules.count * 10; // Prevent infinite loops
+    
+    while (charactersToGrant.length < rules.count && attempts < maxAttempts) {
+      attempts++;
+      const randomChar = await this.getRandomCharacterByWeights(rules.rarity_weights);
       if (randomChar) {
         charactersToGrant.push(randomChar);
+        console.log(`✅ Added random character: ${randomChar} (${charactersToGrant.length}/${rules.count})`);
+      } else {
+        console.log(`⚠️ Failed to get random character (attempt ${attempts})`);
       }
     }
 
+    if (charactersToGrant.length < rules.count) {
+      throw new Error(`Could not generate enough characters for pack. Got ${charactersToGrant.length}/${rules.count}`);
+    }
+
+    console.log(`💾 Creating pack record with ID: ${packId}`);
     // Create pack record
     await query(
       `INSERT INTO claimable_packs (id, pack_type) VALUES (?, ?)`,
@@ -81,6 +97,7 @@ export class PackService {
     );
 
     // Insert pack contents
+    console.log(`📦 Inserting ${charactersToGrant.length} characters into pack`);
     for (const charId of charactersToGrant) {
       await query(
         `INSERT INTO claimable_pack_contents (pack_id, character_id) VALUES (?, ?)`,
@@ -88,6 +105,7 @@ export class PackService {
       );
     }
 
+    console.log(`🎉 Pack generation completed successfully: ${packId}`);
     return packId; // Return the claim token
   }
 
@@ -164,18 +182,27 @@ export class PackService {
     return { grantedCharacters, echoesGained };
   }
 
-  private getRandomCharacterByRarity(rarity: CharacterRarity): string | undefined {
-    const availableCharacters = Object.values(characterTemplates).filter(
-      (char: any) => char.rarity === rarity
-    );
-    if (availableCharacters.length === 0) {
+  private async getRandomCharacterByRarity(rarity: CharacterRarity): Promise<string | undefined> {
+    try {
+      const result = await query(
+        'SELECT id FROM characters WHERE rarity = ?',
+        [rarity]
+      );
+      
+      if (result.rows.length === 0) {
+        console.log(`⚠️ No characters found with rarity: ${rarity}`);
+        return undefined;
+      }
+      
+      const randomIndex = Math.floor(Math.random() * result.rows.length);
+      return result.rows[randomIndex].id;
+    } catch (error) {
+      console.error(`❌ Error fetching characters by rarity ${rarity}:`, error);
       return undefined;
     }
-    const randomIndex = Math.floor(Math.random() * availableCharacters.length);
-    return (availableCharacters[randomIndex] as any).id;
   }
 
-  private getRandomCharacterByWeights(weights: { [key in CharacterRarity]?: number }): string | undefined {
+  private async getRandomCharacterByWeights(weights: { [key in CharacterRarity]?: number }): Promise<string | undefined> {
     let totalWeight = 0;
     const rarityPool: { rarity: CharacterRarity; weight: number }[] = [];
 
@@ -190,12 +217,18 @@ export class PackService {
     let random = Math.random() * totalWeight;
     for (const entry of rarityPool) {
       if (random < entry.weight) {
-        const charactersInRarity = Object.values(characterTemplates).filter(
-          (char: any) => char.rarity === entry.rarity
-        );
-        if (charactersInRarity.length > 0) {
-          const randomIndex = Math.floor(Math.random() * charactersInRarity.length);
-          return (charactersInRarity[randomIndex] as any).id;
+        try {
+          const result = await query(
+            'SELECT id FROM characters WHERE rarity = ?',
+            [entry.rarity]
+          );
+          
+          if (result.rows.length > 0) {
+            const randomIndex = Math.floor(Math.random() * result.rows.length);
+            return result.rows[randomIndex].id;
+          }
+        } catch (error) {
+          console.error(`❌ Error fetching characters by rarity ${entry.rarity}:`, error);
         }
       }
       random -= entry.weight;
