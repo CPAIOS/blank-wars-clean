@@ -163,9 +163,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // TEMPORARY: Handle both cookie and token-based auth for cross-origin fallback
       if (response.tokens) {
         console.log('📝 Using token fallback for cross-origin authentication');
+        console.log('📝 Storing tokens:', { hasAccessToken: !!response.tokens.accessToken, hasRefreshToken: !!response.tokens.refreshToken });
         setTokens(response.tokens);
         localStorage.setItem('authTokens', JSON.stringify(response.tokens));
+        console.log('📝 Tokens stored in localStorage');
       } else {
+        console.log('📝 No tokens in response, using cookies only');
         // SECURITY: Tokens are in httpOnly cookies
         setTokens(null);
       }

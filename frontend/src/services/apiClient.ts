@@ -10,17 +10,23 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   // If we have stored tokens (fallback for cross-origin), add Authorization header
   const storedTokens = localStorage.getItem('authTokens');
+  console.log('🔍 Request interceptor - checking for stored tokens:', !!storedTokens);
+  
   if (storedTokens) {
     try {
       const tokens = JSON.parse(storedTokens);
+      console.log('🔍 Parsed tokens:', { hasAccessToken: !!tokens.accessToken, hasRefreshToken: !!tokens.refreshToken });
+      
       if (tokens.accessToken) {
         config.headers.Authorization = `Bearer ${tokens.accessToken}`;
-        console.log('🔑 Using stored access token for request');
+        console.log('🔑 Using stored access token for request to:', config.url);
       }
     } catch (e) {
       console.error('Error parsing stored tokens:', e);
       localStorage.removeItem('authTokens');
     }
+  } else {
+    console.log('🚫 No stored tokens found for request to:', config.url);
   }
   return config;
 });
