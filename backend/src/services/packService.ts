@@ -108,7 +108,8 @@ export class PackService {
         );
       }
     } catch (error) {
-      if (error && (error.message?.includes('no such table: claimable_packs') || error.message?.includes('no such table: claimable_pack_contents'))) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('no such table: claimable_packs') || errorMessage.includes('no such table: claimable_pack_contents')) {
         console.log('⚠️ Claimable packs tables missing, falling back to direct character assignment');
         console.log('🔄 Creating pack token for direct assignment fallback');
         // Return a special token that indicates direct assignment is needed
