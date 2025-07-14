@@ -196,6 +196,30 @@ export const initializeDatabase = async (): Promise<void> => {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
 
+      -- Claimable Packs (for gifts, special offers, etc.)
+      CREATE TABLE IF NOT EXISTS claimable_packs (
+        id TEXT PRIMARY KEY, -- UUIDs stored as TEXT
+        pack_type TEXT NOT NULL, -- e.g., 'standard_starter', 'premium_starter', 'gift_pack_common'
+        is_claimed BOOLEAN DEFAULT FALSE,
+        claimed_by_user_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        claimed_at DATETIME,
+        
+        FOREIGN KEY (claimed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+      );
+
+      -- Contents of Claimable Packs
+      CREATE TABLE IF NOT EXISTS claimable_pack_contents (
+        id TEXT PRIMARY KEY, -- UUIDs stored as TEXT
+        pack_id TEXT NOT NULL,
+        character_id TEXT NOT NULL,
+        is_granted BOOLEAN DEFAULT FALSE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        
+        FOREIGN KEY (pack_id) REFERENCES claimable_packs(id) ON DELETE CASCADE,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      );
+
       -- Create indexes for performance
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);

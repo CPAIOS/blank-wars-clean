@@ -99,9 +99,10 @@ export class PackService {
     // Insert pack contents
     console.log(`📦 Inserting ${charactersToGrant.length} characters into pack`);
     for (const charId of charactersToGrant) {
+      const contentId = uuidv4();
       await query(
-        `INSERT INTO claimable_pack_contents (pack_id, character_id) VALUES (?, ?)`,
-        [packId, charId]
+        `INSERT INTO claimable_pack_contents (id, pack_id, character_id) VALUES (?, ?, ?)`,
+        [contentId, packId, charId]
       );
     }
 
@@ -118,9 +119,10 @@ export class PackService {
     );
 
     for (const charId of characterIds) {
+      const contentId = uuidv4();
       await query(
-        `INSERT INTO claimable_pack_contents (pack_id, character_id) VALUES (?, ?)`,
-        [packId, charId]
+        `INSERT INTO claimable_pack_contents (id, pack_id, character_id) VALUES (?, ?, ?)`,
+        [contentId, packId, charId]
       );
     }
     return packId;
