@@ -123,93 +123,32 @@ export class AuthService {
     const tokens = this.generateTokens(userId);
     console.log('✅ Tokens generated successfully');
 
-    // --- CHARACTER ASSIGNMENT LOGIC ---
-    // Give new users 3 random starter characters with rarity-based probability
-    console.log('🎁 Assigning rarity-weighted starter characters directly during registration...');
+    // --- CHARACTER ASSIGNMENT USING PACKSERVICE ---
+    // Use existing PackService to assign starter pack to new users
+    console.log('🎁 Assigning starter pack using PackService...');
     try {
-      // Define rarity weights (higher = more likely)
-      const rarityWeights = {
-        'common': 0.7,     // 70% chance
-        'uncommon': 0.25,  // 25% chance
-        'rare': 0.05,      // 5% chance
-        'epic': 0.008,     // 0.8% chance
-        'legendary': 0.002, // 0.2% chance
-        'mythic': 0.0005   // 0.05% chance
-      };
+      console.log('🆓 Generating standard_starter pack for new user');
+      const starterPackToken = await this.packService.generatePack('standard_starter');
+      console.log(`📦 Generated starter pack token: ${starterPackToken}`);
       
-      const starterCharacterIds: string[] = [];
+      // Auto-claim the starter pack for the new user
+      console.log('🎁 Auto-claiming starter pack for new user');
+      const claimResult = await this.packService.claimPack(userId, starterPackToken);
+      console.log(`✅ Starter pack claimed successfully. Granted ${claimResult.grantedCharacters.length} characters`);
       
-      // Get 3 characters using weighted random selection
-      for (let i = 0; i < 3; i++) {
-        // Roll for rarity first
-        const random = Math.random();
-        let cumulativeWeight = 0;
-        let selectedRarity = 'common';
-        
-        for (const [rarity, weight] of Object.entries(rarityWeights)) {
-          cumulativeWeight += weight;
-          if (random <= cumulativeWeight) {
-            selectedRarity = rarity;
-            break;
-          }
-        }
-        
-        // Get a random character of the selected rarity
-        const charResult = await query(
-          'SELECT id FROM characters WHERE rarity = ? ORDER BY RANDOM() LIMIT 1',
-          [selectedRarity]
-        );
-        
-        if (charResult.rows.length > 0) {
-          starterCharacterIds.push(charResult.rows[0].id);
-          console.log(`🎲 Selected ${selectedRarity} character: ${charResult.rows[0].id}`);
-        } else {
-          // Fallback to common if no characters found for rarity
-          const fallbackResult = await query(
-            'SELECT id FROM characters WHERE rarity = ? ORDER BY RANDOM() LIMIT 1',
-            ['common']
-          );
-          if (fallbackResult.rows.length > 0) {
-            starterCharacterIds.push(fallbackResult.rows[0].id);
-            console.log(`🎲 Fallback to common character: ${fallbackResult.rows[0].id}`);
-          }
-        }
+      if (claimResult.grantedCharacters.length > 0) {
+        console.log('🎭 Granted character IDs:', claimResult.grantedCharacters);
+      }
+      if (claimResult.echoesGained.length > 0) {
+        console.log('🔮 Echoes gained:', claimResult.echoesGained);
       }
       
-      for (const characterId of starterCharacterIds) {
-        try {
-          const userCharacterId = uuidv4();
-          await query(`
-            INSERT INTO user_characters (
-              id, user_id, character_id, nickname, level, experience, 
-              bond_level, current_hp, max_hp, status, last_interaction,
-              created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            userCharacterId,
-            userId, 
-            characterId,
-            '', // Empty nickname initially
-            1, // level
-            0, // experience
-            0, // bond_level  
-            100, // current_hp
-            100, // max_hp
-            'available', // status
-            new Date().toISOString(), // last_interaction
-            new Date().toISOString(), // created_at
-            new Date().toISOString()  // updated_at
-          ]);
-          console.log(`✅ Added starter character: ${characterId}`);
-        } catch (charError) {
-          console.log(`⚠️ Failed to add character ${characterId}:`, charError);
-        }
-      }
-      console.log('🎉 Starter characters assigned successfully');
     } catch (error) {
-      console.log('⚠️ Error assigning starter characters (continuing anyway):', error);
+      console.log('⚠️ Error assigning starter pack (continuing anyway):', error);
+      // Fallback to background assignment if immediate pack assignment fails
+      console.log('📋 Starter pack will be assigned via background process');
     }
-    // --- END CHARACTER ASSIGNMENT LOGIC ---
+    // --- END CHARACTER ASSIGNMENT USING PACKSERVICE ---
 
     // Cache user session - skip caching to avoid timeout
     // await cache.set(`user:${userId}`, JSON.stringify(user), 900); // 15 minutes
