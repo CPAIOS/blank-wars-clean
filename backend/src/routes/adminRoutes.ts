@@ -227,12 +227,28 @@ router.post('/prod-seed-characters', async (req, res) => {
         abilities: JSON.stringify({ baseStats: { strength: 90, agility: 98, intelligence: 80, vitality: 85, wisdom: 75, charisma: 80 }, combatStats: { maxHealth: 1000, maxMana: 1200, magicAttack: 180, magicDefense: 160, criticalChance: 40, criticalDamage: 250, accuracy: 95, evasion: 45 } })
       },
       {
-        id: 'billy_kid', name: 'Billy the Kid', title: 'The Outlaw', archetype: 'warrior', origin_era: 'American Old West (1870s-1880s)', rarity: 'uncommon',
+        id: 'billy_kid', name: 'Billy the Kid', title: 'The Outlaw', archetype: 'warrior', origin_era: 'American Old West (1870s-1880s)', rarity: 'common',
         base_health: 650, base_attack: 140, base_defense: 60, base_speed: 160, base_special: 75,
         personality_traits: JSON.stringify(['Quick-tempered', 'Loyal', 'Reckless', 'Charismatic']),
         conversation_style: 'Casual and confident', backstory: 'The notorious young gunslinger of the American frontier, quick on the draw and quicker to anger.',
         conversation_topics: JSON.stringify(['Freedom', 'Justice', 'The frontier', 'Gunfights', 'Loyalty']), avatar_emoji: '🤠',
         abilities: JSON.stringify({ baseStats: { strength: 65, agility: 95, intelligence: 55, vitality: 60, wisdom: 45, charisma: 75 }, combatStats: { maxHealth: 650, maxMana: 300, magicAttack: 20, magicDefense: 40, criticalChance: 45, criticalDamage: 280, accuracy: 98, evasion: 40 } })
+      },
+      {
+        id: 'samurai', name: 'Samurai Warrior', title: 'Honorable Blade', archetype: 'warrior', origin_era: 'Feudal Japan', rarity: 'common',
+        base_health: 600, base_attack: 120, base_defense: 80, base_speed: 100, base_special: 70,
+        personality_traits: JSON.stringify(['Honorable', 'Disciplined', 'Loyal', 'Stoic']),
+        conversation_style: 'Formal and respectful', backstory: 'A disciplined warrior following the way of the sword.',
+        conversation_topics: JSON.stringify(['Honor', 'Duty', 'Training', 'Bushido', 'Loyalty']), avatar_emoji: '🗾',
+        abilities: JSON.stringify({ baseStats: { strength: 70, agility: 75, intelligence: 60, vitality: 65, wisdom: 80, charisma: 70 }, combatStats: { maxHealth: 600, maxMana: 200, magicAttack: 10, magicDefense: 50, criticalChance: 25, criticalDamage: 180, accuracy: 85, evasion: 20 } })
+      },
+      {
+        id: 'peasant', name: 'Village Peasant', title: 'Common Folk', archetype: 'scholar', origin_era: 'Medieval Times', rarity: 'common',
+        base_health: 500, base_attack: 60, base_defense: 50, base_speed: 70, base_special: 80,
+        personality_traits: JSON.stringify(['Humble', 'Hardworking', 'Curious', 'Resourceful']),
+        conversation_style: 'Simple and earnest', backstory: 'A common villager with surprising wisdom and resilience.',
+        conversation_topics: JSON.stringify(['Village life', 'Hard work', 'Simple pleasures', 'Community', 'Survival']), avatar_emoji: '👨‍🌾',
+        abilities: JSON.stringify({ baseStats: { strength: 50, agility: 60, intelligence: 70, vitality: 65, wisdom: 75, charisma: 60 }, combatStats: { maxHealth: 500, maxMana: 800, magicAttack: 60, magicDefense: 70, criticalChance: 15, criticalDamage: 140, accuracy: 70, evasion: 15 } })
       }
     ];
 
