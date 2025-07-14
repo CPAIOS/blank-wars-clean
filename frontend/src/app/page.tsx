@@ -99,7 +99,7 @@ function HomePageContent() {
         <MainTabSystem />
         
         {/* New User Starter Pack Experience */}
-        {isNewUser && (
+        {isNewUser && user && (
           <NewUserStarterPack
             isOpen={isNewUser}
             onComplete={() => {
