@@ -90,6 +90,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initializeAuth = async () => {
       setIsLoading(true);
       try {
+        // Check for stored tokens from previous session
+        const storedTokens = localStorage.getItem('authTokens');
+        if (storedTokens) {
+          try {
+            const tokens = JSON.parse(storedTokens);
+            console.log('📝 Found stored tokens, setting up authentication');
+            setTokens(tokens);
+          } catch (e) {
+            console.error('Error parsing stored tokens:', e);
+            localStorage.removeItem('authTokens');
+          }
+        }
+        
         const profile = await authService.getProfile();
         setUser(profile);
       } catch (error) {
@@ -106,6 +119,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log('Token refresh failed:', refreshError);
           console.log('No valid session found');
           setUser(null);
+          // Clear any invalid stored tokens
+          localStorage.removeItem('authTokens');
+          setTokens(null);
         }
       } finally {
         setIsLoading(false);
@@ -141,6 +157,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const response = await authService.register(credentials);
       
       setUser(response.user);
+      console.log('🆕 Setting new user flag to true after registration');
       setIsNewUser(true); // Mark as new user for onboarding
       
       // TEMPORARY: Handle both cookie and token-based auth for cross-origin fallback
@@ -164,8 +181,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setTokens(null);
     setIsNewUser(false);
     
-    // SECURITY: Don't need to clear localStorage anymore
-    // httpOnly cookies are cleared by the server
+    // Clear stored tokens for token fallback system
+    localStorage.removeItem('authTokens');
     
     // Call backend logout to clear httpOnly cookies
     authService.logout().catch(console.error);
@@ -193,6 +210,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const clearNewUserFlag = useCallback(() => {
+    console.log('🏁 Clearing new user flag');
     setIsNewUser(false);
   }, []);
 

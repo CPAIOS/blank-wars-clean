@@ -24,11 +24,13 @@ export default function NewUserStarterPack({ isOpen, onComplete, username }: New
 
   // Don't show if user is not authenticated
   if (!user) {
-    console.log('🚫 NewUserStarterPack: No authenticated user, closing modal');
+    console.log('🚫 NewUserStarterPack: No authenticated user, clearing flag and closing modal');
     clearNewUserFlag();
     onComplete();
     return null;
   }
+  
+  console.log('✅ NewUserStarterPack: Authenticated user found:', user.username);
 
   const fetchStarterCharacters = async (retryCount = 0) => {
     // Don't retry if authentication error was already detected
