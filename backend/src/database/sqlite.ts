@@ -323,7 +323,7 @@ const runMigrations = (): void => {
 };
 
 // Seed initial character data
-const seedCharacters = async (): Promise<void> => {
+export const seedCharacters = async (): Promise<void> => {
   const insertCharacter = db.prepare(`
     INSERT INTO characters (
       id, name, title, archetype, origin_era, rarity,

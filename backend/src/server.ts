@@ -31,6 +31,7 @@ import trainingRouter from './routes/trainingRoutes';
 import socialRouter from './routes/socialRoutes';
 import headquartersRouter from './routes/headquartersRoutes';
 import coachingRouter from './routes/coachingRoutes';
+import adminRouter from './routes/adminRoutes';
 import jwt from 'jsonwebtoken';
 import { apiLimiter, authLimiter, battleLimiter, wsLimiter } from './middleware/rateLimiter';
 import cookieParser from 'cookie-parser';
@@ -123,6 +124,7 @@ app.use('/api/training', trainingRouter);
 app.use('/api/social', socialRouter);
 app.use('/api/headquarters', headquartersRouter);
 app.use('/api/coaching', coachingRouter);
+app.use('/api/admin', adminRouter);
 
 // New Card Pack Routes (These are now handled by cardPackRouter)
 // app.post('/api/packs/purchase', authenticateToken, async (req, res) => {
