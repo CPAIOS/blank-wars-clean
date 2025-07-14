@@ -6,6 +6,7 @@ import { Play, LogIn, UserPlus, BookOpen, Camera, Tv, Drama, Users, Sparkles, Cr
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
+import Homepage from '@/components/Homepage';
 import MainTabSystem from '@/components/MainTabSystem';
 import NewUserStarterPack from '@/components/NewUserStarterPack';
 
@@ -96,7 +97,7 @@ function HomePageContent() {
   if (user && !isLoading) {
     return (
       <>
-        <MainTabSystem />
+        <Homepage />
         
         {/* New User Starter Pack Experience */}
         {isNewUser && user && (
