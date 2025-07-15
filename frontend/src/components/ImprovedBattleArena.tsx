@@ -159,7 +159,7 @@ export default function ImprovedBattleArena() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('ImprovedBattleArena unmounting - cleaning up');
+      // console.log('ImprovedBattleArena unmounting - cleaning up'); // Disabled to prevent spam
       clearAllTimeouts();
       // Clear audio announcer queue if available
       if (clearQueueRef.current) {
@@ -703,7 +703,7 @@ export default function ImprovedBattleArena() {
 
     // Cleanup function
     return () => {
-      console.log('Cleaning up WebSocket listeners');
+      // console.log('Cleaning up WebSocket listeners'); // Disabled to prevent spam
       if (typeof unsubscribeBattleStart === 'function') unsubscribeBattleStart();
       if (typeof unsubscribeRoundStart === 'function') unsubscribeRoundStart();
       if (typeof unsubscribeRoundEnd === 'function') unsubscribeRoundEnd();

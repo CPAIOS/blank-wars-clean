@@ -353,6 +353,9 @@ export default function TeamManagementCoaching() {
         
         // Use the first involved character for response
         const respondingCharacter = selectedIssue!.involvedCharacters[0];
+        if (!respondingCharacter) {
+          throw new Error('No involved characters found for this issue');
+        }
         
         const response = await fetch(`${BACKEND_URL}/coaching/team-management`, {
           method: 'POST',
