@@ -141,24 +141,10 @@ const CoachProgressionPage: React.FC = () => {
           Back to Game
         </Link>
         
-        <div className="flex space-x-4">
-          <Link 
-            href="/test-chat" 
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
-          >
-            Chat with Characters
-          </Link>
-          <Link 
-            href="/test-kitchen" 
-            className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
-          >
-            Kitchen Chat
-          </Link>
-        </div>
       </div>
 
       <h1 className="text-4xl font-extrabold text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-        Coach Profile
+        Front Office
       </h1>
 
       <CoachStatsDisplay user={user} playerProgress={coachingProgress} />

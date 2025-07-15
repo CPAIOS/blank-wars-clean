@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { 
   Activity, Users, Gamepad2, Brain, Music, Coffee, Trophy, Clock, 
   MapPin, Heart, Calendar, MessageCircle, Send, User, Crown,
-  Play, Pause, Settings, Plus, ChevronRight
+  Play, Pause, Settings, Plus, ChevronRight, Target, DollarSign, BarChart3
 } from 'lucide-react';
 import { createDemoCharacterCollection } from '@/data/characters';
 import ConflictDatabaseService, { ConflictData, TherapyContext } from '@/services/ConflictDatabaseService';
@@ -104,8 +104,8 @@ const groupActivities: GroupActivity[] = [
     type: 'game_night',
     description: 'Strategic board games to improve teamwork and critical thinking',
     duration: '3 hours',
-    minParticipants: 4,
-    maxParticipants: 8,
+    minParticipants: 2,
+    maxParticipants: 3,
     benefits: ['Strategic thinking', 'Communication', 'Fun bonding'],
     icon: Gamepad2,
     color: 'blue',
@@ -117,8 +117,8 @@ const groupActivities: GroupActivity[] = [
     type: 'group_therapy',
     description: 'Professional-led session to address team conflicts and stress',
     duration: '2 hours',
-    minParticipants: 6,
-    maxParticipants: 12,
+    minParticipants: 2,
+    maxParticipants: 3,
     benefits: ['Mental health', 'Conflict resolution', 'Team trust'],
     icon: Brain,
     color: 'purple',
@@ -130,8 +130,8 @@ const groupActivities: GroupActivity[] = [
     type: 'meditation',
     description: 'Guided meditation to reduce stress and improve focus',
     duration: '1 hour',
-    minParticipants: 3,
-    maxParticipants: 15,
+    minParticipants: 2,
+    maxParticipants: 3,
     benefits: ['Stress reduction', 'Focus improvement', 'Inner peace'],
     icon: Brain,
     color: 'green',
@@ -143,8 +143,8 @@ const groupActivities: GroupActivity[] = [
     type: 'tournament',
     description: 'Friendly competition to boost morale and showcase skills',
     duration: '4 hours',
-    minParticipants: 8,
-    maxParticipants: 16,
+    minParticipants: 2,
+    maxParticipants: 3,
     benefits: ['Competitive spirit', 'Skill showcase', 'Achievement'],
     icon: Trophy,
     color: 'yellow',
@@ -156,8 +156,8 @@ const groupActivities: GroupActivity[] = [
     type: 'workshop',
     description: 'Art, music, or writing workshop to explore creativity together',
     duration: '2.5 hours',
-    minParticipants: 5,
-    maxParticipants: 10,
+    minParticipants: 2,
+    maxParticipants: 3,
     benefits: ['Creativity', 'Self-expression', 'Team bonding'],
     icon: Music,
     color: 'orange',
@@ -169,8 +169,8 @@ const groupActivities: GroupActivity[] = [
     type: 'workshop',
     description: 'Informal discussion circle with coffee and light topics',
     duration: '1.5 hours',
-    minParticipants: 4,
-    maxParticipants: 8,
+    minParticipants: 2,
+    maxParticipants: 3,
     benefits: ['Casual bonding', 'Open communication', 'Relaxation'],
     icon: Coffee,
     color: 'brown',
@@ -285,6 +285,45 @@ export default function CombinedGroupActivitiesWrapper() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [activeSession?.chatMessages]);
+
+  // Character image mapping for group activities
+  const getCharacterImage = (characterName: string) => {
+    const characterImageMap: Record<string, string> = {
+      'achilles': 'achilles_group_activity.png',
+      'agent x': 'agent_x_group_activity.png',
+      'billy the kid': 'billy_the_kid_group_activity.png',
+      'cleopatra': 'cleopatra_group_activity.png',
+      'cyborg': 'agent_x_group_activity.png', // Using agent_x as fallback
+      'dracula': 'dracula_group_activity.png',
+      'count dracula': 'dracula_group_activity.png',
+      'fenrir': 'fenrir_group_activity.png',
+      'frankenstein': 'frankenstein_group_activity.png',
+      'frankenstein\'s monster': 'frankenstein_group_activity.png',
+      'frankensteins monster': 'frankenstein_group_activity.png',
+      'genghis khan': 'genghis_khan_group_activity.png',
+      'gengas khan': 'genghis_khan_group_activity.png',
+      'joan of arc': 'joan_of_arc_group_activity.jpg',
+      'joan of ark': 'joan_of_arc_group_activity.jpg',
+      'merlin': 'merlin_group_activity.jpg',
+      'robin hood': 'robin_hood_group_activity.jpg',
+      'robin_hood': 'robin_hood_group_activity.jpg',
+      'sherlock holmes': 'Sherlock_holmes_group_activities.png',
+      'sun wukong': 'sun_wukong_group_activities.png',
+      'tesla': 'tesla_ground_activity .png', // Note: has space and typo in filename
+      'nikola tesla': 'tesla_ground_activity .png',
+      'zeta': 'zeta_group_activities.png',
+      'zeta reticulan': 'zeta_group_activities.png',
+      'sammy "slugger" sullivan': 'sammy_slugger_group_activity.png',
+      'sammy_slugger': 'sammy_slugger_group_activity.png',
+      'vega-x': 'vega_group_activity.png',
+    };
+    
+    const normalizedName = characterName?.toLowerCase()?.trim();
+    if (normalizedName && characterImageMap[normalizedName]) {
+      return `/images/Coaching/Group Activities/${characterImageMap[normalizedName]}`;
+    }
+    return '';
+  };
 
   // Load conflict context for enhanced group activities
   const loadConflictContext = async (characterList: any[]) => {
@@ -590,19 +629,25 @@ export default function CombinedGroupActivitiesWrapper() {
     setChatMessage('');
     setIsGeneratingResponses(true);
 
-    // Generate responses from all participants
+    // Generate responses from participants (in random order for variety)
     try {
       const currentParticipants = activeSession?.participants || participants;
       console.log('👥 Generating responses from participants:', currentParticipants);
       
-      for (let i = 0; i < currentParticipants.length; i++) {
-        const characterName = currentParticipants[i];
+      // Shuffle participants order for more natural conversation flow
+      const shuffledParticipants = [...currentParticipants].sort(() => Math.random() - 0.5);
+      
+      // Have most participants respond each time - ensure good participation
+      const respondingParticipants = shuffledParticipants.slice(0, Math.max(1, Math.floor(shuffledParticipants.length * 0.9)));
+      
+      for (let i = 0; i < respondingParticipants.length; i++) {
+        const characterName = respondingParticipants[i];
         const character = characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
         
         if (character) {
-          console.log(`🎭 Generating response from ${character.name} (${i + 1}/${currentParticipants.length})`);
-          // Simulate API call delay
-          await new Promise(resolve => setTimeout(resolve, 1500 + (i * 1000)));
+          console.log(`🎭 Generating response from ${character.name} (${i + 1}/${respondingParticipants.length})`);
+          // Simulate API call delay with more variation
+          await new Promise(resolve => setTimeout(resolve, 1000 + (i * 800) + Math.random() * 1000));
           
           const characterResponse = await generateCharacterResponse(
             character,
@@ -744,7 +789,7 @@ export default function CombinedGroupActivitiesWrapper() {
       const prompt = `
 GROUP ACTIVITY SESSION - CHARACTER RESPONSE
 
-You are ${character.name}, a ${character.archetype} participating in a ${eventType} group activity.
+You are ${character.name}, a ${character.archetype} from ${character.historicalPeriod || 'ancient times'} participating in a ${eventType} group activity.
 
 CURRENT SITUATION:
 Activity: ${activeSession?.eventTitle || 'Group Activity'}
@@ -755,41 +800,89 @@ Facilitator Style: ${activeSession?.facilitatorStyle || 'neutral'}
 YOUR CONFLICT HISTORY WITH THIS GROUP:
 ${conflictDetails}
 
-RECENT CONVERSATION:
-${chatHistory.slice(-4).map(msg => `${msg.senderName}: ${msg.message}`).join('\n')}
+RECENT CONVERSATION (Read carefully - this is a GROUP conversation):
+${chatHistory.slice(-6).map(msg => `${msg.senderName}: ${msg.message}`).join('\n')}
 
-FACILITATOR JUST SAID: "${facilitatorMessage}"
+${facilitatorMessage === 'Start a natural conversation' 
+  ? 'SITUATION: You are starting a natural group conversation. No facilitator present - just you and the other characters gathering together.'
+  : `FACILITATOR JUST SAID: "${facilitatorMessage}"`
+}
 
-YOUR CHARACTER PROFILE:
+YOUR UNIQUE CHARACTER IDENTITY:
+- Name: ${character.name}
 - Archetype: ${character.archetype}
+- Background: ${character.description || 'A legendary figure with a complex history'}
 - Speaking Style: ${character.speaking_style || 'Direct'}
 - Conflict Response: ${character.conflict_response || 'Confrontational'}
 - Personality Traits: ${character.personality_traits?.join(', ') || 'Determined'}
+- Historical Period: ${character.historicalPeriod || 'Ancient times'}
+- Mythology: ${character.mythology || 'Various legends'}
+
+STAY TRUE TO YOUR CHARACTER:
+- Speak in a way that reflects your background and time period
+- Your responses should feel authentic to ${character.name}'s legendary persona
+- Draw on your character's historical/mythological experiences when relevant
+- Show your character's unique perspective shaped by their life experiences
+- Use vocabulary and speech patterns appropriate to your era and status
+- Reference things from your time period, not modern concepts
+- Show your character's personality through speech - formal, casual, poetic, etc.
 
 RESPONSE GUIDELINES:
-1. Stay true to your character's personality and background
-2. Reference any relevant conflicts or tensions with other participants if appropriate
-3. React authentically to the facilitator's message and group dynamic
-4. Show character growth potential while maintaining authentic flaws
-5. Keep response 1-2 sentences maximum
-6. DO NOT play facilitator - you are a participant responding to the facilitator
-7. Consider your relationship history with others in the group
-8. Show your character's unique perspective on the activity
+${facilitatorMessage === 'Start a natural conversation' 
+  ? `1. START A NATURAL CONVERSATION - You're initiating or joining a casual group gathering
+2. Be the first to speak up or respond naturally to what others just said
+3. Don't mention facilitators, activities, or structured exercises - this is just characters talking
+4. Start with a greeting, observation, or comment that fits your character
+5. Keep it natural and conversational - like friends meeting up`
+  : `1. This is a GROUP CONVERSATION - react to what others have said, not just the facilitator
+2. Build on, agree with, disagree with, or add to what other participants have said
+3. Don't just repeat what others said - bring your unique perspective as ${character.name}
+4. Reference other participants by name when responding to them`
+}
+5. CRITICAL: Stay true to your character's personality, background, and historical period
+6. Keep response 1-2 sentences maximum
+7. Be conversational and interactive - this is a group chat, not individual responses
+8. Show character growth potential while maintaining authentic flaws
+9. Use language and references that fit your character's time period and background
+10. Don't be generic - be distinctly ${character.name} in your response
+11. Avoid modern slang unless it fits your character - speak authentically to your time period
 
 ${relationshipTensions.length > 0 ? 
-  '9. Feel free to address or avoid the tensions as fits your character' : 
-  '9. Be open to building relationships but stay authentic to your character'
+  '13. Feel free to address or avoid the tensions as fits your character' : 
+  '13. Be open to building relationships but stay authentic to your character'
 }
 
-RESPOND AS ${character.name}: React to the facilitator's message within this group activity context.
+${facilitatorMessage === 'Start a natural conversation' 
+  ? `IMPORTANT: This is a NATURAL GROUP GATHERING. You're just hanging out with other characters - no structured activities or facilitators. Start a conversation as ${character.name} would naturally do.`
+  : `IMPORTANT: This is a GROUP CONVERSATION. Don't just respond to the facilitator - respond to what the GROUP is discussing. If someone just said something, react to THEM.`
+}
+
+CRITICAL REMINDER: You are ${character.name}, not a generic character. Your response must reflect your unique personality, background, and legendary status. Speak as ${character.name} would speak, with the wisdom, experiences, and mannerisms of your character.
+
+FORBIDDEN RESPONSES:
+- Do NOT use generic phrases like "Hey team!" or "Let's do this!"
+- Do NOT use modern slang or corporate speak
+- Do NOT sound like a motivational speaker or team coach
+- Do NOT ignore your character's historical context
+- Do NOT be overly enthusiastic about "team building" - stay in character
+
+AUTHENTIC EXAMPLES:
+- Tesla: "Fascinating! The electrical currents of human interaction intrigue me..."
+- Fenrir: "The scent of warriors gathers. I sense strength in this pack..."
+- Agent X: "The shadows reveal interesting alliances forming here..."
+
+RESPOND AS ${character.name}: ${facilitatorMessage === 'Start a natural conversation' 
+  ? 'Start or join this natural group conversation, staying true to your legendary persona.'
+  : 'Participate in this group conversation naturally, staying true to your legendary persona.'
+}
       `.trim();
 
       return prompt;
       
     } catch (error) {
       console.error('Error building character prompt:', error);
-      // Fallback to simple prompt
-      return `You are ${character.name} in a ${eventType} group activity. The facilitator said: "${facilitatorMessage}". Respond authentically as your character.`;
+      // Fallback to simple but character-specific prompt
+      return `You are ${character.name}, a ${character.archetype} from ${character.historicalPeriod || 'ancient times'} in a ${eventType} group activity. The facilitator said: "${facilitatorMessage}". Respond authentically as ${character.name}, staying true to your legendary persona and background.`;
     }
   };
 
@@ -836,18 +929,25 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
       console.log('🎯 Starting first round for session:', session.eventTitle);
       console.log('👥 Participants to process:', session.participants);
       
-      // Get responses from all participants in sequence
-      for (let i = 0; i < session.participants.length; i++) {
-        const participantName = session.participants[i];
+      // Shuffle participants for natural conversation flow
+      const shuffledParticipants = [...session.participants].sort(() => Math.random() - 0.5);
+      
+      // Have most participants respond initially (ensure good participation)
+      const respondingCount = Math.max(1, Math.floor(shuffledParticipants.length * 0.8));
+      const respondingParticipants = shuffledParticipants.slice(0, respondingCount);
+      
+      // Get responses from selected participants
+      for (let i = 0; i < respondingParticipants.length; i++) {
+        const participantName = respondingParticipants[i];
         const character = characters.find(c => c.name.toLowerCase() === participantName.toLowerCase());
         
         if (character) {
-          console.log(`🎭 Getting first response from ${character.name} (${i + 1}/${session.participants.length})`);
+          console.log(`🎭 Getting first response from ${character.name} (${i + 1}/${respondingParticipants.length})`);
           
           try {
             const characterResponse = await generateCharacterResponse(
               character,
-              session.chatMessages[session.chatMessages.length - 1]?.message || 'Welcome to the session!',
+              'Start a natural conversation', // Natural conversation starter
               session.eventType,
               session.chatMessages
             );
@@ -867,9 +967,9 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
               chatMessages: [...prev.chatMessages, characterMsg]
             } : null);
             
-            // Small delay between character responses
-            if (i < session.participants.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 2000));
+            // Variable delay between character responses
+            if (i < respondingParticipants.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
             }
           } catch (error) {
             console.error(`❌ Failed to get first response from ${character.name}:`, error);
@@ -920,13 +1020,17 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
       // Wait a moment, then get character responses
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Get responses from all participants in sequence
-      for (let i = 0; i < activeSession.participants.length; i++) {
-        const participantName = activeSession.participants[i];
+      // Get responses from participants (randomized and not everyone)
+      const shuffledParticipants = [...activeSession.participants].sort(() => Math.random() - 0.5);
+      const respondingCount = Math.max(1, Math.floor(shuffledParticipants.length * 0.9));
+      const respondingParticipants = shuffledParticipants.slice(0, respondingCount);
+      
+      for (let i = 0; i < respondingParticipants.length; i++) {
+        const participantName = respondingParticipants[i];
         const character = characters.find(c => c.name.toLowerCase() === participantName.toLowerCase());
         
         if (character) {
-          console.log(`🎭 Getting response from ${character.name} (${i + 1}/${activeSession.participants.length})`);
+          console.log(`🎭 Getting response from ${character.name} (${i + 1}/${respondingParticipants.length})`);
           
           try {
             const characterResponse = await generateCharacterResponse(
@@ -951,9 +1055,9 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
               chatMessages: [...prev.chatMessages, characterMsg]
             } : null);
             
-            // Small delay between character responses
-            if (i < activeSession.participants.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 2000));
+            // Variable delay between character responses
+            if (i < respondingParticipants.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
             }
           } catch (error) {
             console.error(`❌ Failed to get response from ${character.name}:`, error);
@@ -1026,8 +1130,7 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
       setActiveSession(null);
       setIsPaused(false);
       setIsGeneratingResponses(false);
-      // Clear selected participants to fully reset
-      setSelectedParticipants([]);
+      // Don't clear selected participants - let user keep their selection
     }
   };
 
@@ -1037,7 +1140,7 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
     setActiveSession(null);
     setIsPaused(false);
     setIsGeneratingResponses(false);
-    setSelectedParticipants([]);
+    // Don't clear selected participants - let user keep their selection
     setChatMessage('');
   };
 
@@ -1064,6 +1167,12 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
 
   const toggleParticipant = (characterName: string) => {
     setSelectedParticipants(prev => {
+      // If trying to add a character and already at max (3), don't add
+      if (!prev.includes(characterName) && prev.length >= 3) {
+        console.log('⚠️ Maximum 3 participants allowed');
+        return prev;
+      }
+      
       const newParticipants = prev.includes(characterName) 
         ? prev.filter(name => name !== characterName)
         : [...prev, characterName];
@@ -1078,50 +1187,104 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
   };
 
   return (
-    <div className="flex h-full">
-      {/* Left Sidebar - Characters */}
-      <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
-        <div className="p-4 border-b border-gray-700">
-          <h3 className="text-lg font-semibold text-white mb-2">Characters</h3>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {characters.slice(0, 12).map((character) => {
-            const characterName = character.name;
-            const isSelected = selectedParticipants.includes(characterName);
-            
-            return (
-              <button
-                key={character.id}
-                onClick={() => toggleParticipant(characterName)}
-                className={`w-full p-3 rounded-lg border transition-all text-left ${
-                  isSelected
-                    ? 'border-blue-500 bg-blue-500/20 text-white'
-                    : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{character.avatar}</span>
-                  <div className="flex-1">
-                    <div className="font-semibold">{character.name}</div>
-                    <div className="text-xs opacity-75">Lv.{character.level}</div>
+    <div className="space-y-6">
+      <div className="flex gap-6">
+        {/* Left Sidebar - Characters */}
+        <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Characters
+          </h3>
+          <p className="text-sm text-gray-400 mb-4">
+            {selectedParticipants.length}/3 selected
+            {selectedParticipants.length >= 3 && (
+              <span className="text-yellow-400 ml-2">(Max reached)</span>
+            )}
+          </p>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {characters.map((character) => {
+              const characterName = character.name;
+              const isSelected = selectedParticipants.includes(characterName);
+              const isDisabled = !isSelected && selectedParticipants.length >= 3;
+              
+              return (
+                <button
+                  key={character.id}
+                  onClick={() => toggleParticipant(characterName)}
+                  disabled={isDisabled}
+                  className={`w-full p-3 rounded-lg border transition-all text-left ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-500/20 text-white'
+                      : isDisabled
+                      ? 'border-gray-700 bg-gray-800/30 text-gray-500 cursor-not-allowed opacity-50'
+                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300 cursor-pointer'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{character.avatar}</span>
+                    <div className="flex-1">
+                      <div className="font-semibold">{character.name}</div>
+                      <div className="text-xs opacity-75">Lv.{character.level}</div>
+                    </div>
+                    {isSelected && (
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    )}
                   </div>
-                  {isSelected && (
-                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col bg-gray-900">
-        {/* Chat Window at Top (Always Visible) */}
-        <div className="h-[600px] bg-gray-900 border-b border-gray-700 flex flex-col">
-          {/* Chat Header */}
-          <div className="p-4 border-b border-gray-700 bg-gray-800">
+        {/* Main Content Area */}
+        <div className="flex-1 space-y-8">
+          {/* Character Images Display - Shows 1-3 selected characters */}
+          {selectedParticipants.length > 0 && (
+            <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-6">
+              <div className="flex justify-center items-center gap-4">
+                {selectedParticipants.slice(0, 3).map((participantName, index) => {
+                  const character = characters.find(c => c.name === participantName);
+                  const imageUrl = getCharacterImage(participantName);
+                  
+                  return (
+                    <div key={participantName} className="flex flex-col items-center">
+                      <div className={`rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl ${
+                        selectedParticipants.length === 1 ? 'w-72 h-72' : 
+                        selectedParticipants.length === 2 ? 'w-48 h-48' : 
+                        'w-32 h-32'
+                      }`}>
+                        {imageUrl ? (
+                          <img 
+                            src={imageUrl}
+                            alt={character?.name || participantName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('❌ Group activity image failed to load:', e.currentTarget.src);
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                            <span className="text-6xl">{character?.avatar || '⚔️'}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-2 text-center">
+                        <div className="text-white font-semibold text-sm">{character?.name || participantName}</div>
+                        <div className="text-gray-400 text-xs">Lv.{character?.level || 1}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Chat Window */}
+          <div className="bg-gray-900 rounded-xl border border-gray-700 h-[500px] flex flex-col">
+            {/* Chat Header */}
+            <div className="p-4 border-b border-gray-700 bg-gray-800 rounded-t-xl">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -1183,6 +1346,7 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
             </div>
           </div>
 
+
           {/* Chat Messages Container */}
           <div 
             ref={chatContainerRef}
@@ -1232,7 +1396,7 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
                   </p>
                   {selectedParticipants.length > 0 && (
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         // Start a general group chat session
                         const session: ActiveSession = {
                           eventId: 'general-chat',
@@ -1249,8 +1413,18 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
                           activityObjectives: ['Build team rapport', 'Open communication', 'Share perspectives'],
                           relationshipDynamics: buildRelationshipDynamics(selectedParticipants)
                         };
+                        
+                        // Start with empty messages - let characters naturally begin
+                        session.chatMessages = [];
                         setActiveSession(session);
                         setIsPaused(false);
+                        
+                        // Trigger first round of responses
+                        setTimeout(() => {
+                          if (session.participants.length > 0) {
+                            triggerFirstRound(session);
+                          }
+                        }, 1000);
                       }}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 mx-auto"
                     >
@@ -1294,7 +1468,7 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
         </div>
 
         {/* Content Area Below Chat */}
-        <div className="flex-1 p-6 overflow-y-auto bg-gray-800">
+        <div className="flex-1 p-6 overflow-y-auto bg-gray-800 min-h-0">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-white mb-2">Team Activities & Group Events</h1>
             <p className="text-gray-300">
@@ -1463,6 +1637,7 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
                   </div>
                 );
               })}
+            </div>
             </div>
           </div>
         </div>

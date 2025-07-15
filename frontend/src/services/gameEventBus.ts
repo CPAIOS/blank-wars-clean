@@ -37,7 +37,13 @@ export type EventType =
   | 'luxury_purchase' | 'investment_made' | 'investment_outcome'
   | 'financial_crisis' | 'debt_incurred' | 'financial_breakthrough'
   | 'spending_spree' | 'financial_trauma' | 'trust_gained' | 'trust_lost'
-  | 'financial_goal_set' | 'financial_goal_achieved' | 'financial_milestone';
+  | 'financial_goal_set' | 'financial_goal_achieved' | 'financial_milestone'
+  // Financial Spiral Events - NEW
+  | 'financial_spiral_started' | 'financial_spiral_deepening' | 'financial_spiral_broken'
+  | 'financial_intervention_applied'
+  // Battle Financial Events - NEW
+  | 'financial_wildcard_triggered' | 'battle_financial_decision' | 'adrenaline_investment'
+  | 'victory_splurge' | 'defeat_desperation' | 'panic_selling';
 
 export type EventSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type EventCategory = 'battle' | 'social' | 'therapy' | 'training' | 'progression' | 'communication' | 'financial';
@@ -422,7 +428,19 @@ export class GameEventBus {
       'financial_breakthrough': { trust: 4, respect: 3, affection: 2 },
       'financial_crisis': { trust: -3, respect: -2, rivalry: 1 },
       'financial_stress_increase': { trust: -2, affection: -1 },
-      'financial_stress_decrease': { trust: 1, affection: 1 }
+      'financial_stress_decrease': { trust: 1, affection: 1 },
+      // Financial Spiral Events - Impact on relationships
+      'financial_spiral_started': { trust: -5, respect: -3, affection: -3 },
+      'financial_spiral_deepening': { trust: -3, respect: -2, affection: -2, rivalry: 2 },
+      'financial_spiral_broken': { trust: 6, respect: 4, affection: 3 },
+      'financial_intervention_applied': { trust: 3, respect: 2, affection: 1 },
+      // Battle Financial Events - Impact on relationships
+      'financial_wildcard_triggered': { trust: -2, respect: -1, affection: -1 },
+      'battle_financial_decision': { trust: 1, respect: 1 },
+      'adrenaline_investment': { trust: -3, respect: 2, rivalry: 1 },
+      'victory_splurge': { trust: -1, respect: -2, affection: 3 },
+      'defeat_desperation': { trust: -4, respect: -3, affection: -2 },
+      'panic_selling': { trust: -2, respect: -2, affection: -1 }
     };
 
     return changeMap[event.type] || { trust: 0, respect: 0 };

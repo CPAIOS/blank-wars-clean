@@ -24,6 +24,7 @@ export interface CoachingOutcome {
   characterResponse: string;
   coachNotes: string;
   relationshipChange: number; // How much the character trusts/likes the coach
+  financialTrustChange?: number; // How much the character trusts coach's financial advice
 }
 
 export interface TherapySession {
@@ -61,7 +62,7 @@ export class CoachingEngine {
   static conductIndividualCoaching(
     character: TeamCharacter,
     team: Team,
-    focus: 'performance' | 'mental_health' | 'team_relations' | 'strategy',
+    focus: 'performance' | 'mental_health' | 'team_relations' | 'strategy' | 'financial_management',
     coachingSkill: number = 75 // Coach's skill level
   ): CoachingSession {
     const coachingCost = 1; // Each coaching session costs 1 point
@@ -109,6 +110,9 @@ export class CoachingEngine {
         break;
       case 'strategy':
         outcome = this.handleStrategyCoaching(character, sessionEffectiveness, characterMood);
+        break;
+      case 'financial_management':
+        outcome = this.handleFinancialCoaching(character, sessionEffectiveness, characterMood);
         break;
       default:
         outcome = this.handleGeneralCoaching(character, sessionEffectiveness, characterMood);
@@ -392,6 +396,49 @@ export class CoachingEngine {
       characterResponse: `I understand the tactical considerations better now.`,
       coachNotes: `Reviewed battle strategies and decision-making frameworks. Applied temporary boosts: Int +${intelligenceGain}, Stamina +${staminaGain}.`,
       relationshipChange: 2
+    };
+  }
+
+  private static handleFinancialCoaching(
+    character: TeamCharacter,
+    effectiveness: number,
+    mood: CoachingSession['characterMood']
+  ): CoachingOutcome {
+    
+    const intelligenceGain = Math.floor((effectiveness / 100) * 4); // Financial intelligence boost
+    const charismaGain = Math.floor((effectiveness / 100) * 3); // Confidence boost
+
+    character.temporaryStats.intelligence += intelligenceGain;
+    character.temporaryStats.charisma += charismaGain;
+
+    // Financial coaching builds different levels of trust based on character mood
+    const financialTrustChange = (() => {
+      switch (mood) {
+        case 'receptive': return 8; // Very open to financial advice
+        case 'resistant': return -2; // Resistant to being told how to spend money
+        case 'neutral': return 3; // Moderate trust building
+        case 'desperate': return 12; // High trust when desperate for help
+        default: return 3;
+      }
+    })();
+
+    const responses = {
+      'receptive': `I appreciate your financial guidance, coach. I want to make smarter money decisions.`,
+      'resistant': `I've managed my money fine so far... but I guess some advice couldn't hurt.`,
+      'neutral': `Financial planning makes sense. I'll consider your suggestions.`,
+      'desperate': `Please help me! I don't know what to do with my money anymore.`
+    };
+
+    return {
+      mentalHealthChange: mood === 'desperate' ? 8 : 3,
+      trainingChange: 0,
+      teamPlayerChange: 1,
+      egoChange: mood === 'resistant' ? -3 : 0,
+      communicationChange: 2,
+      characterResponse: responses[mood],
+      coachNotes: `Discussed financial planning, budgeting, and investment strategies. Addressed money-related stress and decision-making. Applied temporary boosts: Int +${intelligenceGain}, Charisma +${charismaGain}.`,
+      relationshipChange: effectiveness > 70 ? 4 : 1,
+      financialTrustChange: financialTrustChange
     };
   }
   

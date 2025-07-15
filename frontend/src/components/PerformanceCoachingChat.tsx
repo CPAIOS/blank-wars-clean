@@ -21,6 +21,27 @@ interface Message {
 interface EnhancedCharacter extends Character {
   baseName: string;
   displayBondLevel: number;
+  equipment?: any[];
+  recentBattles?: any[];
+  gameplanAdherence?: number;
+  preferredStrategies?: string[];
+  // Database fields
+  base_attack?: number;
+  base_health?: number;
+  base_defense?: number;
+  base_speed?: number;
+  base_special?: number;
+  current_health?: number;
+  max_health?: number;
+  bond_level?: number;
+  wins?: number;
+  losses?: number;
+  character_id?: string;
+  battleStats?: {
+    totalBattles: number;
+    wins: number;
+    losses: number;
+  };
 }
 
 const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
@@ -55,6 +76,10 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
         level: char.level || 1,
         experience: char.experience || 0,
         abilities: char.abilities || [],
+        equipment: char.equipment || [],
+        recentBattles: char.recent_battles || [],
+        gameplanAdherence: char.gameplan_adherence || 0,
+        preferredStrategies: char.preferred_strategies || [],
         archetype: char.archetype || 'warrior',
         avatar: char.avatar || '⚔️',
         name: char.name || 'Unknown Character',
@@ -70,7 +95,7 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
   }
 };
 
-// Generate character-specific coaching advice based on actual stats
+// Generate character-specific coaching advice based on actual stats, equipment, and battle history
 const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
   
@@ -79,7 +104,7 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
     return ["Focus on consistent training", "Track your progress", "Stay motivated"];
   }
   
-  const { baseStats, combatStats, level } = character;
+  const { baseStats, combatStats, level, equipment, abilities, recentBattles, gameplanAdherence } = character;
   
   // Base stat weaknesses (below 70)
   if (baseStats?.strength && baseStats.strength < 70) {
@@ -110,6 +135,74 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
     advice.push('Your experience should guide newer team members');
   }
   
+  // Equipment-based advice
+  if (equipment && equipment.length > 0) {
+    const weaponCount = equipment.filter(item => item.type === 'weapon').length;
+    const armorCount = equipment.filter(item => item.type === 'armor').length;
+    
+    if (weaponCount === 0) {
+      advice.push('Consider equipping a weapon to improve your combat effectiveness');
+    }
+    if (armorCount === 0) {
+      advice.push('Armor could help reduce damage taken in battles');
+    }
+    
+    // Check for equipment synergies
+    const hasFireWeapon = equipment.some(item => item.element === 'fire');
+    const hasIceArmor = equipment.some(item => item.element === 'ice');
+    if (hasFireWeapon && hasIceArmor) {
+      advice.push('Your fire weapon and ice armor create conflicting elements - consider matching your equipment');
+    }
+  }
+  
+  // Ability utilization advice
+  if (abilities && abilities.length > 0) {
+    const highCooldownAbilities = abilities.filter(ability => ability.cooldown > 3);
+    if (highCooldownAbilities.length > 2) {
+      advice.push('Consider balancing high-cooldown abilities with faster moves');
+    }
+    
+    const elementalAbilities = abilities.filter(ability => ability.element);
+    if (elementalAbilities.length > 0) {
+      advice.push(`Your ${elementalAbilities[0].element} abilities could synergize better with matching equipment`);
+    }
+  }
+  
+  // Battle history analysis
+  if (recentBattles && recentBattles.length > 0) {
+    const recentLosses = recentBattles.filter(battle => battle.result === 'loss').length;
+    const recentWins = recentBattles.filter(battle => battle.result === 'win').length;
+    
+    if (recentLosses > recentWins) {
+      advice.push('Your recent battle performance suggests we need to adjust your strategy');
+    }
+    
+    // Analyze common causes of defeat
+    const commonProblems = recentBattles
+      .filter(battle => battle.result === 'loss')
+      .map(battle => battle.primaryCause)
+      .reduce((acc, cause) => {
+        acc[cause] = (acc[cause] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+    
+    const topProblem = Object.entries(commonProblems)
+      .sort(([,a], [,b]) => b - a)[0];
+    
+    if (topProblem) {
+      advice.push(`You've been struggling with ${topProblem[0]} - let's work on that together`);
+    }
+  }
+  
+  // Gameplan adherence feedback
+  if (gameplanAdherence !== undefined) {
+    if (gameplanAdherence < 0.6) {
+      advice.push('You\'re not following our battle strategy consistently - let\'s review your gameplan');
+    } else if (gameplanAdherence > 0.8) {
+      advice.push('Excellent gameplan execution! Your strategy adherence is paying off');
+    }
+  }
+  
   // Personality-specific advice
   if (character.personality?.traits?.includes('Honorable')) {
     advice.push('Your honor is admirable, but consider strategic flexibility');
@@ -123,9 +216,10 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
     advice.push('Focus on your strongest stats and coordinate better with your team');
     advice.push('Work on timing your abilities for maximum impact');
     advice.push('Consider your role in team strategy');
+    advice.push('Let\'s develop a personalized gameplan for your next battles');
   }
   
-  return advice.slice(0, 8); // Limit to 8 pieces of advice
+  return advice.slice(0, 10); // Limit to 10 pieces of advice
 };
 
 interface PerformanceCoachingChatProps {
@@ -321,9 +415,9 @@ export default function PerformanceCoachingChat({
     }
 
     // Use real character performance data
-    const recentBattles = selectedCharacter.battleStats?.totalBattles || 15;
-    const battlesWon = selectedCharacter.battleStats?.wins || 10;
-    const battlesLost = selectedCharacter.battleStats?.losses || 5;
+    const recentBattles = (selectedCharacter.wins || 0) + (selectedCharacter.losses || 0) || 15;
+    const battlesWon = selectedCharacter.wins || 10;
+    const battlesLost = selectedCharacter.losses || 5;
     const winRate = recentBattles > 0 ? Math.round((battlesWon / recentBattles) * 100) : 67;
     
     socketRef.current.emit('chat_message', {
@@ -359,13 +453,13 @@ IMPORTANT: You MUST reference your actual stats and performance data in conversa
 
 CURRENT STATS (reference these specific numbers):
 - Level: ${selectedCharacter.level}
-- Attack: ${selectedCharacter.base_attack}
-- Health: ${selectedCharacter.base_health}/${selectedCharacter.max_health} (current/max)
-- Defense: ${selectedCharacter.base_defense}
-- Speed: ${selectedCharacter.base_speed}
-- Special: ${selectedCharacter.base_special}
-- Experience: ${selectedCharacter.experience}
-- Bond Level: ${selectedCharacter.bond_level}
+- Attack: ${selectedCharacter.base_attack || selectedCharacter.baseStats?.strength || 'N/A'}
+- Health: ${selectedCharacter.base_health || selectedCharacter.baseStats?.vitality || 'N/A'}/${selectedCharacter.max_health || selectedCharacter.combatStats?.maxHealth || 'N/A'} (current/max)
+- Defense: ${selectedCharacter.base_defense || selectedCharacter.baseStats?.wisdom || 'N/A'}
+- Speed: ${selectedCharacter.base_speed || selectedCharacter.baseStats?.agility || 'N/A'}
+- Special: ${selectedCharacter.base_special || selectedCharacter.baseStats?.intelligence || 'N/A'}
+- Experience: ${selectedCharacter.experience || 0}
+- Bond Level: ${selectedCharacter.bond_level || selectedCharacter.displayBondLevel || 'N/A'}
 - Archetype: ${selectedCharacter.archetype}
 
 BATTLE RECORD YOU SHOULD MENTION:
@@ -373,8 +467,14 @@ BATTLE RECORD YOU SHOULD MENTION:
 - Wins: ${selectedCharacter.wins || 0}
 - Losses: ${selectedCharacter.losses || 0}
 - Win Rate: ${Math.round(((selectedCharacter.wins || 0) / Math.max((selectedCharacter.wins || 0) + (selectedCharacter.losses || 0), 1)) * 100)}%
+- Gameplan Adherence: ${Math.round((selectedCharacter.gameplanAdherence || 0) * 100)}%
 
-You should naturally reference these numbers when discussing your performance, comparing to previous levels, or talking about areas for improvement. For example: "My attack is at ${selectedCharacter.base_attack} now, which feels stronger than when I was level ${Math.max(1, selectedCharacter.level - 1)}" or "I've won ${selectedCharacter.wins || 0} out of my last ${(selectedCharacter.wins || 0) + (selectedCharacter.losses || 0)} battles."`,
+EQUIPMENT & COMBAT TOOLS:
+- Current Equipment: ${selectedCharacter.equipment?.length || 0} items equipped
+- Available Abilities: ${selectedCharacter.abilities?.length || 0} combat abilities
+- Preferred Strategies: ${selectedCharacter.preferredStrategies?.join(', ') || 'Adaptive'}
+
+You should naturally reference these numbers when discussing your performance, comparing to previous levels, or talking about areas for improvement. For example: "My attack is at ${selectedCharacter.base_attack || selectedCharacter.baseStats?.strength || 'N/A'} now, which feels stronger than when I was level ${Math.max(1, (selectedCharacter.level || 1) - 1)}" or "I've won ${selectedCharacter.wins || 0} out of my last ${(selectedCharacter.wins || 0) + (selectedCharacter.losses || 0)} battles. My gameplan adherence has been ${Math.round((selectedCharacter.gameplanAdherence || 0) * 100)}%, which ${(selectedCharacter.gameplanAdherence || 0) > 0.7 ? 'shows good discipline' : 'needs improvement'}."`,
         performanceData: {
           recentBattles,
           battlesWon,
@@ -383,20 +483,29 @@ You should naturally reference these numbers when discussing your performance, c
           currentLevel: selectedCharacter.level,
           currentExperience: selectedCharacter.experience,
           bondLevel: selectedCharacter.bond_level || selectedCharacter.displayBondLevel,
+          gameplanAdherence: selectedCharacter.gameplanAdherence || 0,
+          // Equipment analysis
+          equipment: selectedCharacter.equipment || [],
+          equippedWeapons: (selectedCharacter.equipment || []).filter(item => item.type === 'weapon'),
+          equippedArmor: (selectedCharacter.equipment || []).filter(item => item.type === 'armor'),
+          // Ability analysis
+          abilities: selectedCharacter.abilities || [],
+          preferredStrategies: selectedCharacter.preferredStrategies || [],
+          recentBattleHistory: selectedCharacter.recentBattles || [],
           // Real stat analysis from database
           statWeaknesses: [
-            selectedCharacter.base_attack < 70 ? `Attack: ${selectedCharacter.base_attack}` : null,
-            selectedCharacter.base_health < 70 ? `Health: ${selectedCharacter.base_health}` : null,
-            selectedCharacter.base_defense < 70 ? `Defense: ${selectedCharacter.base_defense}` : null,
-            selectedCharacter.base_speed < 70 ? `Speed: ${selectedCharacter.base_speed}` : null,
-            selectedCharacter.base_special < 70 ? `Special: ${selectedCharacter.base_special}` : null
+            (selectedCharacter.base_attack || 0) < 70 ? `Attack: ${selectedCharacter.base_attack}` : null,
+            (selectedCharacter.base_health || 0) < 70 ? `Health: ${selectedCharacter.base_health}` : null,
+            (selectedCharacter.base_defense || 0) < 70 ? `Defense: ${selectedCharacter.base_defense}` : null,
+            (selectedCharacter.base_speed || 0) < 70 ? `Speed: ${selectedCharacter.base_speed}` : null,
+            (selectedCharacter.base_special || 0) < 70 ? `Special: ${selectedCharacter.base_special}` : null
           ].filter(Boolean),
           statStrengths: [
-            selectedCharacter.base_attack >= 80 ? `Attack: ${selectedCharacter.base_attack}` : null,
-            selectedCharacter.base_health >= 80 ? `Health: ${selectedCharacter.base_health}` : null,
-            selectedCharacter.base_defense >= 80 ? `Defense: ${selectedCharacter.base_defense}` : null,
-            selectedCharacter.base_speed >= 80 ? `Speed: ${selectedCharacter.base_speed}` : null,
-            selectedCharacter.base_special >= 80 ? `Special: ${selectedCharacter.base_special}` : null
+            (selectedCharacter.base_attack || 0) >= 80 ? `Attack: ${selectedCharacter.base_attack}` : null,
+            (selectedCharacter.base_health || 0) >= 80 ? `Health: ${selectedCharacter.base_health}` : null,
+            (selectedCharacter.base_defense || 0) >= 80 ? `Defense: ${selectedCharacter.base_defense}` : null,
+            (selectedCharacter.base_speed || 0) >= 80 ? `Speed: ${selectedCharacter.base_speed}` : null,
+            (selectedCharacter.base_special || 0) >= 80 ? `Special: ${selectedCharacter.base_special}` : null
           ].filter(Boolean),
           realCharacterData: {
             id: selectedCharacter.id,
@@ -417,14 +526,26 @@ You should naturally reference these numbers when discussing your performance, c
       }))
     });
 
-    // Publish performance coaching event
+    // Publish performance coaching event with gameplan adherence boost
     try {
       await eventPublisher.publishChatInteraction({
         characterId,
         chatType: 'performance',
         message: content,
-        outcome: 'helpful' // Default, could be determined by AI response
+        outcome: 'helpful', // Default, could be determined by AI response
+        // metadata: {
+        //   gameplanAdherenceBoost: 0.05, // 5% boost for engaging in coaching
+        //   sessionType: 'combat_training',
+        //   equipmentDiscussed: (selectedCharacter.equipment || []).length > 0,
+        //   abilitiesAnalyzed: (selectedCharacter.abilities || []).length > 0
+        // }
       });
+      
+      // Apply temporary gameplan adherence boost
+      if (selectedCharacter.gameplanAdherence !== undefined) {
+        const newAdherence = Math.min(1.0, (selectedCharacter.gameplanAdherence || 0) + 0.05);
+        console.log(`🎯 Combat training session boosted gameplan adherence from ${Math.round((selectedCharacter.gameplanAdherence || 0) * 100)}% to ${Math.round(newAdherence * 100)}%`);
+      }
     } catch (error) {
       console.warn('Could not publish chat event:', error);
     }
@@ -432,8 +553,11 @@ You should naturally reference these numbers when discussing your performance, c
   };
 
   const getPerformanceIntro = (character: EnhancedCharacter): string => {
-    // Simple intro that lets the AI take over from there
-    return `Coach, I've been thinking about my recent battles. Can we talk about areas where I might improve, or strategies that could work better for my fighting style?`;
+    const equipmentCount = (character.equipment || []).length;
+    const abilitiesCount = (character.abilities || []).length;
+    const gameplanAdherence = Math.round(((character.gameplanAdherence || 0) as number) * 100);
+    
+    return `Coach, I'm ready for our combat training session. I've got ${equipmentCount} pieces of equipment and ${abilitiesCount} abilities at my disposal. My gameplan adherence has been ${gameplanAdherence}%. Let's work on improving my battle strategy and effectiveness.`;
   };
 
   useEffect(() => {
@@ -468,13 +592,13 @@ You should naturally reference these numbers when discussing your performance, c
                 <div>
                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <Activity className="w-5 h-5 text-orange-400" />
-                    Performance Coaching - {selectedCharacter?.name}
+                    1-on-1 Combat - {selectedCharacter?.name}
                   </h3>
-                  <p className="text-sm text-orange-200">Discuss battles, analyze performance, and set improvement goals</p>
+                  <p className="text-sm text-orange-200">Analyze combat performance, discuss equipment & abilities, develop battle strategies</p>
                 </div>
                 <div className="ml-auto flex items-center gap-2">
                   <Target className="w-4 h-4 text-orange-400" />
-                  <span className="text-sm text-gray-300">Focus: Combat Excellence</span>
+                  <span className="text-sm text-gray-300">Focus: Strategy & Gameplan Development</span>
                 </div>
               </div>
             </div>
@@ -547,7 +671,7 @@ You should naturally reference these numbers when discussing your performance, c
             <div className="p-4 border-t border-orange-500/30 bg-orange-900/10">
               <div className="text-xs text-orange-300 mb-2">
                 Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} | 
-                {isTyping ? ' ⏳ Analyzing performance...' : ' ✅ Ready for feedback'} | 
+                {isTyping ? ' ⏳ Developing strategy...' : ' ✅ Ready for combat training'} | 
                 Messages: {messages.length}
               </div>
               
@@ -562,7 +686,7 @@ You should naturally reference these numbers when discussing your performance, c
                       sendMessage(inputMessage);
                     }
                   }}
-                  placeholder={isTyping ? 'Character is reflecting...' : `Provide feedback to ${selectedCharacter?.name}...`}
+                  placeholder={isTyping ? 'Character is analyzing combat strategy...' : `Discuss strategy with ${selectedCharacter?.name}...`}
                   disabled={isTyping}
                   className="flex-1 bg-gray-700 border border-orange-500/30 rounded-full px-4 py-2 text-white placeholder-orange-200/50 focus:outline-none focus:border-orange-400 disabled:opacity-50"
                   autoComplete="off"

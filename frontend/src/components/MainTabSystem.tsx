@@ -8,7 +8,7 @@ import {
   Sparkles, Crown, Building, Target, Brain,
   Trophy, ChevronDown, ChevronRight, Activity, Shield,
   BookOpen, Star, User, Eye, EyeOff, BarChart3, DollarSign,
-  AlertTriangle
+  AlertTriangle, Heart, Clock
 } from 'lucide-react';
 
 import CoachProgressionPage from '@/app/coach/page';
@@ -97,7 +97,7 @@ interface MainTabSystemProps {
 
 export default function MainTabSystem({ initialTab = 'characters', initialSubTab }: MainTabSystemProps) {
   const [activeMainTab, setActiveMainTab] = useState(initialTab);
-  const [activeSubTab, setActiveSubTab] = useState('progression');
+  const [activeSubTab, setActiveSubTab] = useState(initialSubTab || (initialTab === 'coach' ? 'front-office' : 'progression'));
   const [isMainTabExpanded, setIsMainTabExpanded] = useState(true);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState('achilles');
   
@@ -959,259 +959,6 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     );
   };
 
-  const OneOnOneCoachingWrapper = () => {
-    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
-    const [charactersLoading, setCharactersLoading] = useState(true);
-    
-    // Load real characters from API
-    useEffect(() => {
-      const loadCharacters = async () => {
-        try {
-          const response = await characterAPI.getUserCharacters();
-          const characters = response.characters || [];
-          
-          const enhancedCharacters = characters.map((char: any) => {
-            const baseName = char.name?.toLowerCase() || char.character_id || char.id;
-            return {
-              ...char,
-              baseName,
-              name: char.name,
-              level: char.level || 1,
-              archetype: char.archetype || 'warrior',
-              avatar: char.avatar || '⚔️',
-              base_attack: char.base_attack,
-              base_health: char.base_health,
-              base_defense: char.base_defense,
-              base_speed: char.base_speed,
-              base_special: char.base_special,
-              current_health: char.current_health,
-              max_health: char.max_health,
-              experience: char.experience,
-              bond_level: char.bond_level,
-              inventory: char.inventory || [],
-              equipment: char.equipment || {},
-              abilities: char.abilities || []
-            };
-          });
-          
-          setAvailableCharacters(enhancedCharacters);
-          setCharactersLoading(false);
-        } catch (error) {
-          console.error('Error loading characters:', error);
-          setCharactersLoading(false);
-        }
-      };
-      
-      loadCharacters();
-    }, []);
-
-    const selectedCharacter = useMemo(() => {
-      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
-    }, [availableCharacters, globalSelectedCharacterId]);
-    
-    if (charactersLoading) {
-      return (
-        <div className="flex items-center justify-center p-8">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-purple-600/30 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading real character data...</p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-    <div className="space-y-6">
-      <div className="flex gap-6">
-          {/* Character Sidebar */}
-          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Characters
-            </h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {availableCharacters.map((character) => (
-                <button
-                  key={character.id}
-                  onClick={() => {
-                    console.log('1-on-1 - Clicking character:', character.name, character.baseName);
-                    setGlobalSelectedCharacterId(character.baseName);
-                  }}
-                  className={`w-full p-3 rounded-lg border transition-all text-left ${
-                    globalSelectedCharacterId === character.baseName
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
-                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">{character.avatar}</div>
-                    <div>
-                      <div className="font-semibold">{character.name}</div>
-                      <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 space-y-8">
-            {/* Character Image Display */}
-            <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-8 text-center mb-8">
-              <div className="flex flex-col items-center gap-6">
-                {/* Character Image */}
-                <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
-                  <img 
-                    src={(() => {
-                      // Map character names to their 1-on-1 coaching image file names
-                      const characterImageMap: Record<string, string> = {
-                        'achilles': 'achilles__1-on-1.png',
-                        'agent x': 'agent_X_1-on-1.png',
-                        'billy the kid': 'billy_the_kid_1-on1.png',
-                        'cleopatra': 'cleopatra__1-on-1.png',
-                        'cyborg': 'agent_X_1-on-1.png', // Using Agent X as placeholder
-                        'dracula': 'dracula_1-on-1.png',
-                        'count dracula': 'dracula_1-on-1.png',
-                        'fenrir': 'fenrir_1-on-1.png',
-                        'frankenstein': 'frankenstein_1-on-1.png',
-                        'frankenstein\'s monster': 'frankenstein_1-on-1.png',
-                        'frankensteins monster': 'frankenstein_1-on-1.png',
-                        'genghis khan': 'genghis_kahn_1-on-1.png',
-                        'gengas khan': 'genghis_kahn_1-on-1.png',
-                        'joan of arc': 'joan_of_arc__1-on-1.png',
-                        'joan of ark': 'joan_of_arc__1-on-1.png',
-                        'merlin': 'merlin_1-on-1.png',
-                        'robin hood': 'robin_hood_1-on-1.png',
-                        'robin_hood': 'robin_hood_1-on-1.png',
-                        'sherlock holmes': 'sherlock_holmes_1-on-1.png',
-                        'sun wukong': 'sun_wukong__1-on-1.png',
-                        'tesla': 'tesla_1-on-1.png',
-                        'nikola tesla': 'tesla_1-on-1.png',
-                        'zeta': 'zeta__1-on-1.png',
-                        'zeta reticulan': 'zeta__1-on-1.png',
-                        'sammy "slugger" sullivan': 'sammy_slugger_1-on-1.png',
-                        'sammy_slugger': 'sammy_slugger_1-on-1.png',
-                        'cleopatra vii': 'cleopatra__1-on-1.png',
-                        'vega-x': 'vega_1-on-1.png',
-                      };
-                      
-                      const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
-                      console.log('🤝 1-on-1 Coaching Image Debug:', {
-                        originalName: selectedCharacter?.name,
-                        characterName,
-                        hasMapping: !!characterImageMap[characterName || ''],
-                      });
-                      
-                      // Only use mapped images, no fallback to wrong character
-                      if (characterName && characterImageMap[characterName]) {
-                        return `/images/1-on-1_coaching/${characterImageMap[characterName]}`;
-                      }
-                      
-                      // Return empty string if no match found
-                      return '';
-                    })()}
-                    alt={selectedCharacter?.name || 'Character'}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error('❌ 1-on-1 coaching image failed to load:', e.currentTarget.src);
-                      // Hide the image element instead of showing wrong character
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
-                  />
-                </div>
-                
-                {/* Character Info */}
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
-                    <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
-                    <div>
-                      <div>{selectedCharacter?.name || 'Loading...'}</div>
-                      <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
-                    </div>
-                  </h2>
-                </div>
-              </div>
-            </div>
-
-            {/* Coaching Session Interface */}
-            <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-6 border border-purple-500/30">
-              <div className="flex items-center gap-2 mb-4">
-                <MessageCircle className="w-5 h-5 text-purple-400" />
-                <span className="text-purple-300 font-semibold">One-on-One Coaching Session with {selectedCharacter?.name}</span>
-              </div>
-              
-              {/* Session Status */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="text-purple-300 font-semibold">📅 Session Status</div>
-                  <div className="text-white text-lg">Ready to Start</div>
-                  <div className="text-gray-400 text-sm">45 min session</div>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="text-green-300 font-semibold">🎯 Focus Area</div>
-                  <div className="text-white text-lg">Performance Goals</div>
-                  <div className="text-gray-400 text-sm">Combat effectiveness</div>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="text-blue-300 font-semibold">📊 Bond Level</div>
-                  <div className="text-white text-lg">{selectedCharacter?.bond_level || 75}%</div>
-                  <div className="text-gray-400 text-sm">Trust & rapport</div>
-                </div>
-              </div>
-
-              {/* Start Session Button */}
-              <div className="text-center">
-                <button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
-                  Begin Coaching Session
-                </button>
-                <p className="text-purple-200 text-sm mt-2">
-                  Personalized guidance to unlock {selectedCharacter?.name}'s full potential
-                </p>
-              </div>
-            </div>
-
-            {/* Character Development Insights */}
-            <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl p-6 border border-blue-500/30">
-              <div className="flex items-center gap-2 mb-4">
-                <Brain className="w-5 h-5 text-blue-400" />
-                <span className="text-blue-300 font-semibold">Development Insights for {selectedCharacter?.name}</span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <div className="text-green-300 font-semibold text-sm">Strengths</div>
-                    <div className="text-white">Combat Leadership</div>
-                    <div className="text-gray-400 text-sm">Natural battle instincts</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <div className="text-yellow-300 font-semibold text-sm">Growth Areas</div>
-                    <div className="text-white">Team Collaboration</div>
-                    <div className="text-gray-400 text-sm">Working with others</div>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <div className="text-purple-300 font-semibold text-sm">Recent Progress</div>
-                    <div className="text-white">+15% Battle Focus</div>
-                    <div className="text-gray-400 text-sm">Last 7 days</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <div className="text-blue-300 font-semibold text-sm">Next Goals</div>
-                    <div className="text-white">Strategic Thinking</div>
-                    <div className="text-gray-400 text-sm">Long-term planning</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-    </div>
-    );
-  };
 
   const PersonalTrainerWrapper = () => {
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
@@ -1404,7 +1151,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-xl p-6 border border-purple-500/30">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-6 h-6 text-purple-400" />
-            <h2 className="text-2xl font-bold text-white">Team Dashboard</h2>
+            <h2 className="text-2xl font-bold text-white">Dashboard</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1555,7 +1302,89 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
 
           {/* Main Content */}
           <div className="flex-1 space-y-8">
-            {/* Performance Coaching Chat - Moved from Characters section */}
+            {/* Character Image Display - TOP CENTER */}
+            <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-8 text-center mb-8">
+              <div className="flex flex-col items-center gap-6">
+                {/* Character Image */}
+                <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
+                  <img 
+                    src={(() => {
+                      // Map character names to their performance coaching image file names
+                      const characterImageMap: Record<string, string> = {
+                        'achilles': 'Achilles 02.png',
+                        'agent x': 'Agent X 03.png',
+                        'billy the kid': 'Billy the Kid 02.png',
+                        'cleopatra': 'Cleopatra 01.png',
+                        'cyborg': 'Cyborg 03.png',
+                        'dracula': 'Dracula 02.png',
+                        'count dracula': 'Dracula 02.png',
+                        'fenrir': 'Fenrir 01.png',
+                        'frankenstein': 'Frankenstein 01.png',
+                        'frankenstein\'s monster': 'Frankenstein 01.png',
+                        'frankensteins monster': 'Frankenstein 01.png',
+                        'genghis khan': 'Gengas Khan 01.png',
+                        'gengas khan': 'Gengas Khan 01.png',
+                        'joan of arc': 'Joan of ark 01.png',
+                        'joan of ark': 'Joan of ark 01.png',
+                        'merlin': 'Merlin 02.png',
+                        'robin hood': 'robin_hood.png',
+                        'robin_hood': 'robin_hood.png',
+                        'sherlock holmes': 'Sherlock Holmes 01.png',
+                        'sun wukong': 'Sun Wukong 02.png',
+                        'tesla': 'Tesla 03.png',
+                        'nikola tesla': 'Tesla 03.png',
+                        'zeta': 'Zeta 01.png',
+                        'zeta reticulan': 'Zeta 01.png',
+                        'sammy "slugger" sullivan': 'sammy_slugger.png',
+                        'sammy_slugger': 'sammy_slugger.png',
+                        'sammy slugger': 'sammy_slugger.png',
+                        'cleopatra vii': 'Cleopatra 01.png',
+                        'vega-x': 'Cyborg 03.png',
+                        'space_cyborg': 'Cyborg 03.png',
+                        'alien_grey': 'Zeta 01.png',
+                        'frankenstein_monster': 'Frankenstein 01.png',
+                      };
+                      
+                      const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
+                      console.log('🎯 Performance Coaching Image Debug:', {
+                        originalName: selectedCharacter?.name,
+                        characterName,
+                        hasMapping: !!characterImageMap[characterName || ''],
+                      });
+                      
+                      // Only use mapped images, no fallback to wrong character
+                      if (characterName && characterImageMap[characterName]) {
+                        return `/images/Coaching/Performance/${characterImageMap[characterName]}`;
+                      }
+                      
+                      // Return empty string if no match found
+                      return '';
+                    })()}
+                    alt={selectedCharacter?.name || 'Character'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('❌ Performance coaching image failed to load:', e.currentTarget.src);
+                      // Hide the image element instead of showing wrong character
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
+                
+                {/* Character Info */}
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
+                    <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
+                    <div>
+                      <div>{selectedCharacter?.name || 'Loading...'}</div>
+                      <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
+                    </div>
+                  </h2>
+                </div>
+              </div>
+            </div>
+
+            {/* Performance Coaching Chat - MIDDLE */}
             <PerformanceCoachingChat 
               selectedCharacterId={globalSelectedCharacterId}
               onCharacterChange={setGlobalSelectedCharacterId}
@@ -1563,7 +1392,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               availableCharacters={availableCharacters}
             />
             
-            {/* Performance Analytics */}
+            {/* Performance Analytics - BOTTOM */}
             <div className="bg-gradient-to-r from-green-900/30 to-blue-900/30 rounded-xl p-6 border border-green-500/30">
               <div className="flex items-center gap-2 mb-4">
                 <Target className="w-5 h-5 text-green-400" />
@@ -1624,8 +1453,9 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               moneyBeliefs: ['Money provides security']
             };
             
-            // Calculate real financial stress using the psychology service
+            // Calculate real financial stress and spiral state using the psychology service
             let calculatedStress = Math.floor(Math.random() * 30); // Fallback
+            let spiralState = null;
             try {
               const { default: FinancialPsychologyService } = await import('@/services/financialPsychologyService');
               const psychService = FinancialPsychologyService.getInstance();
@@ -1637,6 +1467,23 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 financialPersonality
               );
               calculatedStress = Math.round(stressAnalysis.stress);
+              
+              // Calculate spiral state
+              spiralState = psychService.calculateSpiralState(recentDecisions, calculatedStress);
+              
+              // Calculate financial trust
+              const baseTrust = char.financials?.coachFinancialTrust || Math.floor(Math.random() * 40) + 60;
+              const trustAnalysis = psychService.calculateFinancialTrust(
+                char.id || baseName,
+                recentDecisions,
+                baseTrust,
+                financialPersonality
+              );
+              
+              // Update financial trust
+              char.financials = char.financials || {};
+              char.financials.coachFinancialTrust = trustAnalysis.financialTrust;
+              
             } catch (error) {
               console.warn('Could not calculate financial stress:', error);
             }
@@ -1648,7 +1495,8 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               coachTrustLevel: char.financials?.coachFinancialTrust || Math.floor(Math.random() * 40) + 60,
               spendingPersonality: financialPersonality.spendingStyle,
               recentDecisions,
-              financialPersonality
+              financialPersonality,
+              spiralState
             };
             
             return {
@@ -1817,6 +1665,25 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             );
           }
           
+          // Update financial trust based on decision outcome
+          const newFinancialTrust = await psychService.updateFinancialTrust(
+            character.id,
+            financialDecision,
+            outcome.outcome,
+            character.financials.coachFinancialTrust
+          );
+          
+          // Update character financial trust in state
+          setAvailableCharacters(prev => prev.map(c => 
+            c.id === character.id ? {
+              ...c,
+              financials: {
+                ...c.financials,
+                coachFinancialTrust: newFinancialTrust
+              }
+            } : c
+          ));
+          
           console.log(`Decision processed: ${character.name} chose ${choice}, outcome: ${outcome.outcome}`);
           console.log(`Financial impact: $${outcome.financialImpact.toLocaleString()}, Stress: ${outcome.stressImpact >= 0 ? '+' : ''}${outcome.stressImpact}, Trust: ${outcome.trustImpact >= 0 ? '+' : ''}${outcome.trustImpact}`);
           
@@ -1826,6 +1693,107 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         } catch (error) {
           console.error('Error processing financial decision:', error);
         }
+      }
+    };
+    
+    const handleIntervention = async (characterId: string, interventionType: 'coach_therapy' | 'team_support' | 'cooling_period' | 'emergency_fund') => {
+      const character = availableCharacters.find(c => c.id === characterId);
+      if (!character) return;
+      
+      try {
+        const { default: FinancialPsychologyService } = await import('@/services/financialPsychologyService');
+        const psychService = FinancialPsychologyService.getInstance();
+        
+        const result = await psychService.applyIntervention(
+          characterId,
+          interventionType,
+          character.financials.financialStress,
+          character.financials.spiralState?.spiralIntensity || 0
+        );
+        
+        // Update character state (in a real app, this would be persisted)
+        setAvailableCharacters(prev => prev.map(c => 
+          c.id === characterId ? {
+            ...c,
+            financials: {
+              ...c.financials,
+              financialStress: result.newStress,
+              spiralState: {
+                ...c.financials.spiralState,
+                spiralIntensity: result.newSpiralIntensity,
+                isInSpiral: result.newSpiralIntensity > 60
+              }
+            }
+          } : c
+        ));
+        
+        console.log(`Intervention ${interventionType} applied to ${character.name}: ${result.description}`);
+        
+      } catch (error) {
+        console.error('Error applying intervention:', error);
+      }
+    };
+    
+    const handleFinancialCoaching = async (characterId: string) => {
+      const character = availableCharacters.find(c => c.id === characterId);
+      if (!character) return;
+      
+      try {
+        // Import the coaching system
+        const { CoachingEngine } = await import('@/data/coachingSystem');
+        
+        // Create a mock team for the coaching session
+        const mockTeam = {
+          characters: [character],
+          coachingPoints: 3,
+          coachName: 'Coach'
+        };
+        
+        // Conduct financial coaching session
+        const session = CoachingEngine.conductIndividualCoaching(
+          character as any, // Type assertion for now
+          mockTeam as any,
+          'financial_management',
+          75 // Coach skill level
+        );
+        
+        // Apply the coaching outcome
+        if (session.outcome.financialTrustChange) {
+          const newFinancialTrust = Math.max(0, Math.min(100, 
+            character.financials.coachFinancialTrust + session.outcome.financialTrustChange
+          ));
+          
+          // Update character state
+          setAvailableCharacters(prev => prev.map(c => 
+            c.id === characterId ? {
+              ...c,
+              financials: {
+                ...c.financials,
+                coachFinancialTrust: newFinancialTrust
+              }
+            } : c
+          ));
+          
+          // Publish trust change event
+          const { default: GameEventBus } = await import('@/services/gameEventBus');
+          const eventBus = GameEventBus.getInstance();
+          
+          if (Math.abs(session.outcome.financialTrustChange) >= 3) {
+            await eventBus.publishTrustChange(
+              characterId,
+              character.financials.coachFinancialTrust,
+              newFinancialTrust,
+              'Financial coaching session outcome'
+            );
+          }
+        }
+        
+        console.log(`Financial coaching session completed for ${character.name}`);
+        console.log(`Character response: ${session.outcome.characterResponse}`);
+        console.log(`Financial trust change: ${session.outcome.financialTrustChange || 0}`);
+        
+      } catch (error) {
+        console.error('Error conducting financial coaching:', error);
       }
     };
     
@@ -1913,7 +1881,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                   <h3 className="text-lg font-bold text-white">Psychological State Analysis</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   <div className="bg-gray-800/50 rounded-lg p-3">
                     <div className="text-red-300 font-semibold">Financial Stress Level</div>
                     <div className={`text-2xl font-bold ${
@@ -1951,6 +1919,19 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                       Core financial personality
                     </div>
                   </div>
+                  
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-green-300 font-semibold">Coach Financial Trust</div>
+                    <div className={`text-2xl font-bold ${
+                      selectedCharacter.financials?.coachFinancialTrust > 70 ? 'text-green-500' :
+                      selectedCharacter.financials?.coachFinancialTrust > 40 ? 'text-yellow-500' : 'text-red-500'
+                    }`}>
+                      {selectedCharacter.financials?.coachFinancialTrust || 0}%
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      Trust in financial advice
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="text-sm text-gray-300">
@@ -1959,6 +1940,85 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                     ' Consider stress-reduction activities before major financial choices.'
                   }
                 </div>
+                
+                {/* Financial Coaching Session Button */}
+                <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <span className="text-blue-300 font-semibold">Financial Coaching Available</span>
+                      <div className="text-blue-200/80 text-xs mt-1">
+                        {selectedCharacter.financials?.coachFinancialTrust > 70 ? 
+                          'High trust - ready for advanced strategies' :
+                          selectedCharacter.financials?.coachFinancialTrust > 40 ?
+                          'Moderate trust - building confidence' :
+                          'Low trust - needs trust-building exercises'
+                        }
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleFinancialCoaching(selectedCharacter.id)}
+                      className="px-3 py-2 bg-blue-600/40 hover:bg-blue-600/60 border border-blue-500 rounded text-sm text-blue-200 transition-all"
+                    >
+                      <DollarSign className="w-4 h-4 inline mr-1" />
+                      Financial Session
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Spiral State Warning */}
+                {selectedCharacter.financials?.spiralState?.isInSpiral && (
+                  <div className="mt-4 p-4 bg-red-900/30 border border-red-500 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-5 h-5 text-red-400 animate-pulse" />
+                      <span className="text-red-300 font-bold">FINANCIAL SPIRAL DETECTED</span>
+                    </div>
+                    <div className="text-sm text-red-200 mb-3">
+                      {selectedCharacter.name} has made {selectedCharacter.financials.spiralState.consecutivePoorDecisions} consecutive 
+                      poor decisions. Spiral intensity: {selectedCharacter.financials.spiralState.spiralIntensity}%
+                    </div>
+                    
+                    {/* Intervention Buttons */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <button
+                        onClick={() => handleIntervention(selectedCharacter.id, 'coach_therapy')}
+                        className="p-2 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500 rounded text-xs text-blue-200 transition-all"
+                      >
+                        <Heart className="w-4 h-4 mb-1 mx-auto" />
+                        Coach Therapy
+                      </button>
+                      <button
+                        onClick={() => handleIntervention(selectedCharacter.id, 'team_support')}
+                        className="p-2 bg-green-600/30 hover:bg-green-600/50 border border-green-500 rounded text-xs text-green-200 transition-all"
+                      >
+                        <Users className="w-4 h-4 mb-1 mx-auto" />
+                        Team Support
+                      </button>
+                      <button
+                        onClick={() => handleIntervention(selectedCharacter.id, 'cooling_period')}
+                        className="p-2 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500 rounded text-xs text-purple-200 transition-all"
+                      >
+                        <Clock className="w-4 h-4 mb-1 mx-auto" />
+                        Cool Down
+                      </button>
+                      <button
+                        onClick={() => handleIntervention(selectedCharacter.id, 'emergency_fund')}
+                        className="p-2 bg-yellow-600/30 hover:bg-yellow-600/50 border border-yellow-500 rounded text-xs text-yellow-200 transition-all"
+                      >
+                        <Shield className="w-4 h-4 mb-1 mx-auto" />
+                        Emergency Fund
+                      </button>
+                    </div>
+                    
+                    <div className="mt-3 text-xs text-red-200/80">
+                      <strong>Recommendations:</strong>
+                      <ul className="list-disc list-inside mt-1">
+                        {selectedCharacter.financials.spiralState.recommendations?.slice(0, 3).map((rec, idx) => (
+                          <li key={idx}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             
@@ -2437,6 +2497,30 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
 
   const mainTabs: MainTab[] = [
     {
+      id: 'headquarters',
+      label: 'Home',
+      icon: Home,
+      color: 'amber',
+      subTabs: [
+        { id: 'overview', label: 'Team Base', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space and facilities' },
+      ]
+    },
+    {
+      id: 'coach',
+      label: 'Coach',
+      icon: User,
+      color: 'purple',
+      subTabs: [
+        { id: 'front-office', label: 'Front Office', icon: User, component: CoachProgressionPage, description: 'View your coaching career progression' },
+        { id: 'team-dashboard', label: 'Dashboard', icon: BarChart3, component: TeamDashboardWrapper, description: 'Overview of team stats, conflicts, and alerts' },
+        { id: 'performance-coaching', label: '1-on-1 Combat', icon: Target, component: PerformanceCoachingWrapper, description: 'Combat training, strategy development, and gameplan adherence boost' },
+        { id: 'individual-sessions', label: 'Personal Problems', icon: MessageCircle, component: IndividualSessionsWrapper, description: 'Personalized life coaching sessions' },
+        { id: 'financial-advisory', label: 'Finance', icon: DollarSign, component: FinancialAdvisoryWrapper, description: 'Guide your team\'s financial decisions and build trust through money management' },
+        { id: 'therapy', label: 'Therapy', icon: Brain, component: TherapyModule, description: 'Individual and group therapy sessions with legendary therapists' },
+        { id: 'group-events', label: 'Group Activities', icon: Users, component: CombinedGroupActivitiesWrapper, description: 'Team building, group activities & live multi-participant chat' },
+      ]
+    },
+    {
       id: 'characters',
       label: 'Characters',
       icon: Users,
@@ -2448,12 +2532,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
       ]
     },
     {
-      id: 'headquarters',
+      id: 'hq',
       label: 'HQ',
-      icon: Home,
+      icon: Building,
       color: 'amber',
       subTabs: [
-        { id: 'overview', label: 'Team Base', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space and facilities' },
+        { id: 'facilities', label: 'Facilities', icon: Building, component: FacilitiesManagerWrapper, description: 'Manage your team facilities and real estate' },
       ]
     },
     {
@@ -2483,7 +2567,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     {
       id: 'social',
       label: 'Social',
-      icon: Home,
+      icon: MessageCircle,
       color: 'purple',
       subTabs: [
         { id: 'clubhouse', label: 'Clubhouse', icon: Home, component: ClubhouseWrapper, description: 'Community features' },
@@ -2496,22 +2580,6 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
       color: 'yellow',
       subTabs: [
         { id: 'merch', label: 'Merch Store', icon: ShoppingBag, component: MerchStoreWrapper, description: 'Purchase items' },
-      ]
-    },
-    {
-      id: 'coach',
-      label: 'Coach',
-      icon: User,
-      color: 'purple',
-      subTabs: [
-        { id: 'profile', label: 'Profile', icon: User, component: CoachProgressionPage, description: 'View your coach profile and progression' },
-        { id: 'team-dashboard', label: 'Team Dashboard', icon: BarChart3, component: TeamDashboardWrapper, description: 'Overview of team stats, conflicts, and alerts' },
-        { id: 'performance-coaching', label: 'Performance Coaching', icon: Target, component: PerformanceCoachingWrapper, description: 'Battle performance guidance and strategy advice' },
-        { id: 'therapy', label: 'Therapy', icon: Brain, component: TherapyModule, description: 'Individual and group therapy sessions with legendary therapists' },
-        { id: 'individual-sessions', label: 'Individual Sessions', icon: MessageCircle, component: IndividualSessionsWrapper, description: 'One-on-one coaching with team members' },
-        { id: 'one-on-one-coaching', label: '1-on-1 Coaching', icon: User, component: OneOnOneCoachingWrapper, description: 'Personalized coaching sessions with character-specific imagery' },
-        { id: 'financial-advisory', label: 'Financial Advisory', icon: DollarSign, component: FinancialAdvisoryWrapper, description: 'Guide your team\'s financial decisions and build trust through money management' },
-        { id: 'group-events', label: 'Group Events & Activities', icon: Users, component: CombinedGroupActivitiesWrapper, description: 'Team building, group activities & live multi-participant chat' },
       ]
     }
   ];

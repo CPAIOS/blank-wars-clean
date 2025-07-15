@@ -343,7 +343,7 @@ const generateCoachingPrompts = (character: EnhancedCharacter): string[] => {
     prompts.push(`With your experience, do you ever feel the weight of what you've seen?`);
   }
   
-  return prompts.slice(0, 4);
+  return prompts.slice(0, 2);
 };
 
 // Generate session type options
@@ -393,7 +393,18 @@ export default function CoachingSessionChat({
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
   
-  const selectedCharacter = availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+  const selectedCharacter = availableCharacters.find(c => 
+    c.baseName === globalSelectedCharacterId || 
+    c.name?.toLowerCase() === globalSelectedCharacterId?.toLowerCase() ||
+    c.id === globalSelectedCharacterId
+  ) || availableCharacters[0];
+  
+  // Debug logging
+  console.log('🔍 CoachingSessionChat character selection:', {
+    globalSelectedCharacterId,
+    availableCharacters: availableCharacters.map(c => ({ id: c.id, name: c.name, baseName: c.baseName })),
+    selectedCharacter: selectedCharacter ? { id: selectedCharacter.id, name: selectedCharacter.name, baseName: selectedCharacter.baseName } : null
+  });
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);

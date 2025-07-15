@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Home } from 'lucide-react';
 import MainTabSystem from '@/components/MainTabSystem';
 import LogoutButton from '@/components/LogoutButton';
 
-export default function GamePage() {
+function GameContent() {
   const { user, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -50,5 +50,20 @@ export default function GamePage() {
       </button>
       <MainTabSystem initialTab={tab} initialSubTab={subtab} />
     </div>
+  );
+}
+
+export default function GamePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <div className="text-xl">Loading...</div>
+        </div>
+      </div>
+    }>
+      <GameContent />
+    </Suspense>
   );
 }

@@ -117,6 +117,49 @@ const TherapyModule = () => {
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<Character[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Function to get random therapy image for a character
+  const getTherapyCharacterImage = (characterName: string): string => {
+    const baseImagePath = '/images/Coaching/Therapy ';
+    const normalizedName = characterName.toLowerCase().replace(/\s+/g, '_');
+    
+    // Special cases for characters with different naming patterns
+    const characterImageMap: { [key: string]: { name: string; count: number } } = {
+      'achilles': { name: 'Achilles', count: 4 },
+      'agent_x': { name: 'Agent X', count: 3 },
+      'billy_the_kid': { name: 'Billy the Kid', count: 3 },
+      'cleopatra': { name: 'Cleopatra', count: 4 },
+      'space_cyborg': { name: 'Cyborg', count: 3 },
+      'dracula': { name: 'Dracula', count: 3 },
+      'fenrir': { name: 'Fenrir', count: 3 },
+      'frankenstein_monster': { name: 'Frankenstein', count: 3 },
+      'genghis_khan': { name: 'Genghis Khan', count: 3 },
+      'joan_of_arc': { name: 'Joan of Arc', count: 3 },
+      'robin_hood': { name: 'Robin Hood', count: 3 },
+      'sherlock_holmes': { name: 'Sherlock Holmes', count: 3 },
+      'sun_wukong': { name: 'Sun Wukong', count: 4 },
+      'tesla': { name: 'Tesla', count: 4 },
+      'nikola_tesla': { name: 'Tesla', count: 4 }, // Alternative name
+      'alien_grey': { name: 'Zeta', count: 3 },
+      'zeta_reticulan': { name: 'Zeta', count: 3 }, // Alternative name
+      'sammy_slugger': { name: 'sammy_slugger', count: 1 } // Special case - only one image and different naming
+    };
+    
+    const imageInfo = characterImageMap[normalizedName];
+    if (!imageInfo) {
+      console.warn(`No therapy image mapping found for character: ${characterName}`);
+      return '/images/placeholder.png';
+    }
+    
+    if (normalizedName === 'sammy_slugger') {
+      return `${baseImagePath}${imageInfo.name}.jpg`;
+    }
+    
+    // Random selection for characters with multiple images
+    const randomIndex = Math.floor(Math.random() * imageInfo.count) + 1;
+    const paddedIndex = randomIndex.toString().padStart(2, '0');
+    return `${baseImagePath}Therapy ${imageInfo.name} ${paddedIndex}.png`;
+  };
   const [therapyContext, setTherapyContext] = useState<TherapyContext | null>(null);
   const [activeConflicts, setActiveConflicts] = useState<ConflictData[]>([]);
   const [sessionStage, setSessionStage] = useState<'initial' | 'resistance' | 'breakthrough'>('initial');
@@ -910,163 +953,162 @@ Remember: This is group therapy for entertainment value. Drama, conflict, and ch
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-          <Brain className="text-purple-400" />
-          Therapy Center
-        </h1>
-        <p className="text-gray-400">
-          Choose your therapist and begin your journey of healing and growth
-        </p>
-      </div>
-
-      {/* Therapy Type Selection */}
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <Users className="text-blue-400" />
-          Session Type
-        </h2>
-        <div className="flex gap-4">
-          <button
-            onClick={() => setTherapyType('individual')}
-            className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-              therapyType === 'individual'
-                ? 'border-blue-400 bg-blue-400/10 text-blue-400'
-                : 'border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500'
-            }`}
-          >
-            <MessageCircle className="mx-auto mb-2" size={24} />
-            <div className="font-medium">Individual Session</div>
-            <div className="text-sm opacity-75">One-on-one therapy</div>
-          </button>
-          <button
-            onClick={() => setTherapyType('group')}
-            className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-              therapyType === 'group'
-                ? 'border-blue-400 bg-blue-400/10 text-blue-400'
-                : 'border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500'
-            }`}
-          >
-            <Users className="mx-auto mb-2" size={24} />
-            <div className="font-medium">Group Session</div>
-            <div className="text-sm opacity-75">Team therapy</div>
-          </button>
-        </div>
-      </div>
-
-      {/* Character Selection (for individual sessions) */}
-      {therapyType === 'individual' && (
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-            <User className="text-green-400" />
-            Select Character
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {availableCharacters.map((character) => (
-              <button
-                key={character.id}
-                onClick={() => setSelectedCharacter(character)}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  selectedCharacter?.id === character.id
-                    ? 'border-green-400 bg-green-400/10'
-                    : 'border-gray-600 bg-gray-700 hover:border-gray-500'
-                }`}
-              >
-                <div className="font-medium text-white">{character.name}</div>
-                <div className="text-sm text-gray-400">Lv.{character.level} {character.archetype}</div>
-                <div className="text-xs text-gray-500">Bond: {character.bond_level}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Group Selection (for group therapy) */}
-      {therapyType === 'group' && (
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-            <Users className="text-blue-400" />
-            Select 3 Characters for Group Therapy
-          </h2>
-          <div className="mb-4">
-            <div className="text-sm text-gray-400">
-              Selected: {selectedGroupMembers.length}/3 characters
-            </div>
-            {selectedGroupMembers.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {selectedGroupMembers.map((character) => (
-                  <div
-                    key={character.id}
-                    className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm flex items-center gap-1"
-                  >
-                    {character.name}
-                    <button
-                      onClick={() => handleGroupMemberToggle(character)}
-                      className="text-blue-200 hover:text-white"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="space-y-6">
+      <div className="flex gap-6">
+        {/* Left Sidebar - Characters */}
+        <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Characters
+          </h3>
+          <p className="text-sm text-gray-400 mb-4">
+            {therapyType === 'individual' 
+              ? selectedCharacter ? '1 character selected' : 'Select a character for therapy'
+              : `${selectedGroupMembers.length}/3 selected for group therapy`
+            }
+          </p>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
             {availableCharacters.map((character) => {
-              const isSelected = selectedGroupMembers.some(m => m.id === character.id);
-              const isDisabled = !isSelected && selectedGroupMembers.length >= 3;
+              const isSelected = therapyType === 'individual' 
+                ? selectedCharacter?.id === character.id
+                : selectedGroupMembers.some(member => member.id === character.id);
+              const isDisabled = therapyType === 'group' && !isSelected && selectedGroupMembers.length >= 3;
               
               return (
                 <button
                   key={character.id}
-                  onClick={() => handleGroupMemberToggle(character)}
+                  onClick={() => {
+                    if (therapyType === 'individual') {
+                      setSelectedCharacter(character);
+                    } else {
+                      if (isSelected) {
+                        setSelectedGroupMembers(prev => prev.filter(member => member.id !== character.id));
+                      } else if (selectedGroupMembers.length < 3) {
+                        setSelectedGroupMembers(prev => [...prev, character]);
+                      }
+                    }
+                  }}
                   disabled={isDisabled}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  className={`w-full p-3 rounded-lg border transition-all text-left ${
                     isSelected
-                      ? 'border-blue-400 bg-blue-400/10'
+                      ? 'border-blue-500 bg-blue-500/20 text-white'
                       : isDisabled
-                      ? 'border-gray-600 bg-gray-700 opacity-50 cursor-not-allowed'
-                      : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                      ? 'border-gray-700 bg-gray-800/30 text-gray-500 cursor-not-allowed opacity-50'
+                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300 cursor-pointer'
                   }`}
                 >
-                  <div className="font-medium text-white">{character.name}</div>
-                  <div className="text-sm text-gray-400">Lv.{character.level} {character.archetype}</div>
-                  <div className="text-xs text-gray-500">Era: {getCharacterEra(character)}</div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⚔️</span>
+                    <div className="flex-1">
+                      <div className="font-semibold">{character.name}</div>
+                      <div className="text-xs opacity-75">Lv.{character.level}</div>
+                    </div>
+                    {isSelected && (
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    )}
+                  </div>
                 </button>
               );
             })}
           </div>
         </div>
-      )}
 
-      {/* Group Dynamics Preview */}
-      {therapyType === 'group' && selectedGroupMembers.length === 3 && groupDynamics.length > 0 && (
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-            <Zap className="text-orange-400" />
-            Group Dynamics Preview
-          </h2>
-          <div className="text-sm text-gray-400 mb-4">
-            This trio will create these potential conflicts and dynamics:
-          </div>
-          <div className="space-y-3">
-            {groupDynamics.map((dynamic, index) => (
-              <div key={index} className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-3">
-                <div className="text-orange-200 text-sm">{dynamic}</div>
+        {/* Main Content Area */}
+        <div className="flex-1 space-y-8">
+          {/* Character Images Display */}
+          {((therapyType === 'individual' && selectedCharacter) || 
+            (therapyType === 'group' && selectedGroupMembers.length > 0)) && (
+            <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-6">
+              <div className="flex justify-center items-center gap-4">
+                {therapyType === 'individual' && selectedCharacter ? (
+                  <div className="flex flex-col items-center">
+                    <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
+                      <img 
+                        src={getTherapyCharacterImage(selectedCharacter.name)}
+                        alt={selectedCharacter.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('❌ Therapy image failed to load:', e.currentTarget.src);
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                    <div className="mt-2 text-center">
+                      <div className="text-white font-semibold text-sm">{selectedCharacter.name}</div>
+                      <div className="text-gray-400 text-xs">Lv.{selectedCharacter.level}</div>
+                    </div>
+                  </div>
+                ) : (
+                  selectedGroupMembers.slice(0, 3).map((member, index) => {
+                    return (
+                      <div key={member.id} className="flex flex-col items-center">
+                        <div className={`rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl ${
+                          selectedGroupMembers.length === 1 ? 'w-72 h-72' : 
+                          selectedGroupMembers.length === 2 ? 'w-48 h-48' : 
+                          'w-32 h-32'
+                        }`}>
+                          <img 
+                            src={getTherapyCharacterImage(member.name)}
+                            alt={member.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('❌ Therapy image failed to load:', e.currentTarget.src);
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                        <div className="mt-2 text-center">
+                          <div className="text-white font-semibold text-sm">{member.name}</div>
+                          <div className="text-gray-400 text-xs">Lv.{member.level}</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
-            ))}
-          </div>
-          <div className="mt-4 text-xs text-gray-500">
-            💡 Each combination creates unique therapeutic challenges and breakthroughs!
+            </div>
+          )}
+
+          {/* Therapy Type Selection */}
+          <div className="bg-gray-800/80 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <Users className="text-blue-400" />
+              Session Type
+            </h2>
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={() => setTherapyType('individual')}
+                className={`p-6 rounded-lg border-2 transition-all ${
+                  therapyType === 'individual'
+                    ? 'border-blue-400 bg-blue-400/10 text-blue-400'
+                    : 'border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500'
+                }`}
+              >
+                <MessageCircle className="mx-auto mb-2" size={24} />
+                <div className="font-medium">Individual Session</div>
+                <div className="text-sm opacity-75">One-on-one therapy</div>
+              </button>
+              <button
+                onClick={() => setTherapyType('group')}
+                className={`p-6 rounded-lg border-2 transition-all ${
+                  therapyType === 'group'
+                    ? 'border-blue-400 bg-blue-400/10 text-blue-400'
+                    : 'border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500'
+                }`}
+              >
+                <Users className="mx-auto mb-2" size={24} />
+                <div className="font-medium">Group Session</div>
+                <div className="text-sm opacity-75">Team therapy</div>
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Therapist Selection */}
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div className="bg-gray-800/80 rounded-xl p-6">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
           <Brain className="text-purple-400" />
           Choose Your Therapist
