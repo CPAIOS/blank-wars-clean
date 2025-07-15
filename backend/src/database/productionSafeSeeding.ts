@@ -120,6 +120,55 @@ export const productionSafeCharacters = [
     conversation_style: 'Basic and instinctual', backstory: 'A wild creature from the deep forests, driven by natural instincts.',
     conversation_topics: JSON.stringify(['Nature', 'Territory', 'Survival', 'Instinct', 'Pack']), avatar_emoji: '🐻',
     abilities: JSON.stringify({ baseStats: { strength: 75, agility: 80, intelligence: 25, vitality: 70, wisdom: 35, charisma: 30 }, combatStats: { maxHealth: 550, maxMana: 150, magicAttack: 5, magicDefense: 30, criticalChance: 25, criticalDamage: 180, accuracy: 70, evasion: 30 } })
+  },
+  // Add missing characters that exist in demo selection
+  {
+    id: 'cleopatra', name: 'Cleopatra VII', title: 'Last Pharaoh of Egypt', archetype: 'mystic', origin_era: 'Ptolemaic Egypt (69-30 BCE)', rarity: 'epic',
+    base_health: 900, base_attack: 80, base_defense: 95, base_speed: 110, base_special: 95,
+    personality_traits: JSON.stringify(['Brilliant', 'Charismatic', 'Ambitious', 'Diplomatic']),
+    conversation_style: 'Regal and commanding', backstory: 'The brilliant and charismatic final pharaoh of Ancient Egypt, master of politics and ancient mysteries.',
+    conversation_topics: JSON.stringify(['Power', 'Legacy', 'Egyptian restoration', 'Politics']), avatar_emoji: '👑',
+    abilities: JSON.stringify({ baseStats: { strength: 45, agility: 65, intelligence: 90, vitality: 70, wisdom: 85, charisma: 98 }, combatStats: { maxHealth: 900, maxMana: 1600, magicAttack: 150, magicDefense: 160, criticalChance: 20, criticalDamage: 150, accuracy: 80, evasion: 35 } })
+  },
+  {
+    id: 'holmes', name: 'Sherlock Holmes', title: 'The Great Detective', archetype: 'scholar', origin_era: 'Victorian England (1880s-1920s)', rarity: 'rare',
+    base_health: 700, base_attack: 90, base_defense: 70, base_speed: 120, base_special: 90,
+    personality_traits: JSON.stringify(['Brilliant', 'Observant', 'Logical', 'Eccentric']),
+    conversation_style: 'Precise and analytical', backstory: 'The world\'s greatest consulting detective, master of deduction and forensic science.',
+    conversation_topics: JSON.stringify(['Logic', 'Crime solving', 'Deduction', 'Justice', 'Science']), avatar_emoji: '🔍',
+    abilities: JSON.stringify({ baseStats: { strength: 55, agility: 70, intelligence: 95, vitality: 60, wisdom: 90, charisma: 75 }, combatStats: { maxHealth: 700, maxMana: 800, magicAttack: 70, magicDefense: 80, criticalChance: 30, criticalDamage: 200, accuracy: 95, evasion: 25 } })
+  },
+  {
+    id: 'robin_hood', name: 'Robin Hood', title: 'Prince of Thieves', archetype: 'trickster', origin_era: 'Medieval England (12th century)', rarity: 'uncommon',
+    base_health: 850, base_attack: 130, base_defense: 75, base_speed: 160, base_special: 80,
+    personality_traits: JSON.stringify(['Just', 'Clever', 'Rebellious', 'Charismatic']),
+    conversation_style: 'Jovial and roguish', backstory: 'The legendary outlaw who stole from the rich to give to the poor in Sherwood Forest.',
+    conversation_topics: JSON.stringify(['Justice', 'The poor', 'Sherwood Forest', 'Archery', 'Fighting tyranny']), avatar_emoji: '🏹',
+    abilities: JSON.stringify({ baseStats: { strength: 75, agility: 85, intelligence: 70, vitality: 80, wisdom: 65, charisma: 85 }, combatStats: { maxHealth: 850, maxMana: 400, magicAttack: 40, magicDefense: 60, criticalChance: 35, criticalDamage: 200, accuracy: 95, evasion: 40 } })
+  },
+  {
+    id: 'frankenstein_monster', name: 'Frankenstein\'s Monster', title: 'The Created Being', archetype: 'tank', origin_era: 'Gothic Horror (1818)', rarity: 'rare',
+    base_health: 1300, base_attack: 160, base_defense: 140, base_speed: 60, base_special: 40,
+    personality_traits: JSON.stringify(['Misunderstood', 'Powerful', 'Lonely', 'Vengeful']),
+    conversation_style: 'Slow and profound', backstory: 'Victor Frankenstein\'s artificial creation, seeking understanding and acceptance in a world that fears him.',
+    conversation_topics: JSON.stringify(['Existence', 'Creator', 'Loneliness', 'Humanity', 'Acceptance']), avatar_emoji: '🧟',
+    abilities: JSON.stringify({ baseStats: { strength: 95, agility: 30, intelligence: 50, vitality: 95, wisdom: 40, charisma: 25 }, combatStats: { maxHealth: 1300, maxMana: 200, magicAttack: 20, magicDefense: 100, criticalChance: 15, criticalDamage: 250, accuracy: 70, evasion: 10 } })
+  },
+  {
+    id: 'billy_the_kid', name: 'Billy the Kid', title: 'The Young Gunslinger', archetype: 'assassin', origin_era: 'American Old West (1870s-1880s)', rarity: 'rare',
+    base_health: 650, base_attack: 170, base_defense: 60, base_speed: 180, base_special: 85,
+    personality_traits: JSON.stringify(['Quick', 'Dangerous', 'Young', 'Reckless']),
+    conversation_style: 'Cocky and fast-talking', backstory: 'The infamous young outlaw of the American frontier, deadly with a six-shooter.',
+    conversation_topics: JSON.stringify(['The frontier', 'Quick draws', 'Outlaws', 'Freedom', 'Survival']), avatar_emoji: '🤠',
+    abilities: JSON.stringify({ baseStats: { strength: 70, agility: 95, intelligence: 60, vitality: 55, wisdom: 40, charisma: 70 }, combatStats: { maxHealth: 650, maxMana: 300, magicAttack: 30, magicDefense: 50, criticalChance: 45, criticalDamage: 300, accuracy: 95, evasion: 45 } })
+  },
+  {
+    id: 'alien_grey', name: 'Zeta Reticulan', title: 'Cosmic Manipulator', archetype: 'mystic', origin_era: 'Modern UFO Mythology', rarity: 'rare',
+    base_health: 750, base_attack: 110, base_defense: 80, base_speed: 140, base_special: 95,
+    personality_traits: JSON.stringify(['Analytical', 'Detached', 'Curious', 'Advanced']),
+    conversation_style: 'Clinical and otherworldly', backstory: 'An advanced extraterrestrial being studying Earth and its inhabitants.',
+    conversation_topics: JSON.stringify(['Galactic knowledge', 'Human observation', 'Advanced technology', 'Universal truths']), avatar_emoji: '👽',
+    abilities: JSON.stringify({ baseStats: { strength: 40, agility: 70, intelligence: 95, vitality: 65, wisdom: 88, charisma: 30 }, combatStats: { maxHealth: 750, maxMana: 1200, magicAttack: 140, magicDefense: 120, criticalChance: 25, criticalDamage: 180, accuracy: 90, evasion: 35 } })
   }
 ];
 
