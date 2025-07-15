@@ -83,12 +83,13 @@ export default function ProgressionDashboard({
   const [isChatLoading, setIsChatLoading] = useState(false);
 
   // Mock progression data based on character - unlimited levels
+  const characterLevel = character?.level || 1;
   const skillData = {
-    combat: { level: Math.floor(character.level * 0.8), experience: 450, maxExperience: 800, maxLevel: 999 },
-    survival: { level: Math.floor(character.level * 0.6), experience: 320, maxExperience: 600, maxLevel: 999 },
-    mental: { level: Math.floor(character.level * 0.7), experience: 380, maxExperience: 700, maxLevel: 999 },
-    social: { level: Math.floor(character.level * 0.5), experience: 210, maxExperience: 500, maxLevel: 999 },
-    spiritual: { level: Math.floor(character.level * 0.4), experience: 150, maxExperience: 400, maxLevel: 999 }
+    combat: { level: Math.floor(characterLevel * 0.8), experience: 450, maxExperience: 800, maxLevel: 999 },
+    survival: { level: Math.floor(characterLevel * 0.6), experience: 320, maxExperience: 600, maxLevel: 999 },
+    mental: { level: Math.floor(characterLevel * 0.7), experience: 380, maxExperience: 700, maxLevel: 999 },
+    social: { level: Math.floor(characterLevel * 0.5), experience: 210, maxExperience: 500, maxLevel: 999 },
+    spiritual: { level: Math.floor(characterLevel * 0.4), experience: 150, maxExperience: 400, maxLevel: 999 }
   };
 
   const milestones: ProgressionMilestone[] = [
@@ -121,9 +122,9 @@ export default function ProgressionDashboard({
       name: 'Veteran Status',
       description: 'Reach character level 30',
       requirement: 'Character Level 30',
-      progress: character.level,
+      progress: characterLevel,
       maxProgress: 30,
-      isCompleted: character.level >= 30,
+      isCompleted: characterLevel >= 30,
       reward: 'Prestige Point System',
       icon: '🏅',
       rarity: 'rare'
@@ -218,7 +219,7 @@ export default function ProgressionDashboard({
           characterId: character.id,
           userMessage: currentChatMessage,
           context: {
-            level: character.level,
+            level: characterLevel,
             stats: character.stats,
             bondLevel: character.bondLevel || 50,
             previousMessages: chatMessages.slice(-5).map(msg => ({
@@ -290,7 +291,7 @@ export default function ProgressionDashboard({
             )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-400">{character.level}</div>
+                <div className="text-2xl font-bold text-blue-400">{characterLevel}</div>
                 <div className="text-sm text-gray-400">Level</div>
               </div>
               <div className="text-center">
@@ -691,7 +692,7 @@ export default function ProgressionDashboard({
                   { level: 5, title: 'First Victory', description: 'Won first arena battle', date: '5 days ago' },
                   { level: 10, title: 'Skill Unlock', description: 'Unlocked first skill interaction', date: '3 days ago' },
                   { level: 15, title: 'Training Master', description: 'Completed advanced training', date: '2 days ago' },
-                  { level: character.level, title: 'Current State', description: 'Continuing the journey', date: 'Now', isCurrent: true }
+                  { level: characterLevel, title: 'Current State', description: 'Continuing the journey', date: 'Now', isCurrent: true }
                 ].map((event, index) => (
                   <div key={index} className="flex gap-6">
                     <div className="flex flex-col items-center">

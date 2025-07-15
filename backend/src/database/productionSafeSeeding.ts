@@ -169,6 +169,14 @@ export const productionSafeCharacters = [
     conversation_style: 'Clinical and otherworldly', backstory: 'An advanced extraterrestrial being studying Earth and its inhabitants.',
     conversation_topics: JSON.stringify(['Galactic knowledge', 'Human observation', 'Advanced technology', 'Universal truths']), avatar_emoji: '👽',
     abilities: JSON.stringify({ baseStats: { strength: 40, agility: 70, intelligence: 95, vitality: 65, wisdom: 88, charisma: 30 }, combatStats: { maxHealth: 750, maxMana: 1200, magicAttack: 140, magicDefense: 120, criticalChance: 25, criticalDamage: 180, accuracy: 90, evasion: 35 } })
+  },
+  {
+    id: 'joan', name: 'Joan of Arc', title: 'The Maid of Orléans', archetype: 'support', origin_era: 'Medieval France (1412-1431)', rarity: 'legendary',
+    base_health: 950, base_attack: 130, base_defense: 120, base_speed: 110, base_special: 95,
+    personality_traits: JSON.stringify(['Devout', 'Courageous', 'Inspiring', 'Determined']),
+    conversation_style: 'Passionate and righteous', backstory: 'The peasant girl who convinced the French court she was chosen by God to drive out the English invaders.',
+    conversation_topics: JSON.stringify(['Faith', 'France', 'Divine mission', 'Liberation', 'Courage']), avatar_emoji: '⚔️',
+    abilities: JSON.stringify({ baseStats: { strength: 75, agility: 70, intelligence: 80, vitality: 85, wisdom: 90, charisma: 95 }, combatStats: { maxHealth: 950, maxMana: 800, magicAttack: 90, magicDefense: 130, criticalChance: 20, criticalDamage: 170, accuracy: 88, evasion: 25 } })
   }
 ];
 
