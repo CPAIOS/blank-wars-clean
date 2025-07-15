@@ -264,7 +264,7 @@ const TherapyModule = () => {
     dynamics.push(...personalityClashes.slice(0, 3));
     
     // Specific character combinations
-    if (members.some(m => m.name.toLowerCase().includes('dracula'))) {
+    if (members.some(m => m.name?.toLowerCase().includes('dracula'))) {
       dynamics.push(`Someone's nocturnal schedule is disrupting the group's rhythm`);
     }
     
@@ -281,7 +281,7 @@ const TherapyModule = () => {
 
   // Helper function to determine character era
   const getCharacterEra = (character: Character): string => {
-    const name = character.name.toLowerCase();
+    const name = character.name?.toLowerCase() || '';
     if (name.includes('tesla')) return 'Modern Era';
     if (name.includes('joan') || name.includes('arthur')) return 'Medieval';
     if (name.includes('cleopatra') || name.includes('caesar')) return 'Ancient';

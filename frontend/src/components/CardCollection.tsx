@@ -45,8 +45,8 @@ export default function CardCollection({
 
   const filteredAndSortedCharacters = useMemo(() => {
     const filtered = characters.filter(char => {
-      const matchesSearch = char.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           char.archetype.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (char.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+                           (char.archetype?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
       const matchesFilter = filterBy === 'all' || char.rarity === filterBy;
       return matchesSearch && matchesFilter;
     });
