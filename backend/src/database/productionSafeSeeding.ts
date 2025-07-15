@@ -224,8 +224,21 @@ export const ensureProductionCharacters = async (): Promise<{ success: boolean; 
   try {
     console.log('🔍 Checking production character availability...');
     
-    // Check current character count
-    const currentCount = await query('SELECT COUNT(*) as count FROM characters', []);
+    // Check current character count (handle case where table doesn't exist)
+    let currentCount;
+    try {
+      currentCount = await query('SELECT COUNT(*) as count FROM characters', []);
+    } catch (error: any) {
+      if (error.message?.includes('no such table') || error.code === 'SQLITE_ERROR') {
+        console.log('📋 Characters table does not exist yet, will be created during database initialization');
+        return {
+          success: true,
+          message: 'Characters table will be created during database initialization',
+          count: 0
+        };
+      }
+      throw error;
+    }
     const count = currentCount.rows[0].count;
     
     console.log(`📊 Current character count: ${count}`);

@@ -18,7 +18,7 @@ import { UserService } from './services/userService';
 import { cardPackService } from './services/CardPackService';
 import { paymentService } from './services/PaymentService';
 import { LobbyService } from './services/lobbyService';
-import './services/characterHealthCheck'; // Auto-starts character health monitoring
+import { characterHealthCheck } from './services/characterHealthCheck';
 
 // Import route modules
 import authRouter from './routes/auth';
@@ -1705,6 +1705,9 @@ async function startServer() {
   try {
     // Initialize database
     await initializeDatabase();
+    
+    // Start character health monitoring after database is ready
+    characterHealthCheck.startHealthChecks();
     
     // Start the server
     httpServer.listen(PORT, () => {

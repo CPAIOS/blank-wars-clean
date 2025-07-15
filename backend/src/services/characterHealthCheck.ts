@@ -68,5 +68,5 @@ class CharacterHealthCheck {
 // Singleton instance
 export const characterHealthCheck = new CharacterHealthCheck();
 
-// Auto-start health checks when the module is imported
-characterHealthCheck.startHealthChecks();
+// Health checks should be started manually after database initialization
+// characterHealthCheck.startHealthChecks();
