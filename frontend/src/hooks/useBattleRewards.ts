@@ -120,6 +120,39 @@ export const useBattleRewards = ({
       xpToNext: leveledUp ? Math.floor(winningCharacter.experienceToNext * 1.2) : winningCharacter.experienceToNext
     });
     
+    // Handle character financial earnings - generate financial decision if earnings are significant
+    if (rewards.characterEarnings && rewards.characterEarnings.totalEarnings >= 5000) {
+      // Use dynamic import and handle financial events asynchronously
+      (async () => {
+        try {
+          const { default: GameEventBus } = await import('@/services/gameEventBus');
+          const eventBus = GameEventBus.getInstance();
+          
+          // Publish earnings event
+          await eventBus.publishEarningsEvent(
+            winningCharacter.id,
+            rewards.characterEarnings.totalEarnings,
+            'battle_victory'
+          );
+          
+          // Generate financial decision event for significant earnings
+          await eventBus.publishFinancialDecision(
+            winningCharacter.id,
+            'investment_opportunity',
+            rewards.characterEarnings.totalEarnings,
+            'Consider investing your battle winnings wisely'
+          );
+          
+          console.log(`💰 ${winningCharacter.name} earned $${rewards.characterEarnings.totalEarnings.toLocaleString()} - financial decision event created`);
+        } catch (error) {
+          console.error('Error publishing financial events:', error);
+        }
+      })();
+      
+      console.log(`💰 ${winningCharacter.name} earned $${rewards.characterEarnings.totalEarnings.toLocaleString()} - generating financial events...`);
+      console.log(`💡 Coach earned $${rewards.characterEarnings.coachEarnings.toLocaleString()} (25% of character earnings)`);
+    }
+    
     // Apply coaching points progression based on win/loss
     if (player1Won) {
       actions.setPlayerTeam((prev: any) => updateCoachingPointsAfterBattle(prev, true));

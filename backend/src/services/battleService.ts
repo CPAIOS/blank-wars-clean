@@ -4,6 +4,7 @@ import { dbAdapter } from './databaseAdapter';
 import { analyticsService } from './analytics';
 import { cache } from '../database/index';
 import { hostmasterService, HostmasterContext } from './hostmasterService';
+import { applyHeadquartersEffectsToCharacter, getHeadquartersData } from './headquartersEffectsService';
 
 // Types
 interface BattleCharacter {
@@ -339,6 +340,12 @@ export class BattleManager extends EventEmitter {
       if (!character || character.user_id !== userId) {
         throw new Error('Invalid character');
       }
+
+      // Apply headquarters effects to character stats
+      const headquarters = await getHeadquartersData(userId);
+      const enhancedCharacter = headquarters 
+        ? applyHeadquartersEffectsToCharacter(character, headquarters)
+        : character;
       
       // Check daily battle limits
       const { usageTrackingService } = require('./usageTrackingService');
@@ -350,7 +357,7 @@ export class BattleManager extends EventEmitter {
       }
       
       // Check if character is injured
-      if (character.is_injured && character.recovery_time && character.recovery_time > new Date()) {
+      if (enhancedCharacter.is_injured && enhancedCharacter.recovery_time && enhancedCharacter.recovery_time > new Date()) {
         throw new Error('Character is still recovering');
       }
       
@@ -358,7 +365,7 @@ export class BattleManager extends EventEmitter {
       const queueEntry: QueueEntry = {
         userId,
         characterId,
-        character: character as any as BattleCharacter,
+        character: enhancedCharacter as any as BattleCharacter,
         rating: user?.rating || 1000,
         joinedAt: Date.now(),
         mode
@@ -885,12 +892,21 @@ export class BattleManager extends EventEmitter {
   }
 
   private calculateEffectiveStats(character: BattleCharacter, mods: StrategyModifiers): any {
+    // Use headquarters-enhanced stats if available
+    const baseAttack = (character as any).effective_attack || character.base_attack;
+    const baseDefense = (character as any).effective_defense || character.base_defense;
+    const baseSpeed = (character as any).effective_speed || character.base_speed;
+    const criticalChance = (character as any).effective_critical_chance || 10;
+
     return {
       health: character.max_health,
-      attack: character.base_attack * mods.atkMod,
-      defense: character.base_defense * mods.defMod,
-      speed: character.base_speed * mods.spdMod,
+      attack: baseAttack * mods.atkMod,
+      defense: baseDefense * mods.defMod,
+      speed: baseSpeed * mods.spdMod,
       special: character.base_special,
+      criticalChance: criticalChance,
+      // Log headquarters effects for debugging
+      headquartersEffects: (character as any).headquarters_effects || null
     };
   }
 

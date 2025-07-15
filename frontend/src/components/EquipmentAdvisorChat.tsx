@@ -7,6 +7,8 @@ import { io, Socket } from 'socket.io-client';
 import { characterAPI } from '../services/apiClient';
 import { Character } from '../data/characters';
 import ConflictContextService, { LivingContext } from '../services/conflictContextService';
+import EventContextService from '../services/eventContextService';
+import EventPublisher from '../services/eventPublisher';
 
 interface Message {
   id: number;
@@ -199,6 +201,8 @@ export default function EquipmentAdvisorChat({
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conflictService = ConflictContextService.getInstance();
+  const eventContextService = EventContextService.getInstance();
+  const eventPublisher = EventPublisher.getInstance();
 
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
@@ -281,7 +285,7 @@ export default function EquipmentAdvisorChat({
   // Generate equipment advice specific to the selected character
   const equipmentQuickMessages = generateEquipmentAdvice(selectedCharacter);
 
-  const sendMessage = (content: string) => {
+  const sendMessage = async (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
       console.log('❌ Equipment chat cannot send message:', { 
         hasContent: !!content.trim(), 
@@ -317,6 +321,23 @@ export default function EquipmentAdvisorChat({
 
     setIsTyping(true);
 
+    // Generate compressed event context
+    const characterId = selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id;
+    let eventContext = null;
+    try {
+      const contextString = await eventContextService.getEquipmentContext(characterId);
+      if (contextString) {
+        eventContext = {
+          recentEvents: contextString,
+          relationships: '',
+          emotionalState: '',
+          domainSpecific: ''
+        };
+      }
+    } catch (error) {
+      console.warn('Could not generate event context:', error);
+    }
+
     // Use real character equipment data instead of fake data
     const currentEquipment = selectedCharacter.equippedItems || selectedCharacter.equipment || {};
     const inventory = selectedCharacter.inventory || [];
@@ -345,7 +366,32 @@ export default function EquipmentAdvisorChat({
         injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Equipment-specific context
-        conversationContext: `This is an equipment advisory session. The user is the coach who makes equipment decisions for ${selectedCharacter.name}. The character should advocate for gear choices that fit their archetype (${selectedCharacter.archetype}), stats, and personality. Focus on their REAL stats from the database: Base Attack: ${selectedCharacter.base_attack}, Base Health: ${selectedCharacter.base_health}, Base Defense: ${selectedCharacter.base_defense}, Base Speed: ${selectedCharacter.base_speed}, Base Special: ${selectedCharacter.base_special}. Current Health: ${selectedCharacter.current_health}/${selectedCharacter.max_health}, Level: ${selectedCharacter.level}. Current Equipment: ${Object.keys(currentEquipment).length > 0 ? JSON.stringify(currentEquipment) : 'None equipped'}. Inventory Items: ${inventory.length} items available. The character should suggest equipment that enhances their strengths or compensates for weaknesses based on these actual stats.`,
+        conversationContext: `This is an equipment advisory session. You are ${selectedCharacter.name}, speaking to your coach about your equipment and gear.
+
+IMPORTANT: You MUST reference your actual equipment and inventory in conversation. You are fully aware of:
+
+YOUR CURRENT STATS (reference these specific numbers):
+- Level: ${selectedCharacter.level}
+- Attack: ${selectedCharacter.base_attack}
+- Health: ${selectedCharacter.current_health}/${selectedCharacter.max_health} (current/max)
+- Defense: ${selectedCharacter.base_defense}
+- Speed: ${selectedCharacter.base_speed}
+- Special: ${selectedCharacter.base_special}
+- Archetype: ${selectedCharacter.archetype}
+
+YOUR CURRENT EQUIPMENT:
+${Object.keys(currentEquipment).length > 0 ? 
+  Object.entries(currentEquipment).map(([slot, item]) => `- ${slot}: ${item.name} (${item.type})`).join('\n') : 
+  '- No equipment currently equipped'
+}
+
+YOUR INVENTORY (${inventory.length} items):
+${inventory.length > 0 ? 
+  inventory.slice(0, 5).map(item => `- ${item.name} (${item.type}) - ${item.description || 'Equipment item'}`).join('\n') : 
+  '- No items in inventory'
+}
+
+You should naturally reference your current equipment, mention specific items in your inventory, and suggest equipment changes based on your stats. For example: "My attack is ${selectedCharacter.base_attack}, so I think that sword in my inventory would boost my damage" or "I'm currently using ${Object.keys(currentEquipment)[0] || 'basic gear'}, but I noticed that [specific item] might work better for my ${selectedCharacter.archetype} fighting style."`,
         equipmentData: {
           currentEquipment: currentEquipment,
           inventory: inventory,
@@ -374,13 +420,27 @@ export default function EquipmentAdvisorChat({
           }
         },
         // Add living context for kitchen table conflict awareness
-        livingContext: livingContext
+        livingContext: livingContext,
+        // Add centralized event context
+        eventContext: eventContext
       },
       previousMessages: messages.slice(-5).map(m => ({
         role: m.type === 'player' ? 'user' : 'assistant',
         content: m.content
       }))
     });
+
+    // Publish equipment chat event
+    try {
+      await eventPublisher.publishChatInteraction({
+        characterId,
+        chatType: 'equipment',
+        message: content,
+        outcome: 'helpful' // Default, could be determined by AI response
+      });
+    } catch (error) {
+      console.warn('Could not publish chat event:', error);
+    }
 
   };
 

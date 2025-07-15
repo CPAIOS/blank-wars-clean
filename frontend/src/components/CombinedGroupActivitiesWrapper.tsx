@@ -1225,7 +1225,42 @@ RESPOND AS ${character.name}: React to the facilitator's message within this gro
                 <div className="text-center p-8">
                   <MessageCircle className="w-16 h-16 text-gray-500 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-white mb-2">Ready to Chat</h3>
-                  <p className="text-gray-400">Select participants and start an activity to begin group chat</p>
+                  <p className="text-gray-400 mb-4">
+                    {selectedParticipants.length > 0 
+                      ? `${selectedParticipants.length} participants selected` 
+                      : 'Select participants to begin group chat'}
+                  </p>
+                  {selectedParticipants.length > 0 && (
+                    <button
+                      onClick={() => {
+                        // Start a general group chat session
+                        const session: ActiveSession = {
+                          eventId: 'general-chat',
+                          eventTitle: 'Group Chat',
+                          eventType: 'group_chat',
+                          participants: selectedParticipants,
+                          startTime: new Date(),
+                          isActive: true,
+                          chatMessages: [],
+                          currentRound: 1,
+                          sessionStage: 'icebreaker',
+                          conflictContext: conflictContext || undefined,
+                          facilitatorStyle: 'supportive',
+                          activityObjectives: ['Build team rapport', 'Open communication', 'Share perspectives'],
+                          relationshipDynamics: buildRelationshipDynamics(selectedParticipants)
+                        };
+                        setActiveSession(session);
+                        setIsPaused(false);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 mx-auto"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      Start Group Chat
+                    </button>
+                  )}
+                  <p className="text-gray-500 text-sm mt-4">
+                    Or select an activity below for structured team building
+                  </p>
                 </div>
               </div>
             )}

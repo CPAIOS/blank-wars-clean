@@ -1109,6 +1109,121 @@ export default function TrainingGrounds({
           </div>
         </motion.div>
 
+        {/* Character Training Images */}
+        {selectedCharacter && (
+          <motion.div 
+            className="bg-gray-900/50 rounded-xl border border-gray-700 p-6 mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <h2 className="text-xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
+              <Dumbbell className="w-5 h-5 text-orange-400" />
+              {selectedCharacter.name}'s Training Session
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((imageNumber) => (
+                <div key={imageNumber} className="text-center">
+                  <div className="w-full aspect-square rounded-xl overflow-hidden border-4 border-orange-600/30 shadow-xl mb-3">
+                    <img 
+                      src={(() => {
+                        // Map character names to their training image file names (exact file names)
+                        const characterImageMap: Record<string, string> = {
+                          'achilles': 'Training Achilles',
+                          'agent x': 'Training Agent X',
+                          'billy the kid': 'Training Billy the Kid',
+                          'cyborg': 'Training Cyborg',
+                          'dracula': 'Training Dracula',
+                          'count dracula': 'Training Dracula',
+                          'frankenstein': 'Training Frankenstein',
+                          'frankenstein\'s monster': 'Training Frankenstein',
+                          'frankensteins monster': 'Training Frankenstein',
+                          'joan of arc': 'Training Joan of Arc',
+                          'joan of ark': 'Training Joan of Arc',
+                          'robin hood': imageNumber === 1 ? 'Training Robin Hood' : 'Training Robinhood',
+                          'robin_hood': imageNumber === 1 ? 'Training Robin Hood' : 'Training Robinhood',
+                          'sun wukong': 'Training Sun Wukong',
+                          'tesla': 'Training Tesla',
+                          'nikola tesla': 'Training Tesla',
+                          'zeta': 'Training Zeta',
+                          'zeta reticulan': 'Training Zeta',
+                          'vega-x': 'Training Cyborg',
+                        };
+                        
+                        const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
+                        
+                        // Handle special cases for newly added images with different naming conventions
+                        if (characterName === 'sammy "slugger" sullivan' || characterName === 'sammy_slugger') {
+                          const fileName = imageNumber === 1 ? 'training_sammy_slugger.jpg' : `training_sammy_slugger_${imageNumber}.jpg`;
+                          return `/images/Training /${fileName}`;
+                        }
+                        
+                        if (characterName === 'fenrir') {
+                          const fileName = imageNumber === 1 ? 'training_fenrir.png' : `training_fenrir_${imageNumber}.png`;
+                          return `/images/Training /${fileName}`;
+                        }
+                        
+                        if (characterName === 'cleopatra' || characterName === 'cleopatra vii') {
+                          const fileName = imageNumber === 1 ? 'training_cleopatra.png' : `training_cleopatra_${imageNumber}.png`;
+                          return `/images/Training /${fileName}`;
+                        }
+                        
+                        if (characterName === 'merlin') {
+                          const fileName = imageNumber === 1 ? 'training_merlin.jpg' : `training_merlin_${imageNumber}.jpg`;
+                          return `/images/Training /${fileName}`;
+                        }
+                        
+                        if (characterName === 'sherlock holmes') {
+                          if (imageNumber === 1) {
+                            return `/images/Training /training_sherlock_holmes.png`;
+                          } else if (imageNumber === 2) {
+                            return `/images/Training /training_sherlock_holmes.jpg`;
+                          } else {
+                            return `/images/Training /training_sherlock_holmes_3.png`;
+                          }
+                        }
+                        
+                        if (characterName === 'genghis khan' || characterName === 'gengas khan') {
+                          const fileName = imageNumber === 1 ? 'training_genghis_khan.jpg' : `training_genghis_khan_${imageNumber}.jpg`;
+                          return `/images/Training /${fileName}`;
+                        }
+                        
+                        // Regular mapping for standard format images
+                        const baseImageName = characterImageMap[characterName || ''];
+                        
+                        console.log('🏋️ Training Image Debug:', {
+                          characterName,
+                          baseImageName,
+                          imageNumber,
+                          fullPath: baseImageName ? `/images/Training /${baseImageName} 0${imageNumber}.png` : 'No mapping'
+                        });
+                        
+                        if (baseImageName) {
+                          return `/images/Training /${baseImageName} 0${imageNumber}.png`;
+                        }
+                        
+                        // Return empty string if no match found
+                        return '';
+                      })()}
+                      alt={`${selectedCharacter.name} Training ${imageNumber}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('❌ Training image failed to load:', e.currentTarget.src);
+                        // Hide the image element instead of showing broken image
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  <div className="text-sm text-orange-300 font-semibold">
+                    Training Phase {imageNumber}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* Training Management - Bottom */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Character Info & Training Status */}

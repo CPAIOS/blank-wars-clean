@@ -280,7 +280,8 @@ export function calculateLevelFromTotalXP(totalXP: number): { level: number; cur
 
 export function addExperience(
   character: CharacterExperience,
-  gain: ExperienceGain
+  gain: ExperienceGain,
+  agentBonuses?: ExperienceBonus[]
 ): { 
   updatedCharacter: CharacterExperience; 
   leveledUp: boolean; 
@@ -289,9 +290,25 @@ export function addExperience(
 } {
   const updatedCharacter = { ...character };
   
+  // Apply agent bonuses to XP gain
+  let finalXpAmount = gain.amount;
+  if (agentBonuses && agentBonuses.length > 0) {
+    const totalMultiplier = calculateTotalExperienceMultiplier(agentBonuses);
+    finalXpAmount = Math.floor(gain.amount * totalMultiplier);
+    
+    // Add agent bonuses to the gain record
+    gain.bonuses = [...gain.bonuses, ...agentBonuses.map(bonus => ({
+      type: bonus.id,
+      multiplier: bonus.multiplier,
+      description: bonus.description
+    }))];
+    
+    console.log(`🏠 Applied agent XP bonuses: ${gain.amount} → ${finalXpAmount} (+${finalXpAmount - gain.amount})`);
+  }
+  
   // Add XP
-  updatedCharacter.currentXP += gain.amount;
-  updatedCharacter.totalXP += gain.amount;
+  updatedCharacter.currentXP += finalXpAmount;
+  updatedCharacter.totalXP += finalXpAmount;
   
   // Add to history
   updatedCharacter.xpHistory = [...updatedCharacter.xpHistory, gain];

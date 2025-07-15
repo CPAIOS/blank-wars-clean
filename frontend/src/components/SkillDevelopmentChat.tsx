@@ -7,6 +7,8 @@ import { io, Socket } from 'socket.io-client';
 import { characterAPI } from '../services/apiClient';
 import { Character } from '../data/characters';
 import ConflictContextService, { LivingContext } from '../services/conflictContextService';
+import EventContextService from '../services/eventContextService';
+import EventPublisher from '../services/eventPublisher';
 
 interface Message {
   id: number;
@@ -209,6 +211,8 @@ export default function SkillDevelopmentChat({
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conflictService = ConflictContextService.getInstance();
+  const eventContextService = EventContextService.getInstance();
+  const eventPublisher = EventPublisher.getInstance();
 
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
@@ -291,7 +295,7 @@ export default function SkillDevelopmentChat({
   // Generate skill advice specific to the selected character
   const skillQuickMessages = generateSkillAdvice(selectedCharacter);
 
-  const sendMessage = (content: string) => {
+  const sendMessage = async (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
       console.log('❌ Skill chat cannot send message:', { 
         hasContent: !!content.trim(), 
@@ -317,6 +321,23 @@ export default function SkillDevelopmentChat({
     setMessages(prev => [...prev, playerMessage]);
     setInputMessage('');
     setIsTyping(true);
+
+    // Generate compressed event context
+    const characterId = selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id;
+    let eventContext = null;
+    try {
+      const contextString = await eventContextService.getSkillContext(characterId);
+      if (contextString) {
+        eventContext = {
+          recentEvents: contextString,
+          relationships: '',
+          emotionalState: '',
+          domainSpecific: ''
+        };
+      }
+    } catch (error) {
+      console.warn('Could not generate event context:', error);
+    }
 
     console.log('📤 SkillDevelopment message:', content);
 
@@ -351,25 +372,32 @@ export default function SkillDevelopmentChat({
         experience: selectedCharacter.experience,
         bondLevel: selectedCharacter.displayBondLevel,
         // Skill-specific context
-        conversationContext: `This is a skill development session. The user is the coach who makes skill point allocation decisions for ${selectedCharacter.name}. 
+        conversationContext: `This is a skill development session. You are ${selectedCharacter.name}, speaking to your coach about your skills and abilities.
 
-CURRENT CHARACTER STATUS:
-- Base Stats: Attack: ${selectedCharacter.base_attack}, Health: ${selectedCharacter.base_health}, Defense: ${selectedCharacter.base_defense}, Speed: ${selectedCharacter.base_speed}, Special: ${selectedCharacter.base_special}
-- Current Status: Health: ${selectedCharacter.current_health}/${selectedCharacter.max_health}, Level: ${selectedCharacter.level}, Experience: ${selectedCharacter.experience}, Bond Level: ${selectedCharacter.bond_level}
+IMPORTANT: You MUST reference your actual skills, abilities, and training progress in conversation. You are fully aware of:
+
+YOUR CURRENT ABILITIES AND SKILLS:
+${selectedCharacter.abilities?.length > 0 ? 
+  selectedCharacter.abilities.map(ability => `- ${ability.name}: ${ability.description || 'Special ability'} (Power: ${ability.power}, Cooldown: ${ability.cooldown})`).join('\n') : 
+  '- No abilities learned yet'
+}
+
+YOUR CURRENT STATS (reference these specific numbers):
+- Level: ${selectedCharacter.level}
+- Attack: ${selectedCharacter.baseStats?.strength || selectedCharacter.base_attack || 70}
+- Health: ${selectedCharacter.baseStats?.vitality || selectedCharacter.base_health || 80}
+- Defense: ${selectedCharacter.baseStats?.wisdom || selectedCharacter.base_defense || 70}
+- Speed: ${selectedCharacter.baseStats?.agility || selectedCharacter.base_speed || 70}
+- Special: ${selectedCharacter.baseStats?.intelligence || selectedCharacter.base_special || 70}
+- Experience: ${selectedCharacter.experience}
 - Archetype: ${selectedCharacter.archetype}
-- Current Abilities: ${selectedCharacter.abilities?.length} learned abilities
-- Available Training Points: ${Math.floor(selectedCharacter.level * 1.5)}
 
-GAME MECHANICS KNOWLEDGE:
-- Base Stats affect combat: Strength (physical damage, carry capacity), Agility (speed, dodge, crit), Intelligence (mana, spell power), Vitality (health, stamina), Wisdom (mana regen, XP gain), Charisma (social abilities, leadership)
-- Skill Categories: Core Skills (available to all), Archetype Skills (class-specific), Signature Skills (unique abilities)
-- Training Cost: Each skill requires training sessions based on complexity and character level
-- Skill Prerequisites: Higher skills require previous skills and minimum levels
-- Combat Actions: Attack, defend, special abilities, dodge, critical hits, healing, buffs/debuffs
-- Battle Performance affects skill progression: successful actions, critical hits, strategic decisions
-- Archetype Synergy: ${selectedCharacter.archetype} characters excel in specific skill trees that match their nature
+YOUR TRAINING PROGRESS:
+- Training Points Available: ${Math.floor(selectedCharacter.level * 1.5)}
+- Bond Level: ${selectedCharacter.bondLevel || selectedCharacter.bond_level || 50}
+- Skills Learned: ${selectedCharacter.abilities?.length || 0} abilities
 
-COACHING ROLE: You should advocate for skill development paths that optimize this character's combat effectiveness, consider their personality traits, and suggest training priorities based on their current weaknesses and strengths. Reference specific game mechanics when explaining why certain skills would benefit them.`,
+You should naturally reference your current abilities, discuss which skills you want to learn next, and explain how new abilities would improve your combat effectiveness. For example: "I currently have ${selectedCharacter.abilities?.length || 0} abilities, but I think learning a defensive skill would help since my defense is only ${selectedCharacter.baseStats?.wisdom || selectedCharacter.base_defense || 70}" or "My ${selectedCharacter.archetype} archetype suggests I should focus on [specific skill type] abilities."`,
         skillData: {
           availableSkillPoints: Math.floor(selectedCharacter.level * 1.5),
           currentAbilities: selectedCharacter.abilities || [],
@@ -408,13 +436,27 @@ COACHING ROLE: You should advocate for skill development paths that optimize thi
           }
         },
         // Add living context for kitchen table conflict awareness
-        livingContext: livingContext
+        livingContext: livingContext,
+        // Add centralized event context
+        eventContext: eventContext
       },
       previousMessages: messages.slice(-5).map(m => ({
         role: m.type === 'player' ? 'user' : 'assistant',
         content: m.content
       }))
     });
+
+    // Publish skill development chat event
+    try {
+      await eventPublisher.publishChatInteraction({
+        characterId,
+        chatType: 'skills',
+        message: content,
+        outcome: 'helpful' // Default, could be determined by AI response
+      });
+    } catch (error) {
+      console.warn('Could not publish chat event:', error);
+    }
 
     setTimeout(() => {
       if (isTyping) {

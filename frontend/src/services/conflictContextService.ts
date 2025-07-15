@@ -26,6 +26,14 @@ export interface LivingContext {
     description: string;
     timestamp: Date;
   }>;
+  // New headquarters theme effects
+  roomThemeEffects?: {
+    currentTheme: string | null;
+    moodBonus: number;
+    energyBonus: number;
+    comfortLevel: 'cramped' | 'basic' | 'comfortable' | 'luxurious';
+    themeCompatibility: boolean;
+  };
 }
 
 class ConflictContextService {
@@ -69,7 +77,8 @@ class ConflictContextService {
           description: conflict.description,
           involvedCharacters: conflict.involvedCharacters || []
         })),
-        recentEvents: this.generateRecentEvents(therapyContext.activeConflicts)
+        recentEvents: this.generateRecentEvents(therapyContext.activeConflicts),
+        roomThemeEffects: await this.calculateRoomThemeEffects(characterId, therapyContext.housingTier)
       };
 
       return livingContext;
@@ -78,6 +87,105 @@ class ConflictContextService {
       // Return fallback context
       return this.getFallbackLivingContext(characterId);
     }
+  }
+
+  /**
+   * Calculate room theme effects on character mood and energy
+   */
+  private async calculateRoomThemeEffects(characterId: string, housingTier: string): Promise<{
+    currentTheme: string | null;
+    moodBonus: number;
+    energyBonus: number;
+    comfortLevel: 'cramped' | 'basic' | 'comfortable' | 'luxurious';
+    themeCompatibility: boolean;
+  }> {
+    // Simulate getting headquarters data (in real implementation, would fetch from API)
+    const simulatedHeadquarters = this.getSimulatedHeadquartersData(characterId);
+    
+    // Determine comfort level based on housing tier
+    const comfortLevels = {
+      'spartan_apartment': 'cramped' as const,
+      'basic_house': 'basic' as const,
+      'team_mansion': 'comfortable' as const,
+      'elite_compound': 'luxurious' as const
+    };
+    
+    const comfortLevel = comfortLevels[housingTier] || 'basic';
+    
+    // Base mood/energy based on comfort level
+    const comfortBonuses = {
+      'cramped': { mood: -15, energy: -20 },
+      'basic': { mood: 0, energy: 0 },
+      'comfortable': { mood: 20, energy: 15 },
+      'luxurious': { mood: 35, energy: 30 }
+    };
+    
+    let moodBonus = comfortBonuses[comfortLevel].mood;
+    let energyBonus = comfortBonuses[comfortLevel].energy;
+    let currentTheme: string | null = null;
+    let themeCompatibility = false;
+    
+    // Add room theme bonuses
+    if (simulatedHeadquarters.assignedRoom?.theme) {
+      currentTheme = simulatedHeadquarters.assignedRoom.theme;
+      
+      // Check if character is compatible with theme
+      const compatibleThemes = this.getCompatibleThemes(characterId);
+      themeCompatibility = compatibleThemes.includes(currentTheme);
+      
+      if (themeCompatibility) {
+        moodBonus += 25; // Compatible theme gives significant mood boost
+        energyBonus += 20;
+      } else {
+        moodBonus -= 10; // Incompatible theme causes some stress
+        energyBonus -= 5;
+      }
+    }
+    
+    return {
+      currentTheme,
+      moodBonus,
+      energyBonus,
+      comfortLevel,
+      themeCompatibility
+    };
+  }
+
+  /**
+   * Get compatible room themes for a character
+   */
+  private getCompatibleThemes(characterId: string): string[] {
+    const themeCompatibility = {
+      'achilles': ['medieval', 'spartan'],
+      'joan': ['medieval', 'victorian'],
+      'dracula': ['gothic', 'mystical'],
+      'frankenstein_monster': ['gothic', 'mystical'],
+      'holmes': ['victorian', 'modern'],
+      'cleopatra': ['egyptian', 'luxurious'],
+      'tesla': ['mystical', 'modern'],
+      'robin_hood': ['medieval', 'saloon'],
+      'space_cyborg': ['mystical', 'modern']
+    };
+    
+    return themeCompatibility[characterId] || ['basic'];
+  }
+
+  /**
+   * Simulate headquarters data (placeholder for real integration)
+   */
+  private getSimulatedHeadquartersData(characterId: string): {
+    assignedRoom: { theme: string | null } | null;
+  } {
+    // This would be replaced with actual API call to headquarters service
+    const simulatedData = {
+      'achilles': { assignedRoom: { theme: 'medieval' } },
+      'joan': { assignedRoom: { theme: 'medieval' } },
+      'dracula': { assignedRoom: { theme: 'gothic' } },
+      'holmes': { assignedRoom: { theme: 'victorian' } },
+      'cleopatra': { assignedRoom: { theme: 'egyptian' } }
+    };
+    
+    return simulatedData[characterId] || { assignedRoom: null };
   }
 
   /**

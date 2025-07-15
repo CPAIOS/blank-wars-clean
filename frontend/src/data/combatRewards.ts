@@ -25,6 +25,14 @@ export interface BattleRewards {
   achievementUnlocked?: string;
   leveledUp?: boolean;
   newLevel?: number;
+  // New financial reward system
+  characterEarnings: {
+    baseEarnings: number;
+    performanceBonus: number;
+    difficultyBonus: number;
+    totalEarnings: number;
+    coachEarnings: number; // Coach gets less than characters
+  };
 }
 
 export interface PerformanceMetrics {
@@ -100,6 +108,16 @@ class CombatRewardsCalculator {
     if (performance.perfectVictory) bondIncrease += 2;
     if (battleStats.damageTaken < battleStats.damageDealt * 0.3) bondIncrease += 1;
     
+    // Calculate character earnings (NEW FINANCIAL SYSTEM)
+    const characterEarnings = this.calculateCharacterEarnings(
+      isWinner, 
+      characterLevel, 
+      opponentLevel, 
+      performance, 
+      battleStats, 
+      membershipMultiplier
+    );
+    
     return {
       xpGained: totalXP,
       trainingPoints,
@@ -108,7 +126,8 @@ class CombatRewardsCalculator {
       bondIncrease,
       achievementUnlocked: this.checkAchievements(performance, battleStats),
       leveledUp: false, // Will be calculated when applying rewards
-      newLevel: characterLevel
+      newLevel: characterLevel,
+      characterEarnings
     };
   }
   
@@ -190,6 +209,71 @@ class CombatRewardsCalculator {
     if (stats.skillsUsed >= 5) return "Skill Virtuoso";
     
     return undefined;
+  }
+  
+  /**
+   * Calculate character earnings from battle performance
+   * Characters earn significantly more than the coach to create financial decisions
+   */
+  private calculateCharacterEarnings(
+    isWinner: boolean,
+    characterLevel: number,
+    opponentLevel: number,
+    performance: PerformanceMetrics,
+    battleStats: BattleStats,
+    membershipMultiplier: number
+  ): { baseEarnings: number; performanceBonus: number; difficultyBonus: number; totalEarnings: number; coachEarnings: number } {
+    
+    // Base earnings scale with character level and victory
+    let baseEarnings = isWinner ? 2000 : 500; // $2000 for win, $500 for loss
+    baseEarnings += characterLevel * 100; // $100 per level
+    
+    // Performance bonuses (characters get rewarded for style)
+    let performanceBonus = 0;
+    
+    if (performance.victory) {
+      if (performance.perfectVictory) performanceBonus += 2000; // $2000 for perfect victory
+      else if (performance.dominantVictory) performanceBonus += 1200;
+      else if (performance.quickVictory) performanceBonus += 800;
+      else if (performance.enduranceVictory) performanceBonus += 600;
+    } else {
+      // Even in defeat, good performance is rewarded
+      if (performance.valiantDefeat) performanceBonus += 300;
+      performanceBonus += battleStats.roundsSurvived * 50; // $50 per round survived
+    }
+    
+    // Style bonuses
+    performanceBonus += performance.stylePoints * 10; // $10 per style point
+    performanceBonus += battleStats.criticalHits * 100; // $100 per critical hit
+    performanceBonus += battleStats.comboMoves * 200; // $200 per combo
+    performanceBonus += battleStats.perfectBlocks * 75; // $75 per perfect block
+    
+    // Difficulty bonus based on opponent level difference
+    const levelDiff = opponentLevel - characterLevel;
+    let difficultyBonus = 0;
+    if (levelDiff > 0) {
+      // Bonus for fighting higher level opponents
+      difficultyBonus = Math.floor(baseEarnings * (levelDiff * 0.15)); // 15% per level difference
+    }
+    
+    // Apply membership multiplier
+    baseEarnings = Math.floor(baseEarnings * membershipMultiplier);
+    performanceBonus = Math.floor(performanceBonus * membershipMultiplier);
+    difficultyBonus = Math.floor(difficultyBonus * membershipMultiplier);
+    
+    const totalEarnings = baseEarnings + performanceBonus + difficultyBonus;
+    
+    // Coach gets significantly less (about 25% of character earnings)
+    // This creates the financial decision dynamic where characters have more money to manage
+    const coachEarnings = Math.floor(totalEarnings * 0.25);
+    
+    return {
+      baseEarnings,
+      performanceBonus,
+      difficultyBonus,
+      totalEarnings,
+      coachEarnings
+    };
   }
 }
 

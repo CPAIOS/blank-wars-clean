@@ -47,6 +47,7 @@ import { purchaseBed, loadHeadquarters, saveHeadquarters } from '../services/bed
 import { setRoomTheme, addElementToRoom, removeElementFromRoom, generateRoomImage } from '../services/roomService';
 import { assignCharacterToRoom, removeCharacterFromRoom, getUnassignedCharacters } from '../services/characterService';
 import { startNewScene, handleCoachMessage, continueScene, KitchenConversation } from '../services/kitchenChatService';
+import RealEstateAgentBonusService from '../services/realEstateAgentBonusService';
 import { clearAllConfessionalTimeouts, startConfessional, pauseConfessional, continueConfessional, generateCharacterResponse, ConfessionalData, ConfessionalMessage } from '../services/confessionalService';
 import { getCharacterConflicts, getCharacterHappiness, getThemeCompatibility, getCharacterSuggestedThemes } from '../services/characterHappinessService';
 import RealEstateAgentChat from './RealEstateAgentChat';
@@ -87,6 +88,38 @@ export default function TeamHeadquarters() {
   
   const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
   const [charactersLoading, setCharactersLoading] = useState(true);
+
+  // Auto-assign all characters to rooms when they're loaded
+  const autoAssignCharactersToRooms = (characters: any[], currentHeadquarters: HeadquartersState) => {
+    if (!characters.length || !currentHeadquarters.rooms.length) return currentHeadquarters;
+    
+    // Create a new headquarters state with auto-assigned characters
+    const newHeadquarters = { ...currentHeadquarters };
+    const charactersToAssign = [...characters];
+    
+    // Clear existing assignments first
+    newHeadquarters.rooms = newHeadquarters.rooms.map(room => ({
+      ...room,
+      assignedCharacters: []
+    }));
+    
+    // Distribute characters evenly across all rooms
+    let roomIndex = 0;
+    charactersToAssign.forEach((char) => {
+      const room = newHeadquarters.rooms[roomIndex];
+      if (room) {
+        room.assignedCharacters.push(char.baseName);
+        roomIndex = (roomIndex + 1) % newHeadquarters.rooms.length;
+      }
+    });
+    
+    console.log('🏠 Auto-assigned characters to rooms:', newHeadquarters.rooms.map(r => ({ 
+      name: r.name, 
+      assigned: r.assignedCharacters.length 
+    })));
+    
+    return newHeadquarters;
+  };
 
   // Load characters from database API instead of demo collection
   useEffect(() => {
@@ -185,6 +218,9 @@ export default function TeamHeadquarters() {
         
         console.log('📊 Loaded database characters for kitchen chat:', mappedCharacters);
         setAvailableCharacters(mappedCharacters);
+        
+        // Auto-assign all characters to rooms
+        setHeadquarters(prev => autoAssignCharactersToRooms(mappedCharacters, prev));
       } catch (error) {
         console.error('❌ Error loading characters for kitchen chat:', error);
         setAvailableCharacters([]);
@@ -302,7 +338,6 @@ export default function TeamHeadquarters() {
   const [sceneInitialized, setSceneInitialized] = useState(false);
   const [coachMessage, setCoachMessage] = useState('');
   const [draggedCharacter, setDraggedCharacter] = useState<string | null>(null);
-  const [showCharacterPool, setShowCharacterPool] = useState(false);
   
   // Enhanced visual feedback states
   const [moveNotification, setMoveNotification] = useState<{message: string, type: 'success' | 'warning'} | null>(null);
@@ -379,17 +414,21 @@ export default function TeamHeadquarters() {
 
   const battleEffects = calculateBattleEffects(headquarters);
 
-  const upgradeHeadquarters = (tierId: string) => {
+  const upgradeHeadquarters = async (tierId: string) => {
     const tier = HEADQUARTERS_TIERS.find(t => t.id === tierId);
     if (!tier) return;
 
-    if (headquarters.currency.coins >= tier.cost.coins && headquarters.currency.gems >= tier.cost.gems) {
-      setHeadquarters(prev => ({
-        ...prev,
+    // Apply real estate agent discount
+    const bonusService = RealEstateAgentBonusService.getInstance();
+    const discountedCost = bonusService.applyFacilityCostReduction(tier.cost);
+    
+    if (headquarters.currency.coins >= discountedCost.coins && headquarters.currency.gems >= discountedCost.gems) {
+      const newHeadquarters = {
+        ...headquarters,
         currentTier: tierId,
         currency: {
-          coins: prev.currency.coins - tier.cost.coins,
-          gems: prev.currency.gems - tier.cost.gems
+          coins: headquarters.currency.coins - discountedCost.coins,
+          gems: headquarters.currency.gems - discountedCost.gems
         },
         rooms: Array.from({ length: tier.maxRooms }, (_, i) => ({
           id: `room_${i + 1}`,
@@ -408,7 +447,21 @@ export default function TeamHeadquarters() {
             }
           ]
         }))
-      }));
+      };
+      
+      // Update local state first for immediate UI feedback
+      setHeadquarters(newHeadquarters);
+      
+      // Save to backend database
+      try {
+        await saveHeadquarters(newHeadquarters);
+        console.log('✅ Headquarters upgrade saved successfully');
+      } catch (error) {
+        console.error('❌ Failed to save headquarters upgrade:', error);
+        // Revert local state if save failed
+        setHeadquarters(headquarters);
+        alert('Failed to save upgrade. Please try again.');
+      }
     }
   };
 
@@ -484,6 +537,29 @@ export default function TeamHeadquarters() {
             </div>
           </div>
           <div className="flex items-center gap-6">
+            {/* Active Agent Bonus Display */}
+            {(() => {
+              const agentService = RealEstateAgentBonusService.getInstance();
+              const selectedAgentId = agentService.getSelectedAgent();
+              if (!selectedAgentId) return null;
+              
+              const agentData = {
+                'barry_the_closer': { name: 'Barry', icon: '⚡', color: 'text-yellow-400' },
+                'lmb_3000': { name: 'LMB-3000', icon: '👑', color: 'text-purple-400' },
+                'zyxthala_reptilian': { name: 'Zyxthala', icon: '🦎', color: 'text-green-400' }
+              }[selectedAgentId];
+              
+              return agentData ? (
+                <div className="bg-black/30 rounded-lg px-3 py-2 border border-gray-600">
+                  <div className={`flex items-center gap-2 text-sm font-semibold ${agentData.color}`}>
+                    <span>{agentData.icon}</span>
+                    <span>Agent: {agentData.name}</span>
+                  </div>
+                  <div className="text-xs text-gray-400">Bonuses Active</div>
+                </div>
+              ) : null;
+            })()}
+            
             {/* Battle Effects Display */}
             {Object.keys(battleEffects).length > 0 && (
               <div className="flex items-center gap-3">
@@ -706,72 +782,13 @@ export default function TeamHeadquarters() {
                 </div>
               </div>
 
-              {/* Available Fighters Section */}
+              {/* Living Quarters Header */}
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-white">Living Quarters</h3>
-                <button
-                  onClick={() => setShowCharacterPool(!showCharacterPool)}
-                  className={`px-4 py-2 rounded-lg transition-all relative ${
-                    showCharacterPool
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  } ${getUnassignedCharacters(availableCharacters, headquarters).length > 0 ? 'animate-pulse ring-2 ring-blue-400/50' : ''}`}
-                  data-tutorial="character-pool-button"
-                >
-                  <User className="w-4 h-4 inline mr-2" />
-                  Available Fighters ({getUnassignedCharacters(availableCharacters, headquarters).length})
-                  {getUnassignedCharacters(availableCharacters, headquarters).length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
-                      {getUnassignedCharacters(availableCharacters, headquarters).length}
-                    </span>
-                  )}
-                </button>
+                <div className="text-sm text-gray-400">
+                  All characters auto-assigned to rooms
+                </div>
               </div>
-
-              {/* Character Pool Panel */}
-              {showCharacterPool && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-gray-800/80 rounded-xl p-4 border border-gray-700 mb-6"
-                >
-                  <h4 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    Available Fighters ({getUnassignedCharacters(availableCharacters, headquarters).length})
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {getUnassignedCharacters(availableCharacters, headquarters).map(character => (
-                      <div
-                        key={character.id}
-                        className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-move hover:bg-gray-600/50 transition-colors"
-                        draggable
-                        onDragStart={(e) => {
-                          setDraggedCharacter(character.id);
-                          e.dataTransfer.effectAllowed = 'move';
-                        }}
-                        onDragEnd={() => setDraggedCharacter(null)}
-                      >
-                        <div className="text-3xl mb-2">{character.avatar}</div>
-                        <div className="text-sm text-white text-center">
-                          {character.name.split(' ')[0]}
-                        </div>
-                        <div className="text-xs text-gray-400 text-center">
-                          {character.archetype}
-                        </div>
-                      </div>
-                    ))}
-                    {getUnassignedCharacters(availableCharacters, headquarters).length === 0 && (
-                      <div className="col-span-full text-center text-gray-400 py-8">
-                        All fighters are on set!
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-3 text-center">
-                    💡 Drag fighters to room cards below to assign them
-                  </div>
-                </motion.div>
-              )}
 
               {/* Living Quarters Grid */}
               <div 
@@ -1192,8 +1209,14 @@ export default function TeamHeadquarters() {
                 {HEADQUARTERS_TIERS.map((tier) => {
                   const isCurrentTier = headquarters.currentTier === tier.id;
                   const isUpgrade = HEADQUARTERS_TIERS.indexOf(tier) > HEADQUARTERS_TIERS.indexOf(currentTier);
-                  const canAfford = headquarters.currency.coins >= tier.cost.coins && 
-                                   headquarters.currency.gems >= tier.cost.gems;
+                  
+                  // Apply real estate agent discount for display
+                  const bonusService = RealEstateAgentBonusService.getInstance();
+                  const discountedCost = bonusService.applyFacilityCostReduction(tier.cost);
+                  const hasDiscount = discountedCost.coins < tier.cost.coins || discountedCost.gems < tier.cost.gems;
+                  
+                  const canAfford = headquarters.currency.coins >= discountedCost.coins && 
+                                   headquarters.currency.gems >= discountedCost.gems;
 
                   return (
                     <div
@@ -1209,7 +1232,15 @@ export default function TeamHeadquarters() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-semibold text-white">{tier.name}</h3>
-                        {isCurrentTier && <span className="text-green-400 text-sm">Current</span>}
+                        {isCurrentTier ? (
+                          <span className="text-green-400 text-sm font-semibold">✓ Current</span>
+                        ) : isUpgrade && canAfford ? (
+                          <span className="text-blue-400 text-sm font-semibold">Click to Upgrade</span>
+                        ) : isUpgrade && !canAfford ? (
+                          <span className="text-red-400 text-sm">Cannot Afford</span>
+                        ) : (
+                          <span className="text-gray-500 text-sm">Locked</span>
+                        )}
                       </div>
                       <p className="text-gray-400 text-sm mb-3">{tier.description}</p>
                       <div className="flex items-center justify-between text-xs">
@@ -1217,9 +1248,25 @@ export default function TeamHeadquarters() {
                           {tier.maxRooms} rooms, {tier.charactersPerRoom} per room
                         </div>
                         {tier.cost.coins > 0 && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-yellow-400">{tier.cost.coins.toLocaleString()}</span>
-                            <span className="text-purple-400">{tier.cost.gems}</span>
+                          <div className="flex flex-col gap-1">
+                            {hasDiscount ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-gray-500 line-through text-[10px]">
+                                  <span>💰 {tier.cost.coins.toLocaleString()}</span>
+                                  <span>💎 {tier.cost.gems}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-400">💰 {discountedCost.coins.toLocaleString()}</span>
+                                  <span className="text-green-400">💎 {discountedCost.gems}</span>
+                                </div>
+                                <div className="text-yellow-400 text-[9px]">Agent Discount!</div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="text-yellow-400">💰 {tier.cost.coins.toLocaleString()}</span>
+                                <span className="text-purple-400">💎 {tier.cost.gems}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1237,20 +1284,57 @@ export default function TeamHeadquarters() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {ROOM_THEMES.map((theme) => {
-                  const canAfford = headquarters.currency.coins >= theme.cost.coins && 
-                                   headquarters.currency.gems >= theme.cost.gems;
+                  // Apply real estate agent discount for display  
+                  const bonusService = RealEstateAgentBonusService.getInstance();
+                  const discountedCost = bonusService.applyFacilityCostReduction(theme.cost);
+                  const hasDiscount = discountedCost.coins < theme.cost.coins || discountedCost.gems < theme.cost.gems;
+                  
+                  const canAfford = headquarters.currency.coins >= discountedCost.coins && 
+                                   headquarters.currency.gems >= discountedCost.gems;
                   const isUnlocked = headquarters.unlockedThemes.includes(theme.id);
+
+                  const handleThemePurchase = async () => {
+                    if (!isUnlocked && canAfford) {
+                      // Apply real estate agent discount
+                      const bonusService = RealEstateAgentBonusService.getInstance();
+                      const discountedCost = bonusService.applyFacilityCostReduction(theme.cost);
+                      
+                      const newHeadquarters = {
+                        ...headquarters,
+                        currency: {
+                          coins: headquarters.currency.coins - discountedCost.coins,
+                          gems: headquarters.currency.gems - discountedCost.gems
+                        },
+                        unlockedThemes: [...headquarters.unlockedThemes, theme.id]
+                      };
+                      
+                      // Update local state first for immediate UI feedback
+                      setHeadquarters(newHeadquarters);
+                      
+                      // Save to backend database
+                      try {
+                        await saveHeadquarters(newHeadquarters);
+                        console.log('✅ Room theme purchase saved successfully');
+                      } catch (error) {
+                        console.error('❌ Failed to save room theme purchase:', error);
+                        // Revert local state if save failed
+                        setHeadquarters(headquarters);
+                        alert('Failed to save theme purchase. Please try again.');
+                      }
+                    }
+                  };
 
                   return (
                     <div
                       key={theme.id}
-                      className={`p-4 rounded-lg border transition-all ${
+                      className={`p-4 rounded-lg border transition-all cursor-pointer ${
                         isUnlocked
                           ? 'border-green-500 bg-green-900/20'
                           : canAfford
-                          ? 'border-blue-500 bg-blue-900/20'
-                          : 'border-gray-600 bg-gray-700/30'
+                          ? 'border-blue-500 bg-blue-900/20 hover:bg-blue-900/30'
+                          : 'border-gray-600 bg-gray-700/30 opacity-60'
                       }`}
+                      onClick={handleThemePurchase}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xl">{theme.icon}</span>
@@ -1267,11 +1351,33 @@ export default function TeamHeadquarters() {
                         }).join(', ')}
                       </div>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="text-yellow-400">{theme.cost.coins.toLocaleString()}</span>
-                          <span className="text-purple-400">{theme.cost.gems}</span>
+                        <div className="flex flex-col gap-1 text-xs">
+                          {hasDiscount ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-gray-500 line-through text-[10px]">
+                                <span>💰 {theme.cost.coins.toLocaleString()}</span>
+                                <span>💎 {theme.cost.gems}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-green-400">💰 {discountedCost.coins.toLocaleString()}</span>
+                                <span className="text-green-400">💎 {discountedCost.gems}</span>
+                              </div>
+                              <div className="text-yellow-400 text-[9px]">Agent Discount!</div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-yellow-400">💰 {theme.cost.coins.toLocaleString()}</span>
+                              <span className="text-purple-400">💎 {theme.cost.gems}</span>
+                            </div>
+                          )}
                         </div>
-                        {isUnlocked && <span className="text-green-400 text-xs">Owned</span>}
+                        {isUnlocked ? (
+                          <span className="text-green-400 text-xs font-semibold">✓ Owned</span>
+                        ) : canAfford ? (
+                          <span className="text-blue-400 text-xs font-semibold">Click to Purchase</span>
+                        ) : (
+                          <span className="text-red-400 text-xs">Cannot Afford</span>
+                        )}
                       </div>
                     </div>
                   );
@@ -1337,29 +1443,161 @@ export default function TeamHeadquarters() {
                 </div>
               </div>
 
-              {/* Character Selection for Interview */}
-              <div className="mb-4">
-                <h3 className="text-purple-300 font-semibold mb-1 flex items-center gap-2">
-                  <Mic className="w-4 h-4" />
-                  Select Fighter for Interview
+              {/* Facility Selection */}
+              <div className="mb-6">
+                <h3 className="text-purple-300 font-semibold mb-3 flex items-center gap-2">
+                  <Building className="w-4 h-4" />
+                  Confessional Location
                 </h3>
-                <p className="text-purple-200 text-xs mb-3">All {availableCharacters.length} fighters available for confessional interviews</p>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  {availableCharacters.map((character) => {
-                    
-                    return (
-                      <div
-                        key={character.id}
-                        className="flex flex-col items-center p-3 bg-gray-700/50 rounded-lg cursor-pointer hover:bg-purple-600/30 transition-colors"
-                        onClick={() => startConfessional(character.id, availableCharacters, confessionalTimeouts, setConfessionalData, headquarters)}
-                      >
-                        <div className="text-2xl mb-1">{character.avatar}</div>
-                        <div className="text-xs text-white text-center">
-                          {character.name.split(' ')[0]}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <button className="p-4 bg-purple-600/20 border border-purple-500/50 rounded-lg">
+                    <div className="text-2xl mb-2">🏠</div>
+                    <div className="text-purple-300 font-semibold">Spartan Apartment</div>
+                    <div className="text-xs text-purple-200">Active Location</div>
+                  </button>
+                  <div className="p-4 bg-gray-700/30 border border-gray-600 rounded-lg opacity-50">
+                    <div className="text-2xl mb-2">🏛️</div>
+                    <div className="text-gray-400 font-semibold">Luxury Penthouse</div>
+                    <div className="text-xs text-gray-500">Coming Soon</div>
+                  </div>
+                  <div className="p-4 bg-gray-700/30 border border-gray-600 rounded-lg opacity-50">
+                    <div className="text-2xl mb-2">⛰️</div>
+                    <div className="text-gray-400 font-semibold">Mountain Fortress</div>
+                    <div className="text-xs text-gray-500">Coming Soon</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fighter Selection with Character Images */}
+              <div className="space-y-6">
+                <div className="flex gap-6">
+                  {/* Character Sidebar */}
+                  <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      Available Fighters
+                    </h3>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {availableCharacters.map((character) => (
+                        <button
+                          key={character.id}
+                          onClick={() => startConfessional(character.id, availableCharacters, confessionalTimeouts, setConfessionalData, headquarters)}
+                          className="w-full p-3 rounded-lg border transition-all text-left hover:border-purple-500 hover:bg-purple-500/20 border-gray-600 bg-gray-700/50 text-gray-300"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="text-2xl">{character.avatar}</div>
+                            <div>
+                              <div className="font-semibold">{character.name}</div>
+                              <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Character Image Display */}
+                  <div className="flex-1">
+                    {/* Default state when no character is selected or being interviewed */}
+                    {!confessionalData.isInterviewing ? (
+                      <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-8 text-center">
+                        <div className="flex flex-col items-center gap-6">
+                          {/* Default Confessional Setup Image */}
+                          <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
+                            <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                              <div className="text-center">
+                                <div className="text-6xl mb-4">🎥</div>
+                                <div className="text-gray-300 text-lg font-semibold">Select a Fighter</div>
+                                <div className="text-gray-400 text-sm">Choose a character from the sidebar to begin confessional</div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Instructions */}
+                          <div className="text-center">
+                            <h2 className="text-xl font-bold text-white mb-2">Ready for Confessional</h2>
+                            <p className="text-gray-400">Click on any fighter from the sidebar to start their confessional interview in the Spartan Apartment setting.</p>
+                          </div>
                         </div>
                       </div>
-                    );
-                  })}
+                    ) : (
+                      /* Character-specific confessional image when interviewing */
+                      <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-8 text-center">
+                        <div className="flex flex-col items-center gap-6">
+                          {/* Character Confessional Image */}
+                          <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-purple-600 shadow-2xl">
+                            <img 
+                              src={(() => {
+                                // Map character names to their confessional image file names for Spartan Apartment
+                                const characterImageMap: Record<string, string> = {
+                                  'achilles': 'Achilles_Conf_SptnApt.png',
+                                  'agent x': 'Agent_X_Conf_SptnApt.png',
+                                  'billy the kid': 'Billy_the_kid_Conf_SptnApt.png',
+                                  'cleopatra': 'Cleopatra_Conf_SptnApt.png',
+                                  'cyborg': 'Agent_X_Conf_SptnApt.png', // Using Agent X as placeholder
+                                  'dracula': 'dracula_Conf_SptnApt.png',
+                                  'count dracula': 'dracula_Conf_SptnApt.png',
+                                  'fenrir': 'Fenrir_Conf_SptnApt.png',
+                                  'frankenstein': 'Frenkenstein\'s_Monster_Conf_SptnApt.png',
+                                  'frankenstein\'s monster': 'Frenkenstein\'s_Monster_Conf_SptnApt.png',
+                                  'frankensteins monster': 'Frenkenstein\'s_Monster_Conf_SptnApt.png',
+                                  'genghis khan': 'Genghis_Khan_Conf_SptnApt.png',
+                                  'gengas khan': 'Genghis_Khan_Conf_SptnApt.png',
+                                  'joan of arc': 'john_of_arc_Conf_SptnApt.png',
+                                  'joan of ark': 'john_of_arc_Conf_SptnApt.png',
+                                  'merlin': 'Merlin.png',
+                                  'robin hood': 'Robin Hood.png',
+                                  'robin_hood': 'Robin Hood.png',
+                                  'sherlock holmes': 'sherlock_holmes_Conf_SptnApt.png',
+                                  'sun wukong': 'Sun_Wukong_SpartanApt.png',
+                                  'tesla': 'nikola_tesla_Conf_SptnApt.png',
+                                  'nikola tesla': 'nikola_tesla_Conf_SptnApt.png',
+                                  'zeta': 'Zeta Reticulan.png',
+                                  'zeta reticulan': 'Zeta Reticulan.png',
+                                  'sammy "slugger" sullivan': 'Billy_the_kid_Conf_SptnApt.png', // Using Billy as placeholder for now
+                                  'sammy_slugger': 'Billy_the_kid_Conf_SptnApt.png',
+                                  'cleopatra vii': 'Cleopatra_Conf_SptnApt.png',
+                                  'vega-x': 'Agent_X_Conf_SptnApt.png',
+                                };
+                                
+                                const activeCharacter = availableCharacters.find(c => c.id === confessionalData.activeCharacter);
+                                const characterName = activeCharacter?.name?.toLowerCase()?.trim();
+                                console.log('🎬 Confessional Image Debug:', {
+                                  activeCharacterId: confessionalData.activeCharacter,
+                                  characterName,
+                                  hasMapping: !!characterImageMap[characterName || ''],
+                                });
+                                
+                                // Only use mapped images, no fallback to wrong character
+                                if (characterName && characterImageMap[characterName]) {
+                                  return `/images/Confessional/Spartan Apartment/${characterImageMap[characterName]}`;
+                                }
+                                
+                                // Return empty string if no match found
+                                return '';
+                              })()}
+                              alt={availableCharacters.find(c => c.id === confessionalData.activeCharacter)?.name || 'Character'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.error('❌ Confessional image failed to load:', e.currentTarget.src);
+                                // Hide the image element instead of showing wrong character
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                          
+                          {/* Character Info */}
+                          <div className="text-center">
+                            <h2 className="text-xl font-bold text-white mb-2">
+                              {availableCharacters.find(c => c.id === confessionalData.activeCharacter)?.name} in Confessional
+                            </h2>
+                            <p className="text-purple-300">Spartan Apartment Setting</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

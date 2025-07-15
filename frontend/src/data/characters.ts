@@ -15,6 +15,34 @@ export type CharacterRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legenda
 
 export type StatType = 'strength' | 'agility' | 'intelligence' | 'vitality' | 'wisdom' | 'charisma';
 
+// Financial Decision interface for character financial history
+export interface FinancialDecision {
+  id: string;
+  characterId: string;
+  amount: number;
+  decision: 'investment' | 'real_estate' | 'luxury_purchase' | 'party' | 'wildcard' | 'other';
+  outcome: 'positive' | 'negative' | 'neutral' | 'pending';
+  coachAdvice?: string;
+  followedAdvice: boolean;
+  timestamp: Date;
+  description: string;
+  financialImpact: number; // How much money gained/lost
+  stressImpact: number; // How much stress gained/lost
+  relationshipImpact: number; // How it affected coach relationship
+}
+
+// Financial personality traits that are part of character templates (immutable)
+export interface FinancialPersonality {
+  spendingStyle: 'conservative' | 'moderate' | 'impulsive' | 'strategic';
+  moneyMotivations: string[]; // ['glory', 'status', 'security', 'power', 'family']
+  financialWisdom: number; // 0-100, base financial intelligence
+  riskTolerance: number; // 0-100, willingness to take financial risks
+  luxuryDesire: number; // 0-100, desire for expensive things
+  generosity: number; // 0-100, willingness to spend on others
+  financialTraumas: string[]; // Past financial experiences that shape behavior
+  moneyBeliefs: string[]; // Core beliefs about money and wealth
+}
+
 export interface BaseStats {
   strength: number;      // Physical damage, carry capacity
   agility: number;       // Speed, dodge chance, critical hit
@@ -178,6 +206,23 @@ export interface Character {
     communication: number;     // 0-100, how well they express themselves
   };
   
+  // Financial Personality (immutable template data)
+  financialPersonality: FinancialPersonality;
+  
+  // Financial System - Dynamic Data (runtime only)
+  financials: {
+    wallet: number;                    // Current money available
+    monthlyEarnings: number;           // Average monthly income from battles
+    financialStress: number;           // 0-100, stress from money issues
+    coachFinancialTrust: number;       // 0-100, trust in coach's financial advice
+    recentDecisions: FinancialDecision[];  // Recent financial choices made
+    totalEarningsLifetime: number;     // Total money earned throughout career
+    totalSpentLifetime: number;        // Total money spent throughout career
+    financialGoals: string[];          // Personal financial aspirations
+    moneyRelatedStress: number;        // 0-100, anxiety specifically about money
+    lastFinancialDecision?: Date;      // When they last made a major financial choice
+  };
+  
   // Battle AI
   battleAI: {
     aggression: number;         // 0-100
@@ -218,8 +263,8 @@ export interface Character {
   specialPowers: SpecialPower[];              // Special powers with team requirements
 }
 
-// Character Templates
-export const characterTemplates: Record<string, Omit<Character, 'id' | 'experience' | 'skills' | 'abilities'>> = {
+// Character Templates (excluding runtime fields that get initialized when character is created)
+export const characterTemplates: Record<string, Omit<Character, 'id' | 'experience' | 'skills' | 'abilities' | 'financials' | 'traditionalStats' | 'temporaryStats' | 'currentHp' | 'maxHp' | 'experienceToNext' | 'personalityTraits' | 'speakingStyle' | 'decisionMaking' | 'conflictResponse' | 'statusEffects' | 'injuries' | 'restDaysNeeded' | 'battleAbilities' | 'specialPowers' | 'financialPersonality'>> = {
   achilles: {
     name: 'Achilles',
     title: 'Hero of Troy',
@@ -1920,6 +1965,65 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
   }
 };
 
+/**
+ * Generate financial personality based on character archetype and traits
+ */
+function generateFinancialPersonality(templateId: string, archetype: CharacterArchetype): FinancialPersonality {
+  const personalityMap: Record<string, Partial<FinancialPersonality>> = {
+    // Warriors - Generally impulsive spenders focused on glory
+    achilles: {
+      spendingStyle: 'impulsive',
+      moneyMotivations: ['glory', 'status', 'honor'],
+      financialWisdom: 30,
+      riskTolerance: 85,
+      luxuryDesire: 70,
+      generosity: 80,
+      financialTraumas: ['Lost family fortune in war'],
+      moneyBeliefs: ['Money is for glory', 'Wealth should serve honor', 'Riches come to the victorious']
+    },
+    // Mages - Strategic with money, focused on knowledge
+    merlin: {
+      spendingStyle: 'strategic',
+      moneyMotivations: ['knowledge', 'power', 'legacy'],
+      financialWisdom: 90,
+      riskTolerance: 40,
+      luxuryDesire: 30,
+      generosity: 70,
+      financialTraumas: [],
+      moneyBeliefs: ['Wisdom is worth more than gold', 'Invest in knowledge', 'Money is a tool, not a goal']
+    }
+  };
+
+  // Get specific personality or generate default based on archetype
+  const specific = personalityMap[templateId];
+  const defaultByArchetype: Record<CharacterArchetype, Partial<FinancialPersonality>> = {
+    warrior: { spendingStyle: 'impulsive', riskTolerance: 80, luxuryDesire: 60 },
+    mage: { spendingStyle: 'strategic', riskTolerance: 30, financialWisdom: 70 },
+    assassin: { spendingStyle: 'strategic', riskTolerance: 60, luxuryDesire: 40 },
+    tank: { spendingStyle: 'conservative', riskTolerance: 20, generosity: 80 },
+    support: { spendingStyle: 'moderate', riskTolerance: 40, generosity: 90 },
+    beast: { spendingStyle: 'impulsive', riskTolerance: 70, financialWisdom: 20 },
+    trickster: { spendingStyle: 'strategic', riskTolerance: 90, luxuryDesire: 50 },
+    mystic: { spendingStyle: 'strategic', riskTolerance: 50, financialWisdom: 80 },
+    elementalist: { spendingStyle: 'moderate', riskTolerance: 60, luxuryDesire: 40 },
+    berserker: { spendingStyle: 'impulsive', riskTolerance: 95, financialWisdom: 10 },
+    scholar: { spendingStyle: 'conservative', riskTolerance: 20, financialWisdom: 95 }
+  };
+
+  const base = defaultByArchetype[archetype] || defaultByArchetype.warrior;
+  
+  return {
+    spendingStyle: specific?.spendingStyle || base.spendingStyle || 'moderate',
+    moneyMotivations: specific?.moneyMotivations || ['security', 'status'],
+    financialWisdom: specific?.financialWisdom || base.financialWisdom || 50,
+    riskTolerance: specific?.riskTolerance || base.riskTolerance || 50,
+    luxuryDesire: specific?.luxuryDesire || base.luxuryDesire || 50,
+    generosity: specific?.generosity || base.generosity || 50,
+    financialTraumas: specific?.financialTraumas || [],
+    moneyBeliefs: specific?.moneyBeliefs || ['Money provides security', 'Save for the future']
+  };
+}
+
 // Character Database Functions
 export function createCharacter(templateId: string, customizations?: Partial<Character>): Character {
   const template = characterTemplates[templateId];
@@ -1966,6 +2070,21 @@ export function createCharacter(templateId: string, customizations?: Partial<Cha
       lastUpdated: new Date()
     },
     ...template,
+    // Generate financial personality based on character template
+    financialPersonality: generateFinancialPersonality(templateId, template.archetype),
+    // Initialize dynamic financial data
+    financials: {
+      wallet: Math.floor(Math.random() * 5000) + 1000, // $1k-$6k starting money
+      monthlyEarnings: 0, // Will be calculated from battle history
+      financialStress: Math.floor(Math.random() * 20), // Low initial stress (0-20%)
+      coachFinancialTrust: 60 + Math.floor(Math.random() * 20), // 60-80% initial trust
+      recentDecisions: [],
+      totalEarningsLifetime: 0,
+      totalSpentLifetime: 0,
+      financialGoals: [], // Will be populated based on personality
+      moneyRelatedStress: Math.floor(Math.random() * 15), // Very low initial money stress
+      lastFinancialDecision: undefined
+    },
     ...customizations
   };
 

@@ -9,6 +9,8 @@ import {
 import { characterAPI } from '@/services/apiClient';
 import ConflictDatabaseService, { ConflictData, TherapyContext, TherapistPromptStyle } from '@/services/ConflictDatabaseService';
 import { therapyChatService } from '@/data/therapyChatService';
+import EventPublisher from '@/services/eventPublisher';
+import ConflictRewardSystem from '@/services/conflictRewardSystem';
 // Removed demo characters - now using database characters consistently
 
 interface TherapySession {
@@ -128,6 +130,8 @@ const TherapyModule = () => {
   const [roundCount, setRoundCount] = useState(0);
   const [exchangesInRound, setExchangesInRound] = useState(0);
   const conflictService = ConflictDatabaseService.getInstance();
+  const eventPublisher = EventPublisher.getInstance();
+  const conflictRewardSystem = ConflictRewardSystem.getInstance();
 
   useEffect(() => {
     const loadCharacters = async () => {
@@ -773,11 +777,55 @@ const TherapyModule = () => {
   };
 
   // Advance session stage
-  const handleAdvanceStage = () => {
+  const handleAdvanceStage = async () => {
     if (activeSession) {
       const newStage = therapyChatService.advanceSessionStage(activeSession.id);
       setSessionStage(newStage);
       console.log('🧠 Session stage advanced to:', newStage);
+      
+      // Publish therapy event and calculate rewards when breakthrough stage is reached
+      if (newStage === 'breakthrough') {
+        try {
+          const participantIds = activeSession.type === 'individual' 
+            ? [selectedCharacter?.id].filter(Boolean)
+            : selectedGroupMembers.map(char => char.id);
+          
+          for (const characterId of participantIds) {
+            // Calculate conflict resolution rewards
+            if (activeConflicts.length > 0) {
+              const majorConflict = activeConflicts[0]; // Take the first/major conflict
+              const rewards = conflictRewardSystem.calculateResolutionRewards(
+                majorConflict.category,
+                'collaborative', // Therapy is collaborative resolution
+                majorConflict.severity,
+                participantIds.filter(id => id) as string[]
+              );
+              
+              console.log('🎁 Therapy breakthrough rewards calculated:', rewards);
+              
+              // Apply rewards (in a real system, this would update character stats)
+              console.log(`✨ ${characterId} receives:`, {
+                experienceBonus: rewards.experienceBonus,
+                immediateRewards: rewards.immediate.length,
+                longTermRewards: rewards.longTerm.length,
+                relationshipChanges: Object.keys(rewards.relationshipChanges).length
+              });
+            }
+            
+            await eventPublisher.publishTherapySession({
+              characterId: characterId,
+              sessionType: activeSession.type,
+              therapistId: activeSession.therapistId,
+              breakthroughs: ['therapy_stage_advancement'], 
+              conflictsAddressed: activeConflicts.map(c => c.category),
+              stage: 'breakthrough'
+            });
+          }
+          console.log('✅ Therapy breakthrough events and rewards processed');
+        } catch (error) {
+          console.warn('❌ Failed to publish therapy events:', error);
+        }
+      }
     }
   };
 

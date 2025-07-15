@@ -2,6 +2,14 @@ import OpenAI from 'openai';
 import { Character } from '../types/index';
 import { usageTrackingService } from './usageTrackingService';
 
+// Import the event context service (will be initialized on frontend)
+interface EventContext {
+  recentEvents?: string;
+  relationships?: string;
+  emotionalState?: string;
+  domainSpecific?: string;
+}
+
 // Initialize OpenAI client with cleaned API key
 const cleanApiKey = process.env.OPENAI_API_KEY?.replace(/\s/g, '').trim();
 const openai = new OpenAI({
@@ -25,7 +33,10 @@ export interface ChatContext {
   previousMessages?: { role: 'user' | 'assistant'; content: string }[];
   conversationContext?: string; // Added for Real Estate Agents
   
-  // Kitchen Table Conflict Context - from therapy system
+  // Centralized Event System Context - new smart context compression
+  eventContext?: EventContext;
+  
+  // Kitchen Table Conflict Context - from therapy system (legacy, will be replaced by eventContext)
   livingContext?: {
     housingTier: string; // 'basic', 'standard', 'premium', etc.
     currentOccupancy: number;
@@ -317,6 +328,30 @@ These conflicts particularly affect mealtimes and shared dining:`;
         });
         prompt += `\nMealtimes may be awkward, tense, or uncomfortable. You might avoid eating with others, feel anxious about kitchen time, or get into arguments during meals.`;
       }
+    }
+    
+    // Add centralized event system context (new smart compression system)
+    if (context.eventContext) {
+      const eventCtx = context.eventContext;
+      
+      if (eventCtx.recentEvents) {
+        prompt += `\n\n${eventCtx.recentEvents}`;
+      }
+      
+      if (eventCtx.relationships) {
+        prompt += `\n\n${eventCtx.relationships}`;
+      }
+      
+      if (eventCtx.emotionalState) {
+        prompt += `\n\n${eventCtx.emotionalState}`;
+      }
+      
+      if (eventCtx.domainSpecific) {
+        prompt += `\n\n${eventCtx.domainSpecific}`;
+      }
+      
+      // Add instruction to use this context
+      prompt += `\n\nIMPORTANT: Reference these recent events, relationships, and emotional states naturally in your responses. Your character has experienced all these events and should respond accordingly.`;
     }
     
     // Add comprehensive facilities context for Real Estate Agents

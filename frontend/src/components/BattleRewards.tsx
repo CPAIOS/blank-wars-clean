@@ -10,7 +10,8 @@ import {
   Heart,
   Crown,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  DollarSign
 } from 'lucide-react';
 import { BattleRewards as RewardsData, ACHIEVEMENTS } from '@/data/combatRewards';
 
@@ -71,6 +72,13 @@ export default function BattleRewards({
       value: `+${rewards.bondIncrease}`,
       color: 'text-pink-400',
       bgColor: 'bg-pink-400/10'
+    },
+    {
+      icon: DollarSign,
+      label: 'Character Earnings',
+      value: `$${rewards.characterEarnings?.totalEarnings?.toLocaleString() || '0'}`,
+      color: 'text-green-500',
+      bgColor: 'bg-green-500/10'
     }
   ];
 

@@ -7,7 +7,8 @@ import {
   Database, TrendingUp, Package, MessageCircle, 
   Sparkles, Crown, Building, Target, Brain,
   Trophy, ChevronDown, ChevronRight, Activity, Shield,
-  BookOpen, Star, User, Eye, EyeOff
+  BookOpen, Star, User, Eye, EyeOff, BarChart3, DollarSign,
+  AlertTriangle
 } from 'lucide-react';
 
 import CoachProgressionPage from '@/app/coach/page';
@@ -56,7 +57,8 @@ const PlaceholderComponent = () => (
 );
 
 // Keep essential types as regular imports
-import { OwnedCharacter, TeamComposition } from '@/data/userAccount';
+import { OwnedCharacter } from '@/data/userAccount';
+import { TeamComposition } from '@/data/teamBuilding';
 
 // Loading component for Suspense fallback
 const ComponentLoader = ({ name }: { name: string }) => (
@@ -195,7 +197,6 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     inventory: [],
     unlockedContent: ['basic_training', 'combat_academy'],
     achievements: ['first_victory', 'combat_master'],
-    trainingLevel: 75,
     bondLevel: 80,
     fatigue: 20,
     battleAI: {
@@ -404,14 +405,6 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               </div>
             </div>
 
-            {/* Performance Coaching Chat */}
-            <PerformanceCoachingChat 
-              selectedCharacterId={globalSelectedCharacterId}
-              onCharacterChange={setGlobalSelectedCharacterId}
-              selectedCharacter={selectedCharacter}
-              availableCharacters={availableCharacters}
-            />
-            
             <ProgressionDashboard
               character={selectedCharacter}
               onAllocateSkillPoint={(skill) => console.log(`${selectedCharacter?.name || 'Character'} allocated skill point to ${skill}`)}
@@ -589,16 +582,83 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 space-y-6">
-            {/* Selected Character Header */}
-            <div className="bg-gray-800/50 rounded-xl p-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
-                <div>
-                  <div>{selectedCharacter?.name || 'Loading...'}</div>
-                  <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
+          <div className="flex-1 space-y-8">
+            {/* Character Image Display */}
+            <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-8 text-center mb-8">
+              <div className="flex flex-col items-center gap-6">
+                {/* Character Image */}
+                <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
+                  <img 
+                    src={(() => {
+                      // Map character names to their equipment image file names
+                      const characterImageMap: Record<string, string> = {
+                        'achilles': 'achilles_equipment.png',
+                        'agent x': 'agent_equipment.png',
+                        'billy the kid': 'billy_the_kid_equipment.png',
+                        'cleopatra': 'cleopatra_equipment.png',
+                        'cyborg': 'cyborg_equipment.png',
+                        'dracula': 'dracula_equipment.png',
+                        'count dracula': 'dracula_equipment.png',
+                        'fenrir': 'fenrir_equipment.png',
+                        'frankenstein': 'frankenstein_equipment.png',
+                        'frankenstein\'s monster': 'frankenstein_equipment.png',
+                        'frankensteins monster': 'frankenstein_equipment.png',
+                        'genghis khan': 'gengas_khan_equipment.png',
+                        'gengas khan': 'gengas_khan_equipment.png',
+                        'joan of arc': 'joan_of_arc_equipment.png',
+                        'joan of ark': 'joan_of_arc_equipment.png',
+                        'merlin': 'merlin_equipment.png',
+                        'robin hood': 'robin_hood_equipment.png',
+                        'robin_hood': 'robin_hood_equipment.png',
+                        'sherlock holmes': 'sherlock_holmes_equipment.png',
+                        'sun wukong': 'sun_wukong_equipment.png',
+                        'tesla': 'tesla_equipment.png',
+                        'nikola tesla': 'tesla_equipment.png',
+                        'zeta': 'zeta__equipment.png',
+                        'zeta reticulan': 'zeta__equipment.png',
+                        'sammy "slugger" sullivan': 'sammy_slugger_equipment.png', // Real Sammy equipment image
+                        'sammy_slugger': 'sammy_slugger_equipment.png', // Real Sammy equipment image
+                        'cleopatra vii': 'cleopatra_equipment.png',
+                        'vega-x': 'cyborg_equipment.png',
+                      };
+                      
+                      const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
+                      console.log('🎨 Equipment Image Debug:', {
+                        originalName: selectedCharacter?.name,
+                        characterName,
+                        hasMapping: !!characterImageMap[characterName || ''],
+                      });
+                      
+                      // Only use mapped images, no fallback to wrong character
+                      if (characterName && characterImageMap[characterName]) {
+                        return `/images/Character /Equipment /${characterImageMap[characterName]}`;
+                      }
+                      
+                      // Return empty string if no match found
+                      return '';
+                    })()}
+                    alt={selectedCharacter?.name || 'Character'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('❌ Equipment image failed to load:', e.currentTarget.src);
+                      // Hide the image element instead of showing wrong character
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
                 </div>
-              </h2>
+                
+                {/* Character Info */}
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
+                    <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
+                    <div>
+                      <div>{selectedCharacter?.name || 'Loading...'}</div>
+                      <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
+                    </div>
+                  </h2>
+                </div>
+              </div>
             </div>
 
             {/* Equipment Advisor Chat */}
@@ -758,16 +818,83 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 space-y-6">
-            {/* Selected Character Header */}
-            <div className="bg-gray-800/50 rounded-xl p-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
-                <div>
-                  <div>{selectedCharacter?.name || 'Loading...'}</div>
-                  <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
+          <div className="flex-1 space-y-8">
+            {/* Character Image Display */}
+            <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-8 text-center mb-8">
+              <div className="flex flex-col items-center gap-6">
+                {/* Character Image */}
+                <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
+                  <img 
+                    src={(() => {
+                      // Map character names to their skills image file names
+                      const characterImageMap: Record<string, string> = {
+                        'achilles': 'achillies_skills.png',
+                        'agent x': 'agent_x_skills.png',
+                        'billy the kid': 'billy_the_kid_skills.png',
+                        'cleopatra': 'cleopatra_skills.png',
+                        'cyborg': 'agent_x_skills.png', // Using Agent X as placeholder
+                        'dracula': 'dracula_skills.png',
+                        'count dracula': 'dracula_skills.png',
+                        'fenrir': 'fenrir_skills.png',
+                        'frankenstein': 'frankenstein\'s_monster_skills.png',
+                        'frankenstein\'s monster': 'frankenstein\'s_monster_skills.png',
+                        'frankensteins monster': 'frankenstein\'s_monster_skills.png',
+                        'genghis khan': 'genghis_khan_skills.png',
+                        'gengas khan': 'genghis_khan_skills.png',
+                        'joan of arc': 'joan_of_arc_skills.png',
+                        'joan of ark': 'joan_of_arc_skills.png',
+                        'merlin': 'merlin_skills.png',
+                        'robin hood': 'robin_hood_skills.png',
+                        'robin_hood': 'robin_hood_skills.png',
+                        'sherlock holmes': 'sherlock_holmes_skills.png',
+                        'sun wukong': 'sun_wukong_skills.png',
+                        'tesla': 'tesla_skills.png',
+                        'nikola tesla': 'tesla_skills.png',
+                        'zeta': 'zeta_skills.png',
+                        'zeta reticulan': 'zeta_skills.png',
+                        'sammy "slugger" sullivan': 'sammy_slugger_skills.png',
+                        'sammy_slugger': 'sammy_slugger_skills.png',
+                        'cleopatra vii': 'cleopatra_skills.png',
+                        'vega-x': 'vega_x_skills.png',
+                      };
+                      
+                      const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
+                      console.log('⚡ Skills Image Debug:', {
+                        originalName: selectedCharacter?.name,
+                        characterName,
+                        hasMapping: !!characterImageMap[characterName || ''],
+                      });
+                      
+                      // Only use mapped images, no fallback to wrong character
+                      if (characterName && characterImageMap[characterName]) {
+                        return `/images/Character /Skills:Abilities/${characterImageMap[characterName]}`;
+                      }
+                      
+                      // Return empty string if no match found
+                      return '';
+                    })()}
+                    alt={selectedCharacter?.name || 'Character'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('❌ Skills image failed to load:', e.currentTarget.src);
+                      // Hide the image element instead of showing wrong character
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
                 </div>
-              </h2>
+                
+                {/* Character Info */}
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
+                    <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
+                    <div>
+                      <div>{selectedCharacter?.name || 'Loading...'}</div>
+                      <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
+                    </div>
+                  </h2>
+                </div>
+              </div>
             </div>
 
             {/* Skill Development Chat */}
@@ -824,6 +951,260 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               <div className="bg-gray-800/50 rounded-lg p-3">
                 <div className="text-2xl font-bold text-yellow-400">{currentTrainingPoints}</div>
                 <div className="text-gray-400">Available for ability upgrades</div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+    );
+  };
+
+  const OneOnOneCoachingWrapper = () => {
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [charactersLoading, setCharactersLoading] = useState(true);
+    
+    // Load real characters from API
+    useEffect(() => {
+      const loadCharacters = async () => {
+        try {
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const enhancedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.character_id || char.id;
+            return {
+              ...char,
+              baseName,
+              name: char.name,
+              level: char.level || 1,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar || '⚔️',
+              base_attack: char.base_attack,
+              base_health: char.base_health,
+              base_defense: char.base_defense,
+              base_speed: char.base_speed,
+              base_special: char.base_special,
+              current_health: char.current_health,
+              max_health: char.max_health,
+              experience: char.experience,
+              bond_level: char.bond_level,
+              inventory: char.inventory || [],
+              equipment: char.equipment || {},
+              abilities: char.abilities || []
+            };
+          });
+          
+          setAvailableCharacters(enhancedCharacters);
+          setCharactersLoading(false);
+        } catch (error) {
+          console.error('Error loading characters:', error);
+          setCharactersLoading(false);
+        }
+      };
+      
+      loadCharacters();
+    }, []);
+
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
+    
+    if (charactersLoading) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-purple-600/30 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading real character data...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+    <div className="space-y-6">
+      <div className="flex gap-6">
+          {/* Character Sidebar */}
+          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Characters
+            </h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {availableCharacters.map((character) => (
+                <button
+                  key={character.id}
+                  onClick={() => {
+                    console.log('1-on-1 - Clicking character:', character.name, character.baseName);
+                    setGlobalSelectedCharacterId(character.baseName);
+                  }}
+                  className={`w-full p-3 rounded-lg border transition-all text-left ${
+                    globalSelectedCharacterId === character.baseName
+                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="text-2xl">{character.avatar}</div>
+                    <div>
+                      <div className="font-semibold">{character.name}</div>
+                      <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 space-y-8">
+            {/* Character Image Display */}
+            <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-8 text-center mb-8">
+              <div className="flex flex-col items-center gap-6">
+                {/* Character Image */}
+                <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
+                  <img 
+                    src={(() => {
+                      // Map character names to their 1-on-1 coaching image file names
+                      const characterImageMap: Record<string, string> = {
+                        'achilles': 'achilles__1-on-1.png',
+                        'agent x': 'agent_X_1-on-1.png',
+                        'billy the kid': 'billy_the_kid_1-on1.png',
+                        'cleopatra': 'cleopatra__1-on-1.png',
+                        'cyborg': 'agent_X_1-on-1.png', // Using Agent X as placeholder
+                        'dracula': 'dracula_1-on-1.png',
+                        'count dracula': 'dracula_1-on-1.png',
+                        'fenrir': 'fenrir_1-on-1.png',
+                        'frankenstein': 'frankenstein_1-on-1.png',
+                        'frankenstein\'s monster': 'frankenstein_1-on-1.png',
+                        'frankensteins monster': 'frankenstein_1-on-1.png',
+                        'genghis khan': 'genghis_kahn_1-on-1.png',
+                        'gengas khan': 'genghis_kahn_1-on-1.png',
+                        'joan of arc': 'joan_of_arc__1-on-1.png',
+                        'joan of ark': 'joan_of_arc__1-on-1.png',
+                        'merlin': 'merlin_1-on-1.png',
+                        'robin hood': 'robin_hood_1-on-1.png',
+                        'robin_hood': 'robin_hood_1-on-1.png',
+                        'sherlock holmes': 'sherlock_holmes_1-on-1.png',
+                        'sun wukong': 'sun_wukong__1-on-1.png',
+                        'tesla': 'tesla_1-on-1.png',
+                        'nikola tesla': 'tesla_1-on-1.png',
+                        'zeta': 'zeta__1-on-1.png',
+                        'zeta reticulan': 'zeta__1-on-1.png',
+                        'sammy "slugger" sullivan': 'sammy_slugger_1-on-1.png',
+                        'sammy_slugger': 'sammy_slugger_1-on-1.png',
+                        'cleopatra vii': 'cleopatra__1-on-1.png',
+                        'vega-x': 'vega_1-on-1.png',
+                      };
+                      
+                      const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
+                      console.log('🤝 1-on-1 Coaching Image Debug:', {
+                        originalName: selectedCharacter?.name,
+                        characterName,
+                        hasMapping: !!characterImageMap[characterName || ''],
+                      });
+                      
+                      // Only use mapped images, no fallback to wrong character
+                      if (characterName && characterImageMap[characterName]) {
+                        return `/images/1-on-1_coaching/${characterImageMap[characterName]}`;
+                      }
+                      
+                      // Return empty string if no match found
+                      return '';
+                    })()}
+                    alt={selectedCharacter?.name || 'Character'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('❌ 1-on-1 coaching image failed to load:', e.currentTarget.src);
+                      // Hide the image element instead of showing wrong character
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
+                
+                {/* Character Info */}
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
+                    <div className="text-3xl">{selectedCharacter?.avatar || '⚔️'}</div>
+                    <div>
+                      <div>{selectedCharacter?.name || 'Loading...'}</div>
+                      <div className="text-sm text-gray-400">Level {selectedCharacter?.level || 1} {selectedCharacter?.archetype || 'warrior'}</div>
+                    </div>
+                  </h2>
+                </div>
+              </div>
+            </div>
+
+            {/* Coaching Session Interface */}
+            <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-6 border border-purple-500/30">
+              <div className="flex items-center gap-2 mb-4">
+                <MessageCircle className="w-5 h-5 text-purple-400" />
+                <span className="text-purple-300 font-semibold">One-on-One Coaching Session with {selectedCharacter?.name}</span>
+              </div>
+              
+              {/* Session Status */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <div className="text-purple-300 font-semibold">📅 Session Status</div>
+                  <div className="text-white text-lg">Ready to Start</div>
+                  <div className="text-gray-400 text-sm">45 min session</div>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <div className="text-green-300 font-semibold">🎯 Focus Area</div>
+                  <div className="text-white text-lg">Performance Goals</div>
+                  <div className="text-gray-400 text-sm">Combat effectiveness</div>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <div className="text-blue-300 font-semibold">📊 Bond Level</div>
+                  <div className="text-white text-lg">{selectedCharacter?.bond_level || 75}%</div>
+                  <div className="text-gray-400 text-sm">Trust & rapport</div>
+                </div>
+              </div>
+
+              {/* Start Session Button */}
+              <div className="text-center">
+                <button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                  Begin Coaching Session
+                </button>
+                <p className="text-purple-200 text-sm mt-2">
+                  Personalized guidance to unlock {selectedCharacter?.name}'s full potential
+                </p>
+              </div>
+            </div>
+
+            {/* Character Development Insights */}
+            <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl p-6 border border-blue-500/30">
+              <div className="flex items-center gap-2 mb-4">
+                <Brain className="w-5 h-5 text-blue-400" />
+                <span className="text-blue-300 font-semibold">Development Insights for {selectedCharacter?.name}</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-green-300 font-semibold text-sm">Strengths</div>
+                    <div className="text-white">Combat Leadership</div>
+                    <div className="text-gray-400 text-sm">Natural battle instincts</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-yellow-300 font-semibold text-sm">Growth Areas</div>
+                    <div className="text-white">Team Collaboration</div>
+                    <div className="text-gray-400 text-sm">Working with others</div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-purple-300 font-semibold text-sm">Recent Progress</div>
+                    <div className="text-white">+15% Battle Focus</div>
+                    <div className="text-gray-400 text-sm">Last 7 days</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-blue-300 font-semibold text-sm">Next Goals</div>
+                    <div className="text-white">Strategic Thinking</div>
+                    <div className="text-gray-400 text-sm">Long-term planning</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -985,6 +1366,693 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     />
   );
 
+  // New Coach Section Components
+  
+  const TeamDashboardWrapper = () => {
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [teamStats, setTeamStats] = useState<any>({});
+    const [activeConflicts, setActiveConflicts] = useState<any[]>([]);
+    
+    // Load team data
+    useEffect(() => {
+      const loadTeamData = async () => {
+        try {
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          setAvailableCharacters(characters);
+          
+          // Calculate team stats
+          const stats = {
+            teamSize: characters.length,
+            averageLevel: characters.reduce((sum: number, char: any) => sum + (char.level || 1), 0) / characters.length || 1,
+            totalTeamPower: characters.reduce((sum: number, char: any) => sum + (char.base_attack || 0) + (char.base_health || 0), 0),
+            teamChemistry: 75 // Placeholder
+          };
+          setTeamStats(stats);
+          
+        } catch (error) {
+          console.error('Error loading team data:', error);
+        }
+      };
+      
+      loadTeamData();
+    }, []);
+    
+    return (
+      <div className="space-y-6">
+        {/* Team Overview Stats */}
+        <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-xl p-6 border border-purple-500/30">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-6 h-6 text-purple-400" />
+            <h2 className="text-2xl font-bold text-white">Team Dashboard</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-blue-400">{teamStats.teamSize || 0}</div>
+              <div className="text-gray-400">Team Members</div>
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-green-400">{Math.round(teamStats.averageLevel || 1)}</div>
+              <div className="text-gray-400">Average Level</div>
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-purple-400">{teamStats.totalTeamPower || 0}</div>
+              <div className="text-gray-400">Total Power</div>
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-400">{teamStats.teamChemistry || 0}%</div>
+              <div className="text-gray-400">Team Chemistry</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Active Issues & Alerts */}
+        <div className="bg-gradient-to-r from-red-900/30 to-orange-900/30 rounded-xl p-6 border border-red-500/30">
+          <h3 className="text-xl font-bold text-white mb-4">Team Issues & Alerts</h3>
+          <div className="text-gray-300">
+            <p>• No critical conflicts detected</p>
+            <p>• Team morale: Stable</p>
+            <p>• Financial health: Good</p>
+            <p>• Recommended action: Continue current training regimen</p>
+          </div>
+        </div>
+        
+        {/* Character Status Grid */}
+        <div className="bg-gray-800/50 rounded-xl p-6">
+          <h3 className="text-xl font-bold text-white mb-4">Character Status</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {availableCharacters.map((character) => (
+              <div key={character.id} className="bg-gray-700/50 rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="text-2xl">{character.avatar}</div>
+                  <div>
+                    <div className="font-semibold text-white">{character.name}</div>
+                    <div className="text-sm text-gray-400">Level {character.level}</div>
+                  </div>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Health:</span>
+                    <span className="text-green-400">{character.current_health || character.base_health}/{ character.max_health || character.base_health}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Mood:</span>
+                    <span className="text-blue-400">Good</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const PerformanceCoachingWrapper = () => {
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [charactersLoading, setCharactersLoading] = useState(true);
+    
+    // Load characters
+    useEffect(() => {
+      const loadCharacters = async () => {
+        try {
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const enhancedCharacters = characters.map((char: any) => {
+            const baseName = char.name?.toLowerCase() || char.character_id || char.id;
+            return {
+              ...char,
+              baseName,
+              name: char.name,
+              level: char.level || 1,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar || '⚔️'
+            };
+          });
+          
+          setAvailableCharacters(enhancedCharacters);
+          setCharactersLoading(false);
+        } catch (error) {
+          console.error('Error loading characters:', error);
+          setCharactersLoading(false);
+        }
+      };
+      
+      loadCharacters();
+    }, []);
+
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
+    
+    if (charactersLoading) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-purple-600/30 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading characters...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-6">
+          {/* Character Sidebar */}
+          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Characters
+            </h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {availableCharacters.map((character) => (
+                <button
+                  key={character.id}
+                  onClick={() => {
+                    console.log('Performance - Clicking character:', character.name, character.baseName);
+                    setGlobalSelectedCharacterId(character.baseName);
+                  }}
+                  className={`w-full p-3 rounded-lg border transition-all text-left ${
+                    globalSelectedCharacterId === character.baseName
+                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="text-2xl">{character.avatar}</div>
+                    <div>
+                      <div className="font-semibold">{character.name}</div>
+                      <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 space-y-8">
+            {/* Performance Coaching Chat - Moved from Characters section */}
+            <PerformanceCoachingChat 
+              selectedCharacterId={globalSelectedCharacterId}
+              onCharacterChange={setGlobalSelectedCharacterId}
+              selectedCharacter={selectedCharacter}
+              availableCharacters={availableCharacters}
+            />
+            
+            {/* Performance Analytics */}
+            <div className="bg-gradient-to-r from-green-900/30 to-blue-900/30 rounded-xl p-6 border border-green-500/30">
+              <div className="flex items-center gap-2 mb-4">
+                <Target className="w-5 h-5 text-green-400" />
+                <span className="text-green-300 font-semibold">Performance Analytics for {selectedCharacter?.name}</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <div className="text-green-300 font-semibold">Battle Performance</div>
+                  <div className="text-2xl font-bold text-green-400">85%</div>
+                  <div className="text-gray-400 text-sm">Win rate this week</div>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <div className="text-blue-300 font-semibold">Coaching Response</div>
+                  <div className="text-2xl font-bold text-blue-400">92%</div>
+                  <div className="text-gray-400 text-sm">Advice compliance</div>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <div className="text-purple-300 font-semibold">Improvement Trend</div>
+                  <div className="text-2xl font-bold text-purple-400">+12%</div>
+                  <div className="text-gray-400 text-sm">Since last month</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const FinancialAdvisoryWrapper = () => {
+    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
+    const [charactersLoading, setCharactersLoading] = useState(true);
+    const [pendingDecisions, setPendingDecisions] = useState<any[]>([]);
+    
+    // Load characters and their financial data
+    useEffect(() => {
+      const loadCharacters = async () => {
+        try {
+          const response = await characterAPI.getUserCharacters();
+          const characters = response.characters || [];
+          
+          const enhancedCharacters = await Promise.all(characters.map(async (char: any) => {
+            const baseName = char.name?.toLowerCase() || char.character_id || char.id;
+            
+            // Use real financial data if character has it, otherwise generate mock data
+            const wallet = char.financials?.wallet || Math.floor(Math.random() * 50000) + 10000;
+            const monthlyEarnings = char.financials?.monthlyEarnings || Math.floor(Math.random() * 5000) + 2000;
+            const recentDecisions = char.financials?.recentDecisions || [];
+            const financialPersonality = char.financialPersonality || {
+              spendingStyle: ['conservative', 'moderate', 'impulsive', 'strategic'][Math.floor(Math.random() * 4)],
+              financialWisdom: 50,
+              riskTolerance: 50,
+              luxuryDesire: 50,
+              generosity: 50,
+              moneyMotivations: ['security'],
+              financialTraumas: [],
+              moneyBeliefs: ['Money provides security']
+            };
+            
+            // Calculate real financial stress using the psychology service
+            let calculatedStress = Math.floor(Math.random() * 30); // Fallback
+            try {
+              const { default: FinancialPsychologyService } = await import('@/services/financialPsychologyService');
+              const psychService = FinancialPsychologyService.getInstance();
+              const stressAnalysis = psychService.calculateFinancialStress(
+                char.id || baseName,
+                wallet,
+                monthlyEarnings,
+                recentDecisions,
+                financialPersonality
+              );
+              calculatedStress = Math.round(stressAnalysis.stress);
+            } catch (error) {
+              console.warn('Could not calculate financial stress:', error);
+            }
+            
+            const mockFinancialData = {
+              wallet,
+              monthlyEarnings,
+              financialStress: calculatedStress,
+              coachTrustLevel: char.financials?.coachFinancialTrust || Math.floor(Math.random() * 40) + 60,
+              spendingPersonality: financialPersonality.spendingStyle,
+              recentDecisions,
+              financialPersonality
+            };
+            
+            return {
+              ...char,
+              baseName,
+              name: char.name,
+              level: char.level || 1,
+              archetype: char.archetype || 'warrior',
+              avatar: char.avatar || '⚔️',
+              financials: mockFinancialData
+            };
+          });
+          
+          setAvailableCharacters(enhancedCharacters);
+          
+          // Generate some mock pending decisions
+          const mockDecisions = [
+            {
+              id: 'decision_1',
+              characterId: enhancedCharacters[0]?.id,
+              characterName: enhancedCharacters[0]?.name,
+              amount: 15000,
+              reason: 'Battle victory bonus',
+              deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
+              options: [
+                { id: 'investment', name: 'Index Fund Investment', risk: 'low', coachApproval: 'positive' },
+                { id: 'real_estate', name: 'Real Estate Down Payment', risk: 'medium', coachApproval: 'positive' },
+                { id: 'sports_car', name: 'Luxury Sports Car', risk: 'high', coachApproval: 'negative' },
+                { id: 'party', name: 'Throw Epic Party', risk: 'high', coachApproval: 'negative' },
+                { id: 'wildcard', name: 'Let me think of something unique...', risk: 'unknown', coachApproval: 'unknown' }
+              ]
+            }
+          ];
+          setPendingDecisions(mockDecisions);
+          setCharactersLoading(false);
+        } catch (error) {
+          console.error('Error loading characters for financial advisory:', error);
+          setCharactersLoading(false);
+        }
+      };
+      
+      loadCharacters();
+    }, []);
+
+    const selectedCharacter = useMemo(() => {
+      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+    }, [availableCharacters, globalSelectedCharacterId]);
+    
+    const handleAdviceGiven = async (decisionId: string, advice: string) => {
+      console.log(`Coach advised ${advice} for decision ${decisionId}`);
+      
+      // Find the pending decision and character
+      const decision = pendingDecisions.find(d => d.id === decisionId);
+      const character = availableCharacters.find(c => c.id === decision?.characterId);
+      
+      if (decision && character) {
+        try {
+          // Record advice in the event system
+          const { default: GameEventBus } = await import('@/services/gameEventBus');
+          const eventBus = GameEventBus.getInstance();
+          
+          await eventBus.publishFinancialEvent(
+            'coach_financial_advice',
+            character.id,
+            `Coach advised ${advice} for ${decision.reason}`,
+            { decisionId, advice, amount: decision.amount, type: 'advice' },
+            'medium'
+          );
+          
+          console.log(`Financial advice recorded for ${character.name}`);
+        } catch (error) {
+          console.error('Error recording financial advice:', error);
+        }
+      }
+    };
+    
+    const handleDecisionMade = async (decisionId: string, choice: string) => {
+      console.log(`Character made decision: ${choice} for ${decisionId}`);
+      
+      // Find the decision and character
+      const decision = pendingDecisions.find(d => d.id === decisionId);
+      const character = availableCharacters.find(c => c.id === decision?.characterId);
+      
+      if (decision && character) {
+        try {
+          // Use financial psychology service to simulate decision outcome
+          const { default: FinancialPsychologyService } = await import('@/services/financialPsychologyService');
+          const psychService = FinancialPsychologyService.getInstance();
+          
+          // Calculate current decision quality
+          const decisionQuality = psychService.calculateDecisionQuality(
+            character.financials.financialStress,
+            character.financials.financialPersonality,
+            character.financials.coachTrustLevel,
+            character.financials.recentDecisions
+          );
+          
+          // Create a financial decision object
+          const financialDecision = {
+            id: decisionId,
+            characterId: character.id,
+            amount: decision.amount,
+            decision: choice as any,
+            outcome: 'pending' as const,
+            coachAdvice: 'Consider carefully', // This would come from the previous advice
+            followedAdvice: choice === 'investment' || choice === 'real_estate', // Assume good options were advised
+            timestamp: new Date(),
+            description: decision.reason,
+            financialImpact: 0,
+            stressImpact: 0,
+            relationshipImpact: 0
+          };
+          
+          // Simulate the outcome
+          const outcome = psychService.simulateDecisionOutcome(
+            financialDecision,
+            decisionQuality,
+            character.financials.financialPersonality
+          );
+          
+          // Update character financial state
+          const newWallet = character.financials.wallet + outcome.financialImpact;
+          const newStress = Math.max(0, Math.min(100, 
+            character.financials.financialStress + outcome.stressImpact
+          ));
+          const newTrust = Math.max(0, Math.min(100,
+            character.financials.coachTrustLevel + outcome.trustImpact
+          ));
+          
+          // Publish outcome events
+          const { default: GameEventBus } = await import('@/services/gameEventBus');
+          const eventBus = GameEventBus.getInstance();
+          
+          await eventBus.publishFinancialEvent(
+            'financial_decision_made',
+            character.id,
+            `${character.name} ${choice} decision: ${outcome.description}`,
+            { 
+              decisionId, 
+              choice, 
+              outcome: outcome.outcome,
+              financialImpact: outcome.financialImpact,
+              newWallet,
+              type: 'decision_outcome'
+            },
+            outcome.outcome === 'negative' ? 'high' : 'medium'
+          );
+          
+          // Update stress if significant change
+          if (Math.abs(outcome.stressImpact) >= 5) {
+            await psychService.updateCharacterFinancialStress(
+              character.id,
+              character.financials.financialStress,
+              newStress,
+              `${choice} decision outcome`
+            );
+          }
+          
+          // Update trust if significant change  
+          if (Math.abs(outcome.trustImpact) >= 3) {
+            await eventBus.publishTrustChange(
+              character.id,
+              character.financials.coachTrustLevel,
+              newTrust,
+              `${choice} decision advice outcome`
+            );
+          }
+          
+          console.log(`Decision processed: ${character.name} chose ${choice}, outcome: ${outcome.outcome}`);
+          console.log(`Financial impact: $${outcome.financialImpact.toLocaleString()}, Stress: ${outcome.stressImpact:+d}, Trust: ${outcome.trustImpact:+d}`);
+          
+          // Remove decision from pending list
+          setPendingDecisions(prev => prev.filter(d => d.id !== decisionId));
+          
+        } catch (error) {
+          console.error('Error processing financial decision:', error);
+        }
+      }
+    };
+    
+    if (charactersLoading) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-green-600/30 border-t-green-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading financial data...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-6">
+          {/* Character Financial Status Sidebar */}
+          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-green-400" />
+              Financial Status
+            </h3>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {availableCharacters.map((character) => (
+                <button
+                  key={character.id}
+                  onClick={() => {
+                    console.log('Financial - Clicking character:', character.name, character.baseName);
+                    setGlobalSelectedCharacterId(character.baseName);
+                  }}
+                  className={`w-full p-3 rounded-lg border transition-all text-left ${
+                    globalSelectedCharacterId === character.baseName
+                      ? 'border-green-500 bg-green-500/20 text-white'
+                      : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="text-2xl">{character.avatar}</div>
+                    <div>
+                      <div className="font-semibold">{character.name}</div>
+                      <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Wallet:</span>
+                      <span className="text-green-400">${character.financials?.wallet?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Stress:</span>
+                      <span className={`${character.financials?.financialStress > 50 ? 'text-red-400' : 'text-blue-400'}`}>
+                        {character.financials?.financialStress || 0}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Trust:</span>
+                      <span className="text-purple-400">{character.financials?.coachTrustLevel || 0}%</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Financial Advisory Content */}
+          <div className="flex-1 space-y-6">
+            {/* Financial Advisory Header */}
+            <div className="bg-gradient-to-r from-green-900/30 to-blue-900/30 rounded-xl p-6 border border-green-500/30">
+              <div className="flex items-center gap-2 mb-4">
+                <DollarSign className="w-6 h-6 text-green-400" />
+                <h2 className="text-2xl font-bold text-white">Financial Advisory Center</h2>
+              </div>
+              <p className="text-green-100">
+                Guide your team members through important financial decisions. Build trust through good advice, 
+                but be careful - poor guidance can damage relationships and lead to financial stress spirals.
+              </p>
+            </div>
+
+            {/* Financial Stress Analysis */}
+            {selectedCharacter && (
+              <div className="bg-gradient-to-r from-red-900/20 to-orange-900/20 rounded-xl p-6 border border-red-500/20">
+                <div className="flex items-center gap-2 mb-4">
+                  <Brain className="w-5 h-5 text-red-400" />
+                  <h3 className="text-lg font-bold text-white">Psychological State Analysis</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-red-300 font-semibold">Financial Stress Level</div>
+                    <div className={`text-2xl font-bold ${
+                      selectedCharacter.financials?.financialStress > 70 ? 'text-red-500' :
+                      selectedCharacter.financials?.financialStress > 40 ? 'text-yellow-500' : 'text-green-500'
+                    }`}>
+                      {selectedCharacter.financials?.financialStress || 0}%
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      {selectedCharacter.financials?.financialStress > 70 ? 'Critical - Poor decisions likely' :
+                       selectedCharacter.financials?.financialStress > 40 ? 'Elevated - Monitor closely' : 'Healthy - Good decision capacity'}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-blue-300 font-semibold">Decision Quality</div>
+                    <div className={`text-2xl font-bold ${
+                      selectedCharacter.financials?.financialStress > 70 ? 'text-red-500' :
+                      selectedCharacter.financials?.financialStress > 40 ? 'text-yellow-500' : 'text-green-500'
+                    }`}>
+                      {selectedCharacter.financials?.financialStress > 70 ? 'Poor' :
+                       selectedCharacter.financials?.financialStress > 40 ? 'Fair' : 'Good'}
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      Based on stress and personality
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-purple-300 font-semibold">Spending Style</div>
+                    <div className="text-2xl font-bold text-purple-400 capitalize">
+                      {selectedCharacter.financials?.spendingPersonality || 'Unknown'}
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      Core financial personality
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-sm text-gray-300">
+                  💡 <strong>Psychology Tip:</strong> High financial stress leads to impulsive decisions. 
+                  {selectedCharacter.financials?.financialStress > 50 && 
+                    ' Consider stress-reduction activities before major financial choices.'
+                  }
+                </div>
+              </div>
+            )}
+            
+            {/* Pending Financial Decisions */}
+            <div className="bg-gray-800/50 rounded-xl p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                Pending Financial Decisions
+              </h3>
+              
+              {pendingDecisions.length > 0 ? (
+                <div className="space-y-4">
+                  {pendingDecisions.map((decision) => (
+                    <div key={decision.id} className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="text-2xl">{availableCharacters.find(c => c.id === decision.characterId)?.avatar || '⚔️'}</div>
+                          <div>
+                            <div className="font-semibold text-white">{decision.characterName}</div>
+                            <div className="text-sm text-gray-400">{decision.reason}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-400">${decision.amount.toLocaleString()}</div>
+                          <div className="text-sm text-gray-400">Needs decision in 3 days</div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                        {decision.options.map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleAdviceGiven(decision.id, option.id)}
+                            className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                              option.coachApproval === 'positive' 
+                                ? 'border-green-500 bg-green-500/20 text-green-300 hover:bg-green-500/30'
+                                : option.coachApproval === 'negative'
+                                ? 'border-red-500 bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                                : 'border-purple-500 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30'
+                            }`}
+                          >
+                            <div className="font-semibold">{option.name}</div>
+                            <div className="text-xs opacity-75">Risk: {option.risk}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <p>No pending financial decisions</p>
+                  <p className="text-sm mt-2">Characters will come to you when they need financial guidance</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Financial Influence Progress */}
+            {selectedCharacter && (
+              <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-6 border border-purple-500/30">
+                <div className="flex items-center gap-2 mb-4">
+                  <Target className="w-5 h-5 text-purple-400" />
+                  <span className="text-purple-300 font-semibold">Financial Influence with {selectedCharacter.name}</span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-purple-300 font-semibold">Coach Trust Level</div>
+                    <div className="text-2xl font-bold text-purple-400">{selectedCharacter.financials?.coachTrustLevel || 0}%</div>
+                    <div className="text-gray-400 text-sm">Financial advice compliance</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-green-300 font-semibold">Financial Health</div>
+                    <div className="text-2xl font-bold text-green-400">Good</div>
+                    <div className="text-gray-400 text-sm">${selectedCharacter.financials?.wallet?.toLocaleString() || '0'} saved</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-blue-300 font-semibold">Spending Style</div>
+                    <div className="text-2xl font-bold text-blue-400 capitalize">{selectedCharacter.financials?.spendingPersonality || 'Unknown'}</div>
+                    <div className="text-gray-400 text-sm">Decision pattern</div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 text-sm text-purple-200">
+                  💡 Build trust through therapy sessions and good advice to increase financial influence
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Psychology Battle Component Wrappers - Removed legacy component
 
   const GameplanTrackerWrapper = () => {
@@ -1021,42 +2089,6 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   };
 
   const TeamBuilderWrapper = () => {
-    const [savedTeams, setSavedTeams] = useState<TeamComposition[]>([]);
-    
-    // Create demo characters from the character collection
-    const demoCharacters = createDemoCharacterCollection();
-    
-    // Convert characters to OwnedCharacter format
-    const ownedCharacters: OwnedCharacter[] = demoCharacters.map(char => ({
-      characterId: char.id,
-      characterData: char,
-      level: char.level || 1,
-      experience: char.experience || 0,
-      bondLevel: char.bondLevel || 50,
-      trainingLevel: char.trainingLevel || 60,
-      equipment: char.equipment || {},
-      unlockedAbilities: char.abilities || [],
-      dateAcquired: new Date(),
-      battlesPlayed: 0,
-      wins: 0,
-      losses: 0
-    }));
-
-    const handleSaveTeam = (team: TeamComposition) => {
-      console.log('Saving team:', team);
-      setSavedTeams(prev => [...prev, { ...team, id: Date.now().toString() }]);
-    };
-
-    const handleStartBattle = (team: TeamComposition) => {
-      console.log('Starting battle with team:', team);
-      // This could integrate with the battle system
-    };
-
-    const handleDeleteTeam = (teamId: string) => {
-      console.log('Deleting team:', teamId);
-      setSavedTeams(prev => prev.filter(team => team.id !== teamId));
-    };
-
     return (
       <div className="space-y-6">
         <div className="bg-gradient-to-r from-green-900/30 to-blue-900/30 rounded-xl p-6 backdrop-blur-sm border border-green-500/20">
@@ -1068,7 +2100,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             Build your ultimate squad with strategic team formations, character synergies, and balanced compositions.
             Create teams that maximize both combat effectiveness and psychological stability.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-6">
             <div className="bg-green-900/40 rounded-lg p-3">
               <div className="text-green-300 font-semibold">⚔️ Strategic Formations</div>
               <div className="text-green-100">Choose from multiple tactical arrangements</div>
@@ -1082,14 +2114,37 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               <div className="text-purple-100">Optimize chemistry and balance</div>
             </div>
           </div>
+          
+          {/* Temporary placeholder while fixing data integration */}
+          <div className="bg-yellow-900/30 rounded-lg p-6 border border-yellow-500/30">
+            <div className="flex items-center gap-3 mb-3">
+              <AlertTriangle className="w-6 h-6 text-yellow-400" />
+              <h3 className="text-xl font-semibold text-yellow-300">Team Builder - Under Development</h3>
+            </div>
+            <p className="text-yellow-100 mb-4">
+              The team builder is being updated to work with your current character roster. 
+              In the meantime, you can build teams directly in the Battle Arena.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gray-800/50 rounded-lg p-4">
+                <h4 className="text-white font-semibold mb-2">📝 Available Features</h4>
+                <ul className="text-gray-300 text-sm space-y-1">
+                  <li>• View character synergies</li>
+                  <li>• Formation recommendations</li>
+                  <li>• Team power calculations</li>
+                </ul>
+              </div>
+              <div className="bg-gray-800/50 rounded-lg p-4">
+                <h4 className="text-white font-semibold mb-2">🚧 Coming Soon</h4>
+                <ul className="text-gray-300 text-sm space-y-1">
+                  <li>• Save custom teams</li>
+                  <li>• Quick team deployment</li>
+                  <li>• Advanced team analytics</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
-        <TeamBuilder
-          characters={ownedCharacters}
-          savedTeams={savedTeams}
-          onSaveTeam={handleSaveTeam}
-          onStartBattle={handleStartBattle}
-          onDeleteTeam={handleDeleteTeam}
-        />
       </div>
     );
   };
@@ -1387,7 +2442,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
       icon: Users,
       color: 'blue',
       subTabs: [
-        { id: 'progression', label: 'Progression', icon: TrendingUp, component: ProgressionDashboardWrapper, description: 'Level up, stats, & performance coaching' },
+        { id: 'progression', label: 'Progression', icon: TrendingUp, component: ProgressionDashboardWrapper, description: 'Level up, stats, and experience tracking' },
         { id: 'equipment', label: 'Equipment', icon: Crown, component: EquipmentManagerWrapper, description: 'Weapons & armor with equipment advisor chat' },
         { id: 'abilities', label: 'Skills/Abilities', icon: Sparkles, component: AbilityManagerWrapper, description: 'Skills, abilities, skill trees, & skill development chat' },
       ]
@@ -1450,9 +2505,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
       color: 'purple',
       subTabs: [
         { id: 'profile', label: 'Profile', icon: User, component: CoachProgressionPage, description: 'View your coach profile and progression' },
-        { id: 'team-management', label: 'Team Management', icon: Shield, component: TeamManagementCoaching, description: 'Handle team conflicts, strategy reviews, and leadership decisions' },
+        { id: 'team-dashboard', label: 'Team Dashboard', icon: BarChart3, component: TeamDashboardWrapper, description: 'Overview of team stats, conflicts, and alerts' },
+        { id: 'performance-coaching', label: 'Performance Coaching', icon: Target, component: PerformanceCoachingWrapper, description: 'Battle performance guidance and strategy advice' },
         { id: 'therapy', label: 'Therapy', icon: Brain, component: TherapyModule, description: 'Individual and group therapy sessions with legendary therapists' },
         { id: 'individual-sessions', label: 'Individual Sessions', icon: MessageCircle, component: IndividualSessionsWrapper, description: 'One-on-one coaching with team members' },
+        { id: 'one-on-one-coaching', label: '1-on-1 Coaching', icon: User, component: OneOnOneCoachingWrapper, description: 'Personalized coaching sessions with character-specific imagery' },
+        { id: 'financial-advisory', label: 'Financial Advisory', icon: DollarSign, component: FinancialAdvisoryWrapper, description: 'Guide your team\'s financial decisions and build trust through money management' },
         { id: 'group-events', label: 'Group Events & Activities', icon: Users, component: CombinedGroupActivitiesWrapper, description: 'Team building, group activities & live multi-participant chat' },
       ]
     }
@@ -1461,7 +2519,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
 
   const currentMainTab = mainTabs.find(tab => tab.id === activeMainTab);
   const currentSubTab = currentMainTab?.subTabs.find(tab => tab.id === activeSubTab);
-  const ActiveComponent = currentSubTab?.component || CharacterDatabase;
+  const ActiveComponent = currentSubTab?.component;
   
   console.log('🔍 Tab Debug:', { 
     activeMainTab, 
@@ -1553,9 +2611,17 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
 
       {/* Active Component */}
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <Suspense fallback={<ComponentLoader name={currentSubTab?.label || 'Component'} />}>
-          <ActiveComponent />
-        </Suspense>
+        {ActiveComponent ? (
+          <Suspense fallback={<ComponentLoader name={currentSubTab?.label || 'Component'} />}>
+            <ActiveComponent />
+          </Suspense>
+        ) : (
+          <div className="p-8 text-center">
+            <h2 className="text-2xl font-bold mb-4 text-orange-400">Component Not Found</h2>
+            <p className="text-gray-400">The component for "{currentSubTab?.label}" is not available.</p>
+            <p className="text-sm text-gray-500 mt-2">Tab: {activeMainTab} / {activeSubTab}</p>
+          </div>
+        )}
       </div>
     </div>
   );

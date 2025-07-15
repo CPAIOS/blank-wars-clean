@@ -8,6 +8,7 @@ import {
   DollarSign, Star, Trophy
 } from 'lucide-react';
 import { realEstateAgents } from '../data/realEstateAgents_UPDATED';
+import RealEstateAgentBonusService from '../services/realEstateAgentBonusService';
 import { RealEstateAgent } from '../data/realEstateAgentTypes';
 import { realEstateAgentChatService } from '../services/realEstateAgentChatService';
 import { apiClient } from '../services/apiClient';
@@ -61,7 +62,13 @@ const AGENT_BONUSES = {
 };
 
 export default function RealEstateAgentChat() {
-  const [selectedAgent, setSelectedAgent] = useState<RealEstateAgent>(realEstateAgents[0]);
+  const [selectedAgent, setSelectedAgent] = useState<RealEstateAgent>(() => {
+    const agent = realEstateAgents[0];
+    // Initialize the bonus service with the default agent
+    const bonusService = RealEstateAgentBonusService.getInstance();
+    bonusService.setSelectedAgent(agent.id);
+    return agent;
+  });
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [userMessage, setUserMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -208,6 +215,10 @@ export default function RealEstateAgentChat() {
     setHasStarted(false);
     setChatMessages([]);
     setSelectedFacility(null);
+    
+    // Update the bonus service with the selected agent
+    const bonusService = RealEstateAgentBonusService.getInstance();
+    bonusService.setSelectedAgent(agent.id);
   };
 
   const getAgentBonus = (agentId: string) => {
@@ -321,9 +332,27 @@ export default function RealEstateAgentChat() {
               <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <div className="text-6xl mb-4">{selectedAgent.avatar}</div>
                 <h2 className="text-2xl font-bold text-white mb-2">{selectedAgent.name}</h2>
-                <p className="text-gray-400 mb-6 max-w-md">
+                <p className="text-gray-400 mb-4 max-w-md">
                   {selectedAgent.archetype} ready to help you find the perfect headquarters upgrades
                 </p>
+                
+                {/* Active Agent Bonus Display */}
+                {(() => {
+                  const bonus = getAgentBonus(selectedAgent.id);
+                  return bonus ? (
+                    <div className="bg-black/50 border border-amber-500/30 rounded-lg p-3 mb-4 max-w-md">
+                      <div className={`font-semibold mb-2 ${bonus.color} flex items-center gap-2 justify-center`}>
+                        <span>{bonus.icon}</span>
+                        Active Bonus: {bonus.name}
+                      </div>
+                      <div className="text-xs text-gray-300 space-y-1">
+                        {bonus.effects.map((effect, idx) => (
+                          <div key={idx} className="text-center">• {effect}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
                 
                 <button
                   onClick={startConsultation}
@@ -344,14 +373,56 @@ export default function RealEstateAgentChat() {
                 </button>
 
                 <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl">
-                  {FACILITY_TYPES.map((facility) => (
-                    <div key={facility.id} className="bg-gray-800/50 rounded-lg p-3 text-center">
-                      <div className="text-2xl mb-1">{facility.icon}</div>
-                      <div className="text-sm font-semibold text-white">{facility.name}</div>
-                      <div className="text-xs text-gray-400">${facility.cost.toLocaleString()}</div>
-                    </div>
-                  ))}
+                  {FACILITY_TYPES.map((facility) => {
+                    const bonusService = RealEstateAgentBonusService.getInstance();
+                    const originalCost = { coins: facility.cost, gems: 0 };
+                    const discountedCost = bonusService.applyFacilityCostReduction(originalCost);
+                    const hasDiscount = discountedCost.coins < originalCost.coins;
+                    
+                    return (
+                      <button
+                        key={facility.id}
+                        onClick={() => setSelectedFacility(facility.id)}
+                        className={`bg-gray-800/50 hover:bg-gray-700/70 border-2 rounded-lg p-3 text-center transition-all cursor-pointer ${
+                          selectedFacility === facility.id 
+                            ? 'border-amber-500 bg-amber-500/20' 
+                            : 'border-gray-600 hover:border-gray-500'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">{facility.icon}</div>
+                        <div className="text-sm font-semibold text-white">{facility.name}</div>
+                        <div className="text-xs">
+                          {hasDiscount ? (
+                            <div className="space-y-1">
+                              <div className="text-gray-500 line-through">${originalCost.coins.toLocaleString()}</div>
+                              <div className="text-green-400 font-semibold">${discountedCost.coins.toLocaleString()}</div>
+                              <div className="text-yellow-400 text-[10px]">Agent Discount!</div>
+                            </div>
+                          ) : (
+                            <div className="text-gray-400">${facility.cost.toLocaleString()}</div>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{facility.description}</div>
+                      </button>
+                    );
+                  })}
                 </div>
+                
+                {selectedFacility && (
+                  <div className="mt-6 bg-amber-900/30 border border-amber-500/50 rounded-lg p-4 max-w-md mx-auto">
+                    <h3 className="text-amber-300 font-semibold mb-2">Selected Facility</h3>
+                    <p className="text-amber-100 text-sm mb-3">
+                      {FACILITY_TYPES.find(f => f.id === selectedFacility)?.name} selected. 
+                      Start a consultation to discuss purchase options and benefits.
+                    </p>
+                    <button
+                      onClick={() => setSelectedFacility(null)}
+                      className="text-amber-400 hover:text-amber-300 text-xs underline"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <>

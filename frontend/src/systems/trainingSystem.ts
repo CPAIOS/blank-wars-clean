@@ -5,6 +5,7 @@
  */
 
 import { Character } from '../data/characters';
+import RealEstateAgentBonusService from '../services/realEstateAgentBonusService';
 
 export interface TrainingActivity {
   id: string;
@@ -578,17 +579,34 @@ export class TrainingSystemManager {
   }
 
   private applyTrainingEffect(character: CharacterTrainingState, effect: TrainingEffect): void {
+    // Get Zyxthala's training bonus if applicable
+    const agentService = RealEstateAgentBonusService.getInstance();
+    const agentEffects = agentService.getAgentBonusEffects();
+    const trainingBonus = agentEffects.trainingSpeedBoost / 100;
+    
+    // Apply agent bonus to effect change for gameplan adherence related training
+    let effectiveChange = effect.change;
+    const isGameplanRelatedTraining = [
+      'tactics', 'strategy', 'discipline', 'focus', 'mental-health',
+      'leadership', 'communication', 'team-cooperation'
+    ].includes(effect.target);
+    
+    if (isGameplanRelatedTraining && trainingBonus > 0) {
+      effectiveChange = Math.floor(effect.change * (1 + trainingBonus));
+      console.log(`🦎 Zyxthala training bonus applied: ${effect.change} → ${effectiveChange} (+${effectiveChange - effect.change})`);
+    }
+
     switch (effect.target) {
       case 'stress':
-        character.stressLevel = Math.max(0, Math.min(100, character.stressLevel + effect.change));
+        character.stressLevel = Math.max(0, Math.min(100, character.stressLevel + effectiveChange));
         break;
       case 'focus':
-        character.focusLevel = Math.max(0, Math.min(100, character.focusLevel + effect.change));
+        character.focusLevel = Math.max(0, Math.min(100, character.focusLevel + effectiveChange));
         break;
       case 'mental-health':
-        character.mentalHealth = Math.max(0, Math.min(100, character.mentalHealth + effect.change));
+        character.mentalHealth = Math.max(0, Math.min(100, character.mentalHealth + effectiveChange));
         // ALSO improve character's actual psychStats.mentalHealth
-        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.3);
+        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effectiveChange * 0.3);
         break;
       
       // Map training effects to character psychStats improvements
@@ -596,27 +614,27 @@ export class TrainingSystemManager {
       case 'strategy':
       case 'discipline':
         // Tactical training improves ability to follow instructions
-        this.updateCharacterPsychStats(character.characterId, 'training', effect.change * 0.4);
+        this.updateCharacterPsychStats(character.characterId, 'training', effectiveChange * 0.4);
         break;
       
       case 'leadership':
       case 'charisma':
       case 'communication':
         // Leadership training improves communication abilities
-        this.updateCharacterPsychStats(character.characterId, 'communication', effect.change * 0.4);
+        this.updateCharacterPsychStats(character.characterId, 'communication', effectiveChange * 0.4);
         break;
       
       case 'social-skills':
       case 'empathy':
       case 'team-cooperation':
         // Social training improves teamwork
-        this.updateCharacterPsychStats(character.characterId, 'teamPlayer', effect.change * 0.4);
+        this.updateCharacterPsychStats(character.characterId, 'teamPlayer', effectiveChange * 0.4);
         break;
       
       case 'confidence':
       case 'self-esteem':
         // Confidence training affects ego
-        this.updateCharacterPsychStats(character.characterId, 'ego', effect.change * 0.3);
+        this.updateCharacterPsychStats(character.characterId, 'ego', effectiveChange * 0.3);
         break;
       
       case 'rage-control':

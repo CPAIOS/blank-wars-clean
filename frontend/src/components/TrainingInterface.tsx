@@ -14,10 +14,12 @@ import {
   TrainingSession,
   trainingActivities 
 } from '../systems/trainingSystem';
+import EventPublisher from '../services/eventPublisher';
 
 export default function TrainingInterface() {
   const [trainingManager] = useState(() => TrainingSystemManager.loadProgress());
   const [selectedCharacter, setSelectedCharacter] = useState<string>('achilles');
+  const eventPublisher = EventPublisher.getInstance();
   const [characterState, setCharacterState] = useState<CharacterTrainingState | null>(null);
   const [activeSession, setActiveSession] = useState<TrainingSession | null>(null);
   const [recommendations, setRecommendations] = useState<TrainingActivity[]>([]);
@@ -67,7 +69,7 @@ export default function TrainingInterface() {
     }
   };
 
-  const handleCompleteTraining = useCallback(() => {
+  const handleCompleteTraining = useCallback(async () => {
     const results = trainingManager.completeTraining(selectedCharacter);
     if (results) {
       setActiveSession(null);
@@ -75,10 +77,25 @@ export default function TrainingInterface() {
       setRecommendations(trainingManager.getRecommendations(selectedCharacter));
       trainingManager.saveToStorage();
       
+      // Publish training event to centralized system
+      try {
+        await eventPublisher.publishTrainingSession({
+          characterId: selectedCharacter,
+          trainingType: results.activity?.category || 'general',
+          skillsFocused: results.activity ? [results.activity.name] : [],
+          improvement: results.statImprovements ? 'significant' : 'minimal',
+          mentalFatigue: results.mentalFatigue || 0,
+          partnerCharacterId: undefined // Solo training
+        });
+        console.log('✅ Training event published to centralized system');
+      } catch (error) {
+        console.warn('❌ Failed to publish training event:', error);
+      }
+      
       // Show completion notification
       console.log('Training completed:', results);
     }
-  }, [trainingManager, selectedCharacter]);
+  }, [trainingManager, selectedCharacter, eventPublisher]);
 
   const getCharacterIcon = (characterId: string) => {
     switch (characterId) {

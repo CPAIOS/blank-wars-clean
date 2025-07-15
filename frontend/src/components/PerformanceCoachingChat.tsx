@@ -7,6 +7,8 @@ import { io, Socket } from 'socket.io-client';
 import { characterAPI } from '../services/apiClient';
 import { Character } from '../data/characters';
 import ConflictContextService, { LivingContext } from '../services/conflictContextService';
+import EventContextService from '../services/eventContextService';
+import EventPublisher from '../services/eventPublisher';
 
 interface Message {
   id: number;
@@ -182,6 +184,8 @@ export default function PerformanceCoachingChat({
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conflictService = ConflictContextService.getInstance();
+  const eventContextService = EventContextService.getInstance();
+  const eventPublisher = EventPublisher.getInstance();
 
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
@@ -263,7 +267,7 @@ export default function PerformanceCoachingChat({
   // Generate coaching advice specific to the selected character
   const performanceQuickMessages = generateCoachingAdvice(selectedCharacter);
 
-  const sendMessage = (content: string) => {
+  const sendMessage = async (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
       console.log('❌ Cannot send message:', { 
         hasContent: !!content.trim(), 
@@ -299,6 +303,23 @@ export default function PerformanceCoachingChat({
 
     setIsTyping(true);
 
+    // Generate compressed event context
+    const characterId = selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id;
+    let eventContext = null;
+    try {
+      const contextString = await eventContextService.getPerformanceContext(characterId);
+      if (contextString) {
+        eventContext = {
+          recentEvents: contextString,
+          relationships: '',
+          emotionalState: '',
+          domainSpecific: ''
+        };
+      }
+    } catch (error) {
+      console.warn('Could not generate event context:', error);
+    }
+
     // Use real character performance data
     const recentBattles = selectedCharacter.battleStats?.totalBattles || 15;
     const battlesWon = selectedCharacter.battleStats?.wins || 10;
@@ -321,6 +342,8 @@ export default function PerformanceCoachingChat({
         },
         // Add living context for kitchen table conflict awareness
         livingContext: livingContext,
+        // Add centralized event context
+        eventContext: eventContext,
         // Real combat stats
         baseStats: selectedCharacter.baseStats,
         combatStats: selectedCharacter.combatStats,
@@ -330,7 +353,28 @@ export default function PerformanceCoachingChat({
         injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Performance-specific context
-        conversationContext: `This is a performance coaching session. The user is the coach who makes decisions about ${selectedCharacter.name}'s training and tactics. ${selectedCharacter.name} should discuss their recent battle performance, ask for guidance on areas they're struggling with, and advocate for training approaches that fit their fighting style and personality. Focus on their REAL stats from the database: Base Attack: ${selectedCharacter.base_attack}, Base Health: ${selectedCharacter.base_health}, Base Defense: ${selectedCharacter.base_defense}, Base Speed: ${selectedCharacter.base_speed}, Base Special: ${selectedCharacter.base_special}. Current Health: ${selectedCharacter.current_health}/${selectedCharacter.max_health}, Level: ${selectedCharacter.level}, Experience: ${selectedCharacter.experience}, Bond Level: ${selectedCharacter.bond_level}, Archetype: ${selectedCharacter.archetype}.`,
+        conversationContext: `This is a performance coaching session. You are ${selectedCharacter.name}, speaking to your coach about your combat performance.
+
+IMPORTANT: You MUST reference your actual stats and performance data in conversation. You are aware of your:
+
+CURRENT STATS (reference these specific numbers):
+- Level: ${selectedCharacter.level}
+- Attack: ${selectedCharacter.base_attack}
+- Health: ${selectedCharacter.base_health}/${selectedCharacter.max_health} (current/max)
+- Defense: ${selectedCharacter.base_defense}
+- Speed: ${selectedCharacter.base_speed}
+- Special: ${selectedCharacter.base_special}
+- Experience: ${selectedCharacter.experience}
+- Bond Level: ${selectedCharacter.bond_level}
+- Archetype: ${selectedCharacter.archetype}
+
+BATTLE RECORD YOU SHOULD MENTION:
+- Total Battles: ${(selectedCharacter.wins || 0) + (selectedCharacter.losses || 0)}
+- Wins: ${selectedCharacter.wins || 0}
+- Losses: ${selectedCharacter.losses || 0}
+- Win Rate: ${Math.round(((selectedCharacter.wins || 0) / Math.max((selectedCharacter.wins || 0) + (selectedCharacter.losses || 0), 1)) * 100)}%
+
+You should naturally reference these numbers when discussing your performance, comparing to previous levels, or talking about areas for improvement. For example: "My attack is at ${selectedCharacter.base_attack} now, which feels stronger than when I was level ${Math.max(1, selectedCharacter.level - 1)}" or "I've won ${selectedCharacter.wins || 0} out of my last ${(selectedCharacter.wins || 0) + (selectedCharacter.losses || 0)} battles."`,
         performanceData: {
           recentBattles,
           battlesWon,
@@ -372,6 +416,18 @@ export default function PerformanceCoachingChat({
         content: m.content
       }))
     });
+
+    // Publish performance coaching event
+    try {
+      await eventPublisher.publishChatInteraction({
+        characterId,
+        chatType: 'performance',
+        message: content,
+        outcome: 'helpful' // Default, could be determined by AI response
+      });
+    } catch (error) {
+      console.warn('Could not publish chat event:', error);
+    }
 
   };
 

@@ -733,6 +733,7 @@ io.on('connection', async (socket) => {
         currentBondLevel: characterData?.bondLevel,
         conversationContext: characterData?.conversationContext, // This contains the real character stats and context
         livingContext: characterData?.livingContext, // Kitchen table conflict awareness
+        eventContext: characterData?.eventContext, // Centralized event system context
         previousMessages
       };
       
@@ -743,6 +744,16 @@ io.on('connection', async (socket) => {
           occupancy: `${characterData.livingContext.currentOccupancy}/${characterData.livingContext.roomCapacity}`,
           conflicts: characterData.livingContext.activeConflicts?.length || 0,
           roommates: characterData.livingContext.roommates?.length || 0
+        });
+      }
+
+      // Log event context if present
+      if (characterData?.eventContext) {
+        console.log('📅 Event context detected:', {
+          hasRecentEvents: !!characterData.eventContext.recentEvents,
+          hasRelationships: !!characterData.eventContext.relationships,
+          hasEmotionalState: !!characterData.eventContext.emotionalState,
+          hasDomainSpecific: !!characterData.eventContext.domainSpecific
         });
       }
 

@@ -271,10 +271,10 @@ export default function TeamManagementCoaching() {
         const data = await response.json();
         
         const coachMessage: CoachingMessage = {
-          id: Date.now(),
-          sender: 'coach',
+          id: Date.now().toString(),
+          speaker: 'coach',
           content: data.message,
-          type: 'guidance',
+          type: 'dialogue',
           timestamp: new Date()
         };
         
@@ -379,12 +379,11 @@ export default function TeamManagementCoaching() {
         const data = await response.json();
         
         const characterResponse: CoachingMessage = {
-          id: Date.now(),
-          sender: 'character',
+          id: Date.now().toString(),
+          speaker: data.character || respondingCharacter,
           content: data.message,
-          type: 'response',
-          timestamp: new Date(),
-          characterName: data.character || respondingCharacter
+          type: 'dialogue',
+          timestamp: new Date()
         };
         
         setMessages(prev => [...prev, characterResponse]);
