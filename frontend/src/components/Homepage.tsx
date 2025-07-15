@@ -9,8 +9,8 @@ import {
   Dumbbell, MessageCircle, Building, Crown
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { characterAPI } from '@/services/apiClient';
+import MainTabSystem from './MainTabSystem';
 
 interface NavigationPanel {
   id: string;
@@ -24,7 +24,9 @@ interface NavigationPanel {
 
 export default function Homepage() {
   const { user } = useAuth();
-  const router = useRouter();
+  const [showMainGame, setShowMainGame] = useState(false);
+  const [activeTab, setActiveTab] = useState('characters');
+  const [activeSubtab, setActiveSubtab] = useState('progression');
   const [userStats, setUserStats] = useState({
     unopenedPacks: 0,
     totalCharacters: 0,
@@ -151,14 +153,39 @@ export default function Homepage() {
     };
     
     const config = routeToTabAndSubtab[route] || { tab: 'characters', subtab: 'progression' };
-    console.log(`Navigating to tab: ${config.tab}, subtab: ${config.subtab} from route: ${route}`);
+    console.log(`Switching to tab: ${config.tab}, subtab: ${config.subtab} from route: ${route}`);
     
-    const url = config.subtab 
-      ? `/game?tab=${config.tab}&subtab=${config.subtab}`
-      : `/game?tab=${config.tab}`;
-    
-    router.push(url);
+    // Instead of navigation, set the active tab/subtab and show MainTabSystem
+    setActiveTab(config.tab);
+    if (config.subtab) {
+      setActiveSubtab(config.subtab);
+    }
+    setShowMainGame(true);
   };
+
+  // If user selected a game section, show MainTabSystem
+  if (showMainGame) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white">
+        {/* Back to homepage button */}
+        <div className="absolute top-4 left-4 z-50">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowMainGame(false)}
+            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg border border-gray-600 transition-colors"
+          >
+            ← Back to Homepage
+          </motion.button>
+        </div>
+        
+        <MainTabSystem 
+          defaultTab={activeTab}
+          defaultSubtab={activeSubtab}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">

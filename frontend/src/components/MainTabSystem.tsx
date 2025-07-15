@@ -110,9 +110,14 @@ interface MainTab {
   subTabs: SubTab[];
 }
 
-export default function MainTabSystem() {
-  const [activeMainTab, setActiveMainTab] = useState('characters');
-  const [activeSubTab, setActiveSubTab] = useState('progression');
+interface MainTabSystemProps {
+  defaultTab?: string;
+  defaultSubtab?: string;
+}
+
+export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSystemProps = {}) {
+  const [activeMainTab, setActiveMainTab] = useState(defaultTab || 'characters');
+  const [activeSubTab, setActiveSubTab] = useState(defaultSubtab || 'progression');
   const [isMainTabExpanded, setIsMainTabExpanded] = useState(true);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState('achilles');
   
@@ -1466,7 +1471,7 @@ export default function MainTabSystem() {
               </button>
               
               <div className="flex-1 min-w-0 overflow-x-auto">
-                <div className="flex gap-2">
+                <div className="flex gap-1 sm:gap-2">
                   {mainTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeMainTab === tab.id;
@@ -1478,10 +1483,10 @@ export default function MainTabSystem() {
                           setActiveMainTab(tab.id);
                           setActiveSubTab(tab.subTabs[0].id);
                         }}
-                        className={`flex items-center gap-2 px-3 sm:px-4 py-3 sm:py-2 rounded-lg transition-all flex-shrink-0 min-h-[48px] ${getColorClasses(tab.color, isActive)}`}
+                        className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 sm:py-2 rounded-lg transition-all flex-shrink-0 min-h-[44px] sm:min-h-[48px] ${getColorClasses(tab.color, isActive)}`}
                       >
                         <Icon className="w-5 h-5 flex-shrink-0" />
-                        <span className="font-semibold hidden sm:inline">{tab.label}</span>
+                        <span className="font-semibold text-xs sm:text-base">{tab.label}</span>
                       </button>
                     );
                   })}
@@ -1502,7 +1507,7 @@ export default function MainTabSystem() {
             className="border-b border-gray-700 bg-gray-800/50"
           >
             <div className="max-w-7xl mx-auto px-4 py-3">
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-1 sm:gap-2 overflow-x-auto">
                 {currentMainTab.subTabs.map((subTab) => {
                   const Icon = subTab.icon;
                   const isActive = activeSubTab === subTab.id;
@@ -1511,7 +1516,7 @@ export default function MainTabSystem() {
                     <button
                       key={subTab.id}
                       onClick={() => setActiveSubTab(subTab.id)}
-                      className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 sm:py-2 rounded-lg transition-all whitespace-nowrap min-h-[44px] ${
+                      className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[40px] sm:min-h-[44px] ${
                         isActive
                           ? 'bg-gray-700 text-white'
                           : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
