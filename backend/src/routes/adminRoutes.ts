@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../database';
+import { characterHealthCheck } from '../services/characterHealthCheck';
 
 const router = Router();
 
@@ -476,6 +477,36 @@ router.get('/debug/users', async (req, res) => {
     res.status(500).json({ 
       error: 'User debug failed', 
       details: error instanceof Error ? error.message : String(error) 
+    });
+  }
+});
+
+// Character health check endpoint
+router.post('/character-health-check', async (req, res) => {
+  try {
+    console.log('🩺 Manual character health check requested via API');
+    const result = await characterHealthCheck.manualHealthCheck();
+    
+    if (result.success) {
+      res.json({ 
+        success: true, 
+        message: result.message,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: result.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    console.error('❌ Health check endpoint failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Health check endpoint failed', 
+      details: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
     });
   }
 });

@@ -18,6 +18,7 @@ import { UserService } from './services/userService';
 import { cardPackService } from './services/CardPackService';
 import { paymentService } from './services/PaymentService';
 import { LobbyService } from './services/lobbyService';
+import './services/characterHealthCheck'; // Auto-starts character health monitoring
 
 // Import route modules
 import authRouter from './routes/auth';
