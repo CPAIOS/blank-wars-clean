@@ -221,6 +221,7 @@ export default function ImprovedBattleArena() {
   const opponentMatchWinsRef = useRef(0);
   const playerRoundWinsRef = useRef(0);
   const opponentRoundWinsRef = useRef(0);
+  const clearQueueRef = useRef<(() => void) | null>(null);
   
   // Sync refs with state
   useEffect(() => {

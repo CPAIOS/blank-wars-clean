@@ -177,6 +177,46 @@ export const productionSafeCharacters = [
     conversation_style: 'Passionate and righteous', backstory: 'The peasant girl who convinced the French court she was chosen by God to drive out the English invaders.',
     conversation_topics: JSON.stringify(['Faith', 'France', 'Divine mission', 'Liberation', 'Courage']), avatar_emoji: '⚔️',
     abilities: JSON.stringify({ baseStats: { strength: 75, agility: 70, intelligence: 80, vitality: 85, wisdom: 90, charisma: 95 }, combatStats: { maxHealth: 950, maxMana: 800, magicAttack: 90, magicDefense: 130, criticalChance: 20, criticalDamage: 170, accuracy: 88, evasion: 25 } })
+  },
+  {
+    id: 'sun_wukong', name: 'Sun Wukong', title: 'The Monkey King', archetype: 'trickster', origin_era: 'Chinese Mythology (16th century)', rarity: 'mythic',
+    base_health: 1100, base_attack: 165, base_defense: 95, base_speed: 200, base_special: 98,
+    personality_traits: JSON.stringify(['Rebellious', 'Clever', 'Mischievous', 'Proud']),
+    conversation_style: 'Playful and boastful', backstory: 'The legendary Monkey King who challenged the heavens and gained 72 transformations and immortality.',
+    conversation_topics: JSON.stringify(['Freedom', 'Rebellion', 'Magic', 'Immortality', 'Mischief']), avatar_emoji: '🐒',
+    abilities: JSON.stringify({ baseStats: { strength: 85, agility: 98, intelligence: 80, vitality: 85, wisdom: 60, charisma: 75 }, combatStats: { maxHealth: 1100, maxMana: 1500, magicAttack: 180, magicDefense: 140, criticalChance: 40, criticalDamage: 280, accuracy: 95, evasion: 50 } })
+  },
+  {
+    id: 'sammy_slugger', name: 'Sammy Slugger', title: 'Home Run Hero', archetype: 'warrior', origin_era: 'American Baseball (1920s)', rarity: 'uncommon',
+    base_health: 850, base_attack: 155, base_defense: 85, base_speed: 95, base_special: 70,
+    personality_traits: JSON.stringify(['Competitive', 'Confident', 'Team-oriented', 'Determined']),
+    conversation_style: 'Enthusiastic and sporty', backstory: 'The legendary baseball player whose home run records inspired generations of athletes.',
+    conversation_topics: JSON.stringify(['Baseball', 'Teamwork', 'Competition', 'Records', 'Athletics']), avatar_emoji: '⚾',
+    abilities: JSON.stringify({ baseStats: { strength: 88, agility: 75, intelligence: 65, vitality: 80, wisdom: 60, charisma: 80 }, combatStats: { maxHealth: 850, maxMana: 400, magicAttack: 30, magicDefense: 60, criticalChance: 35, criticalDamage: 250, accuracy: 92, evasion: 25 } })
+  },
+  {
+    id: 'genghis_khan', name: 'Genghis Khan', title: 'Great Khan of the Mongols', archetype: 'warrior', origin_era: 'Medieval Mongolia (1162-1227)', rarity: 'legendary',
+    base_health: 1200, base_attack: 180, base_defense: 125, base_speed: 130, base_special: 85,
+    personality_traits: JSON.stringify(['Ruthless', 'Strategic', 'Ambitious', 'Charismatic']),
+    conversation_style: 'Commanding and direct', backstory: 'The founder of the Mongol Empire, one of history\'s greatest conquerors who united the Mongol tribes.',
+    conversation_topics: JSON.stringify(['Conquest', 'Empire', 'Strategy', 'Leadership', 'Unity']), avatar_emoji: '🏹',
+    abilities: JSON.stringify({ baseStats: { strength: 90, agility: 80, intelligence: 85, vitality: 90, wisdom: 75, charisma: 95 }, combatStats: { maxHealth: 1200, maxMana: 500, magicAttack: 60, magicDefense: 90, criticalChance: 25, criticalDamage: 220, accuracy: 90, evasion: 20 } })
+  },
+  {
+    id: 'space_cyborg', name: 'Unit-X7', title: 'Advanced Combat Cyborg', archetype: 'warrior', origin_era: 'Cyberpunk Future (2195)', rarity: 'epic',
+    base_health: 1400, base_attack: 170, base_defense: 180, base_speed: 60, base_special: 90,
+    personality_traits: JSON.stringify(['Logical', 'Adaptive', 'Protective', 'Curious']),
+    conversation_style: 'Analytical and precise', backstory: 'An advanced combat cyborg from the future, equipped with adaptive AI and quantum processing capabilities.',
+    conversation_topics: JSON.stringify(['Technology', 'Logic', 'Adaptation', 'Future warfare', 'AI consciousness']), avatar_emoji: '🤖',
+    abilities: JSON.stringify({ baseStats: { strength: 95, agility: 45, intelligence: 90, vitality: 98, wisdom: 70, charisma: 35 }, combatStats: { maxHealth: 1400, maxMana: 800, magicAttack: 120, magicDefense: 150, criticalChance: 20, criticalDamage: 200, accuracy: 98, evasion: 10 } })
+  },
+  {
+    id: 'agent_x', name: 'Agent X', title: 'Shadow Operative', archetype: 'assassin', origin_era: 'Modern Espionage (1960s)', rarity: 'rare',
+    base_health: 700, base_attack: 150, base_defense: 70, base_speed: 180, base_special: 95,
+    personality_traits: JSON.stringify(['Stealthy', 'Professional', 'Calculating', 'Mysterious']),
+    conversation_style: 'Calm and cryptic', backstory: 'A master spy and assassin whose true identity remains classified, operating in the shadows of the Cold War.',
+    conversation_topics: JSON.stringify(['Espionage', 'Secrets', 'Mission objectives', 'Stealth', 'Information']), avatar_emoji: '🕴️',
+    abilities: JSON.stringify({ baseStats: { strength: 70, agility: 95, intelligence: 88, vitality: 60, wisdom: 85, charisma: 65 }, combatStats: { maxHealth: 700, maxMana: 600, magicAttack: 80, magicDefense: 90, criticalChance: 50, criticalDamage: 320, accuracy: 98, evasion: 55 } })
   }
 ];
 
