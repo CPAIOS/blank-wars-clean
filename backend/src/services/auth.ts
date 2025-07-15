@@ -144,10 +144,10 @@ export class AuthService {
     // --- CHARACTER ASSIGNMENT USING PACKSERVICE ---
     // Use existing PackService to assign starter pack to new users
     console.log('🎁 Assigning starter pack using PackService...');
-    console.log('🔍 About to call PackService.generatePack with type: standard_starter');
+    console.log('🔍 About to call PackService.generatePack with type: demo_starter');
     try {
-      console.log('🆓 Generating standard_starter pack for new user');
-      const starterPackToken = await this.packService.generatePack('standard_starter');
+      console.log('🆓 Generating demo_starter pack for new user');
+      const starterPackToken = await this.packService.generatePack('demo_starter');
       console.log(`📦 Generated starter pack token: ${starterPackToken}`);
       
       // Auto-claim the starter pack for the new user
@@ -317,7 +317,7 @@ export class AuthService {
       } else {
         // New user gets a free starter pack
         console.log('🆓 Generating starter pack for new user');
-        const starterPackToken = await this.packService.generatePack('standard_starter');
+        const starterPackToken = await this.packService.generatePack('demo_starter');
         console.log(`📦 Generated starter pack token: ${starterPackToken}`);
         
         // Auto-claim the starter pack

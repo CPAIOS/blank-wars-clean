@@ -18,12 +18,21 @@ interface PackGenerationRules {
 
 export class PackService {
   private packRules: { [key: string]: PackGenerationRules } = {
-    standard_starter: {
+    // TODO: Re-enable after demo - standard random selection
+    // standard_starter: {
+    //   count: 3,
+    //   rarity_weights: {
+    //     common: 0.7,
+    //     uncommon: 0.25,
+    //     rare: 0.05,
+    //   },
+    // },
+    demo_starter: {
       count: 3,
       rarity_weights: {
-        common: 0.7,
-        uncommon: 0.25,
-        rare: 0.05,
+        rare: 0.4,
+        epic: 0.4,
+        legendary: 0.2,
       },
     },
     premium_starter: {
@@ -46,10 +55,59 @@ export class PackService {
     this.characterEchoService = new CharacterEchoService();
   }
 
+  // TODO: Remove after demo - Demo character selection with art
+  private async getDemoCharacterSelection(): Promise<string[]> {
+    // Original 17 characters from template - many have art completed or in progress
+    const charactersWithArt = [
+      'achilles',           // Achilles - has art
+      'merlin',             // Merlin - has art  
+      'fenrir',             // Fenrir - has art
+      'cleopatra',          // Cleopatra - has art and in progress art
+      'holmes',             // Sherlock Holmes - has art
+      'dracula',            // Dracula - has art
+      'joan',               // Joan of Arc - has art
+      'frankenstein_monster', // Frankenstein's Monster - has art
+      'sun_wukong',         // Sun Wukong - has art
+      'sammy_slugger',      // Sammy Slugger - has art
+      'billy_the_kid',      // Billy the Kid - has art
+      'genghis_khan',       // Genghis Khan - has art
+      'space_cyborg',       // Space Cyborg - has art
+      'tesla',              // Tesla - has art
+      'alien_grey',         // Alien Grey - has art
+      'robin_hood',         // Robin Hood - has art
+      'agent_x'             // Agent X - has art
+    ];
+    
+    // Randomly select 3 characters from the demo set
+    const selectedChars: string[] = [];
+    const availableChars = [...charactersWithArt];
+    
+    for (let i = 0; i < 3; i++) {
+      const randomIndex = Math.floor(Math.random() * availableChars.length);
+      selectedChars.push(availableChars[randomIndex]);
+      availableChars.splice(randomIndex, 1); // Remove to prevent duplicates
+    }
+    
+    console.log(`🎭 Demo selection from original 17: ${selectedChars.join(', ')}`);
+    return selectedChars;
+  }
+
   // Generates a new pack based on predefined rules
   async generatePack(packType: string): Promise<string> {
     console.log(`🎁 Starting pack generation for type: ${packType}`);
     console.log(`🔍 Available pack rules:`, Object.keys(this.packRules));
+    
+    // TODO: Remove after demo - Special handling for demo_starter
+    if (packType === 'demo_starter') {
+      console.log(`🎭 Using demo character selection instead of random generation`);
+      const demoCharacters = await this.getDemoCharacterSelection();
+      const packId = uuidv4();
+      
+      // Use direct assignment for demo characters
+      console.log(`🔄 Creating demo pack token for direct assignment`);
+      return `DIRECT_ASSIGN:${demoCharacters.join(',')}`;
+    }
+    
     const rules = this.packRules[packType];
     if (!rules) {
       throw new Error(`Pack type ${packType} not found.`);
