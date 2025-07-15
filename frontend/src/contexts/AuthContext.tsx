@@ -95,7 +95,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (storedTokens) {
           try {
             const tokens = JSON.parse(storedTokens);
-            console.log('📝 Found stored tokens, setting up authentication');
+            console.log('📝 Found stored tokens, checking if still valid');
             setTokens(tokens);
           } catch (e) {
             console.error('Error parsing stored tokens:', e);
@@ -103,26 +103,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
         
+        // Try to get profile - this will use stored tokens via Authorization header fallback
         const profile = await authService.getProfile();
         setUser(profile);
+        console.log('✅ Authentication successful using existing session');
       } catch (error) {
-        // If profile fetch fails, try to refresh token first
-        console.log('Initial profile fetch failed, attempting token refresh...');
-        try {
-          await authService.refreshToken();
-          console.log('Token refresh successful, retrying profile fetch...');
-          // If refresh succeeds, try to get profile again
-          const profile = await authService.getProfile();
-          setUser(profile);
-          console.log('Profile restored successfully after token refresh');
-        } catch (refreshError) {
-          console.log('Token refresh failed:', refreshError);
-          console.log('No valid session found');
-          setUser(null);
-          // Clear any invalid stored tokens
-          localStorage.removeItem('authTokens');
-          setTokens(null);
-        }
+        // If profile fetch fails, clear everything and let user log in fresh
+        console.log('Initial profile fetch failed:', error);
+        console.log('🔄 Clearing expired session, user needs to authenticate');
+        setUser(null);
+        // Clear any invalid stored tokens
+        localStorage.removeItem('authTokens');
+        setTokens(null);
+        // Don't attempt manual refresh since apiClient interceptor already tries that
       } finally {
         setIsLoading(false);
       }

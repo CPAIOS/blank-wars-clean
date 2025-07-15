@@ -52,9 +52,9 @@ apiClient.interceptors.response.use(
         // Retry the original request
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, redirect to login
-        console.log('Token refresh failed, user needs to log in again');
-        // Don't redirect here since this is a service - let the auth context handle it
+        // Refresh failed, clear stored tokens and require re-login
+        console.log('🔄 Token refresh failed, clearing stored tokens');
+        localStorage.removeItem('authTokens');
         
         // Create a custom error to indicate authentication failure
         const authError = new Error('Authentication failed - user needs to log in');
