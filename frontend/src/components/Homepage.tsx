@@ -138,10 +138,26 @@ export default function Homepage() {
   ];
 
   const handlePanelClick = (route: string) => {
-    // For now, navigate to coach page which loads MainTabSystem
-    // TODO: Implement proper tab navigation when MainTabSystem supports URL parameters
-    console.log(`Navigating from homepage panel: ${route}`);
-    router.push('/coach');
+    // Map routes to MainTabSystem tabs and subtabs based on actual tab structure
+    const routeToTabAndSubtab: Record<string, { tab: string; subtab?: string }> = {
+      '/characters': { tab: 'characters', subtab: 'progression' }, // Character progression
+      '/packs': { tab: 'battle', subtab: 'packs' }, // Packs are under battle tab
+      '/training': { tab: 'training', subtab: 'activities' }, // Training activities
+      '/battle': { tab: 'battle', subtab: 'team-arena' }, // Team battle arena
+      '/headquarters': { tab: 'headquarters', subtab: 'overview' }, // Team base
+      '/coaching': { tab: 'coach', subtab: 'individual-sessions' }, // Individual coaching sessions
+      '/facilities': { tab: 'headquarters', subtab: 'overview' }, // Team Base (includes facilities)
+      '/leaderboard': { tab: 'social', subtab: 'clubhouse' } // Community/clubhouse
+    };
+    
+    const config = routeToTabAndSubtab[route] || { tab: 'characters', subtab: 'progression' };
+    console.log(`Navigating to tab: ${config.tab}, subtab: ${config.subtab} from route: ${route}`);
+    
+    const url = config.subtab 
+      ? `/game?tab=${config.tab}&subtab=${config.subtab}`
+      : `/game?tab=${config.tab}`;
+    
+    router.push(url);
   };
 
   return (
