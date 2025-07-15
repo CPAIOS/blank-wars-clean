@@ -50,15 +50,15 @@ router.post('/update-archetype-constraints', async (req, res) => {
   try {
     console.log('🔧 Updating archetype constraints...');
     
-    // Test if trickster archetype is supported
+    // Test if support archetype is supported (this is what actually fails)
     try {
       await query(`
         INSERT INTO characters (id, name, title, archetype, origin_era, rarity, base_health, base_attack, base_defense, base_speed, base_special, personality_traits, conversation_style, backstory, conversation_topics, avatar_emoji, abilities) 
-        VALUES ('test_trickster', 'Test', 'Test', 'trickster', 'Test', 'common', 100, 100, 100, 100, 100, '[]', 'Test', 'Test', '[]', '🎭', '{}')
+        VALUES ('test_support', 'Test', 'Test', 'support', 'Test', 'common', 100, 100, 100, 100, 100, '[]', 'Test', 'Test', '[]', '🎭', '{}')
       `);
       
       // Clean up test record
-      await query(`DELETE FROM characters WHERE id = 'test_trickster'`);
+      await query(`DELETE FROM characters WHERE id = 'test_support'`);
       console.log('✅ Archetype constraints already support all types');
       return res.json({ success: true, message: 'Archetype constraints already support all types' });
       
@@ -82,7 +82,7 @@ router.post('/update-archetype-constraints', async (req, res) => {
               id TEXT PRIMARY KEY,
               name TEXT NOT NULL,
               title TEXT,
-              archetype TEXT CHECK (archetype IN ('warrior', 'scholar', 'trickster', 'beast', 'leader', 'mage', 'mystic', 'tank', 'assassin')),
+              archetype TEXT CHECK (archetype IN ('warrior', 'scholar', 'trickster', 'beast', 'leader', 'mage', 'mystic', 'tank', 'assassin', 'support', 'elementalist')),
               origin_era TEXT,
               rarity TEXT CHECK (rarity IN ('common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic')),
               base_health INTEGER NOT NULL,
@@ -445,6 +445,36 @@ router.post('/fix/characters/:userId', async (req, res) => {
     console.error('❌ Character fix failed:', error);
     res.status(500).json({ 
       error: 'Character fix failed', 
+      details: error instanceof Error ? error.message : String(error) 
+    });
+  }
+});
+
+// Debug endpoint to check if user exists and get all users with 0 characters
+router.get('/debug/users', async (req, res) => {
+  try {
+    // Get all users
+    const allUsers = await query('SELECT id, username, email FROM users ORDER BY id', []);
+    
+    // Get users with their character counts
+    const usersWithCharCounts = await query(`
+      SELECT u.id, u.username, u.email, COUNT(uc.id) as character_count
+      FROM users u 
+      LEFT JOIN user_characters uc ON u.id = uc.user_id 
+      GROUP BY u.id, u.username, u.email
+      ORDER BY character_count ASC, u.id
+    `, []);
+    
+    res.json({
+      success: true,
+      totalUsers: allUsers.rows.length,
+      usersWithCharacterCounts: usersWithCharCounts.rows
+    });
+    
+  } catch (error) {
+    console.error('❌ User debug failed:', error);
+    res.status(500).json({ 
+      error: 'User debug failed', 
       details: error instanceof Error ? error.message : String(error) 
     });
   }
