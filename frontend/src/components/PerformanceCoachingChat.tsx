@@ -327,6 +327,30 @@ export default function PerformanceCoachingChat({
   }, [selectedCharacter?.id]);
 
 
+  // Add loading state check
+  if (charactersLoading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-gradient-to-br from-orange-900/20 to-red-900/20 rounded-xl backdrop-blur-sm border border-orange-500/30 p-8 text-center">
+          <h3 className="text-lg font-bold text-white mb-2">Loading Performance Coaching...</h3>
+          <p className="text-orange-200">Please wait while we load your characters</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Add check for no selected character
+  if (!selectedCharacter) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-gradient-to-br from-orange-900/20 to-red-900/20 rounded-xl backdrop-blur-sm border border-orange-500/30 p-8 text-center">
+          <h3 className="text-lg font-bold text-white mb-2">No Character Selected</h3>
+          <p className="text-orange-200">Please select a character to start performance coaching</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto">
       <motion.div 
