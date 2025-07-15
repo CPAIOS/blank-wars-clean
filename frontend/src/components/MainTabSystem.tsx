@@ -305,6 +305,16 @@ export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSyst
     }, [availableCharacters, globalSelectedCharacterId]);
     console.log('Progression - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
     
+    // Add null check for selectedCharacter
+    if (!selectedCharacter) {
+      return (
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold mb-4 text-gray-400">No Characters Found</h2>
+          <p className="text-gray-500">You don't have any characters yet. Try refreshing the page or check your connection.</p>
+        </div>
+      );
+    }
+    
     return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row gap-6">
@@ -464,6 +474,16 @@ export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSyst
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
     console.log('Equipment - globalSelectedCharacterId:', globalSelectedCharacterId, 'selectedCharacter:', selectedCharacter?.name);
+    
+    // Add null check for selectedCharacter
+    if (!selectedCharacter) {
+      return (
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold mb-4 text-gray-400">No Characters Found</h2>
+          <p className="text-gray-500">You don't have any characters yet. Try refreshing the page or check your connection.</p>
+        </div>
+      );
+    }
     
     // Handle equipment changes
     const handleEquip = (equipment: any) => {
@@ -655,6 +675,17 @@ export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSyst
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
+    
+    // Add null check for selectedCharacter
+    if (!selectedCharacter) {
+      return (
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold mb-4 text-gray-400">No Characters Found</h2>
+          <p className="text-gray-500">You don't have any characters yet. Try refreshing the page or check your connection.</p>
+        </div>
+      );
+    }
+    
     const currentTrainingPoints = characterAbilities[globalSelectedCharacterId]?.trainingPoints || (selectedCharacter.level * 2);
     
     return (

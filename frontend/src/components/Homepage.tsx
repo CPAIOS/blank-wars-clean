@@ -179,10 +179,12 @@ export default function Homepage() {
           </motion.button>
         </div>
         
-        <MainTabSystem 
-          defaultTab={activeTab}
-          defaultSubtab={activeSubtab}
-        />
+        <div className="p-8 text-center">
+          <h1 className="text-2xl mb-4">Game Section Loading...</h1>
+          <p>Tab: {activeTab}</p>
+          <p>Subtab: {activeSubtab}</p>
+          <p>This is a temporary placeholder to test navigation</p>
+        </div>
       </div>
     );
   }

@@ -1,11 +1,11 @@
 // Comprehensive Character Database
 // Full character stats, abilities, progression trees, and game data
 
-import { CharacterExperience } from '../../../frontend/src/data/experience';
-import { CharacterAbilities } from '../../../frontend/src/data/abilities';
-import { CharacterSkills } from '../../../frontend/src/data/characterProgression';
-import { Equipment, allEquipment } from '../../../frontend/src/data/equipment';
-import { Item } from '../../../frontend/src/data/items';
+import { CharacterExperience } from './experience';
+import { Ability } from './abilities';
+import { CharacterSkills } from './characterProgression';
+import { Equipment, allEquipment } from './equipment';
+import { Item } from './items';
 
 export type CharacterArchetype = 
   | 'warrior' | 'mage' | 'assassin' | 'tank' | 'support' 
@@ -111,7 +111,7 @@ export interface Character {
   // Progression
   experience: CharacterExperience;
   skills: CharacterSkills;
-  abilities: CharacterAbilities;
+  abilities: Ability[];
   progressionTree: ProgressionTree;
   
   // Equipment & Items
