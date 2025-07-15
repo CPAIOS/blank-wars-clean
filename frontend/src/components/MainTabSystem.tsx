@@ -364,10 +364,12 @@ export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSyst
             </div>
 
             {/* Performance Coaching Chat */}
-            <PerformanceCoachingChat 
-              selectedCharacterId={globalSelectedCharacterId}
-              onCharacterChange={setGlobalSelectedCharacterId}
-            />
+            <div className="performance-coaching-wrapper">
+              <PerformanceCoachingChat 
+                selectedCharacterId={globalSelectedCharacterId}
+                onCharacterChange={setGlobalSelectedCharacterId}
+              />
+            </div>
             
             <ProgressionDashboard
               character={selectedCharacter}
