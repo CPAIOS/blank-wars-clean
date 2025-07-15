@@ -57,8 +57,9 @@ export default function CharacterDatabase({
   // Filter characters
   const filteredCharacters = allCharacters.filter(character => {
     // Search filter
-    if (searchTerm && !character.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !character.description.toLowerCase().includes(searchTerm.toLowerCase())) {
+    if (searchTerm && 
+        !(character.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) &&
+        !(character.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false)) {
       return false;
     }
 

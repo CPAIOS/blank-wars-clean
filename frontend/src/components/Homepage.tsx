@@ -217,7 +217,7 @@ export default function Homepage() {
         transition={{ duration: 0.8 }}
         className="max-w-7xl mx-auto px-4 py-16"
       >
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-16">
           <motion.div
             whileHover={{ scale: 1.05 }}
             className="bg-gradient-to-br from-yellow-900/30 to-yellow-900/10 rounded-xl p-6 border border-yellow-700/30"
@@ -265,8 +265,8 @@ export default function Homepage() {
         </div>
 
         {/* Navigation Panels */}
-        <h2 className="text-4xl font-bold mb-8 text-center">Where would you like to go?</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-8 text-center">Where would you like to go?</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {navigationPanels.map((panel, index) => (
             <motion.div
               key={panel.id}
@@ -278,11 +278,12 @@ export default function Homepage() {
               onClick={() => handlePanelClick(panel.route)}
               className={`cursor-pointer rounded-xl p-6 border ${panel.bgColor} ${panel.color} 
                          border-gray-700 hover:border-current transition-all duration-300 
-                         shadow-lg hover:shadow-2xl hover:shadow-current/20`}
+                         shadow-lg hover:shadow-2xl hover:shadow-current/20 min-h-[200px] sm:min-h-[220px]
+                         active:scale-95 touch-manipulation`}
             >
-              <panel.icon className="w-16 h-16 mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-2">{panel.title}</h3>
-              <p className="text-gray-300 text-sm">{panel.description}</p>
+              <panel.icon className="w-12 h-12 sm:w-16 sm:h-16 mb-4" />
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">{panel.title}</h3>
+              <p className="text-gray-300 text-sm sm:text-base leading-relaxed">{panel.description}</p>
               <motion.div
                 initial={{ x: 0 }}
                 whileHover={{ x: 5 }}

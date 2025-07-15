@@ -121,6 +121,15 @@ export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSyst
   const [isMainTabExpanded, setIsMainTabExpanded] = useState(true);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState('achilles');
   
+  // 🐛 DEBUG MODE - Remove this entire section after debugging
+  const [isDebugMode, setIsDebugMode] = useState(false);
+  const debugLog = (message: string, data?: any) => {
+    if (isDebugMode) {
+      console.log(message, data);
+    }
+  };
+  // 🐛 END DEBUG SECTION
+  
   console.log('🔥 MainTabSystem state:', { activeMainTab, activeSubTab, globalSelectedCharacterId });
 
   // Demo character data with enhanced training integration
@@ -981,7 +990,7 @@ export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSyst
       <GameplanTracker 
         characters={demoCharacters}
         isActive={true}
-        onGameplanAlert={(event) => console.log('Gameplan Alert:', event)}
+        onGameplanAlert={(event) => debugLog('Gameplan Alert:', event)}
       />
     );
   };
@@ -1503,6 +1512,13 @@ export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSyst
                 )}
               </button>
               
+              {/* Mobile helper text when collapsed */}
+              {!isMainTabExpanded && (
+                <div className="block sm:hidden text-xs text-gray-400 px-2 py-1 rounded bg-gray-800/50">
+                  Tap ← to see menu options
+                </div>
+              )}
+              
               <div className="flex-1 min-w-0 overflow-x-auto">
                 <div className="flex gap-1 sm:gap-2">
                   {mainTabs.map((tab) => {
@@ -1516,16 +1532,39 @@ export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSyst
                           setActiveMainTab(tab.id);
                           setActiveSubTab(tab.subTabs[0].id);
                         }}
-                        className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 sm:py-2 rounded-lg transition-all flex-shrink-0 min-h-[44px] sm:min-h-[48px] ${getColorClasses(tab.color, isActive)}`}
+                        className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-3 md:px-4 py-3 sm:py-2 rounded-lg transition-all flex-shrink-0 min-h-[48px] sm:min-h-[48px] ${getColorClasses(tab.color, isActive)}`}
                       >
                         <Icon className="w-5 h-5 flex-shrink-0" />
-                        <span className="font-semibold text-xs sm:text-base">{tab.label}</span>
+                        <span className="font-semibold text-sm sm:text-base">{tab.label}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
             </div>
+            
+            {/* 🐛 DEBUG BUTTON - Remove this entire section after debugging */}
+            <div className="flex-shrink-0">
+              <button
+                onClick={() => setIsDebugMode(!isDebugMode)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium ${
+                  isDebugMode 
+                    ? 'bg-yellow-600 text-white' 
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+                title={isDebugMode ? 'Debug mode ON - Click to disable' : 'Debug mode OFF - Click to enable'}
+              >
+                {isDebugMode ? (
+                  <Eye className="w-4 h-4" />
+                ) : (
+                  <EyeOff className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isDebugMode ? 'Debug ON' : 'Debug'}
+                </span>
+              </button>
+            </div>
+            {/* 🐛 END DEBUG SECTION */}
           </div>
         </div>
       </div>
@@ -1549,7 +1588,7 @@ export default function MainTabSystem({ defaultTab, defaultSubtab }: MainTabSyst
                     <button
                       key={subTab.id}
                       onClick={() => setActiveSubTab(subTab.id)}
-                      className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[40px] sm:min-h-[44px] ${
+                      className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-3 py-3 rounded-lg transition-all whitespace-nowrap min-h-[48px] sm:min-h-[48px] ${
                         isActive
                           ? 'bg-gray-700 text-white'
                           : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
