@@ -81,7 +81,7 @@ export default function EquipmentDetailsModal({
 }: EquipmentDetailsModalProps) {
   if (!equipment) return null;
 
-  const config = rarityConfig[equipment.rarity];
+  const config = rarityConfig[equipment.rarity] || rarityConfig.common;
   
   // Calculate compatibility if character is provided
   const compatibility = character ? getEquipmentCompatibility(character, equipment) : null;

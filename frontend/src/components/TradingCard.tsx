@@ -26,32 +26,39 @@ const rarityConfig = {
     stars: 1,
     rarityColor: 'text-gray-600'
   },
+  uncommon: {
+    borderGradient: 'from-green-400 to-green-600',
+    bgGradient: 'from-green-50 to-green-100',
+    glowColor: 'shadow-green-300/50',
+    stars: 2,
+    rarityColor: 'text-green-600'
+  },
   rare: {
     borderGradient: 'from-blue-400 to-blue-600',
     bgGradient: 'from-blue-50 to-blue-100',
     glowColor: 'shadow-blue-300/50',
-    stars: 2,
+    stars: 3,
     rarityColor: 'text-blue-600'
   },
   epic: {
     borderGradient: 'from-purple-400 to-purple-600',
     bgGradient: 'from-purple-50 to-purple-100',
     glowColor: 'shadow-purple-300/50',
-    stars: 3,
+    stars: 4,
     rarityColor: 'text-purple-600'
   },
   legendary: {
     borderGradient: 'from-yellow-400 to-orange-500',
     bgGradient: 'from-yellow-50 to-orange-100',
     glowColor: 'shadow-yellow-300/50',
-    stars: 4,
+    stars: 5,
     rarityColor: 'text-orange-600'
   },
   mythic: {
     borderGradient: 'from-red-500 via-pink-500 to-purple-500',
     bgGradient: 'from-red-50 to-purple-100',
     glowColor: 'shadow-pink-300/50',
-    stars: 5,
+    stars: 6,
     rarityColor: 'text-red-600'
   }
 };
@@ -108,7 +115,7 @@ export default function TradingCard({
   onMouseLeave,
   className = ''
 }: TradingCardProps) {
-  const rarity = rarityConfig[character.rarity];
+  const rarity = rarityConfig[character.rarity] || rarityConfig.common;
   const sizing = sizeConfig[size];
   const mentalHealthLevel = getMentalHealthLevel(character.psychStats.mentalHealth);
   

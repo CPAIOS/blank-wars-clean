@@ -124,7 +124,7 @@ export default function CharacterCardWithEquipment({
   const powerLevel = getCharacterPowerLevel(character);
   const weaponProgression = getCharacterWeaponProgression(character.id);
   
-  const config = rarityConfig[character.rarity];
+  const config = rarityConfig[character.rarity] || rarityConfig.common;
   const sizeConfig_ = sizeConfig[size];
   
   const renderStars = (count: number) => {
