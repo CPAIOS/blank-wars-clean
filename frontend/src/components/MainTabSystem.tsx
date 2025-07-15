@@ -1660,7 +1660,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               avatar: char.avatar || '⚔️',
               financials: mockFinancialData
             };
-          });
+          }));
           
           setAvailableCharacters(enhancedCharacters);
           
@@ -1818,7 +1818,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           }
           
           console.log(`Decision processed: ${character.name} chose ${choice}, outcome: ${outcome.outcome}`);
-          console.log(`Financial impact: $${outcome.financialImpact.toLocaleString()}, Stress: ${outcome.stressImpact:+d}, Trust: ${outcome.trustImpact:+d}`);
+          console.log(`Financial impact: $${outcome.financialImpact.toLocaleString()}, Stress: ${outcome.stressImpact >= 0 ? '+' : ''}${outcome.stressImpact}, Trust: ${outcome.trustImpact >= 0 ? '+' : ''}${outcome.trustImpact}`);
           
           // Remove decision from pending list
           setPendingDecisions(prev => prev.filter(d => d.id !== decisionId));
