@@ -157,6 +157,10 @@ export default function Homepage() {
             alt="Blank Wars Homepage"
             className="w-full h-full object-contain bg-gray-900"
           />
+          {/* Test marker to verify deployment */}
+          <div className="absolute top-4 right-4 bg-green-500 text-white px-2 py-1 text-xs rounded">
+            BUILD: {Date.now()}
+          </div>
         </motion.div>
 
       </div>
