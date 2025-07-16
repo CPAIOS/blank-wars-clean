@@ -103,7 +103,7 @@ export interface CharacterMemory {
   id: string;
   characterId: string;
   eventId: string;
-  memoryType: 'battle' | 'social' | 'training' | 'achievement' | 'conflict' | 'bonding';
+  memoryType: 'battle' | 'social' | 'training' | 'achievement' | 'conflict' | 'bonding' | 'financial';
   content: string;
   emotionalIntensity: number; // 1-10
   emotionalValence: 'positive' | 'negative' | 'neutral';
@@ -114,6 +114,14 @@ export interface CharacterMemory {
   associatedCharacters: string[];
   tags: string[];
   decayRate: number; // How quickly this memory fades
+  // Financial memory specific data
+  financialMetadata?: {
+    decisionType: 'investment' | 'purchase' | 'advice' | 'crisis' | 'spiral' | 'breakthrough';
+    amountInvolved: number;
+    outcome: 'success' | 'failure' | 'pending';
+    stressImpact: number;
+    trustImpact: number;
+  };
 }
 
 export class GameEventBus {
@@ -598,7 +606,7 @@ export class GameEventBus {
     metadata: Record<string, any> = {},
     severity: EventSeverity = 'medium'
   ): Promise<string> {
-    return this.publish({
+    const eventId = await this.publish({
       type,
       source: 'financial_advisory',
       primaryCharacterId: characterId,
@@ -609,6 +617,205 @@ export class GameEventBus {
       tags: ['financial', 'money'],
       resolved: false
     });
+
+    // Create financial memory for significant events
+    if (this.shouldCreateFinancialMemory(type, severity)) {
+      this.addFinancialMemory(eventId, characterId, type, description, metadata, severity);
+    }
+
+    return eventId;
+  }
+
+  /**
+   * Add a financial memory to the existing memory system
+   */
+  public addFinancialMemory(
+    eventId: string,
+    characterId: string,
+    eventType: EventType,
+    description: string,
+    metadata: Record<string, any>,
+    severity: EventSeverity
+  ): void {
+    const importance = this.calculateFinancialMemoryImportance(eventType, severity, metadata);
+    const emotionalIntensity = this.calculateFinancialEmotionalIntensity(eventType, metadata);
+    const emotionalValence = this.calculateFinancialEmotionalValence(eventType, metadata);
+    const decisionType = this.mapEventToDecisionType(eventType);
+    
+    const memory: CharacterMemory = {
+      id: `financial_memory_${Date.now()}_${characterId}`,
+      characterId,
+      eventId,
+      memoryType: 'financial',
+      content: description,
+      emotionalIntensity,
+      emotionalValence,
+      importance,
+      createdAt: new Date(),
+      lastRecalled: new Date(),
+      recallCount: 0,
+      associatedCharacters: [],
+      tags: ['financial', 'money', eventType],
+      decayRate: this.calculateFinancialMemoryDecayRate(importance, emotionalIntensity),
+      financialMetadata: {
+        decisionType,
+        amountInvolved: metadata.amount || 0,
+        outcome: this.determineFinancialOutcome(eventType, metadata),
+        stressImpact: metadata.stressChange || 0,
+        trustImpact: metadata.trustChange || 0
+      }
+    };
+
+    this.memories.set(memory.id, memory);
+    
+    // Add to character's memory list using existing system
+    if (!this.memoriesByCharacter.has(characterId)) {
+      this.memoriesByCharacter.set(characterId, []);
+    }
+    this.memoriesByCharacter.get(characterId)!.push(memory.id);
+  }
+
+  /**
+   * Determine if a financial event should create a memory
+   */
+  private shouldCreateFinancialMemory(eventType: EventType, severity: EventSeverity): boolean {
+    const significantEvents = [
+      'financial_decision_made',
+      'financial_crisis',
+      'financial_breakthrough',
+      'financial_spiral_started',
+      'financial_spiral_broken',
+      'luxury_purchase',
+      'investment_outcome',
+      'trust_gained',
+      'trust_lost',
+      'victory_splurge',
+      'defeat_desperation'
+    ];
+
+    return significantEvents.includes(eventType) || severity === 'high' || severity === 'critical';
+  }
+
+  /**
+   * Calculate importance of financial memory (1-10)
+   */
+  private calculateFinancialMemoryImportance(
+    eventType: EventType,
+    severity: EventSeverity,
+    metadata: Record<string, any>
+  ): number {
+    let importance = 5; // Base importance
+
+    // Adjust based on event type
+    const highImportanceEvents = ['financial_crisis', 'financial_breakthrough', 'financial_spiral_started'];
+    const mediumImportanceEvents = ['luxury_purchase', 'investment_outcome', 'trust_gained', 'trust_lost'];
+    
+    if (highImportanceEvents.includes(eventType)) {
+      importance += 3;
+    } else if (mediumImportanceEvents.includes(eventType)) {
+      importance += 2;
+    }
+
+    // Adjust based on severity
+    const severityBonus = { low: 0, medium: 1, high: 2, critical: 3 };
+    importance += severityBonus[severity];
+
+    // Adjust based on amount involved
+    const amount = metadata.amount || 0;
+    if (amount > 10000) importance += 2;
+    else if (amount > 5000) importance += 1;
+
+    return Math.min(10, Math.max(1, importance));
+  }
+
+  /**
+   * Calculate emotional intensity of financial memory (1-10)
+   */
+  private calculateFinancialEmotionalIntensity(eventType: EventType, metadata: Record<string, any>): number {
+    let intensity = 5;
+
+    // High intensity events
+    if (['financial_crisis', 'financial_breakthrough', 'financial_spiral_started'].includes(eventType)) {
+      intensity = 8;
+    }
+    // Medium intensity events
+    else if (['luxury_purchase', 'victory_splurge', 'defeat_desperation'].includes(eventType)) {
+      intensity = 6;
+    }
+
+    // Adjust based on stress/trust changes
+    const stressChange = Math.abs(metadata.stressChange || 0);
+    const trustChange = Math.abs(metadata.trustChange || 0);
+    
+    if (stressChange > 20 || trustChange > 20) intensity += 2;
+    else if (stressChange > 10 || trustChange > 10) intensity += 1;
+
+    return Math.min(10, Math.max(1, intensity));
+  }
+
+  /**
+   * Calculate emotional valence of financial memory
+   */
+  private calculateFinancialEmotionalValence(
+    eventType: EventType,
+    metadata: Record<string, any>
+  ): 'positive' | 'negative' | 'neutral' {
+    const positiveEvents = ['financial_breakthrough', 'trust_gained', 'financial_goal_achieved', 'investment_outcome'];
+    const negativeEvents = ['financial_crisis', 'financial_spiral_started', 'trust_lost', 'defeat_desperation'];
+
+    if (positiveEvents.includes(eventType)) return 'positive';
+    if (negativeEvents.includes(eventType)) return 'negative';
+
+    // Check outcome in metadata
+    if (metadata.outcome === 'success') return 'positive';
+    if (metadata.outcome === 'failure') return 'negative';
+
+    // Check stress change
+    const stressChange = metadata.stressChange || 0;
+    if (stressChange > 0) return 'negative';
+    if (stressChange < 0) return 'positive';
+
+    return 'neutral';
+  }
+
+  /**
+   * Map event type to decision type
+   */
+  private mapEventToDecisionType(eventType: EventType): 'investment' | 'purchase' | 'advice' | 'crisis' | 'spiral' | 'breakthrough' {
+    if (eventType.includes('investment')) return 'investment';
+    if (eventType.includes('purchase') || eventType.includes('splurge')) return 'purchase';
+    if (eventType.includes('advice') || eventType.includes('trust')) return 'advice';
+    if (eventType.includes('crisis')) return 'crisis';
+    if (eventType.includes('spiral')) return 'spiral';
+    if (eventType.includes('breakthrough')) return 'breakthrough';
+    return 'advice'; // Default
+  }
+
+  /**
+   * Determine financial outcome
+   */
+  private determineFinancialOutcome(eventType: EventType, metadata: Record<string, any>): 'success' | 'failure' | 'pending' {
+    if (metadata.outcome) return metadata.outcome;
+    
+    const successEvents = ['financial_breakthrough', 'trust_gained', 'financial_goal_achieved'];
+    const failureEvents = ['financial_crisis', 'financial_spiral_started', 'trust_lost'];
+    
+    if (successEvents.includes(eventType)) return 'success';
+    if (failureEvents.includes(eventType)) return 'failure';
+    
+    return 'pending';
+  }
+
+  /**
+   * Calculate memory decay rate based on importance and emotional intensity
+   */
+  private calculateFinancialMemoryDecayRate(importance: number, emotionalIntensity: number): number {
+    // Higher importance and intensity = slower decay
+    const baseDecay = 0.1;
+    const importanceReduction = (importance - 5) * 0.01;
+    const intensityReduction = (emotionalIntensity - 5) * 0.01;
+    
+    return Math.max(0.01, baseDecay - importanceReduction - intensityReduction);
   }
 
   async publishEarningsEvent(characterId: string, amount: number, source: string): Promise<string> {

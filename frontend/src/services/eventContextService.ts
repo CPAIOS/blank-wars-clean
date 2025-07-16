@@ -515,6 +515,148 @@ export class EventContextService {
     const context = await this.generateCompressedContext(characterId, config);
     return this.formatContextForPrompt(context);
   }
+
+  /**
+   * Get financial decision history context for a character
+   */
+  async getFinancialContext(characterId: string): Promise<string> {
+    const config: ContextConfig = {
+      maxTokens: 250,
+      domainFocus: 'general',
+      includeLivingContext: false,
+      includeRelationships: false,
+      includeRecentEvents: true,
+      includeEmotionalState: true,
+      timeRange: '1_week'
+    };
+
+    // Get financial-specific memories
+    const financialMemories = this.eventBus.getCharacterMemories(characterId, {
+      memoryType: 'financial',
+      limit: 5
+    });
+
+    // Get recent financial events
+    const financialEvents = this.eventBus.getEventHistory(characterId, {
+      categories: ['financial'],
+      timeRange: '1_week',
+      limit: 10
+    });
+
+    const context = await this.generateCompressedContext(characterId, config);
+    
+    // Add financial-specific context
+    let financialContext = '';
+    
+    if (financialMemories.length > 0) {
+      const memoryStrings = financialMemories.map(memory => {
+        const outcome = memory.financialMetadata?.outcome || 'unknown';
+        const amount = memory.financialMetadata?.amountInvolved || 0;
+        const decisionType = memory.financialMetadata?.decisionType || 'unknown';
+        const timeAgo = this.getTimeAgo(memory.createdAt);
+        
+        return `• ${memory.content} (${decisionType}, $${amount.toLocaleString()}, ${outcome}, ${timeAgo})`;
+      });
+      
+      financialContext += `FINANCIAL DECISION HISTORY:\n${memoryStrings.join('\n')}\n\n`;
+    }
+
+    if (financialEvents.length > 0) {
+      const recentEvents = financialEvents.slice(0, 5).map(event => {
+        const timeAgo = this.getTimeAgo(event.timestamp);
+        const severity = this.getSeverityEmoji(event.severity);
+        return `• ${severity} ${event.description} (${timeAgo})`;
+      });
+      
+      financialContext += `RECENT FINANCIAL EVENTS:\n${recentEvents.join('\n')}\n\n`;
+    }
+
+    return financialContext + this.formatContextForPrompt(context);
+  }
+
+  /**
+   * Get financial patterns and trends for a character
+   */
+  async getFinancialPatterns(characterId: string): Promise<{
+    successfulDecisions: number;
+    failedDecisions: number;
+    totalAmount: number;
+    commonDecisionTypes: string[];
+    stressTrend: 'improving' | 'declining' | 'stable';
+    trustTrend: 'improving' | 'declining' | 'stable';
+  }> {
+    const financialMemories = this.eventBus.getCharacterMemories(characterId, {
+      memoryType: 'financial',
+      limit: 20
+    });
+
+    let successfulDecisions = 0;
+    let failedDecisions = 0;
+    let totalAmount = 0;
+    const decisionTypes: string[] = [];
+    const stressImpacts: number[] = [];
+    const trustImpacts: number[] = [];
+
+    for (const memory of financialMemories) {
+      if (memory.financialMetadata) {
+        const { outcome, amountInvolved, decisionType, stressImpact, trustImpact } = memory.financialMetadata;
+        
+        if (outcome === 'success') successfulDecisions++;
+        else if (outcome === 'failure') failedDecisions++;
+        
+        totalAmount += amountInvolved;
+        decisionTypes.push(decisionType);
+        stressImpacts.push(stressImpact);
+        trustImpacts.push(trustImpact);
+      }
+    }
+
+    // Calculate trends
+    const recentStressImpacts = stressImpacts.slice(-5);
+    const recentTrustImpacts = trustImpacts.slice(-5);
+    
+    const stressTrend = this.calculateTrend(recentStressImpacts);
+    const trustTrend = this.calculateTrend(recentTrustImpacts);
+
+    // Get common decision types
+    const decisionTypeCount = decisionTypes.reduce((acc, type) => {
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const commonDecisionTypes = Object.entries(decisionTypeCount)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([type]) => type);
+
+    return {
+      successfulDecisions,
+      failedDecisions,
+      totalAmount,
+      commonDecisionTypes,
+      stressTrend,
+      trustTrend
+    };
+  }
+
+  /**
+   * Calculate trend from array of numbers
+   */
+  private calculateTrend(values: number[]): 'improving' | 'declining' | 'stable' {
+    if (values.length < 2) return 'stable';
+    
+    const firstHalf = values.slice(0, Math.floor(values.length / 2));
+    const secondHalf = values.slice(Math.floor(values.length / 2));
+    
+    const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+    
+    const diff = secondAvg - firstAvg;
+    
+    if (diff > 2) return 'improving';
+    if (diff < -2) return 'declining';
+    return 'stable';
+  }
 }
 
 export default EventContextService;

@@ -3,6 +3,7 @@
 
 import { FinancialPersonality, FinancialDecision } from '../data/characters';
 import GameEventBus from './gameEventBus';
+import LuxuryPurchaseService from './luxuryPurchaseService';
 
 export interface FinancialStressFactors {
   lowMoney: number;           // Stress from having little money
@@ -35,9 +36,11 @@ export interface SpiralState {
 export class FinancialPsychologyService {
   private static instance: FinancialPsychologyService;
   private eventBus: GameEventBus;
+  private luxuryService: LuxuryPurchaseService;
 
   private constructor() {
     this.eventBus = GameEventBus.getInstance();
+    this.luxuryService = LuxuryPurchaseService.getInstance();
   }
 
   static getInstance(): FinancialPsychologyService {
@@ -236,20 +239,39 @@ export class FinancialPsychologyService {
         break;
 
       case 'luxury_purchase':
-        // Luxury purchases provide immediate happiness but potential regret
-        const immediateHappiness = financialPersonality.luxuryDesire / 10;
+        // Enhanced luxury purchase processing with decay mechanics
+        const luxuryCategory = decision.metadata?.category || 'other';
+        const luxuryDescription = decision.metadata?.description || decision.description;
+        
+        // Process through luxury service for proper effect tracking
+        const luxuryPurchase = await this.luxuryService.processLuxuryPurchase(
+          decision.characterId,
+          decision.amount,
+          luxuryCategory,
+          luxuryDescription,
+          financialPersonality
+        );
+        
+        // Calculate immediate psychological impact
+        const immediateHappiness = luxuryPurchase.initialHappinessBoost;
+        financialImpact = -decision.amount; // Money spent
+        
         if (financialPersonality.spendingStyle === 'impulsive') {
-          stressImpact = -immediateHappiness + 10; // Initial joy then regret
-          trustImpact = decision.followedAdvice ? 0 : -5; // Coach probably advised against it
+          stressImpact = -immediateHappiness * 0.5 + 8; // Initial joy then some regret
+          trustImpact = decision.followedAdvice ? 0 : -5;
           outcome = 'negative';
-          description = 'Luxury purchase provided temporary satisfaction but increased financial pressure';
+          description = `Luxury purchase: ${luxuryDescription} provided immediate satisfaction but may cause future stress`;
+        } else if (financialPersonality.spendingStyle === 'strategic') {
+          stressImpact = -immediateHappiness * 0.7 + 3; // Planned purchases feel better
+          trustImpact = decision.followedAdvice ? 3 : -1;
+          outcome = 'neutral';
+          description = `Strategic luxury purchase: ${luxuryDescription} was well-considered and enjoyable`;
         } else {
-          stressImpact = -immediateHappiness + 5; // Less regret if planned
+          stressImpact = -immediateHappiness * 0.6 + 5; // Moderate response
           trustImpact = decision.followedAdvice ? 2 : -2;
           outcome = 'neutral';
-          description = 'Luxury purchase was enjoyed but added to expenses';
+          description = `Luxury purchase: ${luxuryDescription} was enjoyed but added to expenses`;
         }
-        financialImpact = -decision.amount; // Money spent
         break;
 
       case 'real_estate':
@@ -836,6 +858,99 @@ export class FinancialPsychologyService {
     // 3. Calculate actual average
     
     return baselineWealth;
+  }
+
+  /**
+   * Get total happiness/mood effect including luxury purchases
+   */
+  getTotalHappinessWithLuxury(characterId: string): {
+    totalHappiness: number;
+    luxuryHappiness: number;
+    prestigeBonus: number;
+    practicalBonus: number;
+    activeLuxuryCount: number;
+    luxuryAddictionRisk: 'low' | 'medium' | 'high' | 'critical';
+  } {
+    const luxuryData = this.luxuryService.getCurrentLuxuryHappiness(characterId);
+    const addictionData = this.luxuryService.calculateLuxuryAddictionRisk(characterId);
+    
+    return {
+      totalHappiness: luxuryData.totalHappiness,
+      luxuryHappiness: luxuryData.totalHappiness,
+      prestigeBonus: luxuryData.prestigeBonus,
+      practicalBonus: luxuryData.practicalBonus,
+      activeLuxuryCount: luxuryData.activePurchases.length,
+      luxuryAddictionRisk: addictionData.riskLevel
+    };
+  }
+
+  /**
+   * Process luxury purchase decision with full psychological effects
+   */
+  async processLuxuryPurchaseDecision(
+    characterId: string,
+    amount: number,
+    category: string,
+    description: string,
+    financialPersonality: FinancialPersonality,
+    followedCoachAdvice: boolean = false
+  ): Promise<{
+    purchase: any;
+    psychologicalImpact: {
+      stressChange: number;
+      trustChange: number;
+      happinessBoost: number;
+      outcomeType: 'positive' | 'negative' | 'neutral';
+    };
+  }> {
+    // Process the luxury purchase
+    const luxuryPurchase = await this.luxuryService.processLuxuryPurchase(
+      characterId,
+      amount,
+      category as any,
+      description,
+      financialPersonality
+    );
+
+    // Calculate psychological effects based on personality and decision context
+    let stressChange = 0;
+    let trustChange = 0;
+    let outcomeType: 'positive' | 'negative' | 'neutral' = 'neutral';
+
+    const immediateHappiness = luxuryPurchase.initialHappinessBoost;
+    
+    // Base stress calculation
+    if (financialPersonality.spendingStyle === 'impulsive') {
+      stressChange = -immediateHappiness * 0.4 + 8; // Initial joy then regret
+      trustChange = followedCoachAdvice ? 0 : -5;
+      outcomeType = amount > 5000 ? 'negative' : 'neutral';
+    } else if (financialPersonality.spendingStyle === 'strategic') {
+      stressChange = -immediateHappiness * 0.7 + 2; // Well-planned purchases feel good
+      trustChange = followedCoachAdvice ? 3 : -1;
+      outcomeType = 'neutral';
+    } else {
+      stressChange = -immediateHappiness * 0.5 + 5; // Moderate response
+      trustChange = followedCoachAdvice ? 2 : -3;
+      outcomeType = 'neutral';
+    }
+
+    // Addiction risk modifier
+    const addictionRisk = this.luxuryService.calculateLuxuryAddictionRisk(characterId);
+    if (addictionRisk.riskLevel === 'high' || addictionRisk.riskLevel === 'critical') {
+      stressChange += 5; // Additional stress from problematic spending pattern
+      trustChange -= 2; // Coach loses trust if enabling addiction
+      outcomeType = 'negative';
+    }
+
+    return {
+      purchase: luxuryPurchase,
+      psychologicalImpact: {
+        stressChange,
+        trustChange,
+        happinessBoost: immediateHappiness,
+        outcomeType
+      }
+    };
   }
 }
 

@@ -177,6 +177,7 @@ const TherapyModule = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [roundCount, setRoundCount] = useState(0);
   const [exchangesInRound, setExchangesInRound] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const conflictService = ConflictDatabaseService.getInstance();
   const eventPublisher = EventPublisher.getInstance();
   const conflictRewardSystem = ConflictRewardSystem.getInstance();
@@ -851,13 +852,92 @@ const TherapyModule = () => {
               
               console.log('🎁 Therapy breakthrough rewards calculated:', rewards);
               
-              // Apply rewards (in a real system, this would update character stats)
-              console.log(`✨ ${characterId} receives:`, {
-                experienceBonus: rewards.experienceBonus,
-                immediateRewards: rewards.immediate.length,
-                longTermRewards: rewards.longTerm.length,
-                relationshipChanges: Object.keys(rewards.relationshipChanges).length
-              });
+              // Apply rewards - save to backend
+              try {
+                await characterAPI.saveTherapySession(characterId, {
+                  sessionId: activeSession.id,
+                  rewards,
+                  experienceBonus: rewards.experienceBonus,
+                  immediateRewards: rewards.immediate,
+                  longTermRewards: rewards.longTerm,
+                  relationshipChanges: rewards.relationshipChanges
+                });
+                
+                // Apply all reward types to character stats
+                const statUpdates: Record<string, number> = {};
+                
+                // Add experience bonus
+                statUpdates.experience = rewards.experienceBonus;
+                
+                // Process immediate rewards (temporary boosts)
+                rewards.immediate.forEach((reward: any) => {
+                  switch (reward.type) {
+                    case 'stat_boost':
+                      // Apply immediate stat boosts based on reward name
+                      if (reward.name.includes('mental_health')) {
+                        statUpdates.mentalHealth = (statUpdates.mentalHealth || 0) + reward.value;
+                      } else if (reward.name.includes('confidence')) {
+                        statUpdates.charisma = (statUpdates.charisma || 0) + reward.value;
+                      } else if (reward.name.includes('social')) {
+                        statUpdates.teamPlayer = (statUpdates.teamPlayer || 0) + reward.value;
+                      }
+                      break;
+                    case 'skill_unlock':
+                      // Handle skill unlocks - these would need separate API calls
+                      console.log(`🔓 ${characterId} unlocked skill: ${reward.name}`);
+                      break;
+                  }
+                });
+                
+                // Process long-term rewards (permanent benefits)
+                rewards.longTerm.forEach((reward: any) => {
+                  switch (reward.type) {
+                    case 'stat_boost':
+                      if (reward.permanent) {
+                        if (reward.name.includes('mental_health')) {
+                          statUpdates.mentalHealth = (statUpdates.mentalHealth || 0) + reward.value;
+                        } else if (reward.name.includes('wisdom')) {
+                          statUpdates.wisdom = (statUpdates.wisdom || 0) + reward.value;
+                        } else if (reward.name.includes('charisma')) {
+                          statUpdates.charisma = (statUpdates.charisma || 0) + reward.value;
+                        }
+                      }
+                      break;
+                  }
+                });
+                
+                // Apply relationship changes
+                if (Object.keys(rewards.relationshipChanges).length > 0) {
+                  await characterAPI.updateStats(characterId, {
+                    relationshipChanges: rewards.relationshipChanges
+                  });
+                }
+                
+                // Apply all stat updates as increments
+                if (Object.keys(statUpdates).length > 0) {
+                  await characterAPI.incrementStats(characterId, statUpdates);
+                }
+                
+                console.log(`✨ ${characterId} therapy progress saved:`, {
+                  experienceBonus: rewards.experienceBonus,
+                  immediateRewards: rewards.immediate.length,
+                  longTermRewards: rewards.longTerm.length,
+                  relationshipChanges: Object.keys(rewards.relationshipChanges).length,
+                  statUpdates: Object.keys(statUpdates)
+                });
+              } catch (error) {
+                console.error('Failed to save therapy session:', error);
+                setErrorMessage('⚠️ Unable to save therapy progress to server. Progress applied locally only.');
+                // Clear error message after 5 seconds
+                setTimeout(() => setErrorMessage(null), 5000);
+                // Still log the rewards even if API call fails
+                console.log(`✨ ${characterId} receives (offline):`, {
+                  experienceBonus: rewards.experienceBonus,
+                  immediateRewards: rewards.immediate.length,
+                  longTermRewards: rewards.longTerm.length,
+                  relationshipChanges: Object.keys(rewards.relationshipChanges).length
+                });
+              }
             }
             
             await eventPublisher.publishTherapySession({
@@ -959,6 +1039,13 @@ Remember: This is group therapy for entertainment value. Drama, conflict, and ch
 
   return (
     <div className="space-y-6">
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="bg-red-900/50 border border-red-500 rounded-lg p-4 text-red-200">
+          {errorMessage}
+        </div>
+      )}
+      
       <div className="flex gap-6">
         {/* Left Sidebar - Characters */}
         <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">

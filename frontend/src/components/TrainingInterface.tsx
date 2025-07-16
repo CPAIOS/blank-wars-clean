@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Brain, Heart, Users, Target, Clock, Star, Award,
   Play, TrendingUp,
@@ -20,11 +21,13 @@ export default function TrainingInterface() {
   const [trainingManager] = useState(() => TrainingSystemManager.loadProgress());
   const [selectedCharacter, setSelectedCharacter] = useState<string>('achilles');
   const eventPublisher = EventPublisher.getInstance();
+  const { user } = useAuth();
   const [characterState, setCharacterState] = useState<CharacterTrainingState | null>(null);
   const [activeSession, setActiveSession] = useState<TrainingSession | null>(null);
   const [recommendations, setRecommendations] = useState<TrainingActivity[]>([]);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
   const [sessionTimer, setSessionTimer] = useState<number>(0);
+  const [trainingError, setTrainingError] = useState<string | null>(null);
 
   // Available characters for training
   const availableCharacters = ['achilles', 'sherlock-holmes', 'dracula', 'thor', 'cleopatra'];
@@ -60,40 +63,73 @@ export default function TrainingInterface() {
     };
   }, [activeSession, handleCompleteTraining]);
 
-  const handleStartTraining = (activityId: string) => {
-    const session = trainingManager.startTraining(selectedCharacter, activityId);
-    if (session) {
-      setActiveSession(session);
-      setCharacterState(trainingManager.getCharacterState(selectedCharacter));
-      trainingManager.saveToStorage();
+  const handleStartTraining = async (activityId: string) => {
+    try {
+      const userId = user?.id || 'anonymous';
+      
+      // Map subscription tier to highest available gym facility tier
+      // Note: subscription_tier and membership tiers are different systems
+      const getHighestGymTier = (subscriptionTier: string): string => {
+        switch (subscriptionTier) {
+          case 'free': 
+            return 'community'; // Free only has community access
+          case 'premium': 
+            return 'elite'; // Premium maps to elite membership level
+          case 'legendary': 
+            return 'legendary'; // Legendary has access to all tiers
+          default: 
+            return 'community';
+        }
+      };
+      
+      const gymTier = getHighestGymTier(user?.subscription_tier || 'free');
+      
+      const session = await trainingManager.startTraining(selectedCharacter, activityId, userId, gymTier);
+      if (session) {
+        setActiveSession(session);
+        setCharacterState(trainingManager.getCharacterState(selectedCharacter));
+        trainingManager.saveToStorage();
+        setTrainingError(null);
+      }
+    } catch (error) {
+      console.error('Failed to start training:', error);
+      setTrainingError('Unable to start training session. Please try again.');
+      setTimeout(() => setTrainingError(null), 5000);
     }
   };
 
   const handleCompleteTraining = useCallback(async () => {
-    const results = trainingManager.completeTraining(selectedCharacter);
-    if (results) {
-      setActiveSession(null);
-      setCharacterState(trainingManager.getCharacterState(selectedCharacter));
-      setRecommendations(trainingManager.getRecommendations(selectedCharacter));
-      trainingManager.saveToStorage();
-      
-      // Publish training event to centralized system
-      try {
-        await eventPublisher.publishTrainingSession({
-          characterId: selectedCharacter,
-          trainingType: results.activity?.category || 'general',
-          skillsFocused: results.activity ? [results.activity.name] : [],
-          improvement: results.statImprovements ? 'significant' : 'minimal',
-          mentalFatigue: results.mentalFatigue || 0,
-          partnerCharacterId: undefined // Solo training
-        });
-        console.log('✅ Training event published to centralized system');
-      } catch (error) {
-        console.warn('❌ Failed to publish training event:', error);
+    try {
+      const results = await trainingManager.completeTraining(selectedCharacter);
+      if (results) {
+        setActiveSession(null);
+        setCharacterState(trainingManager.getCharacterState(selectedCharacter));
+        setRecommendations(trainingManager.getRecommendations(selectedCharacter));
+        trainingManager.saveToStorage();
+        setTrainingError(null);
+        
+        // Publish training event to centralized system
+        try {
+          await eventPublisher.publishTrainingSession({
+            characterId: selectedCharacter,
+            trainingType: results.activity?.category || 'general',
+            skillsFocused: results.activity ? [results.activity.name] : [],
+            improvement: results.statImprovements ? 'significant' : 'minimal',
+            mentalFatigue: results.mentalFatigue || 0,
+            partnerCharacterId: undefined // Solo training
+          });
+          console.log('✅ Training event published to centralized system');
+        } catch (error) {
+          console.warn('❌ Failed to publish training event:', error);
+        }
+        
+        // Show completion notification
+        console.log('Training completed:', results);
       }
-      
-      // Show completion notification
-      console.log('Training completed:', results);
+    } catch (error) {
+      console.error('Failed to complete training:', error);
+      setTrainingError(error instanceof Error ? error.message : 'Unable to complete training session.');
+      setTimeout(() => setTrainingError(null), 5000);
     }
   }, [trainingManager, selectedCharacter, eventPublisher]);
 
@@ -187,6 +223,13 @@ export default function TrainingInterface() {
             Develop your characters between battles through specialized training programs
           </p>
         </motion.div>
+
+        {/* Error Message */}
+        {trainingError && (
+          <div className="mb-6 bg-red-900/50 border border-red-500 rounded-lg p-4 text-red-200">
+            {trainingError}
+          </div>
+        )}
 
         {/* Character Selection */}
         <div className="mb-8">

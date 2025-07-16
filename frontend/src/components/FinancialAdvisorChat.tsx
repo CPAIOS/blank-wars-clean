@@ -580,19 +580,53 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
       };
     }
 
-    // Update character stats (in a real app, this would go to the backend)
-    if (selectedCharacter.financials) {
-      selectedCharacter.financials.wallet += outcome.financialImpact;
-      selectedCharacter.financials.financialStress = Math.max(0, Math.min(100, selectedCharacter.financials.financialStress + outcome.stressChange));
-      selectedCharacter.financials.coachTrustLevel = Math.max(0, Math.min(100, selectedCharacter.financials.coachTrustLevel + outcome.trustChange));
-      selectedCharacter.financials.recentDecisions.push({
+    // Helper function to update local state
+    const updateLocalFinancialState = () => {
+      if (selectedCharacter.financials) {
+        selectedCharacter.financials.wallet += outcome.financialImpact;
+        selectedCharacter.financials.financialStress = Math.max(0, Math.min(100, selectedCharacter.financials.financialStress + outcome.stressChange));
+        selectedCharacter.financials.coachTrustLevel = Math.max(0, Math.min(100, selectedCharacter.financials.coachTrustLevel + outcome.trustChange));
+        selectedCharacter.financials.recentDecisions.push({
+          decision: decision.description,
+          amount: decision.amount,
+          coachDecision,
+          outcome: outcome.result,
+          timestamp: new Date()
+        });
+      }
+    };
+
+    // Update character stats in backend
+    try {
+      await characterAPI.updateFinancials(selectedCharacter.id, {
+        wallet: (selectedCharacter.financials?.wallet || 0) + outcome.financialImpact,
+        financialStress: Math.max(0, Math.min(100, (selectedCharacter.financials?.financialStress || 0) + outcome.stressChange)),
+        coachTrustLevel: Math.max(0, Math.min(100, (selectedCharacter.financials?.coachTrustLevel || 0) + outcome.trustChange))
+      });
+      
+      await characterAPI.saveDecision(selectedCharacter.id, {
         decision: decision.description,
         amount: decision.amount,
         coachDecision,
         outcome: outcome.result,
         timestamp: new Date()
       });
+      
+      console.log('Financial decision saved to backend successfully');
+    } catch (error) {
+      console.error('Failed to save financial decision:', error);
+      // Show error message to user
+      const errorMessage: Message = {
+        id: Date.now(),
+        type: 'system',
+        content: '⚠️ Unable to save decision to server. Changes saved locally only.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
+
+    // Always update local state for immediate UI feedback
+    updateLocalFinancialState();
 
     return outcome;
   };

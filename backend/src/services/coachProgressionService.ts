@@ -702,6 +702,9 @@ export class CoachProgressionService {
       deviationRiskReduction += 20;    // Total: -95% deviation risk (nearly elimination)
       teamChemistryBonus += 15;        // Total: +35% team chemistry
       characterDevelopmentMultiplier += 0.5; // Total: 1.5x character development XP
+      // Financial coaching bonuses
+      financialDecisionQualityBonus += 25; // Total: +45% decision quality
+      spiralPreventionBonus += 35;     // Total: +60% spiral prevention
     }
 
     // Legendary (Levels 101+): Ultimate Coach
@@ -709,6 +712,10 @@ export class CoachProgressionService {
       gameplanAdherenceBonus += 25;    // Total: +75%
       battleXPMultiplier += 0.25;      // Total: 1.5x battle XP
       characterDevelopmentMultiplier += 0.5; // Total: 2.0x character development XP
+      // Financial coaching bonuses
+      financialStressReduction += 20;  // Total: -45% financial stress
+      financialTrustBonus += 25;       // Total: +60% financial trust gain
+      spiralPreventionBonus += 40;     // Total: +100% spiral prevention (double effectiveness)
     }
 
     return {

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
+import { characterAPI } from '@/services/apiClient';
 import BattleRewards from './BattleRewards';
 import CombatSkillProgression from './CombatSkillProgression';
 import AudioSettings from './AudioSettings';
@@ -91,6 +93,9 @@ import type { BattleCharacter, ExecutedAction, PlannedAction } from '@/data/batt
 // BattlePhase type imported from @/data/battleFlow
 
 export default function ImprovedBattleArena() {
+  // Get user data for persistent battle state
+  const { user } = useAuth();
+  
   // Memory leak prevention with timeout manager
   const timeoutManager = useTimeoutManager();
   const { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout, clearAllTimeouts } = timeoutManager;
@@ -168,33 +173,37 @@ export default function ImprovedBattleArena() {
     };
   }, [clearAllTimeouts]);
   
-  // New Team Battle System State with refs for stability
-  // Mock headquarters state for demo - in real app this would come from global state
-  const mockHeadquarters = {
-    currentTier: 'spartan_apartment', // This gives penalties
-    rooms: [
-      {
-        id: 'room_1',
-        name: 'Bunk Room Alpha',
-        theme: 'victorian_study', // Intelligence +20
-        assignedCharacters: ['holmes', 'dracula', 'achilles', 'joan', 'tesla', 'merlin'], // OVERCROWDED! (6 > 4)
-        maxCharacters: 4
-      },
-      {
-        id: 'room_2', 
-        name: 'Bunk Room Beta',
-        theme: null, // No theme = small penalty
-        assignedCharacters: ['genghis_khan', 'cleopatra'], // These two conflict!
-        maxCharacters: 4
+  // Load headquarters data from backend
+  const [headquarters, setHeadquarters] = useState<any>({
+    currentTier: 'spartan_apartment',
+    rooms: [],
+    currency: { coins: 0, gems: 0 },
+    unlockedThemes: []
+  });
+  const [headquartersError, setHeadquartersError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const loadHeadquarters = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const headquartersData = await characterAPI.getHeadquarters(user.id);
+        setHeadquarters(headquartersData);
+        setHeadquartersError(null);
+      } catch (error) {
+        console.error('Failed to load headquarters data:', error);
+        setHeadquartersError('Unable to load headquarters data. Using default setup.');
+        // Clear error after 5 seconds
+        setTimeout(() => setHeadquartersError(null), 5000);
       }
-    ],
-    currency: { coins: 50000, gems: 100 },
-    unlockedThemes: ['victorian_study', 'greek_classical']
-  };
+    };
+    
+    loadHeadquarters();
+  }, [user?.id]);
 
   // Calculate headquarters bonuses AND penalties - memoized to prevent infinite loops
   const headquartersEffects = useMemo(() => 
-    calculateNetHeadquartersEffect(mockHeadquarters), []
+    calculateNetHeadquartersEffect(headquarters), [headquarters]
   );
   
   // Use centralized state management instead of individual useState hooks
@@ -203,18 +212,41 @@ export default function ImprovedBattleArena() {
   // Team selection state
   const [showTeamSelection, setShowTeamSelection] = useState(false);
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
-  const coachRoster = createDemoCharacterCollection(); // TODO: Replace with actual coach's roster
+  const [coachRoster, setCoachRoster] = useState<Character[]>([]);
+  const [rosterError, setRosterError] = useState<string | null>(null);
+  
+  // Load user's character roster
+  useEffect(() => {
+    const loadCharacterRoster = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const characters = await characterAPI.getUserCharacters();
+        setCoachRoster(characters);
+        setRosterError(null);
+      } catch (error) {
+        console.error('Failed to load character roster:', error);
+        setRosterError('Unable to load your character roster. Using demo characters.');
+        // Fallback to demo collection if API fails
+        setCoachRoster(createDemoCharacterCollection());
+        // Clear error after 5 seconds
+        setTimeout(() => setRosterError(null), 5000);
+      }
+    };
+    
+    loadCharacterRoster();
+  }, [user?.id]);
   
   // Competitive matchmaking state (additional local state not in battle state)
   const [currentOpponent, setCurrentOpponent] = useState<OpponentProfile | null>(null);
   const [matchmakingCriteria, setMatchmakingCriteria] = useState<MatchmakingCriteria | null>(null);
   
-  // Mock player stats for matchmaking (TODO: Replace with actual player stats)
+  // Player stats for matchmaking from user profile
   const playerStats = {
-    level: 25,
-    wins: 45,
-    rating: 1250,
-    completedChallenges: ['tournament_finalist', 'weight_class_champion']
+    level: user?.level || 1,
+    wins: user?.total_wins || 0,
+    rating: user?.rating || 1000,
+    completedChallenges: user?.completed_challenges || []
   };
   
   // Initialize player team with 3 random characters from roster
@@ -931,6 +963,18 @@ export default function ImprovedBattleArena() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {/* Error Messages */}
+      {headquartersError && (
+        <div className="bg-red-900/50 border border-red-500 rounded-lg p-4 text-red-200">
+          {headquartersError}
+        </div>
+      )}
+      {rosterError && (
+        <div className="bg-orange-900/50 border border-orange-500 rounded-lg p-4 text-orange-200">
+          {rosterError}
+        </div>
+      )}
+      
       {/* 1. Current Round Fighters (TOP) - Team Display fighters only */}
       <TeamDisplay
         playerTeam={playerTeam}

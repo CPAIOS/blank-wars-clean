@@ -6,6 +6,7 @@
 
 import { Character } from '../data/characters';
 import RealEstateAgentBonusService from '../services/realEstateAgentBonusService';
+import { characterAPI } from '../services/apiClient';
 
 export interface TrainingActivity {
   id: string;
@@ -454,7 +455,7 @@ export class TrainingSystemManager {
 
 
   // Complete training session
-  completeTraining(characterId: string): TrainingResult[] | null {
+  async completeTraining(characterId: string): Promise<TrainingResult[] | null> {
     const session = this.activeSessions.get(characterId);
     if (!session) return null;
     
@@ -466,11 +467,11 @@ export class TrainingSystemManager {
     const results: TrainingResult[] = [];
     
     // Apply training effects
-    activity.effects.forEach(effect => {
+    await Promise.all(activity.effects.map(async effect => {
       const before = this.getTraitValue(character, effect.target);
       const after = Math.max(0, Math.min(100, before + effect.change));
       
-      this.applyTrainingEffect(character, effect);
+      await this.applyTrainingEffect(character, effect);
       
       results.push({
         type: effect.type,
@@ -479,7 +480,7 @@ export class TrainingSystemManager {
         improvement: after - before,
         description: effect.description
       });
-    });
+    }));
     
     // Update session
     session.completed = true;
@@ -578,7 +579,7 @@ export class TrainingSystemManager {
     }
   }
 
-  private applyTrainingEffect(character: CharacterTrainingState, effect: TrainingEffect): void {
+  private async applyTrainingEffect(character: CharacterTrainingState, effect: TrainingEffect): Promise<void> {
     // Get Zyxthala's training bonus if applicable
     const agentService = RealEstateAgentBonusService.getInstance();
     const agentEffects = agentService.getAgentBonusEffects();
@@ -606,7 +607,7 @@ export class TrainingSystemManager {
       case 'mental-health':
         character.mentalHealth = Math.max(0, Math.min(100, character.mentalHealth + effectiveChange));
         // ALSO improve character's actual psychStats.mentalHealth
-        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effectiveChange * 0.3);
+        await this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effectiveChange * 0.3);
         break;
       
       // Map training effects to character psychStats improvements
@@ -614,27 +615,27 @@ export class TrainingSystemManager {
       case 'strategy':
       case 'discipline':
         // Tactical training improves ability to follow instructions
-        this.updateCharacterPsychStats(character.characterId, 'training', effectiveChange * 0.4);
+        await this.updateCharacterPsychStats(character.characterId, 'training', effectiveChange * 0.4);
         break;
       
       case 'leadership':
       case 'charisma':
       case 'communication':
         // Leadership training improves communication abilities
-        this.updateCharacterPsychStats(character.characterId, 'communication', effectiveChange * 0.4);
+        await this.updateCharacterPsychStats(character.characterId, 'communication', effectiveChange * 0.4);
         break;
       
       case 'social-skills':
       case 'empathy':
       case 'team-cooperation':
         // Social training improves teamwork
-        this.updateCharacterPsychStats(character.characterId, 'teamPlayer', effectiveChange * 0.4);
+        await this.updateCharacterPsychStats(character.characterId, 'teamPlayer', effectiveChange * 0.4);
         break;
       
       case 'confidence':
       case 'self-esteem':
         // Confidence training affects ego
-        this.updateCharacterPsychStats(character.characterId, 'ego', effectiveChange * 0.3);
+        await this.updateCharacterPsychStats(character.characterId, 'ego', effectiveChange * 0.3);
         break;
       
       case 'rage-control':
@@ -642,26 +643,26 @@ export class TrainingSystemManager {
       case 'emotional-stability':
       case 'self-control':
         // Anger management improves mental health and reduces ego
-        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.4);
-        this.updateCharacterPsychStats(character.characterId, 'ego', -effect.change * 0.2);
+        await this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.4);
+        await this.updateCharacterPsychStats(character.characterId, 'ego', -effect.change * 0.2);
         break;
       
       case 'resilience':
       case 'trauma':
         // Trauma therapy and resilience training improve mental health
-        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.5);
+        await this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.5);
         break;
       
       case 'team-trust':
       case 'trustworthiness':
         // Trust-building improves teamwork
-        this.updateCharacterPsychStats(character.characterId, 'teamPlayer', effect.change * 0.4);
+        await this.updateCharacterPsychStats(character.characterId, 'teamPlayer', effect.change * 0.4);
         break;
       
       case 'addiction-resistance':
         // Addiction counseling improves mental health and training discipline
-        this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.3);
-        this.updateCharacterPsychStats(character.characterId, 'training', effect.change * 0.2);
+        await this.updateCharacterPsychStats(character.characterId, 'mentalHealth', effect.change * 0.3);
+        await this.updateCharacterPsychStats(character.characterId, 'training', effect.change * 0.2);
         break;
         
       // Add more trait handling as needed
@@ -677,11 +678,11 @@ export class TrainingSystemManager {
    * Updates the character's actual psychStats used in battle psychology
    * This is the critical connection between training and battle performance
    */
-  private updateCharacterPsychStats(
+  private async updateCharacterPsychStats(
     characterId: string, 
     statType: 'training' | 'teamPlayer' | 'ego' | 'mentalHealth' | 'communication',
     change: number
-  ): void {
+  ): Promise<void> {
     // Only update if localStorage is available (browser environment)
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
       console.log(`Training improvement skipped (SSR): ${characterId}'s ${statType} +${change.toFixed(1)}`);
@@ -697,15 +698,35 @@ export class TrainingSystemManager {
       return;
     }
 
-    // In a real app, this would update persistent character data
-    // For now, we'll track improvements and apply them during character creation
-    const improvementKey = `${characterId}_${statType}_improvement`;
-    const currentImprovement = parseFloat(localStorage.getItem(improvementKey) || '0');
-    const newImprovement = Math.max(0, Math.min(30, currentImprovement + change)); // Cap at +30 improvement
-    
-    localStorage.setItem(improvementKey, newImprovement.toString());
-    
-    console.log(`Training improved ${characterId}'s ${statType} by ${change.toFixed(1)} (total: +${newImprovement.toFixed(1)})`);
+    // Update persistent character data via API
+    try {
+      await characterAPI.saveTrainingProgress(characterId, {
+        statType,
+        improvement: change,
+        trainingType: 'psychology',
+        timestamp: new Date()
+      });
+      
+      // Increment character stats with the improvement
+      await characterAPI.incrementStats(characterId, {
+        [statType]: change
+      });
+      
+      console.log(`Training improved ${characterId}'s ${statType} by ${change.toFixed(1)} - saved to backend`);
+    } catch (error) {
+      console.error('Failed to save training progress:', error);
+      // Fallback to localStorage if API fails
+      const improvementKey = `${characterId}_${statType}_improvement`;
+      const currentImprovement = parseFloat(localStorage.getItem(improvementKey) || '0');
+      const newImprovement = Math.max(0, Math.min(30, currentImprovement + change)); // Cap at +30 improvement
+      
+      localStorage.setItem(improvementKey, newImprovement.toString());
+      
+      console.log(`Training improved ${characterId}'s ${statType} by ${change.toFixed(1)} (offline mode - total: +${newImprovement.toFixed(1)})`);
+      
+      // Throw error with user-friendly message for UI components to handle
+      throw new Error('Unable to save training progress to server. Progress saved locally only.');
+    }
   }
 
   private hasLeadershipPotential(characterId: string): boolean {

@@ -15,6 +15,7 @@ export interface UserProfile {
   rating: number;
   created_at: string;
   character_slot_capacity: number; // Added for dynamic character slots
+  completed_challenges: string[]; // Added for battle system
 }
 
 // Coach progression system
