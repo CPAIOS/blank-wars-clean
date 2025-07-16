@@ -8,7 +8,7 @@ import {
   Sparkles, Crown, Building, Target, Brain,
   Trophy, ChevronDown, ChevronRight, Activity, Shield,
   BookOpen, Star, User, Eye, EyeOff, BarChart3, DollarSign,
-  AlertTriangle, Heart, Clock
+  AlertTriangle, Heart, Clock, Scale
 } from 'lucide-react';
 
 import CoachProgressionPage from '@/app/coach/page';
@@ -41,6 +41,7 @@ import TeamManagementCoaching from './TeamManagementCoaching';
 import TherapyModule from './TherapyModule';
 import IndividualSessionsWrapper from './IndividualSessionsWrapper';
 import CombinedGroupActivitiesWrapper from './CombinedGroupActivitiesWrapper';
+import FinancialAdvisorChat from './FinancialAdvisorChat';
 import { createDemoCharacterCollection } from '@/data/characters';
 import { characterAPI } from '@/services/apiClient';
 
@@ -1423,10 +1424,191 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     );
   };
 
+  // AI Judge Evaluations Section Component
+  const AIJudgeEvaluationsSection = ({ characterId }: { characterId: string }) => {
+    const [judgeEvaluations, setJudgeEvaluations] = useState<any[]>([]);
+    
+    useEffect(() => {
+      const loadGameEventBus = async () => {
+        const { default: GameEventBus } = await import('@/services/gameEventBus');
+        const gameEventBus = GameEventBus.getInstance();
+      
+        // Fetch recent judge evaluations for this character
+        const fetchJudgeEvaluations = async () => {
+          try {
+            const recentEvents = await gameEventBus.getEventsForCharacter(characterId, {
+              category: 'financial',
+              eventTypes: ['judge_financial_evaluation', 'judge_financial_outcome_assessment', 'judge_intervention_recommendation'],
+              limit: 5,
+              timeRange: 24 * 60 * 60 * 1000 // Last 24 hours
+            });
+            
+            const evaluations = recentEvents
+              .filter(event => event.metadata?.type === 'judge_evaluation')
+              .map(event => ({
+                id: event.id,
+                judgeName: event.metadata.judgeRuling?.split(' ')[0] || 'Unknown Judge',
+                ruling: event.metadata.judgeRuling,
+                commentary: event.metadata.judgeCommentary,
+                riskAssessment: event.metadata.riskAssessment,
+                coachEvaluation: event.metadata.coachEvaluation,
+                interventionRecommendation: event.metadata.interventionRecommendation,
+                wildcardType: event.metadata.wildcardType,
+                triggerEvent: event.metadata.triggerEvent,
+                timestamp: event.timestamp,
+                severity: event.severity
+              }));
+            
+            setJudgeEvaluations(evaluations);
+          } catch (error) {
+            console.error('Error fetching judge evaluations:', error);
+            setJudgeEvaluations([]);
+          }
+        };
+        
+        fetchJudgeEvaluations();
+        
+        // Subscribe to new judge evaluation events
+        const unsubscribe = gameEventBus.subscribe('judge_financial_evaluation', (event) => {
+          if (event.primaryCharacterId === characterId) {
+            fetchJudgeEvaluations();
+          }
+        });
+        
+        return unsubscribe;
+      };
+      
+      loadGameEventBus();
+    }, [characterId]);
+    
+    const getRiskColor = (risk: string) => {
+      switch (risk?.toLowerCase()) {
+        case 'excellent': return 'text-green-400';
+        case 'good': return 'text-green-400';
+        case 'questionable': return 'text-yellow-400';
+        case 'poor': return 'text-red-400';
+        case 'catastrophic': return 'text-red-500';
+        default: return 'text-gray-400';
+      }
+    };
+    
+    const getCoachEvaluationText = (evaluation: string) => {
+      switch (evaluation) {
+        case 'excellent_guidance': return 'Excellent Guidance';
+        case 'good_advice': return 'Good Advice';
+        case 'missed_opportunity': return 'Missed Opportunity';
+        case 'poor_advice': return 'Poor Advice';
+        case 'harmful_guidance': return 'Harmful Guidance';
+        default: return 'No Evaluation';
+      }
+    };
+    
+    const formatTimeAgo = (timestamp: Date) => {
+      const now = new Date();
+      const diffMs = now.getTime() - new Date(timestamp).getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}d ago`;
+    };
+    
+    return (
+      <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-xl p-6 border border-yellow-500/30">
+        <div className="flex items-center gap-2 mb-4">
+          <Scale className="w-5 h-5 text-yellow-400" />
+          <span className="text-yellow-300 font-semibold">AI Judge Financial Evaluations</span>
+        </div>
+        
+        {judgeEvaluations.length > 0 ? (
+          <div className="space-y-3">
+            {judgeEvaluations.map((evaluation) => (
+              <div key={evaluation.id} className="bg-gray-800/50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-yellow-300 font-semibold">{evaluation.judgeName}</span>
+                  <span className={`text-sm ${getRiskColor(evaluation.riskAssessment)}`}>
+                    Risk: {evaluation.riskAssessment || 'Unknown'}
+                  </span>
+                </div>
+                <p className="text-gray-300 text-sm mb-2">
+                  "{evaluation.commentary || evaluation.ruling}"
+                </p>
+                <div className="flex items-center gap-4 text-xs text-gray-400">
+                  <span>Coach: {getCoachEvaluationText(evaluation.coachEvaluation)}</span>
+                  {evaluation.triggerEvent && (
+                    <span>Trigger: {evaluation.triggerEvent.replace('_', ' ')}</span>
+                  )}
+                  {evaluation.interventionRecommendation && (
+                    <span className="text-orange-400">Intervention: Recommended</span>
+                  )}
+                  <span>{formatTimeAgo(evaluation.timestamp)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-400 py-8">
+            <p>No recent AI Judge evaluations</p>
+            <p className="text-sm mt-2">AI Judges will evaluate financial decisions as they occur</p>
+          </div>
+        )}
+        
+        <div className="mt-4 text-sm text-yellow-200">
+          ⚖️ AI Judges evaluate all financial decisions and provide real-time commentary on risk levels and coaching effectiveness
+        </div>
+      </div>
+    );
+  };
+
   const FinancialAdvisoryWrapper = () => {
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
     const [charactersLoading, setCharactersLoading] = useState(true);
     const [pendingDecisions, setPendingDecisions] = useState<any[]>([]);
+
+    // Function to get finance character image
+    const getFinanceCharacterImage = (characterName: string): string => {
+      const baseImagePath = '/images/Coaching/Finance/';
+      const normalizedName = characterName.toLowerCase().replace(/["\s]+/g, '_').replace(/_+/g, '_');
+      
+      // Character image mapping for finance
+      const characterImageMap: { [key: string]: string } = {
+        'achilles': 'achillies_balling.jpg',
+        'agent_x': 'agent_x_balling.jpg',
+        'billy_the_kid': 'billy_the_kid_balling.jpg',
+        'cleopatra': 'Cleopatra_balling.jpg',
+        'space_cyborg': 'zeta_balling.png', // Assuming cyborg maps to zeta
+        'dracula': 'dracula_balling.jpg',
+        'fenrir': 'fanrir_balling.png',
+        'frankenstein_monster': 'frankenstein_balliing.jpg',
+        'frankensteins_monster': 'frankenstein_balliing.jpg',
+        'genghis_khan': 'genghis_khan_balling.jpg',
+        'joan_of_arc': 'joan-of_arc_balling.png',
+        'robin_hood': 'robin_hood_balling.jpg',
+        'sherlock_holmes': 'sherlock_holmes_balling.png',
+        'sun_wukong': 'sun_wukong_balling.jpg',
+        'tesla': 'nicola_tesla_balling.png',
+        'nikola_tesla': 'nicola_tesla_balling.png',
+        'alien_grey': 'zeta_balling.png',
+        'zeta_reticulan': 'zeta_balling.png',
+        'sammy_slugger': 'sammy_slugger.jpg',
+        'sammy_slugger_sullivan': 'sammy_slugger.jpg',
+        'merlin': 'merlin_balling.png',
+        'vega': 'vega_x_balling.png',
+        'vega_x': 'vega_x_balling.png',
+        'vega-x': 'vega_x_balling.png'
+      };
+      
+      const imageName = characterImageMap[normalizedName];
+      if (!imageName) {
+        console.warn(`No finance image mapping found for character: ${characterName}`);
+        return `${baseImagePath}Cleopatra_balling.jpg`; // Fallback to known image
+      }
+      
+      return `${baseImagePath}${imageName}`;
+    };
     
     // Load characters and their financial data
     useEffect(() => {
@@ -1477,7 +1659,9 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 char.id || baseName,
                 recentDecisions,
                 baseTrust,
-                financialPersonality
+                financialPersonality,
+                wallet,
+                monthlyEarnings
               );
               
               // Update financial trust
@@ -1872,6 +2056,32 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 but be careful - poor guidance can damage relationships and lead to financial stress spirals.
               </p>
             </div>
+
+            {/* Character Finance Image Display */}
+            {selectedCharacter && (
+              <div className="flex justify-center items-center mb-6">
+                <div className="w-96 h-96 rounded-xl overflow-hidden border-4 border-green-600 shadow-2xl">
+                  <img 
+                    src={getFinanceCharacterImage(selectedCharacter.name)}
+                    alt={selectedCharacter.name}
+                    className="w-full h-full object-contain bg-gray-800"
+                    onError={(e) => {
+                      console.error('❌ Finance character image failed to load:', e.currentTarget.src);
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Financial Advisor Chat Interface */}
+            <FinancialAdvisorChat
+              selectedCharacterId={globalSelectedCharacterId}
+              selectedCharacter={selectedCharacter}
+              availableCharacters={availableCharacters}
+              onCharacterChange={setGlobalSelectedCharacterId}
+            />
 
             {/* Financial Stress Analysis */}
             {selectedCharacter && (
@@ -2497,15 +2707,6 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
 
   const mainTabs: MainTab[] = [
     {
-      id: 'headquarters',
-      label: 'Home',
-      icon: Home,
-      color: 'amber',
-      subTabs: [
-        { id: 'overview', label: 'Team Base', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space and facilities' },
-      ]
-    },
-    {
       id: 'coach',
       label: 'Coach',
       icon: User,
@@ -2532,12 +2733,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
       ]
     },
     {
-      id: 'hq',
-      label: 'HQ',
-      icon: Building,
+      id: 'headquarters',
+      label: 'Headquarters',
+      icon: Home,
       color: 'amber',
       subTabs: [
-        { id: 'facilities', label: 'Facilities', icon: Building, component: FacilitiesManagerWrapper, description: 'Manage your team facilities and real estate' },
+        { id: 'overview', label: 'Team Base', icon: Home, component: TeamHeadquarters, description: 'Manage your team living space and facilities' },
       ]
     },
     {
