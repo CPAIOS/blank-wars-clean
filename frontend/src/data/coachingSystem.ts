@@ -24,6 +24,7 @@ export interface CoachingOutcome {
   characterResponse: string;
   coachNotes: string;
   relationshipChange: number; // How much the character trusts/likes the coach
+  financialTrustChange?: number; // How much the character trusts coach's financial advice
 }
 
 export interface TherapySession {
