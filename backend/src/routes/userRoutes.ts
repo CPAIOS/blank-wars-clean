@@ -129,6 +129,9 @@ router.get('/characters', async (req: any, res) => {
     if (!req.user?.id) {
       const basicCharacters = await dbAdapter.characters.findAll();
       const demoUserCharacters = basicCharacters.map(char => ({
+        // Include character data first
+        ...char,
+        // Override with user-specific data
         id: `demo-${char.id}`,
         user_id: 'demo-user',
         character_id: char.id,
@@ -149,9 +152,7 @@ router.get('/characters', async (req: any, res) => {
         significant_memories: [],
         personality_drift: {},
         acquired_at: new Date(),
-        last_battle_at: null,
-        // Include character data
-        ...char
+        last_battle_at: null
       }));
       
       return res.json({

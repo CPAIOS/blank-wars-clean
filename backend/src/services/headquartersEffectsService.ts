@@ -25,7 +25,7 @@ interface RoomTheme {
 }
 
 interface HeadquartersData {
-  currentTier: string;
+  currentTier: 'spartan_apartment' | 'basic_house' | 'team_mansion' | 'elite_compound';
   rooms: Array<{
     id: string;
     theme?: string;
@@ -123,9 +123,9 @@ export function calculateCharacterHeadquartersEffects(
   // Apply apartment tier effects
   const tierEffects = HEADQUARTERS_TIERS[headquarters.currentTier];
   if (tierEffects) {
-    effects.teamCoordinationModifier += tierEffects.teamCoordinationBonus || tierEffects.teamCoordinationPenalty || 0;
-    effects.healthRegenBonus += tierEffects.healthRegenBonus || tierEffects.healthRegenPenalty || 0;
-    effects.energyBonus += tierEffects.energyBonus || tierEffects.energyPenalty || 0;
+    effects.teamCoordinationModifier += (tierEffects as any)?.teamCoordinationBonus ?? (tierEffects as any)?.teamCoordinationPenalty ?? 0;
+    effects.healthRegenBonus += (tierEffects as any)?.healthRegenBonus ?? (tierEffects as any)?.healthRegenPenalty ?? 0;
+    effects.energyBonus += (tierEffects as any)?.energyBonus ?? (tierEffects as any)?.energyPenalty ?? 0;
   }
 
   // Apply room theme bonuses

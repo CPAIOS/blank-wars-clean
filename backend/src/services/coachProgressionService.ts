@@ -292,10 +292,10 @@ export class CoachProgressionService {
   static async awardCharacterDevelopmentXP(
     userId: string,
     developmentType: string,
+    xpAmount: number,
     description: string,
     characterId?: string
   ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
-    const xpAmount = 300; // 30% character development
     
     return await this.awardXP(
       userId,
@@ -716,7 +716,11 @@ export class CoachProgressionService {
       deviationRiskReduction,
       teamChemistryBonus,
       battleXPMultiplier,
-      characterDevelopmentMultiplier
+      characterDevelopmentMultiplier,
+      financialStressReduction,
+      financialDecisionQualityBonus,
+      financialTrustBonus,
+      spiralPreventionBonus
     };
   }
 

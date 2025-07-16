@@ -124,7 +124,6 @@ export class AIChatService {
 
       // Generate response using OpenAI
       console.log('🔥 CALLING OPENAI with messages:', messages.length, 'messages');
-      console.log('🔥 SYSTEM PROMPT PREVIEW:', messages[0].content.substring(0, 150) + '...');
       
       const response = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
@@ -147,6 +146,7 @@ export class AIChatService {
           await CoachProgressionService.awardCharacterDevelopmentXP(
             userId,
             'character_chat',
+            300,
             `Character development with ${context.characterName}`,
             context.characterId
           );
