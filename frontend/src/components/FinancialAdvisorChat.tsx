@@ -11,6 +11,7 @@ import ConflictContextService from '../services/conflictContextService';
 import EventContextService from '../services/eventContextService';
 import { makeFinancialJudgeDecision, FinancialJudgeDecision, FinancialEventContext } from '../data/aiJudgeSystem';
 import { financialPsychologyService } from '../services/financialPsychologyService';
+import { FinancialPromptTemplateService } from '../data/financialPromptTemplateService';
 
 interface Message {
   id: number;
@@ -176,34 +177,34 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
   const generateFinancialDecision = (character: EnhancedCharacter): FinancialDecision => {
     const decisionTypes = [
       {
-        description: "wants to buy a luxury sports car",
+        description: "want to buy a luxury sports car",
         amount: Math.floor(Math.random() * 80000) + 20000,
-        options: ["Buy it now", "Save for 6 months", "Buy used instead", "Skip it entirely"],
+        options: ["Go for it", "Save up more", "Look for alternatives", "Skip it"],
         reasoning: "I've been winning battles and deserve something nice!"
       },
       {
-        description: "considering investing in cryptocurrency",
+        description: "am considering investing in cryptocurrency",
         amount: Math.floor(Math.random() * 15000) + 5000,
-        options: ["Invest everything", "Invest half", "Research more first", "Avoid crypto"],
+        options: ["Invest now", "Invest smaller amount", "Research more", "Avoid it"],
         reasoning: "Everyone says crypto is the future, I don't want to miss out!"
       },
       {
-        description: "thinking about renovating their quarters",
+        description: "am thinking about renovating my quarters",
         amount: Math.floor(Math.random() * 30000) + 10000,
-        options: ["Full renovation", "Basic updates", "DIY approach", "Keep it simple"],
+        options: ["Full renovation", "Partial upgrade", "DIY approach", "Keep as is"],
         reasoning: "My living space affects my performance, I need an upgrade."
       },
       {
-        description: "wants to start a side business",
+        description: "want to start a side business",
         amount: Math.floor(Math.random() * 25000) + 10000,
-        options: ["Invest fully", "Start small", "Partner with someone", "Wait and learn"],
+        options: ["Full investment", "Start small", "Find partners", "Wait longer"],
         reasoning: "I have this great business idea that could make us rich!"
       },
       {
-        description: "considering expensive training equipment",
+        description: "am considering investing in training facilities",
         amount: Math.floor(Math.random() * 12000) + 3000,
-        options: ["Buy premium gear", "Buy mid-range", "Buy used", "Train without it"],
-        reasoning: "Better equipment means better performance in battles."
+        options: ["Invest fully", "Partial investment", "Share costs", "Skip for now"],
+        reasoning: "Better training facilities means better performance in battles."
       }
     ];
 
@@ -399,55 +400,10 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
         }))
       });
 
-      // Process decision if there was one
-      if (pendingDecision) {
-        setTimeout(() => {
-          processCharacterDecision(pendingDecision, inputMessage.trim());
-        }, 2000);
-      }
+      // Note: Don't automatically process decisions here - let the coach use the preset buttons
+      // The processCharacterDecision function will be called from handlePresetDecision instead
       
-      // Generate new decision occasionally
-      if (!pendingDecision && Math.random() > 0.7) {
-        setTimeout(async () => {
-          const newDecision = generateFinancialDecision(selectedCharacter);
-          
-          // Check if this should be automated
-          const autoDecision = shouldAutomate(newDecision, selectedCharacter);
-          
-          if (autoDecision) {
-            // Process automatically without showing to user
-            const outcome = await processDecisionOutcome(newDecision, autoDecision === 'bad' ? 'rejected' : 'approved', selectedCharacter.financials?.coachTrustLevel || 50, selectedCharacter.financials?.financialStress || 30);
-            
-            const autoMessage: Message = {
-              id: Date.now() + 10,
-              type: 'system',
-              content: `${selectedCharacter.name} ${autoDecision === 'bad' ? 'decided against' : 'went ahead with'} ${newDecision.description} (${autoDecision === 'bad' ? 'clearly risky' : 'obviously good'} decision). ${outcome?.message || ''}`,
-              timestamp: new Date()
-            };
-            
-            setMessages(prev => [...prev, autoMessage]);
-          } else {
-            // Show to user for manual coaching
-            setPendingDecision(newDecision);
-            
-            const decisionMessage: Message = {
-              id: Date.now() + 10,
-              type: 'decision',
-              content: `Hey coach, I've been thinking... I ${newDecision.description} for about $${newDecision.amount.toLocaleString()}. ${newDecision.characterReasoning} What do you think?`,
-              timestamp: new Date(),
-              decision: {
-                id: newDecision.id,
-                amount: newDecision.amount,
-                options: newDecision.options,
-                reasoning: newDecision.characterReasoning,
-                urgency: newDecision.urgency
-              }
-            };
-            
-            setMessages(prev => [...prev, decisionMessage]);
-          }
-        }, 5000);
-      }
+      // Decision generation is now only done once per character selection in the initial greeting
     } catch (error) {
       console.error('Error in financial chat:', error);
       const errorMessage: Message = {
@@ -461,9 +417,6 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
     }
   };
 
-  const handleQuickResponse = (response: string) => {
-    setInputMessage(response);
-  };
 
   const getCharacterContext = (character: EnhancedCharacter) => {
     return {
@@ -488,19 +441,17 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
     const percentOfWallet = (decision.amount / wallet) * 100;
     const percentOfMonthlyEarnings = (decision.amount / monthlyEarnings) * 100;
     
-    // Clear-cut BAD decisions
-    if (percentOfWallet > 80) return 'bad'; // More than 80% of wallet
-    if (percentOfMonthlyEarnings > 300) return 'bad'; // More than 3 months earnings
-    if (stress > 80 && percentOfWallet > 40) return 'bad'; // High stress + significant spending
-    if (wallet < decision.amount * 1.1) return 'bad'; // Not enough buffer money
+    // EXTREMELY RESTRICTIVE automated decisions - almost never automate
+    // The coaching interaction is the core gameplay experience
     
-    // Clear-cut GOOD decisions
-    if (percentOfWallet < 10 && percentOfMonthlyEarnings < 50) return 'good'; // Small, affordable purchase
-    if (decision.description.toLowerCase().includes('emergency fund') && percentOfWallet < 20) return 'good'; // Emergency fund building
-    if (decision.description.toLowerCase().includes('training') && percentOfWallet < 15) return 'good'; // Training investment
-    if (stress < 20 && trust > 80 && percentOfWallet < 25) return 'good'; // Low stress, high trust, reasonable amount
+    // Only automate VERY obvious tiny purchases
+    if (percentOfWallet < 2 && percentOfMonthlyEarnings < 10 && decision.amount < 500) return 'good'; // Tiny purchases like coffee
     
-    // Borderline cases return null for manual coaching
+    // Only automate completely impossible purchases (10x wallet amount)
+    if (decision.amount > wallet * 10) return 'bad'; // Impossible purchases like $200k car with $19k wallet
+    
+    // Everything else goes to manual coaching - this is the core gameplay
+    // Even "can't afford" decisions should be shown to coach for educational value
     return null;
   };
 
@@ -681,15 +632,132 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
 
     // Send through WebSocket for character response
     if (socketRef.current && connected) {
-      socketRef.current.emit('chat_message', {
-        message: coachMessage,
-        character: selectedCharacter.name,
-        context: {
-          ...getCharacterContext(selectedCharacter),
-          decisionOutcome: outcome,
-          coachDecision: decisionType
-        },
-        previousMessages: messages.slice(-3)
+      setIsLoading(true);
+      
+      // Use the same format as handleSendMessage for consistency
+      const characterId = getCharacterId(selectedCharacter);
+      
+      // Get living context and event context for robust response
+      const getLivingContext = async () => {
+        try {
+          const conflictService = ConflictContextService.getInstance();
+          return await conflictService.generateLivingContext(selectedCharacter.id);
+        } catch (error) {
+          console.warn('⚠️ Could not generate living context:', error);
+          return `Living in team quarters with other legendary figures. Current living situation affects financial decisions and stress levels.`;
+        }
+      };
+
+      const getEventContext = async () => {
+        try {
+          const eventContextService = EventContextService.getInstance();
+          return await eventContextService.generateEventContext(selectedCharacter.id, {
+            emotionalState: 'processing_financial_decision',
+            domainSpecific: 'financial_coaching'
+          });
+        } catch (error) {
+          console.warn('⚠️ Could not generate event context:', error);
+          return null;
+        }
+      };
+
+      // Get contexts and send message
+      const sendMessage = async () => {
+        const livingContext = await getLivingContext();
+        const eventContext = await getEventContext();
+
+        // Use the proper FinancialPromptTemplateService
+        const financialPrompt = FinancialPromptTemplateService.generatePrompt({
+          characterId: selectedCharacter.id,
+          characterName: selectedCharacter.name,
+          coachInput: coachMessage,
+          financialState: {
+            wallet: selectedCharacter.financials?.wallet || 0,
+            monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
+            financialStress: selectedCharacter.financials?.financialStress || 0,
+            coachTrustLevel: selectedCharacter.financials?.coachTrustLevel || 0,
+            spendingPersonality: selectedCharacter.financials?.spendingPersonality || 'moderate',
+            recentDecisions: selectedCharacter.financials?.recentDecisions || []
+          },
+          decision: pendingDecision ? {
+            id: pendingDecision.id,
+            description: pendingDecision.description,
+            amount: pendingDecision.amount,
+            options: pendingDecision.options,
+            reasoning: pendingDecision.characterReasoning,
+            urgency: pendingDecision.urgency
+          } : undefined,
+          conversationType: 'advice'
+        });
+
+        console.log('🔧 Sending preset decision message:', {
+          message: coachMessage,
+          character: characterId,
+          decisionType,
+          outcome,
+          isConnected: connected
+        });
+
+        socketRef.current.emit('chat_message', {
+          message: coachMessage,
+          character: characterId,
+          characterData: {
+            name: selectedCharacter?.name,
+            archetype: selectedCharacter.archetype,
+            level: selectedCharacter.level,
+            personality: selectedCharacter.personality || {
+              traits: ['Money-conscious'],
+              speechStyle: 'Direct',
+              motivations: ['Financial security'],
+              fears: ['Poverty'],
+              relationships: []
+            },
+            // Add living context and event context
+            livingContext: livingContext,
+            eventContext: eventContext,
+            // Add financial coaching context
+            conversationContext: financialPrompt,
+            // Character stats
+            baseStats: selectedCharacter.baseStats,
+            combatStats: selectedCharacter.combatStats,
+            // Current status
+            currentHp: selectedCharacter.combatStats?.health || 100,
+            maxHp: selectedCharacter.combatStats?.maxHealth || 100,
+            injuries: selectedCharacter.injuries,
+            bondLevel: selectedCharacter.displayBondLevel,
+            // Financial-specific context
+            financialStats: {
+              wallet: selectedCharacter.financials?.wallet || 0,
+              monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
+              financialStress: selectedCharacter.financials?.financialStress || 0,
+              coachTrustLevel: selectedCharacter.financials?.coachTrustLevel || 0,
+              spendingPersonality: selectedCharacter.financials?.spendingPersonality || 'moderate',
+              recentDecisions: selectedCharacter.financials?.recentDecisions || []
+            },
+            // Pending decision context (should be null after decision is made)
+            pendingFinancialDecision: null,
+            // Decision context
+            decisionOutcome: outcome,
+            coachDecision: decisionType,
+            
+            // Domain-specific coaching context enhanced with proper templates
+            sessionContext: {
+              type: 'financial_advisory',
+              hasDecision: false, // Decision was just processed
+              focusAreas: ['Financial planning', 'Money decisions', 'Spending habits', 'Financial stress', 'Investment choices', 'Budgeting'],
+              coachingApproach: 'Character-specific financial guidance with era-appropriate perspectives'
+            }
+          },
+          previousMessages: messages.slice(-5).map(msg => ({
+            role: msg.type === 'player' ? 'user' : 'assistant',
+            content: msg.content
+          }))
+        });
+      };
+
+      sendMessage().catch(error => {
+        console.error('❌ Error sending preset decision message:', error);
+        setIsLoading(false);
       });
     }
 
@@ -836,6 +904,14 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
           // Check if this should be automated
           const autoDecision = shouldAutomate(decision, selectedCharacter);
           
+          console.log('🤖 Initial decision automation check:', {
+            decision: decision.description,
+            amount: decision.amount,
+            wallet: selectedCharacter.financials?.wallet || 19073,
+            autoDecision,
+            percentOfWallet: ((decision.amount / (selectedCharacter.financials?.wallet || 19073)) * 100).toFixed(1) + '%'
+          });
+          
           if (autoDecision) {
             // Process automatically without showing to user
             const outcome = await processDecisionOutcome(decision, autoDecision === 'bad' ? 'rejected' : 'approved', selectedCharacter.financials?.coachTrustLevel || 50, selectedCharacter.financials?.financialStress || 30);
@@ -966,43 +1042,11 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Response Buttons */}
-      {pendingDecision && (
-        <div className="mb-4">
-          <div className="text-sm text-gray-400 mb-2">Quick responses:</div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleQuickResponse("That sounds risky. Have you considered the long-term impact?")}
-              className="p-2 bg-red-600/20 border border-red-500 rounded text-sm text-red-300 hover:bg-red-600/30 transition-all"
-            >
-              Advise Caution
-            </button>
-            <button
-              onClick={() => handleQuickResponse("That could be a good investment if you've done your research.")}
-              className="p-2 bg-green-600/20 border border-green-500 rounded text-sm text-green-300 hover:bg-green-600/30 transition-all"
-            >
-              Support Decision
-            </button>
-            <button
-              onClick={() => handleQuickResponse("Let's look at your budget first. Can you afford this right now?")}
-              className="p-2 bg-blue-600/20 border border-blue-500 rounded text-sm text-blue-300 hover:bg-blue-600/30 transition-all"
-            >
-              Ask About Budget
-            </button>
-            <button
-              onClick={() => handleQuickResponse("What other options have you considered? There might be better alternatives.")}
-              className="p-2 bg-purple-600/20 border border-purple-500 rounded text-sm text-purple-300 hover:bg-purple-600/30 transition-all"
-            >
-              Suggest Alternatives
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Preset Decision Buttons */}
       {pendingDecision && (
         <div className="mb-4">
-          <div className="text-sm text-gray-400 mb-2">Decision outcome:</div>
+          <div className="text-sm text-gray-400 mb-2">Coach recommendation:</div>
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => handlePresetDecision('bad')}
