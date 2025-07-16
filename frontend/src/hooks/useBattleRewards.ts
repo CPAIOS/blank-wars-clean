@@ -5,6 +5,7 @@ import { combatRewards } from '@/data/combatRewards';
 import { calculateWeightClassXP } from '@/data/weightClassSystem';
 import { createBattlePerformance, CombatSkillEngine } from '@/data/combatSkillProgression';
 import { updateCoachingPointsAfterBattle } from '@/data/teamBattleSystem';
+import { coachProgressionAPI } from '@/services/coachProgressionAPI';
 
 // Define TeamCharacterSkills interface locally (should be moved to shared types)
 interface TeamCharacterSkills {
@@ -119,6 +120,14 @@ export const useBattleRewards = ({
       newXP: leveledUp ? newXP - winningCharacter.experienceToNext : newXP,
       xpToNext: leveledUp ? Math.floor(winningCharacter.experienceToNext * 1.2) : winningCharacter.experienceToNext
     });
+
+    // Award coach battle XP for completing the battle
+    if (state.battleId) {
+      coachProgressionAPI.awardBattleXP(
+        player1Won, // isWin
+        state.battleId
+      ).catch(error => console.error('Failed to award coach battle XP:', error));
+    }
     
     // Handle character financial earnings - generate financial decision if earnings are significant
     if (rewards.characterEarnings && rewards.characterEarnings.totalEarnings >= 5000) {

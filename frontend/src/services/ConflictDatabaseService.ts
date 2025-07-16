@@ -1,6 +1,7 @@
 'use client';
 
 import { characterAPI } from './apiClient';
+import GameEventBus from './gameEventBus';
 
 interface Character {
   id: string;
@@ -41,6 +42,16 @@ interface TherapyContext {
   teamChemistry: number;
   personalStressFactors: string[];
   activeConflicts: ConflictData[];
+  // Financial Context
+  financialStress?: number;
+  financialDecisionQuality?: number;
+  financialTrust?: number;
+  recentFinancialDecisions?: string[];
+  isInFinancialSpiral?: boolean;
+  consecutivePoorDecisions?: number;
+  wallet?: number;
+  monthlyEarnings?: number;
+  debt?: number;
 }
 
 interface TherapistPromptStyle {
@@ -84,7 +95,11 @@ const EXTENDED_CONFLICT_CATEGORIES = [
   
   // Personal Growth
   'purpose_questioning', 'meaning_crisis', 'spiritual_confusion', 'philosophical_doubt',
-  'change_resistance', 'growth_stagnation', 'potential_unfulfilled', 'direction_uncertainty'
+  'change_resistance', 'growth_stagnation', 'potential_unfulfilled', 'direction_uncertainty',
+  
+  // Financial & Money
+  'spending_addiction', 'financial_jealousy', 'debt_shame', 'investment_anxiety',
+  'luxury_guilt', 'money_hoarding', 'financial_betrayal', 'wealth_disparity_tension'
 ];
 
 // Therapist questioning styles
@@ -158,8 +173,12 @@ class ConflictDatabaseService {
   private static instance: ConflictDatabaseService;
   private conflicts: ConflictData[] = [];
   private characters: Character[] = [];
+  private eventBus: GameEventBus;
 
-  private constructor() {}
+  private constructor() {
+    this.eventBus = GameEventBus.getInstance();
+    this.setupFinancialEventListeners();
+  }
 
   static getInstance(): ConflictDatabaseService {
     if (!ConflictDatabaseService.instance) {
@@ -214,6 +233,9 @@ class ConflictDatabaseService {
     const personalStressFactors = this.generatePersonalStressFactors(character);
     const activeConflicts = this.generateActiveConflicts(character, roommates);
 
+    // Get financial context data
+    const financialData = this.getFinancialContextData(characterId);
+    
     return {
       character,
       roommates,
@@ -225,13 +247,114 @@ class ConflictDatabaseService {
       recentBattleResults,
       teamChemistry,
       personalStressFactors,
-      activeConflicts
+      activeConflicts,
+      // Financial Context
+      financialStress: financialData.stress,
+      financialDecisionQuality: financialData.decisionQuality,
+      financialTrust: financialData.trust,
+      recentFinancialDecisions: financialData.recentDecisions,
+      isInFinancialSpiral: financialData.isInSpiral,
+      consecutivePoorDecisions: financialData.consecutivePoorDecisions,
+      wallet: financialData.wallet,
+      monthlyEarnings: financialData.monthlyEarnings,
+      debt: financialData.debt
     };
+  }
+
+  /**
+   * Get financial context data for therapy sessions
+   */
+  private getFinancialContextData(characterId: string): {
+    stress: number;
+    decisionQuality: number;
+    trust: number;
+    recentDecisions: string[];
+    isInSpiral: boolean;
+    consecutivePoorDecisions: number;
+    wallet: number;
+    monthlyEarnings: number;
+    debt: number;
+  } {
+    try {
+      // Import financial psychology service dynamically to avoid circular dependencies
+      const { FinancialPsychologyService } = require('./FinancialPsychologyService');
+      const financialService = FinancialPsychologyService.getInstance();
+      
+      // Get current financial state from the character
+      const character = this.characters.find(c => c.id === characterId);
+      if (!character || !character.financialData) {
+        // Return mock data if financial data not available
+        return {
+          stress: Math.floor(Math.random() * 40) + 30, // 30-70%
+          decisionQuality: Math.floor(Math.random() * 30) + 50, // 50-80%
+          trust: Math.floor(Math.random() * 40) + 40, // 40-80%
+          recentDecisions: ['Made a safe investment', 'Bought necessary equipment'],
+          isInSpiral: false,
+          consecutivePoorDecisions: 0,
+          wallet: Math.floor(Math.random() * 20000) + 5000,
+          monthlyEarnings: Math.floor(Math.random() * 2000) + 1000,
+          debt: Math.floor(Math.random() * 5000)
+        };
+      }
+
+      const { financialData } = character;
+      
+      // Calculate current stress and decision quality
+      const stress = financialService.calculateFinancialStress(
+        financialData.wallet || 10000,
+        financialData.monthlyEarnings || 2000,
+        financialData.debt || 0,
+        financialData.decisions?.slice(-5) || [],
+        financialData.personality || { spendingStyle: 'balanced', riskTolerance: 'moderate' }
+      );
+
+      const decisionQuality = financialService.calculateDecisionQuality(
+        stress,
+        financialData.personality || { spendingStyle: 'balanced', riskTolerance: 'moderate' },
+        financialData.coachTrust || 50
+      );
+
+      // Generate recent financial decisions descriptions
+      const recentDecisions = financialData.decisions?.slice(-3).map(d => {
+        const outcome = d.outcome ? (d.outcome.success ? 'successful' : 'unsuccessful') : 'pending';
+        return `${d.optionChosen.replace('_', ' ')} (${outcome})`;
+      }) || ['No recent decisions'];
+
+      // Check spiral state
+      const spiralData = financialService.detectFinancialSpiral(financialData.decisions || []);
+
+      return {
+        stress: Math.round(stress),
+        decisionQuality: Math.round(decisionQuality),
+        trust: Math.round(financialData.coachTrust || 50),
+        recentDecisions,
+        isInSpiral: spiralData.isInSpiral,
+        consecutivePoorDecisions: spiralData.consecutivePoorDecisions,
+        wallet: financialData.wallet || 10000,
+        monthlyEarnings: financialData.monthlyEarnings || 2000,
+        debt: financialData.debt || 0
+      };
+      
+    } catch (error) {
+      console.warn('Could not load financial context for therapy:', error);
+      // Return safe defaults if financial service unavailable
+      return {
+        stress: 45,
+        decisionQuality: 65,
+        trust: 60,
+        recentDecisions: ['Recent financial activity unknown'],
+        isInSpiral: false,
+        consecutivePoorDecisions: 0,
+        wallet: 8000,
+        monthlyEarnings: 1500,
+        debt: 2000
+      };
+    }
   }
 
   // Generate dynamic therapy prompt with behavioral scripting
   generateTherapyPrompt(context: TherapyContext, therapistId: string, sessionStage: 'initial' | 'resistance' | 'breakthrough'): string {
-    const { character, roommates, housingTier, roomCapacity, currentOccupancy, leagueRanking, teamRating, recentBattleResults, teamChemistry, personalStressFactors, activeConflicts } = context;
+    const { character, roommates, housingTier, roomCapacity, currentOccupancy, leagueRanking, teamRating, recentBattleResults, teamChemistry, personalStressFactors, activeConflicts, financialStress, financialDecisionQuality, financialTrust, recentFinancialDecisions, isInFinancialSpiral, consecutivePoorDecisions, wallet, monthlyEarnings, debt } = context;
     
     const overcrowdingLevel = currentOccupancy > roomCapacity ? 'severe' : currentOccupancy === roomCapacity ? 'moderate' : 'none';
     const conflictSeverity = activeConflicts.filter(c => c.severity === 'high' || c.severity === 'critical').length > 2 ? 'high' : 'moderate';
@@ -255,6 +378,17 @@ ${activeConflicts.map(c => `- ${c.description}`).join('\n')}
 
 PERSONAL STRESS FACTORS:
 ${personalStressFactors.map(f => `- ${f}`).join('\n')}
+
+FINANCIAL CONTEXT:
+- Financial Stress: ${financialStress || 0}% (${financialStress > 70 ? 'HIGH' : financialStress > 50 ? 'MODERATE' : 'LOW'})
+- Decision Quality: ${financialDecisionQuality || 0}% (${financialDecisionQuality < 40 ? 'POOR' : financialDecisionQuality < 70 ? 'FAIR' : 'GOOD'})
+- Coach Trust: ${financialTrust || 0}% (${financialTrust < 40 ? 'LOW' : financialTrust < 70 ? 'MODERATE' : 'HIGH'})
+- Current Wallet: $${wallet || 0}
+- Monthly Earnings: $${monthlyEarnings || 0}
+- Current Debt: $${debt || 0}
+${isInFinancialSpiral ? `- WARNING: In financial spiral (${consecutivePoorDecisions} consecutive poor decisions)` : ''}
+RECENT FINANCIAL DECISIONS:
+${recentFinancialDecisions?.map(d => `- ${d}`).join('\n') || '- No recent financial decisions'}
 
 CRITICAL: YOU ARE THE PATIENT, NOT THE THERAPIST!
 
@@ -477,6 +611,192 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
 
   getTherapistStyles(): Record<string, TherapistPromptStyle> {
     return { ...THERAPIST_STYLES };
+  }
+
+  /**
+   * Set up event listeners for financial events that can trigger conflicts
+   */
+  private setupFinancialEventListeners(): void {
+    // Listen for financial crisis events
+    this.eventBus.subscribe('financial_crisis', (data: any) => {
+      this.handleFinancialCrisisEvent(data);
+    });
+
+    // Listen for financial stress increase events
+    this.eventBus.subscribe('financial_stress_increase', (data: any) => {
+      this.handleFinancialStressEvent(data);
+    });
+
+    // Listen for financial spiral events
+    this.eventBus.subscribe('financial_spiral_started', (data: any) => {
+      this.handleFinancialSpiralEvent(data);
+    });
+
+    this.eventBus.subscribe('financial_spiral_deepening', (data: any) => {
+      this.handleFinancialSpiralEvent(data);
+    });
+  }
+
+  /**
+   * Handle financial crisis events by potentially generating conflicts
+   */
+  private async handleFinancialCrisisEvent(data: any): Promise<void> {
+    const { characterId, stressLevel, triggerReason } = data;
+    
+    // High probability of generating conflict during financial crisis
+    if (Math.random() < 0.8) {
+      await this.generateFinancialConflict(characterId, 'critical', stressLevel, triggerReason);
+    }
+  }
+
+  /**
+   * Handle financial stress increase events
+   */
+  private async handleFinancialStressEvent(data: any): Promise<void> {
+    const { characterId, stressLevel, triggerReason } = data;
+    
+    // Moderate probability of generating conflict during high stress
+    if (stressLevel >= 70 && Math.random() < 0.5) {
+      await this.generateFinancialConflict(characterId, 'high', stressLevel, triggerReason);
+    }
+  }
+
+  /**
+   * Handle financial spiral events
+   */
+  private async handleFinancialSpiralEvent(data: any): Promise<void> {
+    const { characterId, spiralIntensity, consecutivePoorDecisions } = data;
+    
+    // Spirals often create conflicts with teammates
+    if (spiralIntensity >= 60 && Math.random() < 0.6) {
+      await this.generateFinancialConflict(characterId, 'high', spiralIntensity, 'financial_spiral');
+    }
+  }
+
+  /**
+   * Generate a financial conflict based on stress level and trigger
+   */
+  private async generateFinancialConflict(
+    characterId: string,
+    severity: 'low' | 'medium' | 'high' | 'critical',
+    stressLevel: number,
+    triggerReason: string
+  ): Promise<void> {
+    const conflictType = this.selectFinancialConflictType(stressLevel, triggerReason);
+    const character = this.characters.find(c => c.id === characterId);
+    
+    if (!character) {
+      console.warn(`Character ${characterId} not found for financial conflict generation`);
+      return;
+    }
+
+    // Get potential teammates for conflict
+    const teammates = this.characters.filter(c => c.id !== characterId);
+    const involvedCharacters = [characterId];
+    
+    // Add a random teammate to the conflict
+    if (teammates.length > 0) {
+      const randomTeammate = teammates[Math.floor(Math.random() * teammates.length)];
+      involvedCharacters.push(randomTeammate.id);
+    }
+
+    const conflict: ConflictData = {
+      id: `financial_${Date.now()}_${characterId}`,
+      category: conflictType,
+      severity,
+      source: 'personal',
+      characters_involved: involvedCharacters,
+      description: this.generateFinancialConflictDescription(conflictType, character, stressLevel, triggerReason),
+      therapy_priority: severity === 'critical' ? 5 : severity === 'high' ? 4 : 3,
+      resolution_difficulty: severity === 'critical' ? 'complex' : severity === 'high' ? 'hard' : 'moderate',
+      timestamp: new Date(),
+      resolved: false
+    };
+
+    this.conflicts.push(conflict);
+    
+    // Publish conflict creation event
+    await this.eventBus.publishFinancialEvent(
+      'financial_conflict_created',
+      characterId,
+      `Financial stress has created a ${conflictType} conflict for ${character.name}`,
+      { 
+        conflictId: conflict.id,
+        conflictType,
+        severity,
+        stressLevel,
+        triggerReason
+      },
+      'high'
+    );
+  }
+
+  /**
+   * Select appropriate financial conflict type based on stress factors
+   */
+  private selectFinancialConflictType(stressLevel: number, triggerReason: string): string {
+    const conflictTypes = {
+      // High stress conflicts
+      severe: ['financial_betrayal', 'wealth_disparity_tension', 'debt_shame'],
+      // Medium stress conflicts  
+      moderate: ['financial_jealousy', 'spending_addiction', 'money_hoarding'],
+      // Lower stress conflicts
+      mild: ['luxury_guilt', 'investment_anxiety']
+    };
+    
+    let selectedTypes: string[];
+    if (stressLevel >= 85) {
+      selectedTypes = conflictTypes.severe;
+    } else if (stressLevel >= 70) {
+      selectedTypes = conflictTypes.moderate;
+    } else {
+      selectedTypes = conflictTypes.mild;
+    }
+    
+    // Modify selection based on trigger reason
+    if (triggerReason === 'debt_pressure') {
+      selectedTypes = ['debt_shame', 'financial_betrayal'];
+    } else if (triggerReason === 'recent_losses') {
+      selectedTypes = ['investment_anxiety', 'financial_jealousy'];
+    } else if (triggerReason === 'social_pressure') {
+      selectedTypes = ['wealth_disparity_tension', 'luxury_guilt'];
+    } else if (triggerReason === 'financial_spiral') {
+      selectedTypes = ['spending_addiction', 'financial_betrayal'];
+    }
+    
+    return selectedTypes[Math.floor(Math.random() * selectedTypes.length)];
+  }
+
+  /**
+   * Generate description for financial conflict
+   */
+  private generateFinancialConflictDescription(
+    conflictType: string,
+    character: Character,
+    stressLevel: number,
+    triggerReason: string
+  ): string {
+    const descriptions = {
+      'spending_addiction': `${character.name} is making impulsive purchases that are affecting team finances and causing tension`,
+      'financial_jealousy': `${character.name} is resentful of teammates' financial success and spending habits`,
+      'debt_shame': `${character.name} is hiding financial problems from the team, creating trust issues`,
+      'investment_anxiety': `${character.name} is stressed about financial decisions and seeking constant validation`,
+      'luxury_guilt': `${character.name} feels guilty about purchases while teammates struggle financially`,
+      'money_hoarding': `${character.name} is being overly stingy with money, causing team friction`,
+      'financial_betrayal': `${character.name} feels betrayed by teammates' financial decisions or advice`,
+      'wealth_disparity_tension': `${character.name} is struggling with the financial gap between team members`
+    };
+
+    const baseDescription = descriptions[conflictType] || `${character.name} is experiencing ${conflictType.replace('_', ' ')} issues`;
+    
+    // Add stress context
+    if (stressLevel >= 80) {
+      return `${baseDescription} - stress levels are critical (${stressLevel}%) due to ${triggerReason}`;
+    } else if (stressLevel >= 70) {
+      return `${baseDescription} - high stress (${stressLevel}%) from ${triggerReason}`;
+    }
+    
+    return baseDescription;
   }
 }
 

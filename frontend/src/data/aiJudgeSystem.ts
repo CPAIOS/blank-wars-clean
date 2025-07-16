@@ -3,6 +3,7 @@
 
 import { DeviationEvent, DeviationType } from './characterPsychology';
 import { TeamCharacter } from './teamBattleSystem';
+import { FinancialDecision } from './characters';
 
 export interface JudgeDecision {
   ruling: string;                    // The judge's explanation
@@ -24,6 +25,30 @@ export interface JudgeEffect {
   specialEffect?: string;            // Custom effects that need manual handling
 }
 
+// Financial-specific Judge interfaces
+export interface FinancialJudgeDecision {
+  ruling: string;
+  commentary: string;
+  riskAssessment: 'excellent' | 'good' | 'questionable' | 'poor' | 'catastrophic';
+  coachEvaluation: 'excellent_guidance' | 'good_advice' | 'missed_opportunity' | 'poor_advice' | 'harmful_guidance';
+  interventionRecommendation?: string;
+  precedent?: string;
+}
+
+export interface FinancialEventContext {
+  characterId: string;
+  eventType: 'decision' | 'outcome' | 'spiral' | 'intervention' | 'wildcard';
+  financialImpact: number;
+  stressLevel: number;
+  spiralIntensity?: number;
+  coachInvolvement: boolean;
+  battleContext?: {
+    emotionalState: string;
+    triggerEvent: string;
+    performanceLevel: string;
+  };
+}
+
 export interface JudgePersonality {
   name: string;
   style: 'strict' | 'lenient' | 'chaotic' | 'theatrical' | 'logical';
@@ -33,6 +58,12 @@ export interface JudgePersonality {
     favorsCreativity: number;  // 0-100, how much they reward creative chaos
     strictnessLevel: number;   // 0-100, how much they punish deviations
     narrativeFocus: number;    // 0-100, how much they prioritize story over mechanics
+  };
+  financialTendencies: {
+    riskTolerance: number;     // 0-100, how much they tolerate financial risks
+    disciplineFocus: number;   // 0-100, how much they value financial discipline
+    sympathyForStruggles: number; // 0-100, how much they understand financial stress
+    coachSupportLevel: number; // 0-100, how much they support coach interventions
   };
 }
 
@@ -47,6 +78,12 @@ export const judgePersonalities: JudgePersonality[] = [
       favorsCreativity: 20,
       strictnessLevel: 90,
       narrativeFocus: 40
+    },
+    financialTendencies: {
+      riskTolerance: 20,
+      disciplineFocus: 95,
+      sympathyForStruggles: 30,
+      coachSupportLevel: 85
     }
   },
   {
@@ -58,6 +95,12 @@ export const judgePersonalities: JudgePersonality[] = [
       favorsCreativity: 95,
       strictnessLevel: 10,
       narrativeFocus: 80
+    },
+    financialTendencies: {
+      riskTolerance: 90,
+      disciplineFocus: 15,
+      sympathyForStruggles: 70,
+      coachSupportLevel: 40
     }
   },
   {
@@ -69,6 +112,12 @@ export const judgePersonalities: JudgePersonality[] = [
       favorsCreativity: 60,
       strictnessLevel: 70,
       narrativeFocus: 30
+    },
+    financialTendencies: {
+      riskTolerance: 55,
+      disciplineFocus: 80,
+      sympathyForStruggles: 60,
+      coachSupportLevel: 75
     }
   },
   {
@@ -80,6 +129,12 @@ export const judgePersonalities: JudgePersonality[] = [
       favorsCreativity: 85,
       strictnessLevel: 30,
       narrativeFocus: 95
+    },
+    financialTendencies: {
+      riskTolerance: 75,
+      disciplineFocus: 40,
+      sympathyForStruggles: 85,
+      coachSupportLevel: 60
     }
   },
   {
@@ -91,12 +146,19 @@ export const judgePersonalities: JudgePersonality[] = [
       favorsCreativity: 70,
       strictnessLevel: 40,
       narrativeFocus: 60
+    },
+    financialTendencies: {
+      riskTolerance: 45,
+      disciplineFocus: 60,
+      sympathyForStruggles: 95,
+      coachSupportLevel: 90
     }
   }
 ];
 
 // Store previous rulings to maintain consistency
 const rulingPrecedents: Map<string, JudgeDecision[]> = new Map();
+const financialRulingPrecedents: Map<string, FinancialJudgeDecision[]> = new Map();
 
 // Main judge decision function
 export function makeJudgeDecision(
@@ -134,6 +196,37 @@ export function makeJudgeDecision(
   rulingPrecedents.set(precedentKey, pastRulings);
   
   return decision;
+}
+
+// Main financial decision evaluation function
+export function makeFinancialJudgeDecision(
+  context: FinancialEventContext,
+  decision: FinancialDecision,
+  outcome?: { success: boolean; actualImpact: number; stressChange: number },
+  activeJudge?: JudgePersonality
+): FinancialJudgeDecision {
+  
+  const judge = activeJudge || getRandomJudge();
+  const precedentKey = `${context.eventType}_${judge.name}`;
+  
+  // Check for precedents
+  const pastRulings = financialRulingPrecedents.get(precedentKey) || [];
+  
+  let judgeDecision: FinancialJudgeDecision;
+  
+  if (outcome) {
+    // Evaluate completed decision with known outcome
+    judgeDecision = evaluateFinancialOutcome(context, decision, outcome, judge);
+  } else {
+    // Evaluate decision in progress or prevention opportunity
+    judgeDecision = evaluateFinancialDecision(context, decision, judge);
+  }
+  
+  // Store precedent
+  pastRulings.push(judgeDecision);
+  financialRulingPrecedents.set(precedentKey, pastRulings);
+  
+  return judgeDecision;
 }
 
 // Interpret AI-generated action into game mechanics
@@ -404,7 +497,7 @@ function applyJudgePersonality(
 }
 
 // Get random judge for variety
-function getRandomJudge(): JudgePersonality {
+export function getRandomJudge(): JudgePersonality {
   return judgePersonalities[Math.floor(Math.random() * judgePersonalities.length)];
 }
 
@@ -443,6 +536,313 @@ ${getDeviationExamples(deviation.type, character.archetype)}
 Your action:`;
 
   return basePrompt;
+}
+
+// Financial evaluation helper functions
+function evaluateFinancialOutcome(
+  context: FinancialEventContext,
+  decision: FinancialDecision,
+  outcome: { success: boolean; actualImpact: number; stressChange: number },
+  judge: JudgePersonality
+): FinancialJudgeDecision {
+  
+  const riskAssessment = assessRiskLevel(decision, outcome, judge);
+  const coachEvaluation = evaluateCoachPerformance(decision, outcome, judge);
+  const ruling = generateFinancialRuling(context, decision, outcome, judge);
+  const commentary = generateFinancialCommentary(context, decision, outcome, judge);
+  
+  return {
+    ruling,
+    commentary,
+    riskAssessment,
+    coachEvaluation,
+    interventionRecommendation: shouldRecommendIntervention(context, outcome, judge) ? 
+      generateInterventionRecommendation(context, judge) : undefined,
+    precedent: `${context.eventType}: ${riskAssessment}_outcome`
+  };
+}
+
+function evaluateFinancialDecision(
+  context: FinancialEventContext,
+  decision: FinancialDecision,
+  judge: JudgePersonality
+): FinancialJudgeDecision {
+  
+  // Evaluate decision potential without knowing outcome
+  const riskAssessment = assessDecisionRisk(decision, context, judge);
+  const coachEvaluation = evaluateCoachAdvice(decision, judge);
+  const ruling = generateDecisionRuling(context, decision, judge);
+  const commentary = generateDecisionCommentary(context, decision, judge);
+  
+  return {
+    ruling,
+    commentary,
+    riskAssessment,
+    coachEvaluation,
+    interventionRecommendation: shouldRecommendPreventiveIntervention(context, decision, judge) ? 
+      generateInterventionRecommendation(context, judge) : undefined,
+    precedent: `${context.eventType}: ${riskAssessment}_decision`
+  };
+}
+
+function assessRiskLevel(
+  decision: FinancialDecision,
+  outcome: { success: boolean; actualImpact: number; stressChange: number },
+  judge: JudgePersonality
+): 'excellent' | 'good' | 'questionable' | 'poor' | 'catastrophic' {
+  
+  const impactSeverity = Math.abs(outcome.actualImpact);
+  const stressSeverity = Math.abs(outcome.stressChange);
+  
+  if (outcome.success && outcome.actualImpact > 0 && outcome.stressChange <= 0) {
+    return 'excellent';
+  } else if (outcome.success && stressSeverity <= 10) {
+    return 'good';
+  } else if (!outcome.success && stressSeverity <= 20) {
+    return 'questionable';
+  } else if (!outcome.success && stressSeverity <= 40) {
+    return 'poor';
+  } else {
+    return 'catastrophic';
+  }
+}
+
+function evaluateCoachPerformance(
+  decision: FinancialDecision,
+  outcome: { success: boolean; actualImpact: number; stressChange: number },
+  judge: JudgePersonality
+): 'excellent_guidance' | 'good_advice' | 'missed_opportunity' | 'poor_advice' | 'harmful_guidance' {
+  
+  if (!decision.coachAdvice) {
+    return outcome.success ? 'missed_opportunity' : 'missed_opportunity';
+  }
+  
+  if (decision.followedAdvice) {
+    if (outcome.success && outcome.stressChange <= 0) {
+      return 'excellent_guidance';
+    } else if (outcome.success) {
+      return 'good_advice';
+    } else if (outcome.stressChange > 30) {
+      return 'harmful_guidance';
+    } else {
+      return 'poor_advice';
+    }
+  } else {
+    // Ignored advice
+    if (outcome.success) {
+      return judge.financialTendencies.coachSupportLevel > 70 ? 'missed_opportunity' : 'good_advice';
+    } else {
+      return 'excellent_guidance'; // Coach was right to warn
+    }
+  }
+}
+
+function assessDecisionRisk(
+  decision: FinancialDecision,
+  context: FinancialEventContext,
+  judge: JudgePersonality
+): 'excellent' | 'good' | 'questionable' | 'poor' | 'catastrophic' {
+  
+  const riskFactors = [
+    decision.amount > 10000 ? 20 : 0,
+    context.stressLevel > 70 ? 30 : 0,
+    context.spiralIntensity && context.spiralIntensity > 50 ? 25 : 0,
+    !decision.coachAdvice && context.stressLevel > 50 ? 15 : 0,
+    context.battleContext ? 10 : 0 // Battle emotions add risk
+  ];
+  
+  const totalRisk = riskFactors.reduce((sum, factor) => sum + factor, 0);
+  
+  if (totalRisk <= 10) return 'excellent';
+  if (totalRisk <= 25) return 'good';
+  if (totalRisk <= 50) return 'questionable';
+  if (totalRisk <= 75) return 'poor';
+  return 'catastrophic';
+}
+
+function evaluateCoachAdvice(
+  decision: FinancialDecision,
+  judge: JudgePersonality
+): 'excellent_guidance' | 'good_advice' | 'missed_opportunity' | 'poor_advice' | 'harmful_guidance' {
+  
+  if (!decision.coachAdvice) {
+    return 'missed_opportunity';
+  }
+  
+  // Evaluate advice quality based on judge's perspective
+  if (judge.financialTendencies.coachSupportLevel > 80) {
+    return decision.followedAdvice ? 'excellent_guidance' : 'good_advice';
+  } else if (judge.financialTendencies.coachSupportLevel > 60) {
+    return 'good_advice';
+  } else {
+    return 'missed_opportunity';
+  }
+}
+
+function shouldRecommendIntervention(
+  context: FinancialEventContext,
+  outcome: { success: boolean; actualImpact: number; stressChange: number },
+  judge: JudgePersonality
+): boolean {
+  
+  return (
+    (context.spiralIntensity && context.spiralIntensity > 60) ||
+    (outcome.stressChange > 25 && judge.financialTendencies.sympathyForStruggles > 70) ||
+    (!outcome.success && outcome.stressChange > 40)
+  );
+}
+
+function shouldRecommendPreventiveIntervention(
+  context: FinancialEventContext,
+  decision: FinancialDecision,
+  judge: JudgePersonality
+): boolean {
+  
+  return (
+    (context.stressLevel > 80 && judge.financialTendencies.sympathyForStruggles > 60) ||
+    (context.spiralIntensity && context.spiralIntensity > 70) ||
+    (decision.amount > 15000 && context.stressLevel > 60)
+  );
+}
+
+function generateInterventionRecommendation(
+  context: FinancialEventContext,
+  judge: JudgePersonality
+): string {
+  
+  if (context.spiralIntensity && context.spiralIntensity > 70) {
+    return judge.financialTendencies.coachSupportLevel > 80 ? 
+      'Emergency coaching intervention required - spiral pattern detected' :
+      'Cooling-off period recommended before further decisions';
+  } else if (context.stressLevel > 80) {
+    return 'Stress management support needed before continuing financial decisions';
+  } else {
+    return 'Coach consultation recommended for next major financial decision';
+  }
+}
+
+function generateFinancialRuling(
+  context: FinancialEventContext,
+  decision: FinancialDecision,
+  outcome: { success: boolean; actualImpact: number; stressChange: number },
+  judge: JudgePersonality
+): string {
+  
+  const baseRuling = outcome.success ? 
+    `${judge.name} rules: Financial decision resulted in positive outcome` :
+    `${judge.name} rules: Financial decision resulted in negative consequences`;
+    
+  return applyJudgePersonalityToFinancial(baseRuling, judge, context, outcome);
+}
+
+function generateFinancialCommentary(
+  context: FinancialEventContext,
+  decision: FinancialDecision,
+  outcome: { success: boolean; actualImpact: number; stressChange: number },
+  judge: JudgePersonality
+): string {
+  
+  let commentary = '';
+  
+  if (context.battleContext) {
+    commentary += `Battle emotions clearly influenced this ${decision.decision} decision. `;
+  }
+  
+  if (decision.followedAdvice && outcome.success) {
+    commentary += 'Coach guidance proved valuable. ';
+  } else if (!decision.followedAdvice && !outcome.success) {
+    commentary += 'Perhaps coach consultation would have helped. ';
+  }
+  
+  if (outcome.stressChange > 20) {
+    commentary += 'The psychological impact requires attention. ';
+  }
+  
+  return commentary.trim() || 'Standard financial decision processing.';
+}
+
+function generateDecisionRuling(
+  context: FinancialEventContext,
+  decision: FinancialDecision,
+  judge: JudgePersonality
+): string {
+  
+  const baseRuling = context.stressLevel > 70 ? 
+    `${judge.name} observes: High-stress financial decision in progress` :
+    `${judge.name} observes: Financial decision under evaluation`;
+    
+  return applyJudgePersonalityToFinancial(baseRuling, judge, context);
+}
+
+function generateDecisionCommentary(
+  context: FinancialEventContext,
+  decision: FinancialDecision,
+  judge: JudgePersonality
+): string {
+  
+  let commentary = '';
+  
+  if (context.battleContext) {
+    commentary += `Battle-triggered financial decision detected. ${judge.financialTendencies.riskTolerance > 70 ? 'Emotional decisions can be enlightening' : 'Emotional decisions require caution'}. `;
+  }
+  
+  if (!decision.coachAdvice && context.stressLevel > 60) {
+    commentary += 'Coach consultation could provide valuable perspective. ';
+  }
+  
+  if (context.spiralIntensity && context.spiralIntensity > 50) {
+    commentary += 'Spiral pattern detected - intervention may be warranted. ';
+  }
+  
+  return commentary.trim() || 'Monitoring financial decision progress.';
+}
+
+function applyJudgePersonalityToFinancial(
+  baseRuling: string,
+  judge: JudgePersonality,
+  context: FinancialEventContext,
+  outcome?: { success: boolean; actualImpact: number; stressChange: number }
+): string {
+  
+  let personalityFlavor = '';
+  
+  const severity = outcome ? 
+    (outcome.stressChange > 30 ? 'extreme' : outcome.stressChange > 15 ? 'major' : 'minor') :
+    (context.stressLevel > 80 ? 'extreme' : context.stressLevel > 60 ? 'major' : 'minor');
+  
+  switch (judge.style) {
+    case 'strict':
+      personalityFlavor = severity === 'extreme' ? ' FINANCIAL DISCIPLINE MUST BE RESTORED!' : 
+                         severity === 'major' ? ' Better money management is required!' :
+                         ' Maintain financial responsibility.';
+      break;
+      
+    case 'chaotic':
+      personalityFlavor = severity === 'extreme' ? ' MAGNIFICENT FINANCIAL CHAOS!' :
+                         severity === 'major' ? ' Love the bold money moves!' :
+                         ' Spice up those investment choices!';
+      break;
+      
+    case 'theatrical':
+      personalityFlavor = severity === 'extreme' ? ' BEHOLD THE DRAMA OF FINANCIAL RUIN!' :
+                         severity === 'major' ? ' What a spectacular monetary gamble!' :
+                         ' The audience watches your financial choices with bated breath!';
+      break;
+      
+    case 'logical':
+      personalityFlavor = severity === 'extreme' ? ' Probability analysis indicates severe financial distress.' :
+                         severity === 'major' ? ' Risk assessment suggests corrective measures.' :
+                         ' Financial data processing complete.';
+      break;
+      
+    case 'lenient':
+      personalityFlavor = severity === 'extreme' ? ' Everyone faces financial challenges - support is available.' :
+                         severity === 'major' ? ' Money troubles are temporary with proper guidance.' :
+                         ' Financial learning is part of growth.';
+      break;
+  }
+  
+  return baseRuling + personalityFlavor;
 }
 
 function getDeviationExamples(type: DeviationType, archetype: TeamCharacter['archetype']): string {

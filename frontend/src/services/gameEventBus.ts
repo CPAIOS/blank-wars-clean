@@ -40,10 +40,12 @@ export type EventType =
   | 'financial_goal_set' | 'financial_goal_achieved' | 'financial_milestone'
   // Financial Spiral Events - NEW
   | 'financial_spiral_started' | 'financial_spiral_deepening' | 'financial_spiral_broken'
-  | 'financial_intervention_applied'
+  | 'financial_intervention_applied' | 'financial_conflict_created'
   // Battle Financial Events - NEW
   | 'financial_wildcard_triggered' | 'battle_financial_decision' | 'adrenaline_investment'
-  | 'victory_splurge' | 'defeat_desperation' | 'panic_selling';
+  | 'victory_splurge' | 'defeat_desperation' | 'panic_selling'
+  // Judge Evaluation Events - NEW
+  | 'judge_financial_evaluation' | 'judge_financial_outcome_assessment' | 'judge_intervention_recommendation';
 
 export type EventSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type EventCategory = 'battle' | 'social' | 'therapy' | 'training' | 'progression' | 'communication' | 'financial';

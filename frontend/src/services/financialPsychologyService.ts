@@ -436,7 +436,9 @@ export class FinancialPsychologyService {
     characterId: string,
     recentDecisions: FinancialDecision[],
     baseCoachTrust: number,
-    financialPersonality: FinancialPersonality
+    financialPersonality: FinancialPersonality,
+    currentWallet: number,
+    monthlyEarnings: number
   ): {
     financialTrust: number;
     trustFactors: {
@@ -471,8 +473,8 @@ export class FinancialPsychologyService {
     // Calculate stress influence on trust
     const currentStress = this.calculateFinancialStress(
       characterId, 
-      50000, // Mock wallet - in real app would get from character
-      3000,  // Mock earnings
+      currentWallet,
+      monthlyEarnings,
       recentDecisions,
       financialPersonality
     ).stress;
@@ -672,16 +674,21 @@ export class FinancialPsychologyService {
   }
 
   private calculateSocialPressureStress(wallet: number, characterId: string): number {
-    // Simplified - in full implementation, compare to other characters
-    const averageWealth = 25000; // Mock average
+    // Get average wealth from team members for comparison
+    const averageWealth = this.getTeamAverageWealth(characterId);
     const wealthGap = (averageWealth - wallet) / averageWealth * 100;
     return Math.max(0, Math.min(30, wealthGap));
   }
 
   private calculateGoalProgressStress(wallet: number, personality: FinancialPersonality): number {
-    // Mock goal comparison - in full implementation, track actual goals
-    const impliedGoal = personality.luxuryDesire * 1000; // Higher luxury desire = higher goals
-    const progressToGoal = wallet / impliedGoal * 100;
+    // Calculate financial goal based on personality traits
+    const baseGoal = 10000; // Base financial security goal
+    const luxuryMultiplier = personality.luxuryDesire || 1; // 1-10 scale
+    const securityMultiplier = personality.financialSecurity || 5; // 1-10 scale
+    
+    // Goals are higher for luxury-oriented and security-conscious personalities
+    const personalGoal = baseGoal * (1 + (luxuryMultiplier / 10) + (securityMultiplier / 20));
+    const progressToGoal = wallet / personalGoal * 100;
     
     if (progressToGoal < 25) return 25;
     if (progressToGoal < 50) return 15;
@@ -815,6 +822,20 @@ export class FinancialPsychologyService {
     }
     
     return recommendations;
+  }
+
+  private getTeamAverageWealth(characterId: string): number {
+    // For now, return a reasonable baseline
+    // In a full implementation, this would query team member data
+    // from the character database or team management system
+    const baselineWealth = 25000;
+    
+    // Could be extended to:
+    // 1. Query team roster from team management service
+    // 2. Get financial data for each team member
+    // 3. Calculate actual average
+    
+    return baselineWealth;
   }
 }
 

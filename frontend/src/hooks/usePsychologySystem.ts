@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { 
   initializePsychologyState, 
   updatePsychologyState, 
@@ -12,6 +12,7 @@ import { makeJudgeDecision, generateDeviationPrompt, type JudgeDecision } from '
 import { type RogueAction } from '@/data/aiJudge';
 import { type BattleStateData } from '@/hooks/temp/useBattleState';
 import { TeamCharacter } from '@/data/teamBattleSystem';
+import { coachProgressionAPI, type CoachBonuses } from '@/services/coachProgressionAPI';
 
 // Types for the psychology system
 type Ability = {
@@ -43,6 +44,29 @@ export const usePsychologySystem = ({
   headquartersEffects
 }: UsePsychologySystemProps) => {
   const { setTimeout: safeSetTimeout } = timeoutManager;
+  const [coachBonuses, setCoachBonuses] = useState<CoachBonuses | null>(null);
+
+  // Fetch coach bonuses on mount
+  useEffect(() => {
+    const fetchCoachBonuses = async () => {
+      try {
+        const response = await coachProgressionAPI.getCoachProgression();
+        setCoachBonuses(response.bonuses);
+      } catch (error) {
+        console.error('Failed to fetch coach bonuses:', error);
+        // Use default bonuses if API fails
+        setCoachBonuses({
+          gameplanAdherenceBonus: 0,
+          deviationRiskReduction: 0,
+          teamChemistryBonus: 0,
+          battleXPMultiplier: 1,
+          characterDevelopmentMultiplier: 1
+        });
+      }
+    };
+    
+    fetchCoachBonuses();
+  }, []);
 
   // Main chaos check function - extracted from component
   const checkForChaos = useCallback((attacker: TeamCharacter, defender: TeamCharacter, ability: Ability, isAttacker1: boolean) => {
@@ -75,17 +99,33 @@ export const usePsychologySystem = ({
     newPsychMap.set(attacker.id, updatedPsychState);
     actions.setCharacterPsychology(newPsychMap);
     
-    // Calculate deviation risk with teammates
+    // Calculate deviation risk with teammates and coach bonuses
     const attackerTeammates = isAttacker1 ? state.playerTeam.characters : state.opponentTeam.characters;
     const deviationRisk = calculateDeviationRisk(
       attacker, // attacker is already a TeamCharacter
       updatedPsychState,
       factors,
-      attackerTeammates
+      attackerTeammates,
+      coachBonuses || undefined
     );
     
     // Roll for deviation
     const deviation = rollForDeviation(deviationRisk);
+    
+    // Award gameplan adherence XP based on adherence success/failure
+    const adherenceRate = deviation ? 0 : 100; // 0% if deviated, 100% if followed plan
+    const deviationsBlocked = deviation ? 0 : 1; // 1 deviation blocked if no deviation occurred
+    const deviationSeverity = deviation?.severity || 'minor';
+    
+    // Award XP for psychology management (async, don't block battle)
+    if (state.battleId) {
+      coachProgressionAPI.awardGameplanAdherenceXP(
+        adherenceRate,
+        deviationsBlocked,
+        deviationSeverity as 'minor' | 'moderate' | 'major' | 'extreme',
+        state.battleId
+      ).catch(error => console.error('Failed to award gameplan adherence XP:', error));
+    }
     
     if (deviation) {
       // Character goes rogue! Handle the chaos
@@ -94,7 +134,7 @@ export const usePsychologySystem = ({
       // Normal execution
       return executeAbility(attacker, defender, ability, isAttacker1);
     }
-  }, [state.characterPsychology, state.playerMorale, state.opponentMorale, state.playerRoundWins, state.opponentRoundWins, state.playerTeam.characters, state.opponentTeam.characters]);
+  }, [state.characterPsychology, state.playerMorale, state.opponentMorale, state.playerRoundWins, state.opponentRoundWins, state.playerTeam.characters, state.opponentTeam.characters, coachBonuses]);
 
   // Handle character deviation - extracted from component
   const handleCharacterDeviation = useCallback((

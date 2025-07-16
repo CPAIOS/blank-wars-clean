@@ -201,6 +201,54 @@ export const initializeDatabase = async (): Promise<void> => {
         last_updated ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
+
+      -- Coach Progression table
+      CREATE TABLE IF NOT EXISTS coach_progression (
+        user_id TEXT PRIMARY KEY,
+        coach_level INTEGER DEFAULT 1,
+        coach_experience INTEGER DEFAULT 0,
+        coach_title TEXT DEFAULT 'Rookie Coach',
+        psychology_skill_points INTEGER DEFAULT 0,
+        battle_strategy_skill_points INTEGER DEFAULT 0,
+        character_development_skill_points INTEGER DEFAULT 0,
+        total_battles_coached INTEGER DEFAULT 0,
+        total_wins_coached INTEGER DEFAULT 0,
+        psychology_interventions INTEGER DEFAULT 0,
+        successful_interventions INTEGER DEFAULT 0,
+        gameplan_adherence_rate REAL DEFAULT 0.0,
+        team_chemistry_improvements INTEGER DEFAULT 0,
+        character_developments INTEGER DEFAULT 0,
+        created_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        updated_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      -- Coach XP Events table (for tracking XP sources)
+      CREATE TABLE IF NOT EXISTS coach_xp_events (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        event_type TEXT NOT NULL CHECK (event_type IN ('battle_win', 'battle_loss', 'psychology_management', 'character_development')),
+        event_subtype TEXT,
+        xp_gained INTEGER NOT NULL,
+        description TEXT,
+        battle_id TEXT,
+        character_id TEXT,
+        created_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (battle_id) REFERENCES battles(id),
+        FOREIGN KEY (character_id) REFERENCES user_characters(id)
+      );
+
+      -- Coach Skills table (for unlocked abilities)
+      CREATE TABLE IF NOT EXISTS coach_skills (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        skill_tree TEXT NOT NULL CHECK (skill_tree IN ('psychology_mastery', 'battle_strategy', 'character_development')),
+        skill_name TEXT NOT NULL,
+        skill_level INTEGER DEFAULT 1,
+        unlocked_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
     `;
 
     if (isPostgres) {
@@ -227,7 +275,14 @@ export const initializeDatabase = async (): Promise<void> => {
       'CREATE INDEX IF NOT EXISTS idx_battles_player2 ON battles(player2_id)',
       'CREATE INDEX IF NOT EXISTS idx_battles_status ON battles(status)',
       'CREATE INDEX IF NOT EXISTS idx_chat_messages_user_character ON chat_messages(user_id, character_id)',
-      'CREATE INDEX IF NOT EXISTS idx_user_currency_user_id ON user_currency(user_id)'
+      'CREATE INDEX IF NOT EXISTS idx_user_currency_user_id ON user_currency(user_id)',
+      'CREATE INDEX IF NOT EXISTS idx_coach_progression_user_id ON coach_progression(user_id)',
+      'CREATE INDEX IF NOT EXISTS idx_coach_progression_level ON coach_progression(coach_level)',
+      'CREATE INDEX IF NOT EXISTS idx_coach_xp_events_user_id ON coach_xp_events(user_id)',
+      'CREATE INDEX IF NOT EXISTS idx_coach_xp_events_type ON coach_xp_events(event_type)',
+      'CREATE INDEX IF NOT EXISTS idx_coach_xp_events_battle ON coach_xp_events(battle_id)',
+      'CREATE INDEX IF NOT EXISTS idx_coach_skills_user_id ON coach_skills(user_id)',
+      'CREATE INDEX IF NOT EXISTS idx_coach_skills_tree ON coach_skills(skill_tree)'
     ];
 
     for (const indexSQL of indexes) {

@@ -12,6 +12,7 @@ import {
   TeamMetrics,
   BattleCharacter
 } from '../data/battleFlow';
+import { coachProgressionAPI } from '../services/coachProgressionAPI';
 
 export interface BattleMemory {
   characterId: string;
@@ -546,6 +547,15 @@ export class PostBattleAnalysisSystem {
     });
     
     const newChemistry = Math.max(0, Math.min(100, oldChemistry + chemistryDelta));
+    
+    // Award team chemistry XP to coach based on chemistry changes
+    if (battleState.battleId && Math.abs(chemistryDelta) > 0) {
+      coachProgressionAPI.awardTeamChemistryXP(
+        Math.abs(chemistryDelta), // chemistry improvement/change amount
+        newChemistry,             // final chemistry level
+        battleState.battleId
+      ).catch(error => console.error('Failed to award team chemistry XP:', error));
+    }
     
     // Determine emerging dynamics
     const emergingDynamics = this.identifyEmergingDynamics(battleState, relationshipChanges);

@@ -180,6 +180,14 @@ export const ARCHETYPE_NATURES: Record<string, ArchetypeNature> = {
   }
 };
 
+export interface CoachBonuses {
+  gameplanAdherenceBonus: number;      // Bonus to checkGameplanAdherence() 
+  deviationRiskReduction: number;      // Reduction to calculateDeviationRisk()
+  teamChemistryBonus: number;          // Bonus to calculateTeamChemistry()
+  battleXPMultiplier: number;          // Multiplier for battle XP
+  characterDevelopmentMultiplier: number; // Multiplier for character development XP
+}
+
 export interface PsychologyState {
   // Core Stability Metrics (0-100)
   mentalStability: number;    // How stable the character is
@@ -515,7 +523,8 @@ export function calculateDeviationRisk(
   character: TeamCharacter,
   psychState: PsychologyState,
   factors: StabilityFactors,
-  teammates?: TeamCharacter[]
+  teammates?: TeamCharacter[],
+  coachBonuses?: CoachBonuses
 ): DeviationRisk {
   const riskFactors: string[] = [];
   let baseRisk = 0;
@@ -590,7 +599,16 @@ export function calculateDeviationRisk(
   
   // Personality amplifiers
   const volatilityMultiplier = 1 + (psychState.volatility / 100);
-  const finalRisk = Math.min(95, baseRisk * volatilityMultiplier);
+  let finalRisk = Math.min(95, baseRisk * volatilityMultiplier);
+  
+  // Apply coach bonuses to reduce deviation risk
+  if (coachBonuses) {
+    const reductionPercent = coachBonuses.deviationRiskReduction / 100;
+    finalRisk = Math.max(5, finalRisk * (1 - reductionPercent)); // Minimum 5% risk
+    if (coachBonuses.deviationRiskReduction > 0) {
+      riskFactors.push(`Coach experience reduces risk by ${coachBonuses.deviationRiskReduction}%`);
+    }
+  }
   
   // Determine potential deviation types based on character archetype and state
   const potentialDeviations = getPotentialDeviations(character, psychState, finalRisk, friendlyFireTargets);
@@ -603,6 +621,119 @@ export function calculateDeviationRisk(
   };
 }
 
+// Check if character follows gameplan based on psychology and coach bonuses
+export function checkGameplanAdherence(
+  character: TeamCharacter,
+  psychState: PsychologyState,
+  gameplanComplexity: number = 50, // 0-100, how complex the strategy is
+  coachBonuses?: CoachBonuses
+): { adherence: number; willFollow: boolean; reason: string } {
+  // Base adherence calculation
+  let baseAdherence = psychState.strategicAlignment;
+  
+  // Adjust for character independence (high independence = lower adherence)
+  const independencePenalty = (psychState.independence - 50) * 0.3;
+  baseAdherence -= independencePenalty;
+  
+  // Adjust for gameplan complexity (complex plans harder to follow)
+  const complexityPenalty = (gameplanComplexity - 50) * 0.2;
+  baseAdherence -= complexityPenalty;
+  
+  // Apply coach bonuses
+  if (coachBonuses) {
+    const adherenceBonus = coachBonuses.gameplanAdherenceBonus;
+    baseAdherence += adherenceBonus;
+  }
+  
+  // Final adherence calculation
+  const finalAdherence = Math.max(0, Math.min(100, baseAdherence));
+  const willFollow = finalAdherence >= 60; // 60% threshold for following gameplan
+  
+  // Determine reason for adherence/non-adherence
+  let reason = '';
+  if (willFollow) {
+    if (coachBonuses && coachBonuses.gameplanAdherenceBonus > 0) {
+      reason = `Coach experience (+${coachBonuses.gameplanAdherenceBonus}%) helps maintain discipline`;
+    } else if (finalAdherence >= 80) {
+      reason = 'High strategic alignment and discipline';
+    } else {
+      reason = 'Adequate strategic understanding';
+    }
+  } else {
+    if (independencePenalty > 20) {
+      reason = 'Too independent to follow complex strategies';
+    } else if (complexityPenalty > 15) {
+      reason = 'Strategy too complex for current mindset';
+    } else {
+      reason = 'Low strategic alignment with coaching';
+    }
+  }
+  
+  return {
+    adherence: finalAdherence,
+    willFollow,
+    reason
+  };
+}
+
+// Calculate team chemistry with coach bonuses
+export function calculateTeamChemistry(
+  characters: TeamCharacter[],
+  coachBonuses?: CoachBonuses
+): { chemistry: number; factors: string[]; riskFactors: string[] } {
+  if (characters.length === 0) {
+    return { chemistry: 0, factors: [], riskFactors: [] };
+  }
+  
+  let totalChemistry = 0;
+  const factors: string[] = [];
+  const riskFactors: string[] = [];
+  
+  // Calculate average team harmony
+  const avgTeamHarmony = characters.reduce((sum, char) => {
+    const psychStats = char.psychStats || { teamPlayer: 50 } as any;
+    return sum + (psychStats.teamPlayer || 50);
+  }, 0) / characters.length;
+  
+  totalChemistry += avgTeamHarmony;
+  factors.push(`Average team harmony: ${avgTeamHarmony.toFixed(1)}`);
+  
+  // Check for relationship conflicts
+  let relationshipPenalty = 0;
+  for (let i = 0; i < characters.length; i++) {
+    for (let j = i + 1; j < characters.length; j++) {
+      const conflictStrength = getCharacterConflictStrength(characters[i].name, characters[j].name);
+      if (conflictStrength < -20) {
+        relationshipPenalty += Math.abs(conflictStrength) * 0.5;
+        riskFactors.push(`${characters[i].name} vs ${characters[j].name}: ${conflictStrength}`);
+      }
+    }
+  }
+  
+  totalChemistry -= relationshipPenalty;
+  if (relationshipPenalty > 0) {
+    factors.push(`Relationship conflicts: -${relationshipPenalty.toFixed(1)}`);
+  }
+  
+  // Apply coach bonuses
+  if (coachBonuses) {
+    const chemistryBonus = coachBonuses.teamChemistryBonus;
+    totalChemistry += chemistryBonus;
+    if (chemistryBonus > 0) {
+      factors.push(`Coach team management: +${chemistryBonus}`);
+    }
+  }
+  
+  // Final chemistry calculation
+  const finalChemistry = Math.max(0, Math.min(100, totalChemistry));
+  
+  return {
+    chemistry: finalChemistry,
+    factors,
+    riskFactors
+  };
+}
+
 // Get potential deviation types based on character and state
 function getPotentialDeviations(
   character: TeamCharacter,
@@ -611,6 +742,7 @@ function getPotentialDeviations(
   friendlyFireTargets: string[] = []
 ): DeviationRisk['potentialDeviations'] {
   const deviations: DeviationRisk['potentialDeviations'] = [];
+  const nature = ARCHETYPE_NATURES[character.archetype] || ARCHETYPE_NATURES['default'];
   
   if (riskLevel < 20) return deviations; // No risk if below threshold
   
@@ -634,11 +766,11 @@ function getPotentialDeviations(
   }
   
   // Archetype-specific deviations based on nature
-  const nature = ARCHETYPE_NATURES[character.archetype] || ARCHETYPE_NATURES['default'];
+  const archetypeNature = ARCHETYPE_NATURES[character.archetype] || ARCHETYPE_NATURES['default'];
   
   // BERSERKER RAGE - based on berserker tendency
-  if (riskLevel > 25 && nature.berserkerTendency > 50) {
-    const berserkerProbability = (riskLevel * nature.berserkerTendency) / 100;
+  if (riskLevel > 25 && archetypeNature.berserkerTendency > 50) {
+    const berserkerProbability = (riskLevel * archetypeNature.berserkerTendency) / 100;
     deviations.push({
       type: 'berserker_rage',
       probability: berserkerProbability,
@@ -650,18 +782,19 @@ function getPotentialDeviations(
   }
   
   // ENVIRONMENTAL CHAOS - wild archetypes love destruction
-  if (riskLevel > 30 && (character.archetype === 'dragon' || character.archetype === 'beast' || character.archetype === 'monster')) {
+  if (riskLevel > 30 && (archetypeNature.baseVolatility > 70 || archetypeNature.berserkerTendency > 70)) {
     deviations.push({
       type: 'environmental_chaos',
       probability: riskLevel * 0.7,
       description: `${character.archetype === 'dragon' ? 'Breathes fire at the arena itself' :
-                    'Starts destroying everything in a wild rampage'}`
+                    character.archetype === 'beast' ? 'Goes on a wild rampage destroying everything' :
+                    'Starts attacking the environment in rage'}`
     });
   }
   
   // FRIENDLY FIRE - tricksters, unstable archetypes, or character hatred
   const hasFriendlyFireTargets = friendlyFireTargets.length > 0;
-  if (riskLevel > 35 && (character.archetype === 'trickster' || nature.socialAdaptability < 40 || hasFriendlyFireTargets)) {
+  if (riskLevel > 35 && (character.archetype === 'trickster' || archetypeNature.socialAdaptability < 40 || hasFriendlyFireTargets)) {
     const probability = hasFriendlyFireTargets ? 
       riskLevel * 1.2 : // Much higher chance if they hate someone
       riskLevel * (character.archetype === 'trickster' ? 0.9 : 0.6);
@@ -678,7 +811,7 @@ function getPotentialDeviations(
   }
   
   // PACIFIST MODE - highly disciplined archetypes might refuse violence
-  if (riskLevel > 45 && (character.archetype === 'detective' || character.archetype === 'monk')) {
+  if (riskLevel > 45 && (archetypeNature.naturalDiscipline > 35 && archetypeNature.baseVolatility < 30)) {
     deviations.push({
       type: 'pacifist_mode',
       probability: riskLevel * 0.6,
@@ -696,7 +829,7 @@ function getPotentialDeviations(
   }
   
   // IDENTITY CRISIS - magical or unstable archetypes
-  if (riskLevel > 55 && (character.archetype === 'mage' || nature.baseVolatility > 70)) {
+  if (riskLevel > 55 && (character.archetype === 'mage' || archetypeNature.baseVolatility > 70)) {
     deviations.push({
       type: 'identity_crisis',
       probability: riskLevel * 0.5,

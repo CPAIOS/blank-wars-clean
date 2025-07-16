@@ -5,6 +5,7 @@ import { analyticsService } from './analytics';
 import { cache } from '../database/index';
 import { hostmasterService, HostmasterContext } from './hostmasterService';
 import { applyHeadquartersEffectsToCharacter, getHeadquartersData } from './headquartersEffectsService';
+import { CoachProgressionService } from './coachProgressionService';
 
 // Types
 interface BattleCharacter {
@@ -1046,6 +1047,18 @@ export class BattleManager extends EventEmitter {
     
     // Update characters
     await this.updateCharacterStats(battleState, winnerSide, rewards);
+    
+    // Award coach XP for both players
+    try {
+      const winnerUserId = battleState[winnerSide as keyof Pick<BattleState, 'player1' | 'player2'>].userId;
+      const loserUserId = winnerSide === 'player1' ? battleState.player2.userId : battleState.player1.userId;
+      
+      // Award battle XP to both coaches (winner gets full XP, loser gets partial)
+      await CoachProgressionService.awardBattleXP(winnerUserId, true, battleState.id);
+      await CoachProgressionService.awardBattleXP(loserUserId, false, battleState.id);
+    } catch (error) {
+      console.error('Error awarding coach XP:', error);
+    }
     
     // Generate Hostmaster v8.72 victory announcement
     setTimeout(async () => {

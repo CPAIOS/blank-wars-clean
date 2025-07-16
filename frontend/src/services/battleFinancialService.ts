@@ -5,6 +5,7 @@ import { BattleCharacter, BattleState, MoraleEvent } from '../data/battleFlow';
 import { FinancialDecision, FinancialPersonality } from '../data/characters';
 import FinancialPsychologyService from './financialPsychologyService';
 import GameEventBus from './gameEventBus';
+import { makeFinancialJudgeDecision, FinancialEventContext, getRandomJudge } from '../data/aiJudgeSystem';
 
 export interface BattleFinancialState {
   characterId: string;
@@ -786,6 +787,14 @@ export class BattleFinancialService {
     }
     
     return 'low';
+  }
+
+
+  /**
+   * Get current battle financial state for a character
+   */
+  getBattleFinancialState(characterId: string): BattleFinancialState | undefined {
+    return this.battleStates.get(characterId);
   }
 
   /**

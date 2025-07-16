@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { Character } from '../types/index';
 import { usageTrackingService } from './usageTrackingService';
+import { CoachProgressionService } from './coachProgressionService';
 
 // Import the event context service (will be initialized on frontend)
 interface EventContext {
@@ -101,7 +102,8 @@ export class AIChatService {
       const systemPrompt = customPrompt || this.buildCharacterPrompt(context, additionalContext);
       
       if (customPrompt) {
-        console.log('🧠 Using CUSTOM THERAPY PROMPT, length:', customPrompt.length);
+        console.log('🧠 Using CUSTOM PROMPT, length:', customPrompt.length);
+        console.log('🧠 CUSTOM PROMPT PREVIEW:', customPrompt.substring(0, 300) + '...');
       } else {
         console.log('💬 Using standard character prompt for:', context.characterName);
       }
@@ -121,6 +123,9 @@ export class AIChatService {
       messages.push({ role: 'user', content: userMessage });
 
       // Generate response using OpenAI
+      console.log('🔥 CALLING OPENAI with messages:', messages.length, 'messages');
+      console.log('🔥 SYSTEM PROMPT PREVIEW:', messages[0].content.substring(0, 150) + '...');
+      
       const response = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages,
@@ -130,10 +135,25 @@ export class AIChatService {
         frequency_penalty: 0.8, // Aggressive repetition avoidance
       });
 
+      console.log('🔥 OPENAI RESPONSE:', response.choices[0]?.message?.content);
       const aiMessage = response.choices[0]?.message?.content || "...";
       
       // Determine if this interaction increases bond
       const bondIncrease = this.calculateBondIncrease(userMessage, aiMessage, context);
+
+      // Award coach character development XP for meaningful interactions (not battle chat)
+      if (!isCombatChat && bondIncrease) {
+        try {
+          await CoachProgressionService.awardCharacterDevelopmentXP(
+            userId,
+            'character_chat',
+            `Character development with ${context.characterName}`,
+            context.characterId
+          );
+        } catch (error) {
+          console.error('Error awarding character development XP:', error);
+        }
+      }
 
       return {
         message: aiMessage,

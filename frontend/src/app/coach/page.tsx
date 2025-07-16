@@ -6,6 +6,7 @@ import { CampaignProgressionManager, CoachingProgress } from '@/systems/campaign
 import { motion } from 'framer-motion';
 import { BarChart, LineChart, PieChart } from '@mui/x-charts'; // Placeholder for actual chart library
 import Link from 'next/link';
+import CoachProgressionDashboard from '@/components/CoachProgressionDashboard';
 
 interface CoachStatsProps {
   user: UserProfile;
@@ -107,6 +108,7 @@ const PsychologyMasteryChart: React.FC<{ masteryLevels: Record<string, number> }
 const CoachProgressionPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const [coachingProgress, setCoachingProgress] = useState<CoachingProgress | null>(null);
+  const [activeTab, setActiveTab] = useState<'progression' | 'legacy'>('progression');
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -140,94 +142,131 @@ const CoachProgressionPage: React.FC = () => {
           </svg>
           Back to Game
         </Link>
-        
       </div>
 
       <h1 className="text-4xl font-extrabold text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
         Front Office
       </h1>
 
-      <CoachStatsDisplay user={user} playerProgress={coachingProgress} />
-
-      <PsychologyMasteryChart masteryLevels={coachingProgress.psychologyMasteryLevels} />
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 mt-8"
-      >
-        <h3 className="text-2xl font-bold text-white mb-4">Milestones & Achievements</h3>
-        {coachingProgress.completedChapters.length > 0 ? (
-          <ul className="list-disc list-inside text-gray-300">
-            {coachingProgress.completedChapters.map((chapterId) => (
-              <li key={chapterId} className="mb-2">
-                <span className="font-semibold text-green-400">Chapter Completed:</span> {chapterId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-gray-400">No completed chapters yet. Keep progressing through the campaign!</p>
-        )}
-        {/* Placeholder for more detailed achievements/skill tree visualization */}
-        <p className="text-gray-400 mt-4">
-          Future updates will include a detailed skill tree visualization and more specific achievements based on your coaching journey.
-        </p>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 mt-8"
-      >
-        <h3 className="text-2xl font-bold text-white mb-4">Coaching Performance Over Time</h3>
-        {/* Placeholder for charts */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="w-full md:w-1/2 bg-gray-700 rounded-md p-4">
-            <h4 className="text-lg font-semibold text-white mb-2">Wins vs. Losses</h4>
-            {/* Replace with actual data and chart */}
-            <BarChart
-              series={[
-                { data: [user.total_wins], label: 'Wins', color: '#4CAF50' },
-                { data: [user.total_battles - user.total_wins], label: 'Losses', color: '#F44336' },
-              ]}
-              height={200}
-              margin={{ top: 20, bottom: 30, left: 40, right: 10 }}
-              sx={{
-                '& .MuiChartsAxis-tickLabel': {
-                  fill: '#E0E0E0',
-                },
-                '& .MuiChartsAxis-line': {
-                  stroke: '#E0E0E0',
-                },
-                '& .MuiChartsAxis-tick': {
-                  stroke: '#E0E0E0',
-                },
-              }}
-            />
-          </div>
-          <div className="w-full md:w-1/2 bg-gray-700 rounded-md p-4">
-            <h4 className="text-lg font-semibold text-white mb-2">Coaching Actions Trend</h4>
-            {/* Replace with actual data and chart */}
-            <LineChart
-              series={[{ data: [0, 5, 10, coachingProgress.totalCoachingActions], label: 'Actions', color: '#2196F3' }]}
-              height={200}
-              margin={{ top: 20, bottom: 30, left: 40, right: 10 }}
-              sx={{
-                '& .MuiChartsAxis-tickLabel': {
-                  fill: '#E0E0E0',
-                },
-                '& .MuiChartsAxis-line': {
-                  stroke: '#E0E0E0',
-                },
-                '& .MuiChartsAxis-tick': {
-                  stroke: '#E0E0E0',
-                },
-              }}
-            />
-          </div>
+      {/* Tab Navigation */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-gray-800/50 rounded-lg p-1 flex gap-1">
+          <button
+            onClick={() => setActiveTab('progression')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              activeTab === 'progression'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            Coach Progression
+          </button>
+          <button
+            onClick={() => setActiveTab('legacy')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              activeTab === 'legacy'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            Campaign Progress
+          </button>
         </div>
+      </div>
+
+      {/* Tab Content */}
+      <motion.div
+        key={activeTab}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {activeTab === 'progression' && (
+          <CoachProgressionDashboard />
+        )}
+
+        {activeTab === 'legacy' && (
+          <div>
+            <CoachStatsDisplay user={user} playerProgress={coachingProgress} />
+
+            <PsychologyMasteryChart masteryLevels={coachingProgress.psychologyMasteryLevels} />
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 mt-8"
+            >
+              <h3 className="text-2xl font-bold text-white mb-4">Milestones & Achievements</h3>
+              {coachingProgress.completedChapters.length > 0 ? (
+                <ul className="list-disc list-inside text-gray-300">
+                  {coachingProgress.completedChapters.map((chapterId) => (
+                    <li key={chapterId} className="mb-2">
+                      <span className="font-semibold text-green-400">Chapter Completed:</span> {chapterId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-400">No completed chapters yet. Keep progressing through the campaign!</p>
+              )}
+              <p className="text-gray-400 mt-4">
+                Campaign progress and story achievements are tracked here. Switch to "Coach Progression" tab for the new psychology-based advancement system.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+              className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 mt-8"
+            >
+              <h3 className="text-2xl font-bold text-white mb-4">Coaching Performance Over Time</h3>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="w-full md:w-1/2 bg-gray-700 rounded-md p-4">
+                  <h4 className="text-lg font-semibold text-white mb-2">Wins vs. Losses</h4>
+                  <BarChart
+                    series={[
+                      { data: [user.total_wins], label: 'Wins', color: '#4CAF50' },
+                      { data: [user.total_battles - user.total_wins], label: 'Losses', color: '#F44336' },
+                    ]}
+                    height={200}
+                    margin={{ top: 20, bottom: 30, left: 40, right: 10 }}
+                    sx={{
+                      '& .MuiChartsAxis-tickLabel': {
+                        fill: '#E0E0E0',
+                      },
+                      '& .MuiChartsAxis-line': {
+                        stroke: '#E0E0E0',
+                      },
+                      '& .MuiChartsAxis-tick': {
+                        stroke: '#E0E0E0',
+                      },
+                    }}
+                  />
+                </div>
+                <div className="w-full md:w-1/2 bg-gray-700 rounded-md p-4">
+                  <h4 className="text-lg font-semibold text-white mb-2">Coaching Actions Trend</h4>
+                  <LineChart
+                    series={[{ data: [0, 5, 10, coachingProgress.totalCoachingActions], label: 'Actions', color: '#2196F3' }]}
+                    height={200}
+                    margin={{ top: 20, bottom: 30, left: 40, right: 10 }}
+                    sx={{
+                      '& .MuiChartsAxis-tickLabel': {
+                        fill: '#E0E0E0',
+                      },
+                      '& .MuiChartsAxis-line': {
+                        stroke: '#E0E0E0',
+                      },
+                      '& .MuiChartsAxis-tick': {
+                        stroke: '#E0E0E0',
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

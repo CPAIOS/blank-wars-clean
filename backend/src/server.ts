@@ -31,6 +31,7 @@ import trainingRouter from './routes/trainingRoutes';
 import socialRouter from './routes/socialRoutes';
 import headquartersRouter from './routes/headquartersRoutes';
 import coachingRouter from './routes/coachingRoutes';
+import coachProgressionRouter from './routes/coachProgressionRoutes';
 import jwt from 'jsonwebtoken';
 import { apiLimiter, authLimiter, battleLimiter, wsLimiter } from './middleware/rateLimiter';
 import cookieParser from 'cookie-parser';
@@ -118,6 +119,7 @@ app.use('/api/training', trainingRouter);
 app.use('/api/social', socialRouter);
 app.use('/api/headquarters', headquartersRouter);
 app.use('/api/coaching', coachingRouter);
+app.use('/api/coach-progression', coachProgressionRouter);
 
 // New Card Pack Routes (These are now handled by cardPackRouter)
 // app.post('/api/packs/purchase', authenticateToken, async (req, res) => {
@@ -762,8 +764,14 @@ io.on('connection', async (socket) => {
         characterId: chatContext.characterId,
         characterName: chatContext.characterName,
         messageLength: message.length,
-        apiKeyPresent: !!process.env.OPENAI_API_KEY
+        apiKeyPresent: !!process.env.OPENAI_API_KEY,
+        hasPromptOverride: !!promptOverride,
+        promptOverrideLength: promptOverride ? promptOverride.length : 0
       });
+      
+      if (promptOverride) {
+        console.log('💰 FINANCIAL PROMPT OVERRIDE DETECTED:', promptOverride.substring(0, 200) + '...');
+      }
       
       const response = await aiChatService.generateCharacterResponse(
         chatContext,

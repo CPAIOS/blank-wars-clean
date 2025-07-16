@@ -5,6 +5,8 @@ import { BattleCharacter, BattleState, MoraleEvent } from '../data/battleFlow';
 import BattleFinancialService, { WildcardDecision, BattleFinancialState } from './battleFinancialService';
 import FinancialPsychologyService from './financialPsychologyService';
 import GameEventBus from './gameEventBus';
+import { makeFinancialJudgeDecision, FinancialEventContext } from '../data/aiJudgeSystem';
+import { FinancialDecision } from '../data/characters';
 
 export interface BattleFinancialModifiers {
   characterId: string;
@@ -249,6 +251,73 @@ export class BattleFinancialIntegration {
     // Apply financial impact
     await this.applyFinancialImpact(decision.characterId, outcome);
     
+    // Create actual FinancialDecision record for judge evaluation
+    const actualDecision: FinancialDecision = {
+      id: `${decision.decisionId}_outcome`,
+      characterId: decision.characterId,
+      amount: decision.amount,
+      decision: 'wildcard',
+      outcome: outcome.result === 'positive' ? 'positive' : outcome.result === 'negative' ? 'negative' : 'neutral',
+      coachAdvice: decision.aiRecommendation,
+      followedAdvice: false, // Wildcard decisions are emotional, not coach-driven
+      timestamp: new Date(),
+      description: `${decision.decisionType}: ${selectedOption.name}`,
+      financialImpact: outcome.financialImpact,
+      stressImpact: outcome.stressImpact,
+      relationshipImpact: 0 // May be calculated elsewhere
+    };
+
+    // Get current character financial state for accurate stress level
+    const battleFinancialState = this.battleFinancialService.getBattleFinancialState(decision.characterId);
+    const currentStress = battleFinancialState ? 
+      this.calculateStressFromBattleState(battleFinancialState) : 
+      50; // Default if state not found
+
+    // Get AI Judge evaluation of the actual outcome
+    const context: FinancialEventContext = {
+      characterId: decision.characterId,
+      eventType: 'outcome',
+      financialImpact: outcome.financialImpact,
+      stressLevel: currentStress,
+      coachInvolvement: !!decision.aiRecommendation,
+      battleContext: {
+        emotionalState: this.summarizeEmotionalState(battleFinancialState?.emotionalState),
+        triggerEvent: decision.decisionType,
+        performanceLevel: battleFinancialState ? 
+          this.assessPerformanceLevel(battleFinancialState.battlePerformance) : 
+          'unknown'
+      }
+    };
+
+    const judgeEvaluation = makeFinancialJudgeDecision(
+      context, 
+      actualDecision, 
+      {
+        success: outcome.result === 'positive',
+        actualImpact: outcome.financialImpact,
+        stressChange: outcome.stressImpact
+      }
+    );
+
+    // Publish judge evaluation
+    await this.eventBus.publishFinancialEvent(
+      'judge_financial_outcome_assessment',
+      decision.characterId,
+      `AI Judge evaluation: ${judgeEvaluation.ruling}`,
+      {
+        judgeRuling: judgeEvaluation.ruling,
+        judgeCommentary: judgeEvaluation.commentary,
+        riskAssessment: judgeEvaluation.riskAssessment,
+        coachEvaluation: judgeEvaluation.coachEvaluation,
+        interventionRecommendation: judgeEvaluation.interventionRecommendation,
+        originalDecision: decision.decisionType,
+        selectedOption: selectedOption.name,
+        type: 'judge_evaluation'
+      },
+      judgeEvaluation.riskAssessment === 'catastrophic' ? 'critical' : 
+      judgeEvaluation.riskAssessment === 'poor' ? 'high' : 'medium'
+    );
+    
     // Publish outcome event
     await this.eventBus.publishFinancialEvent(
       decision.decisionType as any,
@@ -286,6 +355,47 @@ export class BattleFinancialIntegration {
   }
 
   // Private helper methods
+  private calculateStressFromBattleState(state: BattleFinancialState): number {
+    // Calculate stress based on emotional state
+    const adrenaline = state.emotionalState.adrenalineLevel;
+    const frustration = state.emotionalState.defeatFrustration;
+    const confidence = state.emotionalState.confidence;
+    
+    // High adrenaline and frustration = high stress, confidence reduces stress
+    return Math.max(0, Math.min(100, (adrenaline + frustration) / 2 - confidence / 3));
+  }
+
+  private summarizeEmotionalState(emotional?: any): string {
+    if (!emotional) return 'neutral';
+    
+    const states = [];
+    if (emotional.adrenalineLevel > 70) states.push('high_adrenaline');
+    if (emotional.confidence > 80) states.push('confident');
+    if (emotional.defeatFrustration > 60) states.push('frustrated');
+    if (emotional.victoryEuphoria > 70) states.push('euphoric');
+    if (emotional.prideLevel > 80) states.push('proud');
+    
+    return states.length > 0 ? states.join('_') : 'neutral';
+  }
+
+  private assessPerformanceLevel(performance?: any): string {
+    if (!performance) return 'unknown';
+    
+    const score = (
+      performance.victoryContribution * 0.3 +
+      performance.teamworkScore * 0.2 +
+      performance.criticalHits * 10 +
+      performance.heroicActions * 15 +
+      (performance.survivalRate / 100) * 25
+    );
+    
+    if (score > 80) return 'excellent';
+    if (score > 60) return 'good';
+    if (score > 40) return 'average';
+    if (score > 20) return 'poor';
+    return 'terrible';
+  }
+
   private calculateCharacterFinancialStress(character: BattleCharacter): number {
     if (!character.financials || !character.financialPersonality) return 0;
 

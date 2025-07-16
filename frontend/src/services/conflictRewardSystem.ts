@@ -71,6 +71,30 @@ export class ConflictRewardSystem {
         diplomatic: { negotiation: 3, fair_play: 2, experience: 130 },
         collaborative: { generosity: 3, community_bond: 4, experience: 190 },
         avoidant: { experience: 25, social_debt: 1 }
+      },
+      financial_jealousy: {
+        aggressive: { intimidation: 2, experience: 70, stress: 2 },
+        diplomatic: { charisma: 3, experience: 140, empathy: 2 },
+        collaborative: { wisdom: 3, teamwork: 2, experience: 180 },
+        avoidant: { experience: 30, isolation: 1 }
+      },
+      spending_addiction: {
+        aggressive: { wisdom: -1, experience: 50, stress: 3 },
+        diplomatic: { wisdom: 2, social_skills: 2, experience: 120 },
+        collaborative: { empathy: 3, team_coordination: 3, experience: 170 },
+        avoidant: { experience: 20, stress: 2 }
+      },
+      wealth_disparity_tension: {
+        aggressive: { intimidation: 2, experience: 80, teamwork: -2 },
+        diplomatic: { charisma: 3, empathy: 2, experience: 150 },
+        collaborative: { generosity: 2, teamwork: 4, experience: 200 },
+        avoidant: { experience: 35, stress: 1 }
+      },
+      debt_shame: {
+        aggressive: { intimidation: 2, experience: 60, stress: -1 },
+        diplomatic: { charisma: 3, wisdom: 2, experience: 130 },
+        collaborative: { empathy: 3, social_skills: 3, experience: 180 },
+        avoidant: { experience: 25, isolation: 2 }
       }
     };
 

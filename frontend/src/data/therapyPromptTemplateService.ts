@@ -126,7 +126,15 @@ export class TherapyPromptTemplateService {
     
     active_conflicts: `You're currently dealing with {conflictCount} active conflicts including: {conflictList}. These unresolved issues are creating background stress in your daily life.`,
     
-    performance_pressure: `The competitive league environment and your current ranking of #{leagueRanking} creates performance anxiety and affects your relationships with teammates.`
+    performance_pressure: `The competitive league environment and your current ranking of #{leagueRanking} creates performance anxiety and affects your relationships with teammates.`,
+    
+    financial_stress: `Your financial stress is currently at {stressLevel}% due to {stressFactors}. Money concerns are affecting your emotional well-being and relationships.`,
+    
+    financial_decisions: `Recent financial decisions have been impacting your mental state. Your decision quality is at {decisionQuality}% and you've {recentDecisions}.`,
+    
+    financial_spiral: `You're experiencing a financial spiral with {consecutivePoorDecisions} consecutive poor decisions. This pattern is creating anxiety and affecting your judgment.`,
+    
+    financial_trust: `Your trust in financial coaching is at {trustLevel}%, which affects how you process money advice and guidance from others.`
   };
 
   /**

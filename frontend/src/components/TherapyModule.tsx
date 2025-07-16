@@ -120,8 +120,8 @@ const TherapyModule = () => {
 
   // Function to get random therapy image for a character
   const getTherapyCharacterImage = (characterName: string): string => {
-    const baseImagePath = '/images/Coaching/Therapy ';
-    const normalizedName = characterName.toLowerCase().replace(/\s+/g, '_');
+    const baseImagePath = '/images/Coaching/Therapy /';
+    const normalizedName = characterName.toLowerCase().replace(/["\s]+/g, '_').replace(/_+/g, '_');
     
     // Special cases for characters with different naming patterns
     const characterImageMap: { [key: string]: { name: string; count: number } } = {
@@ -133,6 +133,7 @@ const TherapyModule = () => {
       'dracula': { name: 'Dracula', count: 3 },
       'fenrir': { name: 'Fenrir', count: 3 },
       'frankenstein_monster': { name: 'Frankenstein', count: 3 },
+      'frankensteins_monster': { name: 'Frankenstein', count: 3 },
       'genghis_khan': { name: 'Genghis Khan', count: 3 },
       'joan_of_arc': { name: 'Joan of Arc', count: 3 },
       'robin_hood': { name: 'Robin Hood', count: 3 },
@@ -142,7 +143,8 @@ const TherapyModule = () => {
       'nikola_tesla': { name: 'Tesla', count: 4 }, // Alternative name
       'alien_grey': { name: 'Zeta', count: 3 },
       'zeta_reticulan': { name: 'Zeta', count: 3 }, // Alternative name
-      'sammy_slugger': { name: 'sammy_slugger', count: 1 } // Special case - only one image and different naming
+      'sammy_slugger': { name: 'sammy_slugger', count: 1 }, // Special case - only one image and different naming
+      'sammy_slugger_sullivan': { name: 'sammy_slugger', count: 1 }
     };
     
     const imageInfo = characterImageMap[normalizedName];
@@ -151,14 +153,17 @@ const TherapyModule = () => {
       return '/images/placeholder.png';
     }
     
-    if (normalizedName === 'sammy_slugger') {
-      return `${baseImagePath}${imageInfo.name}.jpg`;
+    if (normalizedName === 'sammy_slugger' || normalizedName === 'sammy_slugger_sullivan') {
+      const sammyPath = `${baseImagePath}${imageInfo.name}.jpg`;
+      console.log('Generated Sammy therapy image path:', sammyPath);
+      return sammyPath;
     }
     
-    // Random selection for characters with multiple images
-    const randomIndex = Math.floor(Math.random() * imageInfo.count) + 1;
-    const paddedIndex = randomIndex.toString().padStart(2, '0');
-    return `${baseImagePath}Therapy ${imageInfo.name} ${paddedIndex}.png`;
+    // Fixed index for testing - always use 01
+    const paddedIndex = '01';
+    const finalPath = `${baseImagePath}Therapy ${imageInfo.name} ${paddedIndex}.png`;
+    console.log('Generated therapy image path:', finalPath);
+    return finalPath;
   };
   const [therapyContext, setTherapyContext] = useState<TherapyContext | null>(null);
   const [activeConflicts, setActiveConflicts] = useState<ConflictData[]>([]);
