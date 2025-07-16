@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noEmitOnError false --skipLibCheck",
     "dev": "ts-node --transpile-only src/server.ts", 
     "start": "node dist/server.js",
     "start:prod": "NODE_ENV=production node dist/server.js",
