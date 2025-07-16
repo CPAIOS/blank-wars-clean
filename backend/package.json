@@ -45,6 +45,7 @@
     "socket.io": "^4.8.1",
     "sqlite3": "^5.1.7",
     "stripe": "^18.3.0",
+    "typescript": "^5.8.3",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
@@ -67,7 +68,6 @@
     "socket.io-client": "^4.8.1",
     "supertest": "^7.1.1",
     "ts-jest": "^29.4.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "ts-node": "^10.9.2"
   }
 }
