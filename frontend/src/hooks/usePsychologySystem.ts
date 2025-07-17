@@ -50,7 +50,7 @@ export const usePsychologySystem = ({
   useEffect(() => {
     const fetchCoachBonuses = async () => {
       try {
-        const response = await coachProgressionAPI.getCoachProgression();
+        const response = await coachProgressionAPI.getProgression();
         setCoachBonuses(response.bonuses);
       } catch (error) {
         console.error('Failed to fetch coach bonuses:', error);

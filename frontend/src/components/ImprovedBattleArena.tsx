@@ -221,8 +221,9 @@ export default function ImprovedBattleArena() {
       if (!user?.id) return;
       
       try {
-        const characters = await characterAPI.getUserCharacters();
-        setCoachRoster(characters);
+        const response = await characterAPI.getUserCharacters();
+        const characters = response.characters || [];
+        setCoachRoster(Array.isArray(characters) ? characters : []);
         setRosterError(null);
       } catch (error) {
         console.error('Failed to load character roster:', error);
@@ -1325,7 +1326,7 @@ export default function ImprovedBattleArena() {
               </h4>
               
               <div className="grid grid-cols-3 gap-3 mb-4 max-h-60 overflow-y-auto">
-                {coachRoster.map((character) => {
+                {Array.isArray(coachRoster) && coachRoster.map((character) => {
                   const isSelected = selectedTeamMembers.includes(character.id);
                   const canSelect = !isSelected && selectedTeamMembers.length < 3;
                   
