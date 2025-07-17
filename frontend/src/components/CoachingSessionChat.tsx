@@ -438,17 +438,8 @@ export default function CoachingSessionChat({
     });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ CoachingSession Socket connected! Waiting for authentication...');
-    });
-
-    socketRef.current.on('auth_success', (data: { userId: string; username: string }) => {
-      console.log('🔐 CoachingSession Socket authenticated!', data);
+      console.log('✅ CoachingSession Socket connected!');
       setConnected(true);
-    });
-
-    socketRef.current.on('auth_error', (error: { error: string }) => {
-      console.error('❌ CoachingSession Socket authentication failed:', error);
-      setConnected(false);
     });
 
     socketRef.current.on('disconnect', () => {
