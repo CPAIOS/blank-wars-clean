@@ -215,7 +215,21 @@ export default function SkillDevelopmentChat({
   const eventPublisher = EventPublisher.getInstance();
 
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
+    // Determine backend URL based on environment
+    let socketUrl: string;
+    
+    // Check if we're running locally (either in dev or local production build)
+    const isLocalhost = typeof window !== 'undefined' && 
+                       (window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1');
+    
+    if (isLocalhost) {
+      // Local development or local production build
+      socketUrl = 'http://localhost:3006';
+    } else {
+      // Deployed production
+      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-clean-production.up.railway.app';
+    }
     console.log('🔌 [SkillDevelopment] Connecting to local backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {
@@ -225,17 +239,8 @@ export default function SkillDevelopmentChat({
     });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ SkillDevelopment Socket connected! Waiting for authentication...');
-    });
-
-    socketRef.current.on('auth_success', (data: { userId: string; username: string }) => {
-      console.log('🔐 SkillDevelopment Socket authenticated!', data);
+      console.log('✅ SkillDevelopment Socket connected!');
       setConnected(true);
-    });
-
-    socketRef.current.on('auth_error', (error: { error: string }) => {
-      console.error('❌ SkillDevelopment Socket authentication failed:', error);
-      setConnected(false);
     });
 
     socketRef.current.on('disconnect', () => {
