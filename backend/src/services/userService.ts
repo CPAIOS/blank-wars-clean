@@ -100,11 +100,11 @@ export class UserService {
   async acceptFriendRequest(friendshipId: string): Promise<Friendship | undefined> {
     try {
       await query(
-        'UPDATE user_friendships SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?',
+        'UPDATE user_friendships SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status = $1',
         ['accepted', friendshipId, 'pending']
       );
       
-      const result = await query('SELECT * FROM user_friendships WHERE id = ?', [friendshipId]);
+      const result = await query('SELECT * FROM user_friendships WHERE id = $1', [friendshipId]);
       const row = result.rows[0];
       if (!row) return undefined;
       
@@ -125,11 +125,11 @@ export class UserService {
   async rejectFriendRequest(friendshipId: string): Promise<Friendship | undefined> {
     try {
       await query(
-        'UPDATE user_friendships SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?',
+        'UPDATE user_friendships SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status = $1',
         ['blocked', friendshipId, 'pending']
       );
       
-      const result = await query('SELECT * FROM user_friendships WHERE id = ?', [friendshipId]);
+      const result = await query('SELECT * FROM user_friendships WHERE id = $1', [friendshipId]);
       const row = result.rows[0];
       if (!row) return undefined;
       
@@ -174,7 +174,7 @@ export class UserService {
   async getPendingFriendRequests(userId: string): Promise<Friendship[]> {
     try {
       const result = await query(
-        'SELECT * FROM user_friendships WHERE friend_id = ? AND status = ?',
+        'SELECT * FROM user_friendships WHERE friend_id = ? AND status = $1',
         [userId, 'pending']
       );
       
@@ -239,7 +239,7 @@ export class UserService {
   async getTeamStats(userId: string) {
     try {
       // Get user level and basic info
-      const userResult = await query('SELECT level FROM users WHERE id = ?', [userId]);
+      const userResult = await query('SELECT level FROM users WHERE id = $1', [userId]);
       const user = userResult.rows[0];
       if (!user) {
         throw new Error('User not found');

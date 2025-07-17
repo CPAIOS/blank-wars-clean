@@ -123,7 +123,7 @@ export const dbAdapter = {
   users: {
     async findById(id: string): Promise<User | null> {
       try {
-        const result = await query('SELECT *, character_slot_capacity FROM users WHERE id = ?', [id]);
+        const result = await query('SELECT *, character_slot_capacity FROM users WHERE id = $1', [id]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error finding user by ID:', error);
@@ -148,7 +148,7 @@ export const dbAdapter = {
           .map(([, value]) => value);
         
         await query(
-          `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
           [...values, id]
         );
         return true;
@@ -160,7 +160,7 @@ export const dbAdapter = {
 
     async findByEmail(email: string): Promise<User | null> {
       try {
-        const result = await query('SELECT *, character_slot_capacity FROM users WHERE email = ?', [email]);
+        const result = await query('SELECT *, character_slot_capacity FROM users WHERE email = $1', [email]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error finding user by email:', error);
@@ -188,7 +188,7 @@ export const dbAdapter = {
           data.character_slot_capacity || 12
         ]);
 
-        const result = await query('SELECT * FROM users WHERE id = ?', [data.id]);
+        const result = await query('SELECT * FROM users WHERE id = $1', [data.id]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error creating user:', error);
@@ -261,7 +261,7 @@ export const dbAdapter = {
         const values = Object.values(updates);
         
         await query(
-          `UPDATE user_characters SET ${fields.join(', ')} WHERE id = ?`,
+          `UPDATE user_characters SET ${fields.join(', ')} WHERE id = $1`,
           [...values, id]
         );
         return true;
@@ -307,7 +307,7 @@ export const dbAdapter = {
         const serialNumber = `${data.character_id.slice(-3)}-${Date.now().toString().slice(-6)}`;
         
         // Get the base character data for health values
-        const charResult = await query('SELECT * FROM characters WHERE id = ?', [data.character_id]);
+        const charResult = await query('SELECT * FROM characters WHERE id = $1', [data.character_id]);
         if (!charResult.rows[0]) {
           throw new Error('Character not found');
         }
@@ -418,7 +418,7 @@ export const dbAdapter = {
 
     async findById(id: string): Promise<Battle | null> {
       try {
-        const result = await query('SELECT * FROM battles WHERE id = ?', [id]);
+        const result = await query('SELECT * FROM battles WHERE id = $1', [id]);
         if (result.rows[0]) {
           const row = result.rows[0];
           return {
@@ -462,7 +462,7 @@ export const dbAdapter = {
         const values = Object.values(updates);
         
         await query(
-          `UPDATE battles SET ${fields.join(', ')} WHERE id = ?`,
+          `UPDATE battles SET ${fields.join(', ')} WHERE id = $1`,
           [...values, id]
         );
         return true;
@@ -496,7 +496,7 @@ export const dbAdapter = {
   characters: {
     async findById(id: string): Promise<Character | null> {
       try {
-        const result = await query('SELECT * FROM characters WHERE id = ?', [id]);
+        const result = await query('SELECT * FROM characters WHERE id = $1', [id]);
         if (result.rows[0]) {
           const row = result.rows[0];
           return {
