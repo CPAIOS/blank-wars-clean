@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 export class CharacterEchoService {
   async getEchoCount(userId: string, characterTemplateId: string): Promise<number> {
     const result = await query(
-      'SELECT echo_count FROM user_character_echoes WHERE user_id = ? AND character_template_id = ?',
+      'SELECT echo_count FROM user_character_echoes WHERE user_id = $1 AND character_template_id = $2',
       [userId, characterTemplateId]
     );
     return result.rows.length > 0 ? result.rows[0].echo_count : 0;
@@ -24,7 +24,7 @@ export class CharacterEchoService {
     }
 
     await query(
-      'UPDATE user_character_echoes SET echo_count = echo_count - ? WHERE user_id = ? AND character_template_id = ?',
+      'UPDATE user_character_echoes SET echo_count = echo_count - $1 WHERE user_id = $1 AND character_template_id = $2',
       [count, userId, characterTemplateId]
     );
     return true;

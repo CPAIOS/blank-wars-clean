@@ -51,7 +51,7 @@ export class HeadquartersService {
     // For now, we'll just update the capacity
 
     const userResult = await query(
-      'SELECT character_slot_capacity FROM users WHERE id = ?',
+      'SELECT character_slot_capacity FROM users WHERE id = $1',
       [userId]
     );
 
@@ -63,12 +63,12 @@ export class HeadquartersService {
     const newCapacity = currentCapacity + 5; // Example: Increase by 5 slots per upgrade
 
     await query(
-      'UPDATE users SET character_slot_capacity = ? WHERE id = ?',
+      'UPDATE users SET character_slot_capacity = $1 WHERE id = $1',
       [newCapacity, userId]
     );
 
     const updatedUserResult = await query(
-      'SELECT id, username, email, subscription_tier, level, experience, total_battles, total_wins, rating, created_at, updated_at, character_slot_capacity FROM users WHERE id = ?',
+      'SELECT id, username, email, subscription_tier, level, experience, total_battles, total_wins, rating, created_at, updated_at, character_slot_capacity FROM users WHERE id = $1',
       [userId]
     );
 
@@ -77,7 +77,7 @@ export class HeadquartersService {
 
   async getHeadquarters(userId: string): Promise<HeadquartersState | null> {
     const hqResult = await query(
-      'SELECT * FROM user_headquarters WHERE user_id = ?',
+      'SELECT * FROM user_headquarters WHERE user_id = $1',
       [userId]
     );
 
@@ -89,7 +89,7 @@ export class HeadquartersService {
     
     // Get rooms
     const roomsResult = await query(
-      'SELECT * FROM headquarters_rooms WHERE headquarters_id = ? ORDER BY room_id',
+      'SELECT * FROM headquarters_rooms WHERE headquarters_id = $1 ORDER BY room_id',
       [hq.id]
     );
 
@@ -159,8 +159,8 @@ export class HeadquartersService {
       );
 
       // Clear existing rooms and beds
-      await query('DELETE FROM room_beds WHERE room_id IN (SELECT id FROM headquarters_rooms WHERE headquarters_id = ?)', [hqId]);
-      await query('DELETE FROM headquarters_rooms WHERE headquarters_id = ?', [hqId]);
+      await query('DELETE FROM room_beds WHERE room_id IN (SELECT id FROM headquarters_rooms WHERE headquarters_id = $1)', [hqId]);
+      await query('DELETE FROM headquarters_rooms WHERE headquarters_id = $1', [hqId]);
 
       // Insert rooms
       for (const room of headquarters.rooms || []) {
@@ -222,13 +222,13 @@ export class HeadquartersService {
 
     // Deduct currency
     await query(
-      'UPDATE user_headquarters SET coins = coins - ?, gems = gems - ? WHERE user_id = ?',
+      'UPDATE user_headquarters SET coins = coins - ?, gems = gems - ? WHERE user_id = $1',
       [bedData.cost.coins, bedData.cost.gems, userId]
     );
 
     // Add bed to room
     const roomResult = await query(
-      'SELECT id FROM headquarters_rooms WHERE headquarters_id = ? AND room_id = ?',
+      'SELECT id FROM headquarters_rooms WHERE headquarters_id = $1 AND room_id = ?',
       [`hq_${userId}`, roomId]
     );
 

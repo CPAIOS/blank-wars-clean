@@ -111,7 +111,7 @@ export class PackService {
   // Claims a pack for a user, handling duplicates as echoes
   async claimPack(userId: string, claimToken: string): Promise<{ grantedCharacters: string[]; echoesGained: { character_id: string; count: number }[] }> {
     const packResult = await query(
-      'SELECT id, pack_type FROM claimable_packs WHERE id = ? AND is_claimed = FALSE',
+      'SELECT id, pack_type FROM claimable_packs WHERE id = $1 AND is_claimed = FALSE',
       [claimToken]
     );
 
@@ -122,7 +122,7 @@ export class PackService {
     const pack = packResult.rows[0];
 
     const contentsResult = await query(
-      'SELECT character_id FROM claimable_pack_contents WHERE pack_id = ?',
+      'SELECT character_id FROM claimable_pack_contents WHERE pack_id = $1',
       [pack.id]
     );
 
@@ -157,7 +157,7 @@ export class PackService {
 
     // Mark pack as claimed
     await query(
-      'UPDATE claimable_packs SET is_claimed = TRUE, claimed_by_user_id = ?, claimed_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE claimable_packs SET is_claimed = TRUE, claimed_by_user_id = $1, claimed_at = CURRENT_TIMESTAMP WHERE id = $2',
       [userId, pack.id]
     );
 

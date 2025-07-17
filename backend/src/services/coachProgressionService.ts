@@ -52,7 +52,7 @@ export class CoachProgressionService {
   static async getCoachProgression(userId: string): Promise<CoachProgression | null> {
     try {
       const result = await query(
-        'SELECT * FROM coach_progression WHERE user_id = ?',
+        'SELECT * FROM coach_progression WHERE user_id = $1',
         [userId]
       );
       
@@ -188,11 +188,11 @@ export class CoachProgressionService {
       // Update progression
       await query(
         `UPDATE coach_progression SET 
-          coach_level = ?, 
-          coach_experience = ?, 
-          coach_title = ?,
+          coach_level = $1, 
+          coach_experience = $2, 
+          coach_title = $3,
           updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?`,
+        WHERE user_id = $1`,
         [newLevel, newExperience, newTitle, userId]
       );
 
@@ -224,7 +224,7 @@ export class CoachProgressionService {
           psychology_skill_points = psychology_skill_points + ?,
           battle_strategy_skill_points = battle_strategy_skill_points + ?,
           character_development_skill_points = character_development_skill_points + ?
-        WHERE user_id = ?`,
+        WHERE user_id = $1`,
         [
           pointsPerTree + (remainder > 0 ? 1 : 0), // Psychology gets first remainder point
           pointsPerTree + (remainder > 1 ? 1 : 0), // Battle Strategy gets second remainder point  
@@ -540,12 +540,12 @@ export class CoachProgressionService {
               financial_advice_given = financial_advice_given + 1,
               successful_financial_advice = successful_financial_advice + 1,
               updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = ?`;
+            WHERE user_id = $1`;
           } else {
             updateQuery = `UPDATE coach_progression SET 
               financial_advice_given = financial_advice_given + 1,
               updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = ?`;
+            WHERE user_id = $1`;
           }
           break;
 
@@ -553,14 +553,14 @@ export class CoachProgressionService {
           updateQuery = `UPDATE coach_progression SET 
             spirals_prevented = spirals_prevented + 1,
             updated_at = CURRENT_TIMESTAMP
-          WHERE user_id = ?`;
+          WHERE user_id = $1`;
           break;
 
         case 'conflict_resolution':
           updateQuery = `UPDATE coach_progression SET 
             financial_conflicts_resolved = financial_conflicts_resolved + 1,
             updated_at = CURRENT_TIMESTAMP
-          WHERE user_id = ?`;
+          WHERE user_id = $1`;
           break;
       }
 
@@ -581,7 +581,7 @@ export class CoachProgressionService {
           total_battles_coached = total_battles_coached + 1,
           total_wins_coached = total_wins_coached + ?,
           updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?`,
+        WHERE user_id = $1`,
         [isWin ? 1 : 0, userId]
       );
     } catch (error) {
@@ -595,7 +595,7 @@ export class CoachProgressionService {
     try {
       const result = await query(
         `SELECT * FROM coach_xp_events 
-         WHERE user_id = ? 
+         WHERE user_id = $1 
          ORDER BY created_at DESC 
          LIMIT ?`,
         [userId, limit]
@@ -622,7 +622,7 @@ export class CoachProgressionService {
   static async getCoachSkills(userId: string): Promise<CoachSkill[]> {
     try {
       const result = await query(
-        'SELECT * FROM coach_skills WHERE user_id = ? ORDER BY unlocked_at ASC',
+        'SELECT * FROM coach_skills WHERE user_id = $1 ORDER BY unlocked_at ASC',
         [userId]
       );
 

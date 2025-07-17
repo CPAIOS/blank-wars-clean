@@ -82,7 +82,7 @@ router.get('/character/:characterId/state', async (req, res) => {
     // Get character training data from database
     const query = `
       SELECT * FROM character_training_state 
-      WHERE characterId = ?
+      WHERE characterId = $1
     `;
     
     const state = db.prepare(query).get(characterId);
