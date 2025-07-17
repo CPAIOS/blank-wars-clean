@@ -56,7 +56,7 @@ const io = new Server(httpServer, {
 });
 
 // Middleware
-app.set('trust proxy', true); // Trust Railway proxy
+app.set('trust proxy', ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']); // Trust Railway and localhost proxies
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3007',

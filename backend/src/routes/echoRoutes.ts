@@ -15,7 +15,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const result = await query(
-      'SELECT character_template_id as character_id, echo_count as count FROM user_character_echoes WHERE user_id = ? AND echo_count > 0',
+      'SELECT character_template_id as character_id, echo_count as count FROM user_character_echoes WHERE user_id = $1 AND echo_count > 0',
       [req.user.id]
     );
 
@@ -63,7 +63,7 @@ router.post('/ascend', authenticateToken, async (req: AuthRequest, res) => {
 
     // Get the character to find the template ID
     const characterResult = await query(
-      'SELECT character_id FROM user_characters WHERE id = ? AND user_id = ?',
+      'SELECT character_id FROM user_characters WHERE id = $1 AND user_id = $2',
       [userCharacterId, req.user.id]
     );
 
@@ -116,7 +116,7 @@ router.post('/rankup', authenticateToken, async (req: AuthRequest, res) => {
 
     // Get the character to find the template ID
     const characterResult = await query(
-      'SELECT character_id FROM user_characters WHERE id = ? AND user_id = ?',
+      'SELECT character_id FROM user_characters WHERE id = $1 AND user_id = $2',
       [userCharacterId, req.user.id]
     );
 

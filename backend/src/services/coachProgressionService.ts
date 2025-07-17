@@ -52,7 +52,7 @@ export class CoachProgressionService {
   static async getCoachProgression(userId: string): Promise<CoachProgression | null> {
     try {
       const result = await query(
-        'SELECT * FROM coach_progression WHERE user_id = ?',
+        'SELECT * FROM coach_progression WHERE user_id = $1',
         [userId]
       );
       
@@ -100,7 +100,7 @@ export class CoachProgressionService {
           successful_interventions, gameplan_adherence_rate, team_chemistry_improvements,
           character_developments, financial_advice_given, successful_financial_advice,
           spirals_prevented, financial_conflicts_resolved
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
         [userId, 1, 0, 'Rookie Coach', 0, 0, 0, 0, 0, 0, 0, 0.0, 0, 0, 0, 0, 0, 0]
       );
 
@@ -162,7 +162,7 @@ export class CoachProgressionService {
       await query(
         `INSERT INTO coach_xp_events (
           id, user_id, event_type, event_subtype, xp_gained, description, battle_id, character_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [eventId, userId, eventType, eventSubtype, xpGained, description, battleId, characterId]
       );
 
@@ -188,11 +188,11 @@ export class CoachProgressionService {
       // Update progression
       await query(
         `UPDATE coach_progression SET 
-          coach_level = ?, 
-          coach_experience = ?, 
-          coach_title = ?,
+          coach_level = $1, 
+          coach_experience = $2, 
+          coach_title = $3,
           updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?`,
+        WHERE user_id = $4`,
         [newLevel, newExperience, newTitle, userId]
       );
 
@@ -221,10 +221,10 @@ export class CoachProgressionService {
 
       await query(
         `UPDATE coach_progression SET 
-          psychology_skill_points = psychology_skill_points + ?,
-          battle_strategy_skill_points = battle_strategy_skill_points + ?,
-          character_development_skill_points = character_development_skill_points + ?
-        WHERE user_id = ?`,
+          psychology_skill_points = psychology_skill_points + $1,
+          battle_strategy_skill_points = battle_strategy_skill_points + $2,
+          character_development_skill_points = character_development_skill_points + $3
+        WHERE user_id = $4`,
         [
           pointsPerTree + (remainder > 0 ? 1 : 0), // Psychology gets first remainder point
           pointsPerTree + (remainder > 1 ? 1 : 0), // Battle Strategy gets second remainder point  
@@ -540,12 +540,12 @@ export class CoachProgressionService {
               financial_advice_given = financial_advice_given + 1,
               successful_financial_advice = successful_financial_advice + 1,
               updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = ?`;
+            WHERE user_id = $1`;
           } else {
             updateQuery = `UPDATE coach_progression SET 
               financial_advice_given = financial_advice_given + 1,
               updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = ?`;
+            WHERE user_id = $1`;
           }
           break;
 
@@ -579,9 +579,9 @@ export class CoachProgressionService {
       await query(
         `UPDATE coach_progression SET 
           total_battles_coached = total_battles_coached + 1,
-          total_wins_coached = total_wins_coached + ?,
+          total_wins_coached = total_wins_coached + $1,
           updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?`,
+        WHERE user_id = $2`,
         [isWin ? 1 : 0, userId]
       );
     } catch (error) {
@@ -595,9 +595,9 @@ export class CoachProgressionService {
     try {
       const result = await query(
         `SELECT * FROM coach_xp_events 
-         WHERE user_id = ? 
+         WHERE user_id = $1 
          ORDER BY created_at DESC 
-         LIMIT ?`,
+         LIMIT $2`,
         [userId, limit]
       );
 
@@ -622,7 +622,7 @@ export class CoachProgressionService {
   static async getCoachSkills(userId: string): Promise<CoachSkill[]> {
     try {
       const result = await query(
-        'SELECT * FROM coach_skills WHERE user_id = ? ORDER BY unlocked_at ASC',
+        'SELECT * FROM coach_skills WHERE user_id = $1 ORDER BY unlocked_at ASC',
         [userId]
       );
 
@@ -760,7 +760,7 @@ export class CoachProgressionService {
         FROM coach_progression cp
         JOIN users u ON cp.user_id = u.id
         ORDER BY cp.coach_level DESC, cp.coach_experience DESC
-        LIMIT ?`,
+        LIMIT $1`,
         [limit]
       );
 
