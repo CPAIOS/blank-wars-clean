@@ -358,7 +358,7 @@ export default function TeamBuilder({
                           <>
                             <div className="text-2xl">{getArchetypeIcon(assignedCharacter.archetype)}</div>
                             <div className="text-xs text-white font-semibold truncate w-full px-1">
-                              {assignedCharacter.nickname || assignedCharacter.characterData?.name || assignedCharacter.characterName || 'Unknown'}
+                              {assignedCharacter.nickname || assignedCharacter.characterName || 'Unknown'}
                             </div>
                             {assignedMember?.isLeader && (
                               <Crown className="w-3 h-3 text-yellow-400 absolute -top-1 -right-1" />
@@ -579,7 +579,7 @@ export default function TeamBuilder({
                   
                   return (
                     <motion.div
-                      key={character?.characterId || character?.id || Math.random()}
+                      key={character?.characterId || Math.random()}
                       className={`border rounded-lg p-3 cursor-pointer transition-all ${
                         canFill && selectedPosition
                           ? `border-green-500 hover:bg-gradient-to-r ${rarityConfig?.color || 'gray'}/10`
@@ -599,7 +599,7 @@ export default function TeamBuilder({
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${rarityConfig.textColor}`}>
-                              {character.nickname || character.characterData?.name || character.characterName || 'Unknown'}
+                              {character.nickname || character.characterName || 'Unknown'}
                             </span>
                             <span className="text-sm">{rarityConfig.icon}</span>
                             {character.isFavorite && (

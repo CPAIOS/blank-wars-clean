@@ -125,7 +125,7 @@ export default function PackOpening() {
 
   const openPack = async () => {
     if (!selectedPack) return;
-    
+
     setPackAnimating(true);
     setError(null);
 
@@ -142,7 +142,7 @@ export default function PackOpening() {
         serialNumber: card.serial_number,
         stats: { attack: 0, defense: 0, speed: 0 } // Placeholder, replace with actual stats
       })));
-      
+
       setTimeout(() => {
         setPhase('revealing');
         setPackAnimating(false);
@@ -155,9 +155,9 @@ export default function PackOpening() {
 
   const revealCard = (serialNumber: string) => {
     if (revealedCards.includes(serialNumber)) return;
-    
+
     setRevealedCards(prev => [...prev, serialNumber]);
-    
+
     // If all cards revealed, show summary
     if (revealedCards.length + 1 === cards.length) {
       setTimeout(() => setPhase('summary'), 1000);
@@ -186,13 +186,13 @@ export default function PackOpening() {
     const newCards = cards.filter(card => card.isNew).length;
     const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
     let bestRarity: Card['rarity'] = 'common';
-    
+
     cards.forEach(card => {
       if (rarities.indexOf(card.rarity) > rarities.indexOf(bestRarity)) {
         bestRarity = card.rarity;
       }
     });
-    
+
     return { totalCards, newCards, bestRarity };
   };
 
@@ -213,7 +213,7 @@ export default function PackOpening() {
               <h2 className="text-3xl font-bold mb-4 text-white">Choose Your Pack</h2>
               <p className="text-gray-300">Each pack contains legendary warriors waiting to join your collection!</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {PACK_TYPES.map((pack) => (
                 <motion.div
@@ -226,7 +226,7 @@ export default function PackOpening() {
                   <div className={`w-32 h-40 mx-auto mb-4 bg-gradient-to-br ${pack.gradient} rounded-lg flex items-center justify-center text-6xl shadow-lg`}>
                     {pack.avatar}
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-white mb-2">{pack.name}</h3>
                   <p className="text-gray-400 text-sm mb-2">{pack.cardCount} Cards • {pack.guaranteed}</p>
                   <p className="text-2xl font-bold text-green-400">${pack.price}</p>
@@ -246,19 +246,19 @@ export default function PackOpening() {
             className="text-center"
           >
             <h2 className="text-3xl font-bold mb-8 text-white">{selectedPack.name}</h2>
-            
+
             <motion.div
               className={`w-48 h-64 mx-auto mb-8 bg-gradient-to-br ${selectedPack.gradient} rounded-xl flex items-center justify-center text-8xl shadow-2xl cursor-pointer`}
-              animate={packAnimating ? { 
-                rotateY: 360, 
-                scale: [1, 1.2, 0] 
+              animate={packAnimating ? {
+                rotateY: 360,
+                scale: [1, 1.2, 0]
               } : {}}
               transition={{ duration: 2 }}
               onClick={openPack}
             >
               {selectedPack.avatar}
             </motion.div>
-            
+
             {!packAnimating && (
               <motion.button
                 onClick={openPack}
@@ -284,7 +284,7 @@ export default function PackOpening() {
             exit={{ opacity: 0 }}
           >
             <h2 className="text-3xl font-bold mb-8 text-center text-white">Your Cards!</h2>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {cards.map((card, index) => (
                 <motion.div
@@ -308,9 +308,9 @@ export default function PackOpening() {
                         <div className="text-sm text-gray-300">Click to reveal!</div>
                       </div>
                     </div>
-                    
+
                     {/* Card Front */}
-                    <div 
+                    <div
                       className={`absolute inset-0 w-full h-full rounded-lg border-2 p-4 backface-hidden flex flex-col ${getRarityColor(card.rarity)}`}
                       style={{ transform: 'rotateY(180deg)' }}
                     >
@@ -319,11 +319,11 @@ export default function PackOpening() {
                           NEW!
                         </div>
                       )}
-                      
+
                       <div className="text-4xl mb-2 text-center">{card.avatar}</div>
                       <div className="text-sm font-bold text-white text-center mb-1">{card.name}</div>
                       <div className="text-xs text-gray-300 text-center mb-3">{card.title}</div>
-                      
+
                       {card.stats && (
                         <div className="text-xs text-gray-300 space-y-1 flex-1">
                           <div>ATK: {card.stats.attack}</div>
@@ -331,7 +331,7 @@ export default function PackOpening() {
                           <div>SPD: {card.stats.speed}</div>
                         </div>
                       )}
-                      
+
                       <div className={`text-xs font-bold uppercase text-center py-1 px-2 rounded ${card.rarity === 'legendary' ? 'bg-yellow-600' : card.rarity === 'epic' ? 'bg-purple-600' : card.rarity === 'rare' ? 'bg-blue-600' : card.rarity === 'uncommon' ? 'bg-green-600' : 'bg-gray-600'}`}>
                         {card.rarity}
                       </div>
@@ -354,7 +354,7 @@ export default function PackOpening() {
           >
             <div className="bg-black/40 rounded-xl p-8 backdrop-blur-sm border border-gray-700">
               <h2 className="text-3xl font-bold mb-6 text-white">Pack Summary</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {(() => {
                   const stats = calculateStats();
@@ -376,7 +376,7 @@ export default function PackOpening() {
                   );
                 })()}
               </div>
-              
+
               <div className="flex justify-center gap-4">
                 <motion.button
                   onClick={openAnotherPack}
@@ -387,7 +387,7 @@ export default function PackOpening() {
                   <Package className="w-5 h-5 inline mr-2" />
                   Open Another Pack!
                 </motion.button>
-                
+
                 <motion.button
                   onClick={resetToSelection}
                   className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-full transition-all"

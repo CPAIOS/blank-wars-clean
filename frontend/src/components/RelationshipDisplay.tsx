@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Users, Heart, Swords, Shield, Crown, 
+import {
+  Users, Heart, Swords, Shield, Crown,
   TrendingUp, TrendingDown, AlertTriangle,
   Eye, EyeOff, Zap, Ban, Handshake, Star
 } from 'lucide-react';
@@ -40,11 +40,11 @@ function getRelationshipIcon(relationship: string) {
 
 function getRelationshipColor(relationship: string, strength: number) {
   const intensity = Math.abs(strength) / 100;
-  
+
   switch (relationship) {
     case 'ally':
-      return strength > 0 
-        ? `rgba(34, 197, 94, ${0.2 + intensity * 0.3})` 
+      return strength > 0
+        ? `rgba(34, 197, 94, ${0.2 + intensity * 0.3})`
         : `rgba(239, 68, 68, ${0.2 + intensity * 0.3})`;
     case 'rival':
       return `rgba(234, 179, 8, ${0.2 + intensity * 0.3})`;
@@ -62,7 +62,7 @@ function getRelationshipColor(relationship: string, strength: number) {
 function RelationshipStrengthIndicator({ strength }: { strength: number }) {
   const absStrength = Math.abs(strength);
   const isPositive = strength > 0;
-  
+
   return (
     <div className="flex items-center gap-1">
       {isPositive ? (
@@ -87,19 +87,19 @@ function RelationshipStrengthIndicator({ strength }: { strength: number }) {
   );
 }
 
-function RelationshipCard({ 
-  source, 
-  target, 
-  relationship, 
-  onSelect 
-}: { 
+function RelationshipCard({
+  source,
+  target,
+  relationship,
+  onSelect
+}: {
   source: BattleCharacter;
   target: BattleCharacter;
   relationship: RelationshipModifier;
   onSelect?: () => void;
 }) {
   const [showDetails, setShowDetails] = useState(false);
-  
+
   return (
     <motion.div
       className="bg-gray-800/30 rounded-lg p-3 border border-gray-600 hover:border-gray-500 transition-all cursor-pointer"
@@ -123,7 +123,7 @@ function RelationshipCard({
           </div>
           <div className="text-lg">{target.character.avatar}</div>
         </div>
-        
+
         <RelationshipStrengthIndicator strength={relationship.strength} />
       </div>
 
@@ -156,18 +156,18 @@ function RelationshipCard({
   );
 }
 
-function TeamChemistryAnalysis({ 
-  characters, 
-  teamChemistry 
-}: { 
+function TeamChemistryAnalysis({
+  characters,
+  teamChemistry
+}: {
   characters: BattleCharacter[];
   teamChemistry: number;
 }) {
   // Analyze team dynamics
-  const relationships = characters.flatMap(char => 
+  const relationships = characters.flatMap(char =>
     char.relationshipModifiers.map(rel => ({
       source: char,
-      target: characters.find(c => 
+      target: characters.find(c =>
         c.character.name.toLowerCase().replace(/\s+/g, '_') === rel.withCharacter ||
         c.character.id === rel.withCharacter
       ),
@@ -175,16 +175,16 @@ function TeamChemistryAnalysis({
     })).filter(r => r.target)
   );
 
-  const strongAlliances = relationships.filter(r => 
+  const strongAlliances = relationships.filter(r =>
     r.relationship.relationship === 'ally' && r.relationship.strength > 60
   );
 
-  const activeConflicts = relationships.filter(r => 
-    (r.relationship.relationship === 'enemy' || r.relationship.relationship === 'rival') && 
+  const activeConflicts = relationships.filter(r =>
+    (r.relationship.relationship === 'enemy' || r.relationship.relationship === 'rival') &&
     Math.abs(r.relationship.strength) > 40
   );
 
-  const mentoringRelationships = relationships.filter(r => 
+  const mentoringRelationships = relationships.filter(r =>
     r.relationship.relationship === 'mentor' || r.relationship.relationship === 'student'
   );
 
@@ -225,7 +225,7 @@ function TeamChemistryAnalysis({
           </span>
         </div>
         <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-          <div 
+          <div
             className={`h-full rounded-full transition-all ${
               teamChemistry >= 80 ? 'bg-green-500' :
               teamChemistry >= 60 ? 'bg-yellow-500' :
@@ -286,7 +286,7 @@ function TeamChemistryAnalysis({
 
       {/* Chemistry Warnings */}
       {teamChemistry < 60 && (
-        <motion.div 
+        <motion.div
           className="mt-4 p-3 bg-yellow-600/20 border border-yellow-500/50 rounded-lg"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -296,7 +296,7 @@ function TeamChemistryAnalysis({
             <span className="text-sm font-semibold text-yellow-400">Chemistry Warning</span>
           </div>
           <div className="text-xs text-gray-300">
-            {teamChemistry < 40 ? 
+            {teamChemistry < 40 ?
               'Critical: Team chemistry is dangerously low. Expect frequent gameplan deviations and rogue actions.' :
               'Warning: Poor team chemistry may lead to coordination issues and reduced effectiveness.'
             }
@@ -307,11 +307,11 @@ function TeamChemistryAnalysis({
   );
 }
 
-export default function RelationshipDisplay({ 
-  characters, 
-  teamChemistry, 
+export default function RelationshipDisplay({
+  characters,
+  teamChemistry,
   showDetailed = false,
-  onCharacterSelect 
+  onCharacterSelect
 }: RelationshipDisplayProps) {
   const [selectedView, setSelectedView] = useState<'overview' | 'network' | 'matrix'>('overview');
   const [showAllDetails, setShowAllDetails] = useState(false);
@@ -320,11 +320,11 @@ export default function RelationshipDisplay({
   const relationshipNodes: RelationshipNode[] = characters.map(char => ({
     character: char,
     relationships: char.relationshipModifiers.map(rel => {
-      const target = characters.find(c => 
+      const target = characters.find(c =>
         c.character.name.toLowerCase().replace(/\s+/g, '_') === rel.withCharacter ||
         c.character.id === rel.withCharacter
       );
-      
+
       return {
         target: target!,
         relationship: rel,
@@ -334,15 +334,15 @@ export default function RelationshipDisplay({
   }));
 
   // Get all unique relationships (avoid duplicates)
-  const allRelationships = relationshipNodes.flatMap(node => 
+  const allRelationships = relationshipNodes.flatMap(node =>
     node.relationships.map(rel => ({
       source: node.character,
       target: rel.target,
       relationship: rel.relationship,
       id: `${node.character.character.id}-${rel.target.character.id}`
     }))
-  ).filter((rel, index, array) => 
-    array.findIndex(r => 
+  ).filter((rel, index, array) =>
+    array.findIndex(r =>
       (r.source.character.id === rel.source.character.id && r.target.character.id === rel.target.character.id) ||
       (r.source.character.id === rel.target.character.id && r.target.character.id === rel.source.character.id)
     ) === index
@@ -384,8 +384,8 @@ export default function RelationshipDisplay({
           <button
             onClick={() => setShowAllDetails(!showAllDetails)}
             className={`p-2 rounded-lg transition-all ${
-              showAllDetails 
-                ? 'bg-blue-600 text-white' 
+              showAllDetails
+                ? 'bg-blue-600 text-white'
                 : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
             }`}
             title={showAllDetails ? 'Hide Details' : 'Show Details'}
@@ -420,7 +420,7 @@ export default function RelationshipDisplay({
                 />
               ))}
             </div>
-            
+
             {allRelationships.length === 0 && (
               <div className="text-center py-8 text-gray-400">
                 <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -440,7 +440,7 @@ export default function RelationshipDisplay({
             className="bg-gray-800/30 rounded-lg p-6 border border-gray-600"
           >
             <h3 className="text-lg font-semibold text-white mb-4">Relationship Network</h3>
-            
+
             {/* Simple Network Visualization */}
             <div className="relative h-64 bg-black/40 rounded-lg p-4">
               <div className="absolute inset-0 flex items-center justify-center">
@@ -460,7 +460,7 @@ export default function RelationshipDisplay({
                       >
                         <div className="text-2xl">{char.character.avatar}</div>
                       </div>
-                      
+
                       {/* Character Name */}
                       <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-white text-center whitespace-nowrap">
                         {char.character.name}
@@ -468,7 +468,7 @@ export default function RelationshipDisplay({
 
                       {/* Relationship Lines */}
                       {char.relationshipModifiers.map((rel, relIndex) => {
-                        const target = characters.find(c => 
+                        const target = characters.find(c =>
                           c.character.name.toLowerCase().replace(/\s+/g, '_') === rel.withCharacter
                         );
                         if (!target) return null;
@@ -482,7 +482,7 @@ export default function RelationshipDisplay({
                             transition={{ delay: (index + relIndex) * 0.1 + 0.5 }}
                           >
                             {/* This would be a proper SVG line in a real implementation */}
-                            <div 
+                            <div
                               className={`absolute w-1 h-8 ${
                                 rel.relationship === 'ally' ? 'bg-green-400' :
                                 rel.relationship === 'enemy' ? 'bg-red-400' :
@@ -518,7 +518,7 @@ export default function RelationshipDisplay({
             className="bg-gray-800/30 rounded-lg p-6 border border-gray-600"
           >
             <h3 className="text-lg font-semibold text-white mb-4">Relationship Matrix</h3>
-            
+
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -552,20 +552,20 @@ export default function RelationshipDisplay({
                           );
                         }
 
-                        const relationship = sourceChar.relationshipModifiers.find(rel => 
+                        const relationship = sourceChar.relationshipModifiers.find(rel =>
                           rel.withCharacter === targetChar.character.name.toLowerCase().replace(/\s+/g, '_')
                         );
 
                         return (
                           <td key={targetChar.character.id} className="p-2 text-center">
-                            <div 
+                            <div
                               className="w-8 h-8 rounded flex items-center justify-center text-xs font-bold border border-gray-600"
                               style={{
-                                background: relationship 
+                                background: relationship
                                   ? getRelationshipColor(relationship.relationship, relationship.strength)
                                   : 'rgba(107, 114, 128, 0.2)'
                               }}
-                              title={relationship 
+                              title={relationship
                                 ? `${relationship.relationship}: ${relationship.strength}`
                                 : 'No relationship'
                               }

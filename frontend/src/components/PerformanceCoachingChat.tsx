@@ -48,7 +48,7 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
   try {
     const response = await characterAPI.getUserCharacters();
     const characters = response.characters || [];
-    
+
     return characters.map((char: any) => {
       const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
       return {
@@ -98,14 +98,14 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
 // Generate character-specific coaching advice based on actual stats, equipment, and battle history
 const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
-  
+
   // Safety check to prevent destructuring errors
   if (!character) {
     return ["Focus on consistent training", "Track your progress", "Stay motivated"];
   }
-  
+
   const { baseStats, combatStats, level, equipment, abilities, recentBattles, gameplanAdherence } = character;
-  
+
   // Base stat weaknesses (below 70)
   if (baseStats?.strength && baseStats.strength < 70) {
     advice.push(`Your strength (${baseStats.strength}) needs training for better damage output`);
@@ -119,7 +119,7 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
   if (baseStats?.intelligence && baseStats.intelligence < 70) {
     advice.push(`Your intelligence (${baseStats.intelligence}) is affecting tactical decisions`);
   }
-  
+
   // Combat stat advice
   if (combatStats?.criticalChance && combatStats.criticalChance < 20) {
     advice.push(`Your critical chance (${combatStats.criticalChance}%) needs improvement for better damage`);
@@ -127,26 +127,26 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
   if (combatStats?.accuracy && combatStats.accuracy < 80) {
     advice.push(`Your accuracy (${combatStats.accuracy}%) is causing missed opportunities`);
   }
-  
+
   // Level-based advice
   if (level < 10) {
     advice.push('Focus on basic training fundamentals at your current level');
   } else if (level > 15) {
     advice.push('Your experience should guide newer team members');
   }
-  
+
   // Equipment-based advice
   if (equipment && equipment.length > 0) {
     const weaponCount = equipment.filter(item => item.type === 'weapon').length;
     const armorCount = equipment.filter(item => item.type === 'armor').length;
-    
+
     if (weaponCount === 0) {
       advice.push('Consider equipping a weapon to improve your combat effectiveness');
     }
     if (armorCount === 0) {
       advice.push('Armor could help reduce damage taken in battles');
     }
-    
+
     // Check for equipment synergies
     const hasFireWeapon = equipment.some(item => item.element === 'fire');
     const hasIceArmor = equipment.some(item => item.element === 'ice');
@@ -154,29 +154,29 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
       advice.push('Your fire weapon and ice armor create conflicting elements - consider matching your equipment');
     }
   }
-  
+
   // Ability utilization advice
   if (abilities && abilities.length > 0) {
     const highCooldownAbilities = abilities.filter(ability => ability.cooldown > 3);
     if (highCooldownAbilities.length > 2) {
       advice.push('Consider balancing high-cooldown abilities with faster moves');
     }
-    
+
     const elementalAbilities = abilities.filter(ability => ability.element);
     if (elementalAbilities.length > 0) {
       advice.push(`Your ${elementalAbilities[0].element} abilities could synergize better with matching equipment`);
     }
   }
-  
+
   // Battle history analysis
   if (recentBattles && recentBattles.length > 0) {
     const recentLosses = recentBattles.filter(battle => battle.result === 'loss').length;
     const recentWins = recentBattles.filter(battle => battle.result === 'win').length;
-    
+
     if (recentLosses > recentWins) {
       advice.push('Your recent battle performance suggests we need to adjust your strategy');
     }
-    
+
     // Analyze common causes of defeat
     const commonProblems = recentBattles
       .filter(battle => battle.result === 'loss')
@@ -185,15 +185,15 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
         acc[cause] = (acc[cause] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
-    
+
     const topProblem = Object.entries(commonProblems)
       .sort(([, a], [, b]) => (b as number) - (a as number))[0];
-    
+
     if (topProblem) {
       advice.push(`You've been struggling with ${topProblem[0]} - let's work on that together`);
     }
   }
-  
+
   // Gameplan adherence feedback
   if (gameplanAdherence !== undefined) {
     if (gameplanAdherence < 0.6) {
@@ -202,7 +202,7 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
       advice.push('Excellent gameplan execution! Your strategy adherence is paying off');
     }
   }
-  
+
   // Personality-specific advice
   if (character.personality?.traits?.includes('Honorable')) {
     advice.push('Your honor is admirable, but consider strategic flexibility');
@@ -210,7 +210,7 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
   if (character.personality?.traits?.includes('Wrathful')) {
     advice.push('Channel your anger productively in battle');
   }
-  
+
   // Ensure we have at least some generic advice if nothing specific applies
   if (advice.length === 0) {
     advice.push('Focus on your strongest stats and coordinate better with your team');
@@ -218,7 +218,7 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
     advice.push('Consider your role in team strategy');
     advice.push('Let\'s develop a personalized gameplan for your next battles');
   }
-  
+
   return advice.slice(0, 10); // Limit to 10 pieces of advice
 };
 
@@ -229,8 +229,8 @@ interface PerformanceCoachingChatProps {
   availableCharacters?: EnhancedCharacter[];
 }
 
-export default function PerformanceCoachingChat({ 
-  selectedCharacterId, 
+export default function PerformanceCoachingChat({
+  selectedCharacterId,
   onCharacterChange,
   selectedCharacter: propSelectedCharacter,
   availableCharacters: propAvailableCharacters
@@ -249,7 +249,7 @@ export default function PerformanceCoachingChat({
         setLocalAvailableCharacters(characters);
         setCharactersLoading(false);
       };
-      
+
       loadCharacters();
     } else {
       setCharactersLoading(false);
@@ -284,7 +284,7 @@ export default function PerformanceCoachingChat({
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
     console.log('🔌 [PerformanceCoaching] Connecting to local backend:', socketUrl);
-    
+
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
@@ -312,7 +312,7 @@ export default function PerformanceCoachingChat({
 
     socketRef.current.on('chat_response', (data: { character: string; message: string; bondIncrease?: boolean }) => {
       console.log('📨 PerformanceCoaching response:', data);
-      
+
       const characterMessage: Message = {
         id: Date.now(),
         type: 'character',
@@ -320,7 +320,7 @@ export default function PerformanceCoachingChat({
         timestamp: new Date(),
         bondIncrease: data.bondIncrease || false,
       };
-      
+
       setMessages(prev => [...prev, characterMessage]);
       setIsTyping(false);
     });
@@ -363,11 +363,11 @@ export default function PerformanceCoachingChat({
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
-      console.log('❌ Cannot send message:', { 
-        hasContent: !!content.trim(), 
-        isTyping, 
-        connected, 
-        hasSocket: !!socketRef.current 
+      console.log('❌ Cannot send message:', {
+        hasContent: !!content.trim(),
+        isTyping,
+        connected,
+        hasSocket: !!socketRef.current
       });
       return;
     }
@@ -419,7 +419,7 @@ export default function PerformanceCoachingChat({
     const battlesWon = selectedCharacter.wins || 10;
     const battlesLost = selectedCharacter.losses || 5;
     const winRate = recentBattles > 0 ? Math.round((battlesWon / recentBattles) * 100) : 67;
-    
+
     socketRef.current.emit('chat_message', {
       message: content,
       character: selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id,
@@ -540,7 +540,7 @@ You should naturally reference these numbers when discussing your performance, c
         //   abilitiesAnalyzed: (selectedCharacter.abilities || []).length > 0
         // }
       });
-      
+
       // Apply temporary gameplan adherence boost
       if (selectedCharacter.gameplanAdherence !== undefined) {
         const newAdherence = Math.min(1.0, (selectedCharacter.gameplanAdherence || 0) + 0.05);
@@ -556,7 +556,7 @@ You should naturally reference these numbers when discussing your performance, c
     const equipmentCount = (character.equipment || []).length;
     const abilitiesCount = (character.abilities || []).length;
     const gameplanAdherence = Math.round(((character.gameplanAdherence || 0) as number) * 100);
-    
+
     return `Coach, I'm ready for our combat training session. I've got ${equipmentCount} pieces of equipment and ${abilitiesCount} abilities at my disposal. My gameplan adherence has been ${gameplanAdherence}%. Let's work on improving my battle strategy and effectiveness.`;
   };
 
@@ -578,7 +578,7 @@ You should naturally reference these numbers when discussing your performance, c
 
   return (
     <div className="max-w-6xl mx-auto">
-      <motion.div 
+      <motion.div
         className="bg-gradient-to-br from-orange-900/20 to-red-900/20 rounded-xl backdrop-blur-sm border border-orange-500/30 overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -636,7 +636,7 @@ You should naturally reference these numbers when discussing your performance, c
                   }`}>
                     <p>{message.content}</p>
                     {message.bondIncrease && (
-                      <motion.div 
+                      <motion.div
                         className="mt-2 flex items-center gap-1 text-xs text-yellow-200"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -648,7 +648,7 @@ You should naturally reference these numbers when discussing your performance, c
                   </div>
                 </motion.div>
               ))}
-              
+
               {isTyping && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -664,17 +664,17 @@ You should naturally reference these numbers when discussing your performance, c
                   </div>
                 </motion.div>
               )}
-              
+
               <div ref={messagesEndRef} />
             </div>
 
             <div className="p-4 border-t border-orange-500/30 bg-orange-900/10">
               <div className="text-xs text-orange-300 mb-2">
-                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} | 
-                {isTyping ? ' ⏳ Developing strategy...' : ' ✅ Ready for combat training'} | 
+                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} |
+                {isTyping ? ' ⏳ Developing strategy...' : ' ✅ Ready for combat training'} |
                 Messages: {messages.length}
               </div>
-              
+
               <div className="flex gap-2">
                 <input
                   type="text"

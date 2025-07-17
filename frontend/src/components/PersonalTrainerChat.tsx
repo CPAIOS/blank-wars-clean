@@ -26,7 +26,7 @@ interface EnhancedCharacter extends Character {
 const generateCoachRecommendations = (character: EnhancedCharacter): string[] => {
   const recommendations: string[] = [];
   const { baseStats, combatStats, archetype, level } = character;
-  
+
   // Strength analysis for coach
   if (baseStats?.strength && baseStats.strength < 80) {
     recommendations.push(`Coach! ${character.name} needs strength training - weak like soggy bread! Recommend heavy lifting!`);
@@ -34,17 +34,17 @@ const generateCoachRecommendations = (character: EnhancedCharacter): string[] =>
   if (baseStats?.strength && baseStats.strength > 90) {
     recommendations.push(`Coach! ${character.name} has mighty strength but must maintain it! Power exercises!`);
   }
-  
+
   // Speed analysis
   if (baseStats?.agility && baseStats.agility < 75) {
     recommendations.push(`Coach! ${character.name} moves like wounded bear! Agility drills needed!`);
   }
-  
-  // Defense analysis  
+
+  // Defense analysis
   if (baseStats?.vitality && baseStats.vitality < 70) {
     recommendations.push(`Coach! ${character.name} too soft! Endurance training will forge tougher warrior!`);
   }
-  
+
   // Level-based recommendations
   if (level < 10) {
     recommendations.push(`Coach! Young ${character.name} needs basic conditioning - start with fundamentals!`);
@@ -52,7 +52,7 @@ const generateCoachRecommendations = (character: EnhancedCharacter): string[] =>
   if (level > 30) {
     recommendations.push(`Coach! ${character.name} ready for advanced training - time for REAL challenges!`);
   }
-  
+
   // Archetype-specific recommendations
   if (archetype === 'warrior') {
     recommendations.push(`Coach! ${character.name} warrior type - focus on combat conditioning and weapon training!`);
@@ -63,7 +63,7 @@ const generateCoachRecommendations = (character: EnhancedCharacter): string[] =>
   if (archetype === 'trickster') {
     recommendations.push(`Coach! ${character.name} trickster needs flexibility and core strength for sneaking!`);
   }
-  
+
   return recommendations.slice(0, 6);
 };
 
@@ -71,12 +71,12 @@ const generateCoachRecommendations = (character: EnhancedCharacter): string[] =>
 const generateExerciseOptions = (character: EnhancedCharacter): string[] => {
   const exercises: string[] = [];
   const { baseStats, archetype } = character;
-  
+
   // Always available basic exercises
   exercises.push(`Start ${character.name} on cardio training`);
   exercises.push(`Have ${character.name} do strength training`);
   exercises.push(`Put ${character.name} through agility drills`);
-  
+
   // Stat-specific exercises
   if (baseStats?.strength && baseStats.strength < 80) {
     exercises.push(`${character.name} needs heavy weightlifting session`);
@@ -87,7 +87,7 @@ const generateExerciseOptions = (character: EnhancedCharacter): string[] => {
   if (baseStats?.vitality && baseStats.vitality < 70) {
     exercises.push(`${character.name} needs endurance conditioning`);
   }
-  
+
   // Archetype-specific exercises
   if (archetype === 'warrior') {
     exercises.push(`Combat training for ${character.name}`);
@@ -98,7 +98,7 @@ const generateExerciseOptions = (character: EnhancedCharacter): string[] => {
   if (archetype === 'trickster') {
     exercises.push(`Flexibility training for ${character.name}`);
   }
-  
+
   return exercises.slice(0, 6);
 };
 
@@ -107,9 +107,9 @@ interface PersonalTrainerChatProps {
   onCharacterChange?: (characterId: string) => void;
 }
 
-export default function PersonalTrainerChat({ 
-  selectedCharacterId, 
-  onCharacterChange 
+export default function PersonalTrainerChat({
+  selectedCharacterId,
+  onCharacterChange
 }: PersonalTrainerChatProps) {
   const [availableCharacters, setAvailableCharacters] = useState<EnhancedCharacter[]>([]);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState(selectedCharacterId || 'achilles');
@@ -125,7 +125,7 @@ export default function PersonalTrainerChat({
       try {
         const response = await characterAPI.getUserCharacters();
         const characters = response.characters || [];
-        
+
         const enhancedCharacters = characters.map((char: any) => {
           const baseName = char.name?.toLowerCase() || char.id?.split('_')[0];
           return {
@@ -161,7 +161,7 @@ export default function PersonalTrainerChat({
             conflictResponse: char.conflict_response
           };
         });
-        
+
         setAvailableCharacters(enhancedCharacters);
       } catch (error) {
         console.error('Failed to load characters:', error);
@@ -169,7 +169,7 @@ export default function PersonalTrainerChat({
       }
       setCharactersLoading(false);
     };
-    
+
     loadCharacters();
   }, []);
 
@@ -185,7 +185,7 @@ export default function PersonalTrainerChat({
       setCurrentExercise(null);
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
-  
+
   const selectedCharacter = useMemo(() => {
     return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
   }, [availableCharacters, globalSelectedCharacterId]);
@@ -201,7 +201,7 @@ export default function PersonalTrainerChat({
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
     console.log('🔌 [PersonalTrainer] Connecting to local backend:', socketUrl);
-    
+
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
@@ -229,7 +229,7 @@ export default function PersonalTrainerChat({
 
     socketRef.current.on('chat_response', (data: { character: string; message: string; bondIncrease?: boolean }) => {
       console.log('📨 PersonalTrainer response:', data);
-      
+
       const characterMessage: Message = {
         id: Date.now(),
         type: 'character',
@@ -237,7 +237,7 @@ export default function PersonalTrainerChat({
         timestamp: new Date(),
         bondIncrease: data.bondIncrease || Math.random() > 0.7,
       };
-      
+
       setMessages(prev => [...prev, characterMessage]);
       setIsTyping(false);
     });
@@ -262,7 +262,7 @@ export default function PersonalTrainerChat({
       if (selectedCharacter) {
         try {
           console.log('🏠 PersonalTrainer loading living context for:', selectedCharacter.baseName || selectedCharacter.name);
-          const context = await conflictService.generateLivingContext(selectedCharacter.baseName || 
+          const context = await conflictService.generateLivingContext(selectedCharacter.baseName ||
             selectedCharacter.name?.toLowerCase() || selectedCharacter.id);
           setLivingContext(context);
           console.log('✅ PersonalTrainer living context loaded:', context);
@@ -280,20 +280,20 @@ export default function PersonalTrainerChat({
   const coachRecommendations = useMemo(() => {
     return selectedCharacter ? generateCoachRecommendations(selectedCharacter) : [];
   }, [selectedCharacter]);
-  
+
   const exerciseOptions = useMemo(() => {
     return selectedCharacter ? generateExerciseOptions(selectedCharacter) : [];
   }, [selectedCharacter]);
-  
+
   // Handle exercise selection (switches to character training mode)
   const startExercise = (exercise: string) => {
     setCurrentExercise(exercise);
     setConversationMode('character_training');
-    
+
     // Send the exercise command which will trigger trainer-character interaction
     sendMessage(exercise);
   };
-  
+
   // Return to coach consultation mode
   const returnToConsultation = () => {
     setConversationMode('coach_consultation');
@@ -377,7 +377,7 @@ ARGOCK'S TRAINING PHILOSOPHY:
 - Always encouraging but uses terrifying metaphors
 
 Respond as Argock would based on the current conversation mode.`,
-        
+
         trainingExpertise: {
           specialties: ['Strength building', 'Combat conditioning', 'Berserker endurance', 'Battle preparation'],
           methods: ['High intensity intervals', 'Functional movement', 'Mental toughness', 'Progressive overload'],
@@ -427,7 +427,7 @@ Respond as Argock would based on the current conversation mode.`,
 
   return (
     <div className="max-w-6xl mx-auto">
-      <motion.div 
+      <motion.div
         className="bg-gradient-to-br from-green-900/20 to-red-900/20 rounded-xl backdrop-blur-sm border border-green-500/30 overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -461,8 +461,8 @@ Respond as Argock would based on the current conversation mode.`,
             <div className="p-4 border-b border-green-500/20 bg-green-900/10">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-sm font-semibold text-green-300">
-                  {conversationMode === 'coach_consultation' 
-                    ? '📋 Coach Consultation Mode' 
+                  {conversationMode === 'coach_consultation'
+                    ? '📋 Coach Consultation Mode'
                     : '🏋️ Training Session Mode'}
                 </div>
                 {conversationMode === 'character_training' && (
@@ -474,7 +474,7 @@ Respond as Argock would based on the current conversation mode.`,
                   </button>
                 )}
               </div>
-              
+
               {conversationMode === 'coach_consultation' ? (
                 <div className="space-y-3">
                   <div>
@@ -493,7 +493,7 @@ Respond as Argock would based on the current conversation mode.`,
                       ))}
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="text-xs text-green-200 mb-2">🎯 Start Exercise Session:</div>
                     <div className="flex flex-wrap gap-2">
@@ -536,7 +536,7 @@ Respond as Argock would based on the current conversation mode.`,
                   }`}>
                     <p>{message.content}</p>
                     {message.bondIncrease && (
-                      <motion.div 
+                      <motion.div
                         className="mt-2 flex items-center gap-1 text-xs text-yellow-200"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -548,7 +548,7 @@ Respond as Argock would based on the current conversation mode.`,
                   </div>
                 </motion.div>
               ))}
-              
+
               {isTyping && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -564,17 +564,17 @@ Respond as Argock would based on the current conversation mode.`,
                   </div>
                 </motion.div>
               )}
-              
+
               <div ref={messagesEndRef} />
             </div>
 
             <div className="p-4 border-t border-green-500/30 bg-green-900/10">
               <div className="text-xs text-green-300 mb-2">
-                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} | 
-                {isTyping ? ' 🏋️ Argock planning your CRUSHING workout...' : ' ✅ Ready to forge warriors'} | 
+                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} |
+                {isTyping ? ' 🏋️ Argock planning your CRUSHING workout...' : ' ✅ Ready to forge warriors'} |
                 Messages: {messages.length}
               </div>
-              
+
               <div className="flex gap-2">
                 <input
                   type="text"

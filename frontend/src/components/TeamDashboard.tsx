@@ -10,10 +10,10 @@ import {
 } from 'lucide-react';
 import GameEventBus, { EventFilter, GameEvent } from '@/services/gameEventBus';
 import { FinancialPsychologyService } from '@/services/financialPsychologyService';
-import { BattleCharacter } from '@/data/characters';
+import { Character } from '@/data/characters';
 
 interface TeamDashboardProps {
-  characters: BattleCharacter[];
+  characters: Character[];
   className?: string;
 }
 
@@ -66,7 +66,12 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
         categories: ['financial'],
         limit: 100
       };
-      const events = await eventBus.getEvents(eventFilter);
+      // Get events for all characters
+      let events: GameEvent[] = [];
+      for (const char of characters) {
+        const charEvents = eventBus.getCharacterEvents(char.id, eventFilter);
+        events.push(...charEvents);
+      }
       setRecentEvents(events);
 
       // Calculate team metrics and character summaries
@@ -83,7 +88,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
   };
 
   const calculateTeamMetrics = async (events: GameEvent[]): Promise<TeamFinancialMetrics> => {
-    const totalWealth = characters.reduce((sum, char) => sum + (char.wallet || 0), 0);
+    const totalWealth = characters.reduce((sum, char) => sum + (char.financials?.wallet || 0), 0);
     const financialDecisions = events.filter(e => e.type === 'financial_decision_made');
     const successfulDecisions = financialDecisions.filter(e => e.metadata.outcome === 'positive');
     const crisisEvents = events.filter(e => e.type === 'financial_crisis');
@@ -100,10 +105,10 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
       
       const stressData = financialPsychology.calculateFinancialStress(
         char.id,
-        char.wallet || 0,
-        char.monthlyEarnings || 0,
+        char.financials?.wallet || 0,
+        char.financials?.monthlyEarnings || 0,
         recentDecisions,
-        char.financialPersonality || { spendingStyle: 'moderate', riskTolerance: 50, luxuryDesire: 50, financialWisdom: 50, financialSecurity: 50 }
+        char.financialPersonality
       );
       
       totalStress += stressData.stress;
@@ -117,7 +122,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
         spiralCount++;
       }
       
-      totalTrust += char.coachTrust || 50;
+      totalTrust += char.financials?.coachFinancialTrust || 50;
     }
 
     return {
@@ -143,10 +148,10 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
       
       const stressData = financialPsychology.calculateFinancialStress(
         char.id,
-        char.wallet || 0,
-        char.monthlyEarnings || 0,
+        char.financials?.wallet || 0,
+        char.financials?.monthlyEarnings || 0,
         recentDecisions,
-        char.financialPersonality || { spendingStyle: 'moderate', riskTolerance: 50, luxuryDesire: 50, financialWisdom: 50, financialSecurity: 50 }
+        char.financialPersonality
       );
       
       const spiralState = financialPsychology.calculateSpiralState(recentDecisions, stressData.stress);
@@ -161,9 +166,9 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
       summaries.push({
         id: char.id,
         name: char.name,
-        wallet: char.wallet || 0,
+        wallet: char.financials?.wallet || 0,
         stress: stressData.stress,
-        trustLevel: char.coachTrust || 50,
+        trustLevel: char.financials?.coachFinancialTrust || 50,
         isInSpiral: spiralState.isInSpiral,
         riskLevel: getRiskLevel(stressData.stress),
         recentDecisions: recentDecisions.length,

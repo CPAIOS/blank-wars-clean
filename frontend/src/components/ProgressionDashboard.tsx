@@ -69,7 +69,7 @@ export default function ProgressionDashboard({
   const [showAllocationModal, setShowAllocationModal] = useState(false);
   const [allocationType, setAllocationType] = useState<'skill' | 'stat'>('skill');
   const [allocationTarget, setAllocationTarget] = useState<string>('');
-  
+
   // Performance Chat State
   const [showPerformanceChat, setShowPerformanceChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{
@@ -207,7 +207,7 @@ export default function ProgressionDashboard({
       // Real API call to performance coaching service
       const token = localStorage.getItem('accessToken');
       const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-      
+
       const response = await fetch(`${BACKEND_URL}/coaching/performance`, {
         method: 'POST',
         headers: {
@@ -234,7 +234,7 @@ export default function ProgressionDashboard({
       }
 
       const data = await response.json();
-      
+
       const aiResponse = {
         id: Date.now() + 1,
         sender: 'character' as const,
@@ -242,7 +242,7 @@ export default function ProgressionDashboard({
         timestamp: new Date(),
         characterName: data.character
       };
-      
+
       setChatMessages(prev => [...prev, aiResponse]);
       setIsChatLoading(false);
     } catch (error) {
@@ -316,10 +316,10 @@ export default function ProgressionDashboard({
             <span>{character.experience?.currentXP || 0}/{character.experience?.xpToNextLevel || 1000}</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-4">
-            <div 
+            <div
               className="bg-gradient-to-r from-blue-500 to-purple-500 h-4 rounded-full transition-all duration-500"
-              style={{ 
-                width: `${((character.experience?.currentXP || 0) / (character.experience?.xpToNextLevel || 1000)) * 100}%` 
+              style={{
+                width: `${((character.experience?.currentXP || 0) / (character.experience?.xpToNextLevel || 1000)) * 100}%`
               }}
             />
           </div>
@@ -356,7 +356,7 @@ export default function ProgressionDashboard({
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-white mb-6">Character Overview</h2>
-            
+
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Core Skills Summary */}
@@ -428,7 +428,7 @@ export default function ProgressionDashboard({
                         <span className="text-gray-300">{data.level}/{data.maxLevel}</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-3">
-                        <div 
+                        <div
                           className={`bg-gradient-to-r ${skillColors[skill as keyof typeof skillColors]} h-3 rounded-full transition-all duration-500`}
                           style={{ width: `${percentage}%` }}
                         />
@@ -450,12 +450,12 @@ export default function ProgressionDashboard({
                 Available Points: <span className="text-yellow-400 font-bold">{character.experience?.skillPoints || 0}</span>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {Object.entries(skillData).map(([skill, data]) => {
                 const SkillIcon = skillIcons[skill as keyof typeof skillIcons];
                 const percentage = (data.experience / data.maxExperience) * 100;
-                
+
                 return (
                   <motion.div
                     key={skill}
@@ -484,7 +484,7 @@ export default function ProgressionDashboard({
                         <span>{data.experience}/{data.maxExperience}</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div 
+                        <div
                           className={`bg-gradient-to-r ${skillColors[skill as keyof typeof skillColors]} h-2 rounded-full transition-all duration-500`}
                           style={{ width: `${percentage}%` }}
                         />
@@ -596,9 +596,9 @@ export default function ProgressionDashboard({
                     <h3 className="text-lg font-semibold text-white capitalize">{stat}</h3>
                     <div className="text-2xl font-bold text-blue-400">{value}</div>
                   </div>
-                  
+
                   <div className="w-full bg-gray-700 rounded-full h-3 mb-4">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(value, 100)}%` }}
                     />
@@ -622,7 +622,7 @@ export default function ProgressionDashboard({
         {activeTab === 'milestones' && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-white">Achievement Milestones</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {milestones.map((milestone) => (
                 <motion.div
@@ -644,7 +644,7 @@ export default function ProgressionDashboard({
                         )}
                       </div>
                       <p className="text-gray-300 text-sm mb-3">{milestone.description}</p>
-                      
+
                       {/* Progress Bar */}
                       <div className="mb-3">
                         <div className="flex justify-between text-sm text-gray-400 mb-1">
@@ -652,10 +652,10 @@ export default function ProgressionDashboard({
                           <span>{milestone.progress}/{milestone.maxProgress}</span>
                         </div>
                         <div className="w-full bg-gray-700 rounded-full h-2">
-                          <div 
+                          <div
                             className={`bg-gradient-to-r ${
-                              milestone.isCompleted 
-                                ? 'from-green-500 to-emerald-500' 
+                              milestone.isCompleted
+                                ? 'from-green-500 to-emerald-500'
                                 : 'from-blue-500 to-purple-500'
                             } h-2 rounded-full transition-all duration-500`}
                             style={{ width: `${Math.min((milestone.progress / milestone.maxProgress) * 100, 100)}%` }}
@@ -682,7 +682,7 @@ export default function ProgressionDashboard({
         {activeTab === 'journey' && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-white">Character Journey</h2>
-            
+
             <div className="relative">
               {/* Timeline */}
               <div className="space-y-8">
@@ -696,8 +696,8 @@ export default function ProgressionDashboard({
                   <div key={index} className="flex gap-6">
                     <div className="flex flex-col items-center">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        event.isCurrent 
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white' 
+                        event.isCurrent
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                           : 'bg-gray-700 text-gray-300'
                       }`}>
                         {event.level}
