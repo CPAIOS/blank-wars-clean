@@ -1,4 +1,4 @@
-# WiseSage Wars - Battle System
+# Blank Wars - Battle System
 
 A psychology-enhanced battle system where character interactions and team chemistry impact physical combat outcomes.
 

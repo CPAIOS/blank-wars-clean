@@ -46,17 +46,8 @@ export class KitchenChatService {
   }
 
   private initializeSocket() {
-    // Determine backend URL based on environment
-    let socketUrl: string;
-    
-    if (process.env.NODE_ENV === 'production') {
-      // Production: use environment variable or blankwars.com backend
-      // For production, backend should be deployed separately 
-      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-backend.railway.app';
-    } else {
-      // Development: use localhost
-      socketUrl = 'http://localhost:3006';
-    }
+    // Use environment variable with localhost fallback
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
     
     console.log('🔧 Kitchen Chat Service initializing with URL:', socketUrl);
     console.log('🔧 NODE_ENV:', process.env.NODE_ENV);

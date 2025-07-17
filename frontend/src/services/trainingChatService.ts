@@ -49,20 +49,8 @@ export class TrainingChatService {
     // Only run on client side
     if (typeof window === 'undefined') return;
     
-    // Determine backend URL based on environment
-    let socketUrl: string;
-    
-    // Check if we're running locally (either in dev or local production build)
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1';
-    
-    if (isLocalhost) {
-      // Local development or local production build
-      socketUrl = 'http://localhost:3006';
-    } else {
-      // Deployed production
-      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://www.blankwars.com:3006';
-    }
+    // Use environment variable with localhost fallback
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
     
     console.log('🏋️ Training Chat Service initializing with URL:', socketUrl);
     console.log('🏋️ NODE_ENV:', process.env.NODE_ENV);

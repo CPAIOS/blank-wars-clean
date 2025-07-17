@@ -555,4 +555,64 @@ router.post('/group-activity', authenticateToken, async (req: any, res) => {
   }
 });
 
+// GET /api/coaching/progression - Coach progression data
+router.get('/progression', authenticateToken, async (req: any, res) => {
+  try {
+    // Return basic coach progression data
+    res.json({
+      success: true,
+      data: {
+        level: 1,
+        xp: 0,
+        nextLevelXp: 100,
+        totalXp: 0,
+        bonuses: {
+          characterDevelopment: 0,
+          trainingEfficiency: 0,
+          bondingSpeed: 0
+        }
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// GET /api/coaching/xp-history - XP history
+router.get('/xp-history', authenticateToken, async (req: any, res) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 20;
+    
+    res.json({
+      success: true,
+      data: []
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// GET /api/coaching/leaderboard - Leaderboard
+router.get('/leaderboard', authenticateToken, async (req: any, res) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+    
+    res.json({
+      success: true,
+      data: []
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 export default router;

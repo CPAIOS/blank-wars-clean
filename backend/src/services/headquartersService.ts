@@ -46,6 +46,58 @@ export interface Bed {
 }
 
 export class HeadquartersService {
+  async initializeUserHeadquarters(userId: string): Promise<void> {
+    try {
+      // Check if headquarters already exists
+      const existing = await query('SELECT id FROM user_headquarters WHERE user_id = ?', [userId]);
+      if (existing.rows.length > 0) {
+        console.log('📦 [Headquarters] User already has headquarters, skipping initialization');
+        return;
+      }
+
+      console.log('🏠 [Headquarters] Initializing headquarters for user:', userId);
+      
+      // Create basic headquarters with default values
+      const hqId = `hq_${userId}`;
+      await query(
+        `INSERT INTO user_headquarters 
+         (id, user_id, tier_id, coins, gems, unlocked_themes, created_at, updated_at) 
+         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [
+          hqId,
+          userId,
+          'spartan_apartment', // Default tier
+          50000, // Starting coins
+          100,   // Starting gems
+          JSON.stringify(['default']) // Default unlocked themes
+        ]
+      );
+
+      // Create a basic default room
+      const roomId = `${hqId}_room1`;
+      await query(
+        `INSERT INTO headquarters_rooms 
+         (id, headquarters_id, room_id, name, theme, elements, assigned_characters, max_characters) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          roomId,
+          hqId,
+          'room1',
+          'Main Room',
+          'default',
+          JSON.stringify([]),
+          JSON.stringify([]),
+          2
+        ]
+      );
+
+      console.log('✅ [Headquarters] Initialized successfully for user:', userId);
+    } catch (error) {
+      console.error('❌ [Headquarters] Failed to initialize for user:', userId, error);
+      throw error;
+    }
+  }
+
   async upgradeCharacterSlotCapacity(userId: string, cost: number): Promise<User> {
     // In a real application, you would deduct currency here
     // For now, we'll just update the capacity
@@ -143,9 +195,16 @@ export class HeadquartersService {
       // Create or update headquarters
       const hqId = `hq_${userId}`;
       await query(
-        `INSERT OR REPLACE INTO user_headquarters 
+        `INSERT INTO user_headquarters 
          (id, user_id, tier_id, coins, gems, unlocked_themes, updated_at) 
-         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT (id) DO UPDATE SET
+           user_id = EXCLUDED.user_id,
+           tier_id = EXCLUDED.tier_id,
+           coins = EXCLUDED.coins,
+           gems = EXCLUDED.gems,
+           unlocked_themes = EXCLUDED.unlocked_themes,
+           updated_at = CURRENT_TIMESTAMP`,
         [
           hqId,
           userId,

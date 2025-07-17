@@ -57,7 +57,7 @@ export default function TeamChatPanel({
 
   // Initialize socket connection for AI chat
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
     console.log('🔌 TeamChat connecting to backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {

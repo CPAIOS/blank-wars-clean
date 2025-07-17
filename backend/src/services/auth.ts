@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from 'dotenv';
 import { query, cache } from '../database';
 import { User, AuthRequest } from '../types';
+import { HeadquartersService } from './headquartersService';
 // import { PackService } from './packService'; // Temporarily disabled
 
 // Load environment variables
@@ -122,6 +123,17 @@ export class AuthService {
     console.log('🔑 Generating tokens...');
     const tokens = this.generateTokens(userId);
     console.log('✅ Tokens generated successfully');
+
+    // Initialize user headquarters
+    try {
+      console.log('🏠 Initializing headquarters for new user...');
+      const headquartersService = new HeadquartersService();
+      await headquartersService.initializeUserHeadquarters(userId);
+      console.log('✅ Headquarters initialized successfully');
+    } catch (hqError) {
+      console.warn('⚠️ Failed to initialize headquarters for user:', userId, hqError);
+      // Don't fail registration if headquarters init fails
+    }
 
     // --- NEW CHARACTER ASSIGNMENT LOGIC ---
     // TODO: Re-implement character assignment after fixing PackService dependency

@@ -5,6 +5,43 @@ import { db, query } from '../database/index';
  * with existing SQLite implementation
  */
 
+// Safe JSON parsing functions for character data
+const parseCharacterTraits = (traits: string): string[] => {
+  if (!traits) return [];
+  try {
+    return JSON.parse(traits);
+  } catch {
+    return traits.split(',').map(trait => trait.trim());
+  }
+};
+
+const parseConversationTopics = (topics: string): string[] => {
+  if (!topics) return [];
+  try {
+    return JSON.parse(topics);
+  } catch {
+    return topics.split(',').map(topic => topic.trim());
+  }
+};
+
+const parseEmotionalRange = (range: string): string[] => {
+  if (!range) return [];
+  try {
+    return JSON.parse(range);
+  } catch {
+    return range.split(',').map(emotion => emotion.trim());
+  }
+};
+
+const parseAbilities = (abilities: string): any[] => {
+  if (!abilities) return [];
+  try {
+    return JSON.parse(abilities);
+  } catch {
+    return [];
+  }
+};
+
 // Types for battle system compatibility
 interface User {
   id: string;
@@ -219,9 +256,9 @@ export const dbAdapter = {
             conversation_memory: JSON.parse(row.conversation_memory || '[]'),
             significant_memories: JSON.parse(row.significant_memories || '[]'),
             personality_drift: JSON.parse(row.personality_drift || '{}'),
-            personality_traits: JSON.parse(row.personality_traits || '[]'),
-            conversation_topics: JSON.parse(row.conversation_topics || '[]'),
-                        abilities: JSON.parse(row.abilities || '[]')
+            personality_traits: parseCharacterTraits(row.personality_traits),
+            conversation_topics: parseConversationTopics(row.conversation_topics),
+            abilities: parseAbilities(row.abilities)
           };
         }
         return null;
@@ -291,9 +328,9 @@ export const dbAdapter = {
           conversation_memory: JSON.parse(row.conversation_memory || '[]'),
           significant_memories: JSON.parse(row.significant_memories || '{}'),
           personality_drift: JSON.parse(row.personality_drift || '{}'),
-          personality_traits: JSON.parse(row.personality_traits || '[]'),
-          conversation_topics: JSON.parse(row.conversation_topics || '[]'),
-          abilities: JSON.parse(row.abilities || '[]')
+          personality_traits: parseCharacterTraits(row.personality_traits),
+          conversation_topics: parseConversationTopics(row.conversation_topics),
+          abilities: parseAbilities(row.abilities)
         }));
       } catch (error) {
         console.error('Error finding user characters:', error);
@@ -369,9 +406,9 @@ export const dbAdapter = {
             conversation_memory: JSON.parse(row.conversation_memory || '[]'),
             significant_memories: JSON.parse(row.significant_memories || '[]'),
             personality_drift: JSON.parse(row.personality_drift || '{}'),
-            personality_traits: JSON.parse(row.personality_traits || '[]'),
-            conversation_topics: JSON.parse(row.conversation_topics || '[]'),
-                        abilities: JSON.parse(row.abilities || '[]')
+            personality_traits: parseCharacterTraits(row.personality_traits),
+            conversation_topics: parseConversationTopics(row.conversation_topics),
+            abilities: parseAbilities(row.abilities)
           };
         }
         return null;
@@ -501,10 +538,10 @@ export const dbAdapter = {
           const row = result.rows[0];
           return {
             ...row,
-            personality_traits: JSON.parse(row.personality_traits || '[]'),
-            conversation_topics: JSON.parse(row.conversation_topics || '[]'),
-            emotional_range: JSON.parse(row.emotional_range || '[]'),
-            abilities: JSON.parse(row.abilities || '[]')
+            personality_traits: parseCharacterTraits(row.personality_traits),
+            conversation_topics: parseConversationTopics(row.conversation_topics),
+            emotional_range: parseEmotionalRange(row.emotional_range),
+            abilities: parseAbilities(row.abilities)
           };
         }
         return null;
@@ -519,10 +556,10 @@ export const dbAdapter = {
         const result = await query('SELECT * FROM characters ORDER BY rarity DESC, name ASC');
         return result.rows.map((row: any) => ({
           ...row,
-          personality_traits: JSON.parse(row.personality_traits || '[]'),
-          conversation_topics: JSON.parse(row.conversation_topics || '[]'),
-          emotional_range: JSON.parse(row.emotional_range || '[]'),
-          abilities: JSON.parse(row.abilities || '[]')
+          personality_traits: parseCharacterTraits(row.personality_traits),
+          conversation_topics: parseConversationTopics(row.conversation_topics),
+          emotional_range: parseEmotionalRange(row.emotional_range),
+          abilities: parseAbilities(row.abilities)
         }));
       } catch (error) {
         console.error('Error finding all characters:', error);
