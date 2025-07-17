@@ -17,7 +17,7 @@ interface UseUIPresentationProps {
     setShowMatchmaking: (show: boolean) => void;
     setTimer: (time: number | null) => void;
     setIsTimerActive: (active: boolean) => void;
-    setBattleCries: (cries: string[]) => void;
+    setBattleCries: (cries: { player1: string; player2: string }) => void;
     setPhase: (phase: string) => void;
   };
   timeoutManager: {
@@ -27,17 +27,17 @@ interface UseUIPresentationProps {
   speak: (text: string) => void;
 }
 
-export const useUIPresentation = ({ 
-  state, 
-  actions, 
+export const useUIPresentation = ({
+  state,
+  actions,
   timeoutManager,
-  speak 
+  speak
 }: UseUIPresentationProps) => {
 
   // Generic message announcer with type handling
   const announceMessage = useCallback(async (message: string, type: string = 'general') => {
     actions.setCurrentAnnouncement(message);
-    
+
     // Handle different message types with appropriate delays and effects
     switch (type) {
       case 'battle-start':
@@ -48,11 +48,11 @@ export const useUIPresentation = ({
         break;
       case 'victory':
         speak(`Victory! ${message}`);
-        actions.setBattleCries(['🎉 VICTORY! 🎉', 'Well fought!', 'Legendary battle!']);
+        actions.setBattleCries({ player1: '🎉 VICTORY! 🎉', player2: 'Well fought!' });
         break;
       case 'defeat':
         speak(`Defeat... ${message}`);
-        actions.setBattleCries(['😔 Defeat...', 'Better luck next time', 'Learn and grow']);
+        actions.setBattleCries({ player1: '😔 Defeat...', player2: 'Better luck next time' });
         break;
       case 'phase-transition':
         speak(message);
@@ -62,7 +62,7 @@ export const useUIPresentation = ({
         break;
       case 'battle-cry':
         speak(message);
-        actions.setBattleCries([message]);
+        actions.setBattleCries({ player1: message, player2: '' });
         break;
       case 'special-event':
         speak(`Special event: ${message}`);
@@ -76,10 +76,10 @@ export const useUIPresentation = ({
   const handleSelectChatCharacter = useCallback((character: TeamCharacter) => {
     // Show typing indicator
     actions.setIsCharacterTyping(true);
-    
+
     // Set selected character
     actions.setSelectedChatCharacter(character);
-    
+
     // Clear typing indicator after a short delay
     timeoutManager.setTimeout(() => {
       actions.setIsCharacterTyping(false);
@@ -109,10 +109,10 @@ export const useUIPresentation = ({
       // Auto-proceed when strategy timer expires
       actions.setTimer(null);
       actions.setIsTimerActive(false);
-      
+
       // Announce time's up
       announceMessage('Time\'s up! Proceeding with current strategies.', 'phase-transition');
-      
+
       // Move to next phase after announcement
       timeoutManager.setTimeout(() => {
         actions.setPhase('pre_battle_huddle');
@@ -121,9 +121,9 @@ export const useUIPresentation = ({
       // Handle character strategy timeout
       actions.setTimer(null);
       actions.setIsTimerActive(false);
-      
+
       announceMessage('Strategy selection time expired! Using default strategies.', 'phase-transition');
-      
+
       timeoutManager.setTimeout(() => {
         actions.setPhase('pre_battle_huddle');
       }, 2000);
@@ -196,18 +196,23 @@ export const useUIPresentation = ({
 
   // Visual feedback helpers
   const showBattleCries = useCallback((cries: string[]) => {
-    actions.setBattleCries(cries);
-    
+    // Convert string array to player1/player2 format
+    const battleCries = {
+      player1: cries[0] || '',
+      player2: cries[1] || ''
+    };
+    actions.setBattleCries(battleCries);
+
     // Clear battle cries after display time
     timeoutManager.setTimeout(() => {
-      actions.setBattleCries([]);
+      actions.setBattleCries({ player1: '', player2: '' });
     }, 5000);
   }, [actions, timeoutManager]);
 
   // Phase transition with announcement
   const transitionToPhase = useCallback((newPhase: string, announcement?: string) => {
     actions.setPhase(newPhase);
-    
+
     if (announcement) {
       announceMessage(announcement, 'phase-transition');
     }
@@ -219,7 +224,7 @@ export const useUIPresentation = ({
     const opponentFighter = getCurrentOpponentFighter();
     const playerTeamPower = calculateTeamPower(state.playerTeam.characters);
     const opponentTeamPower = calculateTeamPower(state.opponentTeam.characters);
-    
+
     return {
       playerFighter,
       opponentFighter,
@@ -230,10 +235,10 @@ export const useUIPresentation = ({
       isTyping: state.isCharacterTyping
     };
   }, [
-    getCurrentPlayerFighter, 
-    getCurrentOpponentFighter, 
-    calculateTeamPower, 
-    state.playerTeam.characters, 
+    getCurrentPlayerFighter,
+    getCurrentOpponentFighter,
+    calculateTeamPower,
+    state.playerTeam.characters,
     state.opponentTeam.characters,
     state.isTimerActive,
     state.phase,
@@ -243,26 +248,26 @@ export const useUIPresentation = ({
   return {
     // Announcement functions
     announceMessage,
-    
+
     // Character display functions
     handleSelectChatCharacter,
     getCurrentPlayerFighter,
     getCurrentOpponentFighter,
     calculateTeamPower,
-    
+
     // Timer management
     handleTimerExpired,
     startTimer,
     stopTimer,
-    
+
     // Modal management
     showModal,
     hideModal,
-    
+
     // Visual effects
     showBattleCries,
     transitionToPhase,
-    
+
     // UI state utilities
     getUIDisplayStats,
   };

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Activity, AlertTriangle, TrendingUp, TrendingDown, 
+import {
+  Activity, AlertTriangle, TrendingUp, TrendingDown,
   Brain, Heart, Zap, Shield, Target, Clock,
   Pause, Play, RotateCcw, Eye, EyeOff, Settings
 } from 'lucide-react';
@@ -46,12 +46,12 @@ interface CharacterGameplanData {
   lastEvent?: GameplanEvent;
 }
 
-function GameplanGauge({ 
-  value, 
-  size = 80, 
+function GameplanGauge({
+  value,
+  size = 80,
   showLabel = true,
-  riskLevel 
-}: { 
+  riskLevel
+}: {
   value: number;
   size?: number;
   showLabel?: boolean;
@@ -60,7 +60,7 @@ function GameplanGauge({
   const circumference = 2 * Math.PI * (size / 2 - 8);
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (value / 100) * circumference;
-  
+
   const getColor = () => {
     switch (riskLevel) {
       case 'critical': return '#ef4444'; // red-500
@@ -98,7 +98,7 @@ function GameplanGauge({
           className="transition-all duration-500"
         />
       </svg>
-      
+
       {showLabel && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
@@ -111,10 +111,10 @@ function GameplanGauge({
   );
 }
 
-function GameplanHistoryChart({ 
-  history, 
-  character 
-}: { 
+function GameplanHistoryChart({
+  history,
+  character
+}: {
   history: { timestamp: number; value: number }[];
   character: BattleCharacter;
 }) {
@@ -122,7 +122,7 @@ function GameplanHistoryChart({
   const displayHistory = history.slice(-maxPoints);
   const maxValue = 100;
   const minValue = 0;
-  
+
   if (displayHistory.length < 2) {
     return (
       <div className="h-24 bg-gray-800/30 rounded flex items-center justify-center text-gray-400 text-sm">
@@ -152,18 +152,18 @@ function GameplanHistoryChart({
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
-        
+
         {/* Zero line */}
-        <line 
-          x1={padding} 
-          y1={height - padding} 
-          x2={width - padding} 
-          y2={height - padding} 
-          stroke="currentColor" 
-          strokeWidth="1" 
+        <line
+          x1={padding}
+          y1={height - padding}
+          x2={width - padding}
+          y2={height - padding}
+          stroke="currentColor"
+          strokeWidth="1"
           className="text-gray-600"
         />
-        
+
         {/* Trend line */}
         <polyline
           fill="none"
@@ -173,13 +173,13 @@ function GameplanHistoryChart({
           strokeLinejoin="round"
           points={points}
         />
-        
+
         {/* Data points */}
         {displayHistory.map((point, index) => {
           const x = padding + (index / (displayHistory.length - 1)) * (width - 2 * padding);
           const y = height - padding - ((point.value - minValue) / (maxValue - minValue)) * (height - 2 * padding);
           const color = point.value >= 70 ? '#22c55e' : point.value >= 40 ? '#eab308' : '#ef4444';
-          
+
           return (
             <circle
               key={index}
@@ -196,10 +196,10 @@ function GameplanHistoryChart({
   );
 }
 
-function GameplanAlert({ 
-  event, 
-  onDismiss 
-}: { 
+function GameplanAlert({
+  event,
+  onDismiss
+}: {
   event: GameplanEvent;
   onDismiss: () => void;
 }) {
@@ -232,7 +232,7 @@ function GameplanAlert({
         <div className="flex-shrink-0">
           {getSeverityIcon(event.checkResult)}
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h4 className="text-white font-bold text-sm">
@@ -242,11 +242,11 @@ function GameplanAlert({
               {event.timestamp.toLocaleTimeString()}
             </span>
           </div>
-          
+
           <p className="text-white/90 text-sm mb-2">
             {event.triggerReason}
           </p>
-          
+
           <div className="text-xs text-white/70 space-y-1">
             <div>Gameplan Adherence: {event.adherenceLevel}%</div>
             {event.consequences.length > 0 && (
@@ -261,7 +261,7 @@ function GameplanAlert({
             )}
           </div>
         </div>
-        
+
         <button
           onClick={onDismiss}
           className="flex-shrink-0 p-1 hover:bg-white/20 rounded transition-colors"
@@ -273,11 +273,11 @@ function GameplanAlert({
   );
 }
 
-export default function GameplanTracker({ 
-  characters, 
-  isActive = true, 
+export default function GameplanTracker({
+  characters,
+  isActive = true,
   updateInterval = 2000,
-  onGameplanAlert 
+  onGameplanAlert
 }: GameplanTrackerProps) {
   const [gameplanData, setGameplanData] = useState<Map<string, CharacterGameplanData>>(new Map());
   const [activeAlerts, setActiveAlerts] = useState<GameplanEvent[]>([]);
@@ -289,23 +289,23 @@ export default function GameplanTracker({
     autoAlert: true
   });
 
-  const updateTimerRef = useRef<NodeJS.Timeout>();
+  const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Simulate gameplan adherence fluctuations based on character psychology
   const simulateGameplanCheck = (character: BattleCharacter) => {
     const mental = character.mentalState;
     const baseAdherence = character.gameplanAdherence; // Gameplan adherence level
-    
+
     // Add random fluctuations based on psychological state
     const stressImpact = -(mental.stress * 0.3);
     const mentalHealthImpact = (mental.currentMentalHealth - 50) * 0.2;
     const teamTrustImpact = (mental.teamTrust - 50) * 0.1;
     const battleFocusImpact = (mental.battleFocus - 50) * 0.15;
-    
+
     // Random event factor (-10 to +10)
     const randomFactor = (Math.random() - 0.5) * 20;
-    
-    const finalAdherence = Math.max(0, Math.min(100, 
+
+    const finalAdherence = Math.max(0, Math.min(100,
       baseAdherence + stressImpact + mentalHealthImpact + teamTrustImpact + battleFocusImpact + randomFactor
     ));
 
@@ -342,7 +342,7 @@ export default function GameplanTracker({
     characters.forEach(character => {
       const gameplanCheck = simulateGameplanCheck(character);
       const existing = newData.get(character.character.id);
-      
+
       const history = existing?.adherenceHistory || [];
       const newHistory = [
         ...history,
@@ -351,10 +351,10 @@ export default function GameplanTracker({
 
       // Calculate trends
       const recentValues = newHistory.slice(-5).map(h => h.value);
-      const trend = recentValues.length >= 2 ? 
+      const trend = recentValues.length >= 2 ?
         recentValues[recentValues.length - 1] - recentValues[0] : 0;
-      
-      const trendDirection = Math.abs(trend) < 5 ? 'stable' : 
+
+      const trendDirection = Math.abs(trend) < 5 ? 'stable' :
                             trend > 0 ? 'improving' : 'declining';
 
       // Determine risk level
@@ -363,7 +363,7 @@ export default function GameplanTracker({
                        gameplanCheck.finalAdherence >= 30 ? 'high' : 'critical';
 
       // Check for significant changes that warrant alerts
-      const shouldAlert = alertSettings.enableAlerts && 
+      const shouldAlert = alertSettings.enableAlerts &&
                          (gameplanCheck.finalAdherence <= alertSettings.alertThreshold ||
                           (existing && Math.abs(existing.currentAdherence - gameplanCheck.finalAdherence) >= 20) ||
                           gameplanCheck.checkResult === 'completely_off_script');
@@ -383,7 +383,7 @@ export default function GameplanTracker({
             teamTrust: character.mentalState.teamTrust,
             battleFocus: character.mentalState.battleFocus
           },
-          consequences: gameplanCheck.checkResult === 'completely_off_script' ? 
+          consequences: gameplanCheck.checkResult === 'completely_off_script' ?
             ['May abandon team strategy', 'Risk of disrupting coordination', 'Unpredictable actions'] :
             gameplanCheck.checkResult === 'going_rogue' ?
             ['May deviate from plan', 'Reduced team synergy', 'Strategic complications'] :
@@ -410,7 +410,7 @@ export default function GameplanTracker({
     });
 
     setGameplanData(newData);
-    
+
     if (newAlerts.length > 0) {
       setActiveAlerts(prev => [...prev, ...newAlerts]);
     }
@@ -474,8 +474,8 @@ export default function GameplanTracker({
           <button
             onClick={() => setIsTracking(!isTracking)}
             className={`p-2 rounded-lg transition-all ${
-              isTracking 
-                ? 'bg-green-600 text-white' 
+              isTracking
+                ? 'bg-green-600 text-white'
                 : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
             }`}
             title={isTracking ? 'Pause Tracking' : 'Start Tracking'}
@@ -494,8 +494,8 @@ export default function GameplanTracker({
           <button
             onClick={() => setShowDetailed(!showDetailed)}
             className={`p-2 rounded-lg transition-all ${
-              showDetailed 
-                ? 'bg-blue-600 text-white' 
+              showDetailed
+                ? 'bg-blue-600 text-white'
                 : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
             }`}
             title="Toggle Detailed View"
@@ -558,13 +558,13 @@ export default function GameplanTracker({
                 <div className="text-sm font-medium text-white mb-2">
                   {character.character.name}
                 </div>
-                
-                <GameplanGauge 
+
+                <GameplanGauge
                   value={data.currentAdherence}
                   riskLevel={data.riskLevel}
                   size={60}
                 />
-                
+
                 <div className="mt-2 flex items-center justify-center gap-1 text-xs">
                   {data.trends.direction === 'improving' && (
                     <TrendingUp className="w-3 h-3 text-green-400" />
@@ -623,7 +623,7 @@ export default function GameplanTracker({
 
                 {/* Strategy Adherence History Chart */}
                 <div>
-                  <GameplanHistoryChart 
+                  <GameplanHistoryChart
                     history={data.adherenceHistory}
                     character={data.character}
                   />
@@ -664,7 +664,7 @@ export default function GameplanTracker({
             <AlertTriangle className="w-5 h-5 text-red-400" />
             Active Strategy Alerts
           </h3>
-          
+
           <AnimatePresence>
             {activeAlerts.slice(-5).map(alert => (
               <GameplanAlert

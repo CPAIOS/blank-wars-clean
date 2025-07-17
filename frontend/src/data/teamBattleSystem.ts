@@ -29,8 +29,8 @@ export interface TeamCharacter {
   id: string;
   name: string;
   avatar: string;
-  archetype: 'warrior' | 'mage' | 'trickster' | 'beast' | 'leader' | 'detective' | 'monster' | 'alien' | 'mercenary' | 'cowboy' | 'biker';
-  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
+  archetype: 'warrior' | 'mage' | 'assassin' | 'tank' | 'support' | 'beast' | 'trickster' | 'mystic' | 'elementalist' | 'berserker' | 'scholar' | 'leader';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
   // Core Stats
   level: number;
@@ -452,12 +452,51 @@ export function createDemoPlayerTeamWithBonuses(
   });
 
   // Recalculate team chemistry with headquarters effects
+  const teamCharacters = baseTeam.characters.map(convertToTeamCharacter);
   baseTeam.teamChemistry = calculateTeamChemistry(
-    baseTeam.characters,
+    teamCharacters,
     { bonuses: headquartersBonuses || {}, penalties: headquartersPenalties || {} }
   );
 
   return baseTeam;
+}
+
+// Convert Character to TeamCharacter for team chemistry calculations
+function convertToTeamCharacter(character: Character): TeamCharacter {
+  return {
+    id: character.id,
+    name: character.name,
+    avatar: character.avatar,
+    archetype: character.archetype,
+    rarity: character.rarity,
+    level: character.level,
+    experience: character.experience.currentXP,
+    experienceToNext: character.experience.experienceToNext,
+    traditionalStats: character.traditionalStats,
+    currentHp: character.currentHp,
+    maxHp: character.maxHp,
+    psychStats: character.psychStats,
+    temporaryStats: character.temporaryStats,
+    personalityTraits: character.personalityTraits,
+    speakingStyle: character.speakingStyle,
+    decisionMaking: character.decisionMaking,
+    conflictResponse: character.conflictResponse,
+    statusEffects: character.statusEffects,
+    injuries: character.injuries,
+    restDaysNeeded: character.restDaysNeeded,
+    abilities: character.battleAbilities.map(ability => ({
+      id: ability.id,
+      name: ability.name,
+      type: ability.type as 'attack' | 'defense' | 'support',
+      power: ability.power,
+      cooldown: ability.cooldown,
+      currentCooldown: ability.currentCooldown,
+      description: ability.description,
+      icon: ability.icon,
+      mentalHealthRequired: ability.mentalHealthRequired
+    })),
+    specialPowers: character.specialPowers
+  };
 }
 
 // Helper function to create a full Character from template
@@ -496,7 +535,7 @@ export function createDemoPlayerTeam(): Team {
     coachingPoints: 3,
     consecutiveLosses: 0,
     teamChemistry: 75, // Will be calculated below
-    teamCulture: 'balanced', // Team of diverse character types
+    teamCulture: 'family', // Team of diverse character types working as family
     // Calculate real averages from character data
     averageLevel: Math.round(characters.reduce((sum, char) => sum + char.level, 0) / characters.length),
     totalPower: characters.reduce((sum, char) => sum + getCharacterPowerLevel(char), 0),
@@ -520,87 +559,51 @@ export function createDemoPlayerTeam(): Team {
 
 export function createDemoOpponentTeam(): Team {
   const allAvailableCharacters = getAllCharacters();
-  const opponentCharacters: TeamCharacter[] = [];
+  const opponentCharacters: Character[] = [];
 
-  // Randomly select 3 unique characters
+  // Randomly select 3 unique character templates and create full Characters
+  const selectedTemplateIds: string[] = [];
   while (opponentCharacters.length < 3) {
     const randomIndex = Math.floor(Math.random() * allAvailableCharacters.length);
     const selectedCharacterTemplate = allAvailableCharacters[randomIndex];
 
-    // Convert the Character from characters.ts to TeamCharacter
-    const newOpponent: TeamCharacter = {
-      id: selectedCharacterTemplate.id,
-      name: selectedCharacterTemplate.name,
-      avatar: selectedCharacterTemplate.avatar,
-      archetype: selectedCharacterTemplate.archetype,
-      rarity: selectedCharacterTemplate.rarity,
-      level: selectedCharacterTemplate.level,
-      experience: selectedCharacterTemplate.experience.currentXP,
-      experienceToNext: selectedCharacterTemplate.experience.xpToNextLevel,
-      traditionalStats: {
-        strength: selectedCharacterTemplate.baseStats.strength,
-        vitality: selectedCharacterTemplate.baseStats.vitality,
-        speed: selectedCharacterTemplate.baseStats.agility, // Agility maps to speed
-        dexterity: selectedCharacterTemplate.baseStats.agility, // Dexterity maps to agility
-        stamina: selectedCharacterTemplate.baseStats.vitality, // Stamina maps to vitality
-        intelligence: selectedCharacterTemplate.baseStats.intelligence,
-        charisma: selectedCharacterTemplate.baseStats.charisma,
-        spirit: selectedCharacterTemplate.baseStats.wisdom, // Spirit maps to wisdom
-      },
-      currentHp: Math.floor((selectedCharacterTemplate.combatStats.health * selectedCharacterTemplate.level) / 10),
-      maxHp: Math.floor((selectedCharacterTemplate.combatStats.maxHealth * selectedCharacterTemplate.level) / 10),
-      psychStats: {
-        training: selectedCharacterTemplate.trainingLevel,
-        teamPlayer: 50, // Default for AI opponents
-        ego: 50, // Default for AI opponents
-        mentalHealth: 70, // Default for AI opponents
-        communication: 50, // Default for AI opponents
-      },
-      temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
-      personalityTraits: selectedCharacterTemplate.personality.traits,
-      speakingStyle: selectedCharacterTemplate.personality.speechStyle,
-      decisionMaking: 'calculated', // Default for AI opponents
-      conflictResponse: 'aggressive', // Default for AI opponents
-      statusEffects: [],
-      injuries: [],
-      restDaysNeeded: 0,
-      abilities: selectedCharacterTemplate.abilities.available.map(ability => ({
-        id: ability.id,
-        name: ability.name,
-        type: ability.type === 'active' ? 'attack' : ability.type === 'passive' ? 'support' : 'special', // Map to TeamCharacterAbilityType
-        power: 50, // Default power
-        cooldown: 1, // Default cooldown
-        currentCooldown: 0, // Default currentCooldown
-        description: ability.description,
-        icon: '✨', // Generic icon
-        mentalHealthRequired: 0, // Default mentalHealthRequired
-      })),
-      specialPowers: [], // Character interface doesn't have specialPowers in the template, using empty array
-    };
+    // Skip if already selected
+    if (selectedTemplateIds.includes(selectedCharacterTemplate.id)) {
+      continue;
+    }
 
-    // Ensure uniqueness
-    if (!opponentCharacters.some(char => char.id === newOpponent.id)) {
-      opponentCharacters.push(newOpponent);
+    selectedTemplateIds.push(selectedCharacterTemplate.id);
+
+    // Create a full Character using the same pattern as createDemoPlayerTeam
+    const templateKey = Object.keys(characterTemplates).find(key =>
+      characterTemplates[key].name === selectedCharacterTemplate.name
+    );
+
+    if (templateKey) {
+      const character = createBattleReadyCharacter(
+        templateKey,
+        `${templateKey}_opponent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        Math.floor(Math.random() * 15) + 1 // Random level 1-15
+      );
+      opponentCharacters.push(character);
     }
   }
 
-  const team: Team = {
+  return {
     id: `opponent_team_${Date.now()}`,
-    name: 'Rival Squad',
-    coachName: 'AI Coach',
+    name: 'Random Opponents',
+    coachName: 'Rival Coach',
     characters: opponentCharacters,
-    coachingPoints: 3, // AI team also has coaching points (3 points to distribute among team)
-    consecutiveLosses: 0, // Track losses for coaching degradation
-    teamChemistry: calculateTeamChemistry(opponentCharacters, undefined),
-    teamCulture: 'military',
+    coachingPoints: 50,
+    consecutiveLosses: 0,
+    teamChemistry: calculateTeamChemistry(opponentCharacters.map(convertToTeamCharacter), undefined),
+    teamCulture: 'chaos',
     averageLevel: opponentCharacters.reduce((sum, char) => sum + char.level, 0) / opponentCharacters.length,
-    totalPower: opponentCharacters.reduce((sum, char) => sum + char.traditionalStats.strength + char.traditionalStats.vitality, 0), // Simplified power calculation
+    totalPower: opponentCharacters.reduce((sum, char) => sum + char.combatStats.attack + char.combatStats.defense, 0),
     psychologyScore: opponentCharacters.reduce((sum, char) => sum + char.psychStats.mentalHealth, 0) / opponentCharacters.length,
-    wins: Math.floor(Math.random() * 10),
-    losses: Math.floor(Math.random() * 10),
-    battlesPlayed: Math.floor(Math.random() * 20),
-    lastBattleDate: new Date(),
+    wins: Math.floor(Math.random() * 20),
+    losses: Math.floor(Math.random() * 15),
+    battlesPlayed: 0,
+    lastBattleDate: new Date()
   };
-
-  return team;
 }
