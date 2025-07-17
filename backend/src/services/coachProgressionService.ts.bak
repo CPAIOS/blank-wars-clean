@@ -1,0 +1,782 @@
+import { query } from '../database/index';
+import { v4 as uuidv4 } from 'uuid';
+
+export interface CoachProgression {
+  userId: string;
+  coachLevel: number;
+  coachExperience: number;
+  coachTitle: string;
+  psychologySkillPoints: number;
+  battleStrategySkillPoints: number;
+  characterDevelopmentSkillPoints: number;
+  totalBattlesCoached: number;
+  totalWinsCoached: number;
+  psychologyInterventions: number;
+  successfulInterventions: number;
+  gameplanAdherenceRate: number;
+  teamChemistryImprovements: number;
+  characterDevelopments: number;
+  // Financial coaching stats
+  financialAdviceGiven: number;
+  successfulFinancialAdvice: number;
+  spiralsPrevented: number;
+  financialConflictsResolved: number;
+}
+
+export interface CoachXPEvent {
+  id: string;
+  userId: string;
+  eventType: 'battle_win' | 'battle_loss' | 'psychology_management' | 'character_development' | 'financial_coaching';
+  eventSubtype?: string;
+  xpGained: number;
+  description: string;
+  battleId?: string;
+  characterId?: string;
+  createdAt: Date;
+}
+
+export interface CoachSkill {
+  id: string;
+  userId: string;
+  skillTree: 'psychology_mastery' | 'battle_strategy' | 'character_development';
+  skillName: string;
+  skillLevel: number;
+  unlockedAt: Date;
+}
+
+export class CoachProgressionService {
+  
+  // XP Distribution: Battle 40%, Character Development 30%, Team Chemistry 20%, Gameplan Adherence 10%
+  
+  // Get coach progression for a user
+  static async getCoachProgression(userId: string): Promise<CoachProgression | null> {
+    try {
+      const result = await query(
+        'SELECT * FROM coach_progression WHERE user_id = $1',
+        [userId]
+      );
+      
+      if (result.rows.length === 0) {
+        // Create initial coach progression
+        return await this.createInitialProgression(userId);
+      }
+      
+      const row = result.rows[0];
+      return {
+        userId: row.user_id,
+        coachLevel: row.coach_level,
+        coachExperience: row.coach_experience,
+        coachTitle: row.coach_title,
+        psychologySkillPoints: row.psychology_skill_points,
+        battleStrategySkillPoints: row.battle_strategy_skill_points,
+        characterDevelopmentSkillPoints: row.character_development_skill_points,
+        totalBattlesCoached: row.total_battles_coached,
+        totalWinsCoached: row.total_wins_coached,
+        psychologyInterventions: row.psychology_interventions,
+        successfulInterventions: row.successful_interventions,
+        gameplanAdherenceRate: row.gameplan_adherence_rate,
+        teamChemistryImprovements: row.team_chemistry_improvements,
+        characterDevelopments: row.character_developments,
+        // Financial coaching stats
+        financialAdviceGiven: row.financial_advice_given || 0,
+        successfulFinancialAdvice: row.successful_financial_advice || 0,
+        spiralsPrevented: row.spirals_prevented || 0,
+        financialConflictsResolved: row.financial_conflicts_resolved || 0
+      };
+    } catch (error) {
+      console.error('Error getting coach progression:', error);
+      return null;
+    }
+  }
+
+  // Create initial coach progression
+  static async createInitialProgression(userId: string): Promise<CoachProgression> {
+    try {
+      await query(
+        `INSERT INTO coach_progression (
+          user_id, coach_level, coach_experience, coach_title,
+          psychology_skill_points, battle_strategy_skill_points, character_development_skill_points,
+          total_battles_coached, total_wins_coached, psychology_interventions,
+          successful_interventions, gameplan_adherence_rate, team_chemistry_improvements,
+          character_developments, financial_advice_given, successful_financial_advice,
+          spirals_prevented, financial_conflicts_resolved
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, 1, 0, 'Rookie Coach', 0, 0, 0, 0, 0, 0, 0, 0.0, 0, 0, 0, 0, 0, 0]
+      );
+
+      return {
+        userId,
+        coachLevel: 1,
+        coachExperience: 0,
+        coachTitle: 'Rookie Coach',
+        psychologySkillPoints: 0,
+        battleStrategySkillPoints: 0,
+        characterDevelopmentSkillPoints: 0,
+        totalBattlesCoached: 0,
+        totalWinsCoached: 0,
+        psychologyInterventions: 0,
+        successfulInterventions: 0,
+        gameplanAdherenceRate: 0.0,
+        teamChemistryImprovements: 0,
+        characterDevelopments: 0,
+        // Financial coaching stats
+        financialAdviceGiven: 0,
+        successfulFinancialAdvice: 0,
+        spiralsPrevented: 0,
+        financialConflictsResolved: 0
+      };
+    } catch (error) {
+      console.error('Error creating initial coach progression:', error);
+      throw error;
+    }
+  }
+
+  // Calculate XP required for next level
+  static calculateXPForLevel(level: number): number {
+    return level * 1000 + (level * level * 100);
+  }
+
+  // Calculate coach title based on level
+  static getCoachTitle(level: number): string {
+    if (level >= 101) return 'Legendary Coach';
+    if (level >= 76) return 'Elite Coach';
+    if (level >= 51) return 'Master Coach';
+    if (level >= 26) return 'Head Coach';
+    if (level >= 11) return 'Assistant Coach';
+    return 'Rookie Coach';
+  }
+
+  // Award XP and handle level ups
+  static async awardXP(
+    userId: string,
+    eventType: CoachXPEvent['eventType'],
+    xpGained: number,
+    description: string,
+    eventSubtype?: string,
+    battleId?: string,
+    characterId?: string
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    try {
+      // Record XP event
+      const eventId = uuidv4();
+      await query(
+        `INSERT INTO coach_xp_events (
+          id, user_id, event_type, event_subtype, xp_gained, description, battle_id, character_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [eventId, userId, eventType, eventSubtype, xpGained, description, battleId, characterId]
+      );
+
+      // Get current progression
+      const progression = await this.getCoachProgression(userId);
+      if (!progression) throw new Error('Coach progression not found');
+
+      const oldLevel = progression.coachLevel;
+      const newExperience = progression.coachExperience + xpGained;
+
+      // Check for level up
+      let newLevel = oldLevel;
+      let currentXP = newExperience;
+      
+      while (currentXP >= this.calculateXPForLevel(newLevel + 1)) {
+        currentXP -= this.calculateXPForLevel(newLevel + 1);
+        newLevel++;
+      }
+
+      const leveledUp = newLevel > oldLevel;
+      const newTitle = this.getCoachTitle(newLevel);
+
+      // Update progression
+      await query(
+        `UPDATE coach_progression SET 
+          coach_level = $1, 
+          coach_experience = $2, 
+          coach_title = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $1`,
+        [newLevel, newExperience, newTitle, userId]
+      );
+
+      // Award skill points for level ups
+      if (leveledUp) {
+        const skillPointsToAward = newLevel - oldLevel; // 1 skill point per level
+        await this.awardSkillPoints(userId, skillPointsToAward);
+      }
+
+      return { 
+        leveledUp, 
+        newLevel: leveledUp ? newLevel : undefined,
+        oldLevel: leveledUp ? oldLevel : undefined
+      };
+    } catch (error) {
+      console.error('Error awarding XP:', error);
+      throw error;
+    }
+  }
+
+  // Award skill points (distributed evenly across trees)
+  static async awardSkillPoints(userId: string, skillPoints: number): Promise<void> {
+    try {
+      const pointsPerTree = Math.floor(skillPoints / 3);
+      const remainder = skillPoints % 3;
+
+      await query(
+        `UPDATE coach_progression SET 
+          psychology_skill_points = psychology_skill_points + ?,
+          battle_strategy_skill_points = battle_strategy_skill_points + ?,
+          character_development_skill_points = character_development_skill_points + ?
+        WHERE user_id = $1`,
+        [
+          pointsPerTree + (remainder > 0 ? 1 : 0), // Psychology gets first remainder point
+          pointsPerTree + (remainder > 1 ? 1 : 0), // Battle Strategy gets second remainder point  
+          pointsPerTree,                           // Character Development gets base points
+          userId
+        ]
+      );
+    } catch (error) {
+      console.error('Error awarding skill points:', error);
+      throw error;
+    }
+  }
+
+  // Award battle XP (40% of total progression)
+  static async awardBattleXP(
+    userId: string,
+    isWin: boolean,
+    battleId: string,
+    characterId?: string,
+    bonusMultiplier: number = 1.0,
+    bonusReason?: string
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    const battleXP = isWin ? 400 : 160; // 40% of progression - win: 400, loss: 160
+    const adjustedXP = Math.floor(battleXP * bonusMultiplier);
+    
+    const description = isWin 
+      ? `Battle Victory${bonusReason ? ` (${bonusReason})` : ''}`
+      : `Battle Experience${bonusReason ? ` (${bonusReason})` : ''}`;
+
+    // Update battle stats
+    await this.updateBattleStats(userId, isWin);
+
+    return await this.awardXP(
+      userId,
+      isWin ? 'battle_win' : 'battle_loss',
+      adjustedXP,
+      description,
+      bonusReason,
+      battleId,
+      characterId
+    );
+  }
+
+  // Award psychology management XP (30% of total progression)
+  static async awardPsychologyXP(
+    userId: string,
+    psychologyEventType: string,
+    xpAmount: number,
+    description: string,
+    battleId?: string,
+    characterId?: string
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    return await this.awardXP(
+      userId,
+      'psychology_management',
+      xpAmount,
+      description,
+      psychologyEventType,
+      battleId,
+      characterId
+    );
+  }
+
+  // Award character development XP (30% of total progression)
+  static async awardCharacterDevelopmentXP(
+    userId: string,
+    developmentType: string,
+    xpAmount: number,
+    description: string,
+    characterId?: string
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    
+    return await this.awardXP(
+      userId,
+      'character_development',
+      xpAmount,
+      description,
+      developmentType,
+      undefined,
+      characterId
+    );
+  }
+
+  // Specific psychology management XP methods based on your actual systems
+  
+  // Award XP for gameplan adherence (includes breakdown prevention - same coaching activity)
+  static async awardGameplanAdherenceXP(
+    userId: string,
+    adherenceRate: number,
+    deviationsBlocked: number,
+    averageDeviationSeverity: 'minor' | 'moderate' | 'major' | 'extreme',
+    battleId: string
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    let xpAmount = 0;
+    let description = '';
+
+    // Base XP from gameplan adherence (10% of progression)
+    let adherenceXP = 0;
+    if (adherenceRate >= 90) {
+      adherenceXP = 100; // 10% gameplan adherence
+    } else if (adherenceRate >= 80) {
+      adherenceXP = 80;
+    } else if (adherenceRate >= 70) {
+      adherenceXP = 60;
+    } else if (adherenceRate >= 60) {
+      adherenceXP = 40;
+    }
+
+    // Bonus XP for preventing breakdowns (same skill as adherence)
+    let breakdownXP = 0;
+    if (deviationsBlocked > 0) {
+      const breakdownXPBase = {
+        'minor': 20,
+        'moderate': 40,
+        'major': 60,
+        'extreme': 80
+      }[averageDeviationSeverity];
+      breakdownXP = breakdownXPBase * deviationsBlocked;
+    }
+
+    xpAmount = adherenceXP + breakdownXP;
+    
+    if (deviationsBlocked > 0) {
+      description = `Gameplan Adherence: ${adherenceRate}% adherence, prevented ${deviationsBlocked} breakdown(s)`;
+    } else {
+      description = `Gameplan Adherence: ${adherenceRate}% adherence`;
+    }
+
+    if (xpAmount > 0) {
+      return await this.awardPsychologyXP(
+        userId,
+        'gameplan_adherence',
+        xpAmount,
+        description,
+        battleId
+      );
+    }
+
+    return { leveledUp: false };
+  }
+
+  // Award XP for team chemistry management
+  static async awardTeamChemistryXP(
+    userId: string,
+    chemistryImprovement: number,
+    finalChemistry: number,
+    battleId: string
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    let xpAmount = 0;
+    let description = '';
+
+    if (finalChemistry >= 90) {
+      xpAmount = 200; // 20% team chemistry
+      description = `Perfect Team Chemistry (${finalChemistry}%)`;
+    } else if (finalChemistry >= 80) {
+      xpAmount = 160;
+      description = `Great Team Chemistry (${finalChemistry}%)`;
+    } else if (finalChemistry >= 70) {
+      xpAmount = 120;
+      description = `Good Team Chemistry (${finalChemistry}%)`;
+    }
+
+    // Bonus for improvement during battle
+    if (chemistryImprovement > 10) {
+      xpAmount += Math.floor(chemistryImprovement * 10);
+      description += ` (+${chemistryImprovement} improvement)`;
+    }
+
+    if (xpAmount > 0) {
+      return await this.awardPsychologyXP(
+        userId,
+        'team_chemistry',
+        xpAmount,
+        description,
+        battleId
+      );
+    }
+
+    return { leveledUp: false };
+  }
+
+  // Award XP for financial coaching (20% of total progression)
+  static async awardFinancialCoachingXP(
+    userId: string,
+    financialEventType: string,
+    xpAmount: number,
+    description: string,
+    characterId?: string,
+    wasSuccessful: boolean = true
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    // Update financial coaching stats
+    await this.updateFinancialCoachingStats(userId, financialEventType, wasSuccessful);
+
+    return await this.awardXP(
+      userId,
+      'financial_coaching',
+      xpAmount,
+      description,
+      financialEventType,
+      undefined,
+      characterId
+    );
+  }
+
+  // Award XP for successful financial advice
+  static async awardFinancialAdviceXP(
+    userId: string,
+    adviceSuccess: boolean,
+    stressReduction: number,
+    characterId: string
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    let xpAmount = 0;
+    let description = '';
+
+    if (adviceSuccess) {
+      // Base XP for successful advice (15% of progression)
+      xpAmount = 150;
+      
+      // Bonus XP for significant stress reduction
+      if (stressReduction >= 20) {
+        xpAmount += 50; // Major stress relief bonus
+        description = `Excellent Financial Advice (${stressReduction}% stress reduction)`;
+      } else if (stressReduction >= 10) {
+        xpAmount += 25; // Moderate stress relief bonus
+        description = `Good Financial Advice (${stressReduction}% stress reduction)`;
+      } else {
+        description = `Successful Financial Advice`;
+      }
+    } else {
+      // Small XP for attempting advice (learning experience)
+      xpAmount = 30;
+      description = `Financial Advice Learning Experience`;
+    }
+
+    return await this.awardFinancialCoachingXP(
+      userId,
+      'financial_advice',
+      xpAmount,
+      description,
+      characterId,
+      adviceSuccess
+    );
+  }
+
+  // Award XP for preventing financial spirals
+  static async awardSpiralPreventionXP(
+    userId: string,
+    spiralIntensity: number,
+    characterId: string
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    // Major XP for preventing spirals (20% of progression)
+    let xpAmount = 200;
+    
+    // Bonus based on spiral intensity prevented
+    if (spiralIntensity >= 80) {
+      xpAmount += 100; // Prevented severe spiral
+    } else if (spiralIntensity >= 60) {
+      xpAmount += 50; // Prevented moderate spiral
+    }
+
+    const description = `Prevented Financial Spiral (${spiralIntensity}% intensity)`;
+
+    return await this.awardFinancialCoachingXP(
+      userId,
+      'spiral_prevention',
+      xpAmount,
+      description,
+      characterId,
+      true
+    );
+  }
+
+  // Award XP for resolving financial conflicts
+  static async awardFinancialConflictResolutionXP(
+    userId: string,
+    conflictSeverity: 'low' | 'medium' | 'high' | 'critical',
+    characterIds: string[]
+  ): Promise<{ leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
+    const xpAmounts = {
+      'low': 100,
+      'medium': 150,
+      'high': 200,
+      'critical': 250
+    };
+
+    const xpAmount = xpAmounts[conflictSeverity];
+    const description = `Resolved ${conflictSeverity} financial conflict`;
+
+    return await this.awardFinancialCoachingXP(
+      userId,
+      'conflict_resolution',
+      xpAmount,
+      description,
+      characterIds[0], // Primary character
+      true
+    );
+  }
+
+  // Update financial coaching statistics
+  static async updateFinancialCoachingStats(
+    userId: string,
+    eventType: string,
+    wasSuccessful: boolean
+  ): Promise<void> {
+    try {
+      let updateQuery = '';
+      const params = [userId];
+
+      switch (eventType) {
+        case 'financial_advice':
+          if (wasSuccessful) {
+            updateQuery = `UPDATE coach_progression SET 
+              financial_advice_given = financial_advice_given + 1,
+              successful_financial_advice = successful_financial_advice + 1,
+              updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = $1`;
+          } else {
+            updateQuery = `UPDATE coach_progression SET 
+              financial_advice_given = financial_advice_given + 1,
+              updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = $1`;
+          }
+          break;
+
+        case 'spiral_prevention':
+          updateQuery = `UPDATE coach_progression SET 
+            spirals_prevented = spirals_prevented + 1,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE user_id = $1`;
+          break;
+
+        case 'conflict_resolution':
+          updateQuery = `UPDATE coach_progression SET 
+            financial_conflicts_resolved = financial_conflicts_resolved + 1,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE user_id = $1`;
+          break;
+      }
+
+      if (updateQuery) {
+        await query(updateQuery, params);
+      }
+    } catch (error) {
+      console.error('Error updating financial coaching stats:', error);
+      throw error;
+    }
+  }
+
+  // Update battle statistics
+  static async updateBattleStats(userId: string, isWin: boolean): Promise<void> {
+    try {
+      await query(
+        `UPDATE coach_progression SET 
+          total_battles_coached = total_battles_coached + 1,
+          total_wins_coached = total_wins_coached + ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $1`,
+        [isWin ? 1 : 0, userId]
+      );
+    } catch (error) {
+      console.error('Error updating battle stats:', error);
+      throw error;
+    }
+  }
+
+  // Get coach XP history
+  static async getXPHistory(userId: string, limit: number = 50): Promise<CoachXPEvent[]> {
+    try {
+      const result = await query(
+        `SELECT * FROM coach_xp_events 
+         WHERE user_id = $1 
+         ORDER BY created_at DESC 
+         LIMIT ?`,
+        [userId, limit]
+      );
+
+      return result.rows.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        eventType: row.event_type,
+        eventSubtype: row.event_subtype,
+        xpGained: row.xp_gained,
+        description: row.description,
+        battleId: row.battle_id,
+        characterId: row.character_id,
+        createdAt: new Date(row.created_at)
+      }));
+    } catch (error) {
+      console.error('Error getting XP history:', error);
+      return [];
+    }
+  }
+
+  // Get coach skills
+  static async getCoachSkills(userId: string): Promise<CoachSkill[]> {
+    try {
+      const result = await query(
+        'SELECT * FROM coach_skills WHERE user_id = $1 ORDER BY unlocked_at ASC',
+        [userId]
+      );
+
+      return result.rows.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        skillTree: row.skill_tree,
+        skillName: row.skill_name,
+        skillLevel: row.skill_level,
+        unlockedAt: new Date(row.unlocked_at)
+      }));
+    } catch (error) {
+      console.error('Error getting coach skills:', error);
+      return [];
+    }
+  }
+
+  // Calculate coach bonuses based on level and skills for your psychology systems
+  static calculateCoachBonuses(progression: CoachProgression): {
+    gameplanAdherenceBonus: number;      // Bonus to checkGameplanAdherence()
+    deviationRiskReduction: number;      // Reduction to calculateDeviationRisk()
+    teamChemistryBonus: number;          // Bonus to calculateTeamChemistry()
+    battleXPMultiplier: number;          // Multiplier for battle XP
+    characterDevelopmentMultiplier: number; // Multiplier for character development XP
+    // Financial coaching bonuses
+    financialStressReduction: number;    // Reduction to financial stress calculations
+    financialDecisionQualityBonus: number; // Bonus to financial decision quality
+    financialTrustBonus: number;         // Bonus to coach financial trust
+    spiralPreventionBonus: number;       // Bonus to spiral prevention effectiveness
+  } {
+    const level = progression.coachLevel;
+    
+    // Base bonuses from level (every 25 levels unlocks a tier)
+    let gameplanAdherenceBonus = 0;
+    let deviationRiskReduction = 0;
+    let teamChemistryBonus = 0;
+    let battleXPMultiplier = 1.0;
+    let characterDevelopmentMultiplier = 1.0;
+    // Financial coaching bonuses
+    let financialStressReduction = 0;
+    let financialDecisionQualityBonus = 0;
+    let financialTrustBonus = 0;
+    let spiralPreventionBonus = 0;
+
+    // Tier 1 (Levels 1-25): Basic Psychology Management
+    if (level >= 1) {
+      gameplanAdherenceBonus += 10;    // +10% to adherence calculations
+      deviationRiskReduction += 15;    // -15% deviation risk
+      // Financial coaching bonuses
+      financialStressReduction += 10;  // -10% financial stress
+      financialTrustBonus += 15;       // +15% financial trust gain
+    }
+
+    // Tier 2 (Levels 26-50): Advanced Psychology Skills  
+    if (level >= 26) {
+      gameplanAdherenceBonus += 10;    // Total: +20%
+      teamChemistryBonus += 20;        // +20% team chemistry
+      deviationRiskReduction += 35;    // Total: -50% deviation risk
+      // Financial coaching bonuses
+      financialDecisionQualityBonus += 20; // +20% decision quality
+      spiralPreventionBonus += 25;     // +25% spiral prevention
+    }
+
+    // Tier 3 (Levels 51-75): Master Psychology Coach
+    if (level >= 51) {
+      gameplanAdherenceBonus += 15;    // Total: +35%
+      deviationRiskReduction += 25;    // Total: -75% deviation risk
+      battleXPMultiplier += 0.25;      // Total: 1.25x battle XP
+      // Financial coaching bonuses
+      financialStressReduction += 15;  // Total: -25% financial stress
+      financialTrustBonus += 20;       // Total: +35% financial trust gain
+    }
+
+    // Tier 4 (Levels 76-100): Psychology Legend
+    if (level >= 76) {
+      gameplanAdherenceBonus += 15;    // Total: +50%
+      deviationRiskReduction += 20;    // Total: -95% deviation risk (nearly elimination)
+      teamChemistryBonus += 15;        // Total: +35% team chemistry
+      characterDevelopmentMultiplier += 0.5; // Total: 1.5x character development XP
+      // Financial coaching bonuses
+      financialDecisionQualityBonus += 25; // Total: +45% decision quality
+      spiralPreventionBonus += 35;     // Total: +60% spiral prevention
+    }
+
+    // Legendary (Levels 101+): Ultimate Coach
+    if (level >= 101) {
+      gameplanAdherenceBonus += 25;    // Total: +75%
+      battleXPMultiplier += 0.25;      // Total: 1.5x battle XP
+      characterDevelopmentMultiplier += 0.5; // Total: 2.0x character development XP
+      // Financial coaching bonuses
+      financialStressReduction += 20;  // Total: -45% financial stress
+      financialTrustBonus += 25;       // Total: +60% financial trust gain
+      spiralPreventionBonus += 40;     // Total: +100% spiral prevention (double effectiveness)
+    }
+
+    return {
+      gameplanAdherenceBonus,
+      deviationRiskReduction,
+      teamChemistryBonus,
+      battleXPMultiplier,
+      characterDevelopmentMultiplier,
+      financialStressReduction,
+      financialDecisionQualityBonus,
+      financialTrustBonus,
+      spiralPreventionBonus
+    };
+  }
+
+  // Get coach leaderboard
+  static async getCoachLeaderboard(limit: number = 10): Promise<Array<{
+    userId: string;
+    username: string;
+    coachLevel: number;
+    coachExperience: number;
+    coachTitle: string;
+    totalBattlesCoached: number;
+    totalWinsCoached: number;
+    winRate: number;
+  }>> {
+    try {
+      const result = await query(
+        `SELECT 
+          cp.user_id,
+          u.username,
+          cp.coach_level,
+          cp.coach_experience,
+          cp.coach_title,
+          cp.total_battles_coached,
+          cp.total_wins_coached,
+          CASE 
+            WHEN cp.total_battles_coached > 0 
+            THEN CAST(cp.total_wins_coached AS REAL) / cp.total_battles_coached 
+            ELSE 0 
+          END as win_rate
+        FROM coach_progression cp
+        JOIN users u ON cp.user_id = u.id
+        ORDER BY cp.coach_level DESC, cp.coach_experience DESC
+        LIMIT ?`,
+        [limit]
+      );
+
+      return result.rows.map((row: any) => ({
+        userId: row.user_id,
+        username: row.username,
+        coachLevel: row.coach_level,
+        coachExperience: row.coach_experience,
+        coachTitle: row.coach_title,
+        totalBattlesCoached: row.total_battles_coached,
+        totalWinsCoached: row.total_wins_coached,
+        winRate: row.win_rate
+      }));
+    } catch (error) {
+      console.error('Error getting coach leaderboard:', error);
+      return [];
+    }
+  }
+}

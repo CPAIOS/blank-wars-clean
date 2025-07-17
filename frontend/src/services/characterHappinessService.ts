@@ -1,5 +1,7 @@
 import { ROOM_THEMES, HEADQUARTERS_TIERS } from '../data/headquartersData';
 import { calculateRoomCapacity } from '../utils/roomCalculations';
+import FinancialRoomMoodService from './financialRoomMoodService';
+import { FinancialPersonality } from '../data/characters';
 
 /**
  * Character Happiness Service
@@ -78,6 +80,66 @@ export const getCharacterHappiness = (charName: string, roomId: string, headquar
   };
   
   return { level: happiness, ...statusMap[happiness as keyof typeof statusMap] };
+};
+
+// Enhanced getCharacterHappiness with financial mood effects
+export const getCharacterHappinessWithFinancialEffects = (
+  charName: string, 
+  roomId: string, 
+  headquarters: any,
+  currentWallet: number = 5000,
+  monthlyEarnings: number = 3000,
+  financialPersonality?: FinancialPersonality
+) => {
+  // Get base happiness from existing system
+  const baseHappiness = getCharacterHappiness(charName, roomId, headquarters);
+  
+  // If no financial data provided, return base happiness
+  if (!financialPersonality) {
+    return {
+      ...baseHappiness,
+      financialEffects: {
+        applied: false,
+        modifier: 0,
+        factors: {}
+      }
+    };
+  }
+  
+  // Calculate financial mood effects
+  const financialRoomService = FinancialRoomMoodService.getInstance();
+  const financialMoodData = financialRoomService.calculateFinancialEnhancedHappiness(
+    charName,
+    roomId,
+    headquarters,
+    currentWallet,
+    monthlyEarnings,
+    financialPersonality
+  );
+  
+  // Apply financial modifier to base happiness
+  const enhancedHappiness = Math.max(1, Math.min(5, 
+    baseHappiness.level + financialMoodData.financialMoodModifier
+  ));
+  
+  const statusMap = {
+    1: { status: 'Miserable', emoji: '😫' },
+    2: { status: 'Unhappy', emoji: '😒' },
+    3: { status: 'Content', emoji: '😐' },
+    4: { status: 'Happy', emoji: '😊' },
+    5: { status: 'Ecstatic', emoji: '🤩' }
+  };
+  
+  return {
+    level: enhancedHappiness,
+    ...statusMap[enhancedHappiness as keyof typeof statusMap],
+    baseLevel: baseHappiness.level,
+    financialEffects: {
+      applied: true,
+      modifier: financialMoodData.financialMoodModifier,
+      factors: financialMoodData.moodFactors
+    }
+  };
 };
 
 // getThemeCompatibility function - extracted from TeamHeadquarters.tsx (lines 314-328)
