@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sword, 
-  Shield, 
-  Gem, 
-  TrendingUp, 
+import {
+  Sword,
+  Shield,
+  Gem,
+  TrendingUp,
   Search,
   X,
   CheckCircle,
@@ -15,9 +15,9 @@ import {
   Send,
   User
 } from 'lucide-react';
-import { 
-  Equipment, 
-  EquipmentSlot, 
+import {
+  Equipment,
+  EquipmentSlot,
   EquipmentRarity,
   allEquipment,
   rarityConfig,
@@ -57,7 +57,7 @@ export default function EquipmentManager({
   const [sortBy, setSortBy] = useState<'name' | 'level' | 'rarity' | 'stats'>('level');
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [showEquippedOnly, setShowEquippedOnly] = useState(false);
-  
+
   // Equipment Chat State
   const [showEquipmentChat, setShowEquipmentChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{
@@ -71,10 +71,10 @@ export default function EquipmentManager({
   const [isChatLoading, setIsChatLoading] = useState(false);
 
   // Get all available equipment for this character
-  const availableEquipment = allEquipment.filter(item => 
+  const availableEquipment = allEquipment.filter(item =>
     canEquip(item, characterLevel, characterArchetype)
   );
-  
+
   console.log('🎯 Equipment Manager Debug:', {
     characterName,
     characterLevel,
@@ -94,7 +94,7 @@ export default function EquipmentManager({
       const searchMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
       const equippedMatch = !showEquippedOnly || Object.values(equippedItems).some(equipped => equipped?.id === item.id);
-      
+
       return slotMatch && rarityMatch && searchMatch && equippedMatch;
     })
     .sort((a, b) => {
@@ -181,7 +181,7 @@ export default function EquipmentManager({
       // Real API call to equipment coaching service
       const token = localStorage.getItem('accessToken');
       const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-      
+
       const response = await fetch(`${BACKEND_URL}/coaching/equipment`, {
         method: 'POST',
         headers: {
@@ -210,7 +210,7 @@ export default function EquipmentManager({
       }
 
       const data = await response.json();
-      
+
       const aiResponse = {
         id: Date.now() + 1,
         sender: 'character' as const,
@@ -218,7 +218,7 @@ export default function EquipmentManager({
         timestamp: new Date(),
         characterName: data.character || characterName
       };
-      
+
       setChatMessages(prev => [...prev, aiResponse]);
       setIsChatLoading(false);
     } catch (error) {
@@ -297,7 +297,7 @@ export default function EquipmentManager({
                           <span className="text-xs">{rarityConfig[equipped.rarity].icon}</span>
                         </div>
                         <div className="text-sm text-gray-400">{equipped.description}</div>
-                        
+
                         {/* Stats */}
                         <div className="mt-2 flex flex-wrap gap-2">
                           {Object.entries(equipped.stats).map(([stat, value]) => (
@@ -326,7 +326,7 @@ export default function EquipmentManager({
                 <TrendingUp className="w-5 h-5 text-green-400" />
                 Total Equipment Bonuses
               </h3>
-              
+
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {Object.entries(totalStats).map(([stat, value]) => (
                   value && value > 0 && (
@@ -443,7 +443,7 @@ export default function EquipmentManager({
                           </div>
                         </div>
                       </div>
-                      
+
                       {canEquipItem && onEquip && !equipped && (
                         <button
                           onClick={(e) => {
@@ -613,7 +613,7 @@ export default function EquipmentManager({
                     Equip
                   </button>
                 )}
-                
+
                 {isEquipped(selectedEquipment) && onUnequip && (
                   <button
                     onClick={() => {
@@ -625,7 +625,7 @@ export default function EquipmentManager({
                     Unequip
                   </button>
                 )}
-                
+
                 <button
                   onClick={() => setSelectedEquipment(null)}
                   className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"

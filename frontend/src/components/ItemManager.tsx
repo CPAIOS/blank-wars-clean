@@ -21,11 +21,10 @@ import {
   Hammer,
   Info
 } from 'lucide-react';
-import { 
+import {
   Item, 
   ItemType, 
   ItemRarity,
-  InventoryItem,
   UsageContext,
   allItems,
   itemRarityConfig,
@@ -36,6 +35,8 @@ import {
   craftingRecipes,
   CraftingRecipe
 } from '@/data/items';
+
+import { InventoryItem } from '@/data/inventory';
 
 interface ItemManagerProps {
   characterLevel: number;
@@ -70,24 +71,30 @@ export default function ItemManager({
   // Filter and sort inventory
   const filteredInventory = inventory
     .filter(invItem => {
-      const item = invItem.item;
+      const item = allItems.find(i => i.id === invItem.itemId);
+      if (!item) return false;
+      
       const typeMatch = selectedType === 'all' || item.type === selectedType;
       const rarityMatch = selectedRarity === 'all' || item.rarity === selectedRarity;
       const searchMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const contextMatch = canUseItem(item, context);
+      const contextMatch = canUseItem(item, characterLevel, context);
       
       return typeMatch && rarityMatch && searchMatch && contextMatch;
     })
     .sort((a, b) => {
+      const itemA = allItems.find(i => i.id === a.itemId);
+      const itemB = allItems.find(i => i.id === b.itemId);
+      if (!itemA || !itemB) return 0;
+      
       switch (sortBy) {
         case 'name':
-          return a.item.name.localeCompare(b.item.name);
+          return itemA.name.localeCompare(itemB.name);
         case 'type':
-          return a.item.type.localeCompare(b.item.type);
+          return itemA.type.localeCompare(itemB.type);
         case 'rarity':
           const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
-          return rarityOrder.indexOf(b.item.rarity) - rarityOrder.indexOf(a.item.rarity);
+          return rarityOrder.indexOf(itemB.rarity) - rarityOrder.indexOf(itemA.rarity);
         case 'quantity':
           return b.quantity - a.quantity;
         default:
@@ -129,15 +136,15 @@ export default function ItemManager({
   };
 
   const getInventoryQuantity = (itemId: string): number => {
-    const invItem = inventory.find(inv => inv.item.id === itemId);
+    const invItem = inventory.find(inv => inv.itemId === itemId);
     return invItem ? invItem.quantity : 0;
   };
 
   const canCraft = (recipe: CraftingRecipe): boolean => {
-    if (gold < recipe.gold) return false;
+    if (gold < recipe.goldCost) return false;
     
     return recipe.materials.every(material => {
-      const available = getInventoryQuantity(material.item);
+      const available = getInventoryQuantity(material.itemId);
       return available >= material.quantity;
     });
   };
@@ -271,7 +278,9 @@ export default function ItemManager({
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredInventory.map((invItem) => {
-                const item = invItem.item;
+                const item = allItems.find(i => i.id === invItem.itemId);
+                if (!item) return null;
+                
                 const rarity = itemRarityConfig[item.rarity];
 
                 return (
@@ -311,7 +320,7 @@ export default function ItemManager({
                     <p className="text-sm text-gray-400 mb-2">{item.description}</p>
 
                     {/* Quick Use Button */}
-                    {onUseItem && canUseItem(item, context) && (
+                    {onUseItem && canUseItem(item, characterLevel, context) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -412,7 +421,7 @@ export default function ItemManager({
 
             <div className="grid gap-4">
               {availableRecipes.map((recipe) => {
-                const resultItem = allItems.find(item => item.id === recipe.result);
+                const resultItem = allItems.find(item => item.id === recipe.resultItem);
                 if (!resultItem) return null;
 
                 const canCraftItem = canCraft(recipe);
@@ -455,23 +464,23 @@ export default function ItemManager({
                       <h4 className="text-white font-semibold mb-2">Materials Required:</h4>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {recipe.materials.map((material, index) => {
-                          const materialItem = allItems.find(item => item.id === material.item);
-                          const available = getInventoryQuantity(material.item);
+                          const materialItem = allItems.find(item => item.id === material.itemId);
+                          const available = getInventoryQuantity(material.itemId);
                           const hasEnough = available >= material.quantity;
 
                           return (
                             <div key={index} className={`text-sm p-2 rounded ${hasEnough ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                              <div className="font-semibold">{materialItem?.name || material.item}</div>
+                              <div className="font-semibold">{materialItem?.name || material.itemId}</div>
                               <div className={hasEnough ? 'text-green-400' : 'text-red-400'}>
                                 {available}/{material.quantity}
                               </div>
                             </div>
                           );
                         })}
-                        <div className={`text-sm p-2 rounded ${gold >= recipe.gold ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                        <div className={`text-sm p-2 rounded ${gold >= recipe.goldCost ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
                           <div className="font-semibold">Gold</div>
-                          <div className={gold >= recipe.gold ? 'text-green-400' : 'text-red-400'}>
-                            {gold}/{recipe.gold}
+                          <div className={gold >= recipe.goldCost ? 'text-green-400' : 'text-red-400'}>
+                            {gold}/{recipe.goldCost}
                           </div>
                         </div>
                       </div>
@@ -587,7 +596,7 @@ export default function ItemManager({
 
               {/* Action Buttons */}
               <div className="flex gap-3">
-                {activeTab === 'inventory' && onUseItem && canUseItem(selectedItem, context) && (
+                {activeTab === 'inventory' && onUseItem && canUseItem(selectedItem, characterLevel, context) && (
                   <button
                     onClick={() => {
                       onUseItem(selectedItem, useQuantity);

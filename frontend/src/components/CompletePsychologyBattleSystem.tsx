@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Play, Pause, RotateCcw, Settings, Brain, Users, Activity,
   Target, MessageCircle, Clock, AlertTriangle, Eye, EyeOff
 } from 'lucide-react';
@@ -15,10 +15,10 @@ import GameplanTracker from './GameplanTracker';
 
 // Import the psychology data systems
 import { Character, createDemoCharacterCollection } from '@/data/characters';
-import { 
-  BattleState, 
-  BattleFlowManager, 
-  PreBattleHuddle, 
+import {
+  BattleState,
+  BattleFlowManager,
+  PreBattleHuddle,
   CombatRound,
   CoachingTimeout,
   PostBattleAnalysis,
@@ -95,7 +95,7 @@ export default function CompletePsychologyBattleSystem() {
   // Handle coaching actions
   const handleCoachingAction = (action: CoachingAction) => {
     addPsychologyEvent(`Coach used ${action.type} (${action.intensity}) on ${action.targetCharacters.join(', ')}: "${action.message}"`);
-    
+
     // Apply psychological effects to battle state
     if (battleState) {
       // This would normally update the battle state with coaching effects
@@ -117,19 +117,19 @@ export default function CompletePsychologyBattleSystem() {
     // Create battle state using our revolutionary system
     const newBattleState = BattleFlowManager.createBattle(playerTeam, opponentTeam);
     setBattleState(newBattleState);
-    
+
     // Conduct pre-battle huddle with psychology assessment
     const huddle = BattleEngine.conductPreBattleHuddle(newBattleState);
     setPreHuddle(huddle);
-    
+
     setBattlePhase('huddle');
     setIsSystemActive(true);
     setActiveView('battle');
-    
+
     addPsychologyEvent("🚀 Revolutionary Psychology Battle System activated!");
     addPsychologyEvent(`Team Chemistry: ${huddle.teamChemistryCheck.overallChemistry}%`);
     addPsychologyEvent(`Predicted Challenges: ${huddle.teamChemistryCheck.predictedChallenges.length}`);
-    
+
     // Record initial team dynamics
     setTeamDynamicsHistory(prev => [...prev, {
       timestamp: new Date(),
@@ -192,7 +192,7 @@ export default function CompletePsychologyBattleSystem() {
     setPostAnalysis(analysis);
     setBattlePhase('analysis');
     setIsSystemActive(false);
-    
+
     addPsychologyEvent("📋 Battle complete! Analyzing psychological impacts...");
     addPsychologyEvent(`Final Team Chemistry: ${analysis.teamChemistryEvolution.newChemistry}%`);
     addPsychologyEvent(`Psychology Consequences: ${analysis.psychologicalConsequences.length} detected`);
@@ -213,7 +213,7 @@ export default function CompletePsychologyBattleSystem() {
     setPsychologyEvents([]);
     setGameplanAdherenceAlerts([]);
     setTeamDynamicsHistory([]);
-    
+
     addPsychologyEvent("🔄 Psychology Battle System reset - ready for new battle!");
   };
 
@@ -230,7 +230,7 @@ export default function CompletePsychologyBattleSystem() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 p-4">
       {/* Revolutionary System Header */}
-      <motion.div 
+      <motion.div
         className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 rounded-xl p-6 backdrop-blur-sm border border-purple-500"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -247,7 +247,7 @@ export default function CompletePsychologyBattleSystem() {
               Where managing AI personalities with genuine psychological needs IS the core gameplay
             </p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             {/* System Status */}
             <div className="bg-black/40 rounded-lg px-4 py-2">
@@ -256,13 +256,13 @@ export default function CompletePsychologyBattleSystem() {
                 {isSystemActive ? 'ACTIVE' : 'STANDBY'}
               </div>
             </div>
-            
+
             {/* Phase Indicator */}
             <div className="bg-black/40 rounded-lg px-4 py-2">
               <div className="text-sm text-gray-400">Phase</div>
               <div className="text-lg font-bold text-white capitalize">{battlePhase}</div>
             </div>
-            
+
             {/* Control Buttons */}
             <div className="flex gap-2">
               {!isSystemActive ? (
@@ -285,7 +285,7 @@ export default function CompletePsychologyBattleSystem() {
                       Psychology Timeout
                     </button>
                   )}
-                  
+
                   <button
                     onClick={resetSystem}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-semibold transition-all flex items-center gap-2"
@@ -301,7 +301,7 @@ export default function CompletePsychologyBattleSystem() {
       </motion.div>
 
       {/* Navigation Tabs */}
-      <motion.div 
+      <motion.div
         className="bg-gray-800/30 rounded-xl p-2 backdrop-blur-sm border border-gray-600"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -335,7 +335,7 @@ export default function CompletePsychologyBattleSystem() {
 
       {/* System Overview Dashboard */}
       {activeView === 'overview' && (
-        <motion.div 
+        <motion.div
           className="space-y-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -430,7 +430,7 @@ export default function CompletePsychologyBattleSystem() {
 
       {/* Battle Interface */}
       {activeView === 'battle' && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -440,7 +440,7 @@ export default function CompletePsychologyBattleSystem() {
 
       {/* Coaching Interface */}
       {activeView === 'coaching' && selectedCharacter && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -455,7 +455,7 @@ export default function CompletePsychologyBattleSystem() {
       )}
 
       {activeView === 'coaching' && !selectedCharacter && battleState && (
-        <motion.div 
+        <motion.div
           className="bg-gray-800/30 rounded-lg p-6 border border-gray-600 text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -463,7 +463,7 @@ export default function CompletePsychologyBattleSystem() {
           <Brain className="w-12 h-12 mx-auto mb-4 text-blue-400" />
           <h3 className="text-xl font-bold text-white mb-2">Select a Character to Coach</h3>
           <p className="text-gray-400 mb-6">Choose a team member to begin individual psychology coaching</p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {battleState.teams.player.characters.map((char) => (
               <button
@@ -482,7 +482,7 @@ export default function CompletePsychologyBattleSystem() {
 
       {/* Relationship Display */}
       {activeView === 'relationships' && battleState && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -497,7 +497,7 @@ export default function CompletePsychologyBattleSystem() {
 
       {/* Gameplan Adherence Tracker */}
       {activeView === 'gameplan_adherence' && battleState && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -509,7 +509,7 @@ export default function CompletePsychologyBattleSystem() {
 
       {/* Getting Started Message */}
       {!battleState && activeView !== 'overview' && (
-        <motion.div 
+        <motion.div
           className="bg-gradient-to-r from-green-900/40 to-blue-900/40 rounded-xl p-8 border border-green-500 text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -531,15 +531,15 @@ export default function CompletePsychologyBattleSystem() {
       )}
 
       {/* Footer */}
-      <motion.div 
+      <motion.div
         className="text-center text-gray-400 text-sm border-t border-gray-700 pt-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
       >
         <p>
-          🎮 _____ WARS - Where managing AI psychology IS the game • 
-          🧠 Revolutionary character management • 
+          🎮 _____ WARS - Where managing AI psychology IS the game •
+          🧠 Revolutionary character management •
           ⚔️ &quot;Can you win the battle before your team loses their minds?&quot;
         </p>
       </motion.div>

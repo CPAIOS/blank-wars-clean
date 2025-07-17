@@ -2,16 +2,16 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  Users, 
-  Package, 
+import {
+  User,
+  Users,
+  Package,
   Crown,
   Sparkles
 } from 'lucide-react';
 import CharacterCollection from './CharacterCollection';
 import UserProfile from './UserProfile';
-import { 
+import {
   UserProfile as IUserProfile,
   OwnedCharacter,
   SubscriptionTier,
@@ -31,7 +31,7 @@ export default function AccountManager({
   onProfileUpdate
 }: AccountManagerProps) {
   const [activeTab, setActiveTab] = useState<'collection' | 'profile' | 'packs'>('collection');
-  
+
   // Mock user profile data - in real app this would come from backend
   const [userProfile, setUserProfile] = useState<IUserProfile>(initialUserProfile || {
     id: 'user_001',
@@ -260,14 +260,14 @@ export default function AccountManager({
   const handleCharacterSelect = (character: OwnedCharacter) => {
     setSelectedCharacter(character);
     onCharacterSelect?.(character);
-    
+
     // Update last used time
     const updatedCharacters = userProfile.charactersOwned.map(c =>
-      c.characterId === character.characterId 
+      c.characterId === character.characterId
         ? { ...c, lastUsed: new Date() }
         : c
     );
-    
+
     handleProfileUpdate({ charactersOwned: updatedCharacters });
   };
 
@@ -278,13 +278,13 @@ export default function AccountManager({
       // Simulate pack opening logic here
       // This would normally involve API calls and complex reward generation
       console.log('Opening character pack...');
-      
+
       // Deduct pack credit
       const updatedCurrency = {
         ...userProfile.currency,
         packCredits: userProfile.currency.packCredits - 1
       };
-      
+
       handleProfileUpdate({ currency: updatedCurrency });
     } else {
       console.log('No pack credits available');
@@ -449,7 +449,7 @@ export default function AccountManager({
             <p className="text-gray-400 mb-6">
               Open packs to discover new legendary warriors!
             </p>
-            
+
             {userProfile.currency.packCredits > 0 ? (
               <div className="space-y-4">
                 <div className="text-lg text-white">

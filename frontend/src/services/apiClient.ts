@@ -58,6 +58,7 @@ export interface FinancialData {
   wallet: number;
   financialStress: number;
   coachTrustLevel: number;
+  coachFinancialTrust: number;
 }
 
 export interface FinancialDecision {

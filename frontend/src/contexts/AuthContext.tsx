@@ -105,14 +105,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = useCallback(async (credentials: LoginCredentials) => {
     try {
       const response = await authService.login(credentials);
-      
+
       setUser(response.user);
       // SECURITY: Tokens are now in httpOnly cookies, don't store in state
       setTokens(null);
-      
+
       // SECURITY: Don't store tokens in localStorage anymore
       // Tokens are automatically sent via httpOnly cookies
-      
+
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -122,14 +122,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const register = useCallback(async (credentials: RegisterCredentials) => {
     try {
       const response = await authService.register(credentials);
-      
+
       setUser(response.user);
       // SECURITY: Tokens are now in httpOnly cookies, don't store in state
       setTokens(null);
-      
+
       // SECURITY: Don't store tokens in localStorage anymore
       // Tokens are automatically sent via httpOnly cookies
-      
+
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
@@ -139,10 +139,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(() => {
     setUser(null);
     setTokens(null);
-    
+
     // SECURITY: Don't need to clear localStorage anymore
     // httpOnly cookies are cleared by the server
-    
+
     // Call backend logout to clear httpOnly cookies
     authService.logout().catch(console.error);
   }, []);
@@ -152,10 +152,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // SECURITY: Refresh token is now in httpOnly cookie
       // No need to pass it explicitly
       await authService.refreshToken();
-      
+
       // SECURITY: New tokens are set as httpOnly cookies by server
       // No need to store them in state or localStorage
-      
+
     } catch (error) {
       console.error('Token refresh failed:', error);
       // Clear invalid tokens and logout

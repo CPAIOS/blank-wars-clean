@@ -53,7 +53,7 @@ export default function CharacterDatabase({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const allCharacters = getAllCharacters();
-  
+
   // Filter characters
   const filteredCharacters = allCharacters.filter(character => {
     // Search filter
@@ -126,7 +126,7 @@ export default function CharacterDatabase({
           <ArrowLeft className="w-4 h-4" />
           Back to Character Database
         </button>
-        
+
         <CharacterDetailView character={selectedCharacter} />
       </div>
     );

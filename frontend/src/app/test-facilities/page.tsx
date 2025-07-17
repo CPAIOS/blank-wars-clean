@@ -8,7 +8,7 @@ export default function TestFacilities() {
     totalCharacters: 9,
     currentFacilities: ['basic_gym'],
     budget: 50000,
-    
+
     livingArrangements: {
       currentTier: 'spartan_apartment',
       maxCapacity: 4,
@@ -18,7 +18,7 @@ export default function TestFacilities() {
       unthemedRooms: 2,
       floorSleepers: 6
     },
-    
+
     battlePerformance: {
       recentWins: 3,
       recentLosses: 2,
@@ -31,7 +31,7 @@ export default function TestFacilities() {
         poorSleep: -12
       }
     },
-    
+
     urgentIssues: [
       '6 fighters sleeping on floors',
       'Team chemistry at critical 33%',
@@ -47,7 +47,7 @@ export default function TestFacilities() {
           <h1 className="text-3xl font-bold text-white mb-2">🏠 Real Estate Agent Test</h1>
           <p className="text-gray-400">Testing the integrated real estate agents with mock data</p>
         </div>
-        
+
         <RealEstateAgentChat />
       </div>
     </div>

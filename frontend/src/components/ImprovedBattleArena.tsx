@@ -27,10 +27,10 @@ import { createDemoCharacterCollection, type Character } from '@/data/characters
 import { generateAIResponse } from '@/utils/aiChatResponses';
 import { createBattlePerformance, CombatSkillEngine, CombatSkillReward } from '@/data/combatSkillProgression';
 import { type MatchmakingResult, getTeamWeightClass, calculateWeightClassXP, weightClasses } from '@/data/weightClassSystem';
-import { 
-  initializePsychologyState, 
-  updatePsychologyState, 
-  calculateDeviationRisk, 
+import {
+  initializePsychologyState,
+  updatePsychologyState,
+  calculateDeviationRisk,
   rollForDeviation,
   calculateStabilityFactors,
   type PsychologyState,
@@ -65,11 +65,11 @@ import { calculateNetHeadquartersEffect } from '@/utils/headquartersUtils';
 import { Shield, Sword, Zap, Heart, MessageCircle, Sparkles, Timer, Volume2, AlertTriangle, Settings, VolumeX, CreditCard, Gift, Users, X, Gavel } from 'lucide-react';
 
 // Import new team battle system
-import { 
-  TeamCharacter, 
-  Team, 
-  BattleState, 
-  BattleSetup, 
+import {
+  TeamCharacter,
+  Team,
+  BattleState,
+  BattleSetup,
   RoundResult,
   createDemoPlayerTeam,
   createDemoPlayerTeamWithBonuses,
@@ -94,17 +94,17 @@ import type { BattleCharacter, ExecutedAction, PlannedAction } from '@/data/batt
 export default function ImprovedBattleArena() {
   // Get user data for persistent battle state
   const { user } = useAuth();
-  
+
   // Memory leak prevention with timeout manager
   const timeoutManager = useTimeoutManager();
   const { setTimeout: safeSetTimeout, clearTimeout: safeClearTimeout, clearAllTimeouts } = timeoutManager;
-  
+
   // Ref to store clearQueue function for cleanup
   const clearQueueRef = useRef<(() => void) | null>(null);
-  
+
   // Battle Announcer Integration with error handling (moved before cleanup effect)
   const battleAnnouncer = useBattleAnnouncer();
-  
+
   const {
     isAnnouncerSpeaking,
     isEnabled: isAnnouncerEnabled,
@@ -152,7 +152,7 @@ export default function ImprovedBattleArena() {
       console.log('🎤 Clearing announcement queue');
     }
   };
-  
+
   // Store clearQueue function in ref to avoid temporal dead zone
   useEffect(() => {
     if (clearQueue) {
@@ -171,7 +171,7 @@ export default function ImprovedBattleArena() {
       }
     };
   }, [clearAllTimeouts]);
-  
+
   // Load headquarters data from backend
   const [headquarters, setHeadquarters] = useState<any>({
     currentTier: 'spartan_apartment',
@@ -180,11 +180,11 @@ export default function ImprovedBattleArena() {
     unlockedThemes: []
   });
   const [headquartersError, setHeadquartersError] = useState<string | null>(null);
-  
+
   useEffect(() => {
     const loadHeadquarters = async () => {
       if (!user?.id) return;
-      
+
       try {
         const headquartersData = await characterAPI.getHeadquarters(user.id);
         setHeadquarters(headquartersData);
@@ -196,29 +196,29 @@ export default function ImprovedBattleArena() {
         setTimeout(() => setHeadquartersError(null), 5000);
       }
     };
-    
+
     loadHeadquarters();
   }, [user?.id]);
 
   // Calculate headquarters bonuses AND penalties - memoized to prevent infinite loops
-  const headquartersEffects = useMemo(() => 
+  const headquartersEffects = useMemo(() =>
     calculateNetHeadquartersEffect(headquarters), [headquarters]
   );
-  
+
   // Use centralized state management instead of individual useState hooks
   const { state, actions } = useBattleState();
-  
+
   // Team selection state
   const [showTeamSelection, setShowTeamSelection] = useState(false);
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
   const [coachRoster, setCoachRoster] = useState<Character[]>([]);
   const [rosterError, setRosterError] = useState<string | null>(null);
-  
+
   // Load user's character roster
   useEffect(() => {
     const loadCharacterRoster = async () => {
       if (!user?.id) return;
-      
+
       try {
         const characters = await characterAPI.getUserCharacters();
         setCoachRoster(characters);
@@ -232,14 +232,14 @@ export default function ImprovedBattleArena() {
         setTimeout(() => setRosterError(null), 5000);
       }
     };
-    
+
     loadCharacterRoster();
   }, [user?.id]);
-  
+
   // Competitive matchmaking state (additional local state not in battle state)
   const [currentOpponent, setCurrentOpponent] = useState<OpponentProfile | null>(null);
   const [matchmakingCriteria, setMatchmakingCriteria] = useState<MatchmakingCriteria | null>(null);
-  
+
   // Player stats for matchmaking from user profile
   const playerStats = {
     level: user?.level || 1,
@@ -247,14 +247,14 @@ export default function ImprovedBattleArena() {
     rating: user?.rating || 1000,
     completedChallenges: user?.completed_challenges || []
   };
-  
+
   // Initialize player team with 3 random characters from roster
   useEffect(() => {
     if (state.playerTeam.characters.length === 0) {
       // Select 3 random characters from coach's roster
       const shuffled = [...coachRoster].sort(() => 0.5 - Math.random());
       const randomTeam = shuffled.slice(0, 3);
-      
+
       // Convert to team format
       const team = {
         id: 'player_team',
@@ -273,26 +273,26 @@ export default function ImprovedBattleArena() {
         battlesPlayed: 0,
         lastBattleDate: new Date()
       };
-      
+
       actions.setPlayerTeam(team);
-      
+
       // Set selected team members for the UI
       setSelectedTeamMembers(randomTeam.map(char => char.id));
     }
   }, [state.playerTeam.characters.length]);
-  
+
   // Destructure state for easier access (maintaining original variable names)
   const {
     playerTeam, opponentTeam, battleState, currentRound, playerMorale, opponentMorale,
     currentMatch, playerMatchWins, opponentMatchWins, playerRoundWins, opponentRoundWins
   } = state;
-  
+
   // Destructure actions for easier access (maintaining original setter names)
   const {
     setPlayerTeam, setOpponentTeam, setBattleState, setCurrentRound, setPlayerMorale, setOpponentMorale,
     setCurrentMatch, setPlayerMatchWins, setOpponentMatchWins, setPlayerRoundWins, setOpponentRoundWins
   } = actions;
-  
+
   // Refs to avoid stale closures in async operations
   const battleStateRef = useRef<BattleState | null>(null);
   const currentRoundRef = useRef(1);
@@ -303,7 +303,7 @@ export default function ImprovedBattleArena() {
   const opponentMatchWinsRef = useRef(0);
   const playerRoundWinsRef = useRef(0);
   const opponentRoundWinsRef = useRef(0);
-  
+
   // Sync refs with state
   useEffect(() => {
     battleStateRef.current = battleState;
@@ -316,7 +316,7 @@ export default function ImprovedBattleArena() {
     playerRoundWinsRef.current = playerRoundWins;
     opponentRoundWinsRef.current = opponentRoundWins;
   }, [battleState, currentRound, currentMatch, playerMorale, opponentMorale, playerMatchWins, opponentMatchWins, playerRoundWins, opponentRoundWins]);
-  
+
   // Destructure more state for easier access (maintaining original variable names)
   const {
     phase, currentAnnouncement, selectedOpponent, showMatchmaking,
@@ -324,7 +324,7 @@ export default function ImprovedBattleArena() {
     battleCries, timer, isTimerActive, showAudioSettings,
     activeCoachingSession, showCoachingModal
   } = state;
-  
+
   // Destructure more actions for easier access (maintaining original setter names)
   const {
     setPhase, setCurrentAnnouncement, setSelectedOpponent, setShowMatchmaking,
@@ -332,13 +332,13 @@ export default function ImprovedBattleArena() {
     setBattleCries, setTimer, setIsTimerActive, setShowAudioSettings,
     setActiveCoachingSession, setShowCoachingModal
   } = actions;
-  
+
   // Destructure remaining state for easier access (maintaining original variable names)
   const {
     selectedCharacterForCoaching, currentRogueAction, judgeRuling,
     isFastBattleMode, fastBattleConsent
   } = state;
-  
+
   // Destructure remaining actions for easier access (maintaining original setter names)
   const {
     setSelectedCharacterForCoaching, setCurrentRogueAction, setJudgeRuling,
@@ -357,7 +357,7 @@ export default function ImprovedBattleArena() {
     }
   });
   socketRef.current = battleWebSocket;
-  
+
   const {
     isConnected,
     isAuthenticated,
@@ -368,7 +368,7 @@ export default function ImprovedBattleArena() {
     socket: wsSocket,
     disconnect
   } = battleWebSocket;
-  
+
   // Fallback values for missing WebSocket properties
   const currentUser = null;
   const wsError = null;
@@ -409,15 +409,15 @@ export default function ImprovedBattleArena() {
       // Convert to BattleCharacter format for psychology-enhanced combat
       const attackerMorale = isAttacker1 ? playerMorale : opponentMorale;
       const defenderMorale = isAttacker1 ? opponentMorale : playerMorale;
-      
+
       const battleAttacker = convertToBattleCharacter(attacker, attackerMorale);
       const battleDefender = convertToBattleCharacter(defender, defenderMorale);
-      
+
       // Simple damage calculation (placeholder)
       const baseDamage = attacker.traditionalStats.strength;
       const defense = defender.traditionalStats.vitality;
       damage = Math.max(1, Math.floor(baseDamage - defense/2));
-      
+
       newDefenderHP = Math.max(0, defender.currentHp - damage);
       description = `${attacker.name} uses ${ability.name} for ${damage} damage!`;
     }
@@ -493,7 +493,7 @@ export default function ImprovedBattleArena() {
     announceAction
   });
 
-  // Initialize Battle Engine Logic Hook 
+  // Initialize Battle Engine Logic Hook
   const battleEngineLogic = useBattleEngineLogic({
     state,
     actions,
@@ -575,7 +575,7 @@ export default function ImprovedBattleArena() {
   useEffect(() => {
     if (!state.selectedOpponent && state.opponentTeam.characters.length > 0) {
       const demoOpponent = {
-        opponent: { 
+        opponent: {
           teamLevel: 25,
           weightClass: weightClasses.find(wc => wc.id === 'elite')!,
           levelDifference: 0
@@ -591,10 +591,10 @@ export default function ImprovedBattleArena() {
   }, [state.selectedOpponent, state.opponentTeam.characters.length, matchmaking]);
 
   // Extract battle functions from hook
-  const { 
-    startTeamBattle, 
-    executeTeamRound, 
-    endBattle, 
+  const {
+    startTeamBattle,
+    executeTeamRound,
+    endBattle,
     proceedToRoundCombat,
     handleRoundEnd,
     calculateBattleOutcome
@@ -625,7 +625,7 @@ export default function ImprovedBattleArena() {
   const onRoundEnd = null;
   const onBattleEnd = null;
   const onChatMessage = null;
-  
+
   // Destructure coaching and strategy state for easier access (maintaining original variable names)
   const {
     coachingMessages, characterResponse, showDisagreement,
@@ -633,7 +633,7 @@ export default function ImprovedBattleArena() {
     chatMessages, customMessage, isCharacterTyping, selectedChatCharacter,
     showRewards, battleRewards
   } = state;
-  
+
   // Destructure coaching and strategy actions for easier access (maintaining original setter names)
   const {
     setCoachingMessages, setCharacterResponse, setShowDisagreement,
@@ -641,25 +641,25 @@ export default function ImprovedBattleArena() {
     setChatMessages, setCustomMessage, setIsCharacterTyping, setSelectedChatCharacter,
     setShowRewards, setBattleRewards
   } = actions;
-  
+
   // Destructure remaining state for easier access (maintaining original variable names)
   const {
     showSkillProgression, combatSkillReward,
     playerCards, showCardCollection, showCardPacks, playerCurrency, selectedTeamCards
   } = state;
-  
+
   // Destructure remaining actions for easier access (maintaining original setter names)
   const {
     setShowSkillProgression, setCombatSkillReward,
     setPlayerCards, setShowCardCollection, setShowCardPacks, setPlayerCurrency, setSelectedTeamCards
   } = actions;
-  
+
   const announcementRef = useRef<HTMLDivElement>(null);
   const coachingRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Convert TeamCharacter to legacy Character interface for UI compatibility
-  
+
 
   // Get current active fighter from team (cycles through team members)
   // getCurrentPlayerFighter function moved to useUIPresentation hook
@@ -667,10 +667,10 @@ export default function ImprovedBattleArena() {
 
   // Destructure final state for easier access (maintaining original variable names)
   const { player1, player2, player1BattleStats, player2BattleStats } = state;
-  
+
   // Destructure final actions for easier access (maintaining original setter names)
   const { setPlayer1, setPlayer2, setPlayer1BattleStats, setPlayer2BattleStats } = actions;
-  
+
   // Initialize fighters on first load
   useEffect(() => {
     if (!player1.id) {
@@ -706,7 +706,7 @@ export default function ImprovedBattleArena() {
 
   // Timer countdown with stable reference
   const handleTimerExpiredRef = useRef<() => void>(() => {});
-  
+
   useEffect(() => {
     if (isTimerActive && timer !== null && timer > 0) {
       const interval = setInterval(() => {
@@ -773,7 +773,7 @@ export default function ImprovedBattleArena() {
   useEffect(() => {
     if (wsBattleState) {
       console.log('Battle state updated:', wsBattleState);
-      
+
       // Update phase based on battle status
       switch (wsBattleState.status) {
         case 'strategy_select':
@@ -824,14 +824,14 @@ export default function ImprovedBattleArena() {
     setPhase('combat');
     const playerFighter = battleState.currentFighters.player;
     const opponentFighter = battleState.currentFighters.opponent;
-    
+
     // Get next fighters for preview
     const nextPlayerIndex = currentRound % playerTeam.characters.length;
     const nextOpponentIndex = currentRound % opponentTeam.characters.length;
     const nextPlayerFighter = playerTeam.characters[nextPlayerIndex];
     const nextOpponentFighter = opponentTeam.characters[nextOpponentIndex];
-    
-    const announcement = `🥊 TEAM BATTLE Round ${currentRound}: ${playerFighter.name} vs ${opponentFighter.name}! 
+
+    const announcement = `🥊 TEAM BATTLE Round ${currentRound}: ${playerFighter.name} vs ${opponentFighter.name}!
     Next up: ${nextPlayerFighter.name} vs ${nextOpponentFighter.name}`;
     setCurrentAnnouncement(announcement);
     announceRoundStart(currentRound);
@@ -858,7 +858,7 @@ export default function ImprovedBattleArena() {
 
     setCurrentAnnouncement('Searching for a worthy opponent...');
     setPhase('pre_battle_huddle');
-    
+
     // Use WebSocket to find a match
     findMatch(); // This will use the first available character automatically
   };
@@ -872,7 +872,7 @@ export default function ImprovedBattleArena() {
 
     setCurrentAnnouncement(`Strategy selected: ${strategy}`);
     wsSelectStrategy(strategy);
-    
+
     // Clear timer
     setIsTimerActive(false);
     setTimer(null);
@@ -889,7 +889,7 @@ export default function ImprovedBattleArena() {
   // handleCharacterStrategyChange function moved to useCoachingSystem hook
 
   // initializeCharacterStrategies function moved to useCoachingSystem hook
-  // areAllCharacterStrategiesComplete function moved to useCoachingSystem hook  
+  // areAllCharacterStrategiesComplete function moved to useCoachingSystem hook
   // handleAllCharacterStrategiesComplete function moved to useCoachingSystem hook
 
   // checkForBerserk function moved to useCoachingSystem hook
@@ -940,18 +940,18 @@ export default function ImprovedBattleArena() {
     setCurrentOpponent(opponent);
     setMatchmakingCriteria(criteria);
     setShowMatchmaking(false);
-    
+
     // Set announcement and start battle preparation
     setCurrentAnnouncement(`Match found! Preparing to face ${criteria.weightClass} opponent (Power: ${opponent.teamPower})`);
-    
+
     // Generate AI opponent team based on the opponent profile
     // This would normally come from the backend, but we'll generate it locally for now
     const aiOpponentTeam = createDemoOpponentTeam(); // TODO: Create team based on opponent profile
     setOpponentTeam(aiOpponentTeam);
-    
+
     // Start the battle flow with the matched opponent
     setPhase('pre_battle_huddle');
-    
+
     setCurrentAnnouncement(`⚔️ Competitive Match Found! Weight Class: ${criteria.weightClass.replace('_', ' ').toUpperCase()}`);
     // Additional announcement for reward info
     setTimeout(() => {
@@ -978,7 +978,7 @@ export default function ImprovedBattleArena() {
           {rosterError}
         </div>
       )}
-      
+
       {/* 1. Current Round Fighters (TOP) - Team Display fighters only */}
       <TeamDisplay
         playerTeam={playerTeam}
@@ -1054,7 +1054,7 @@ export default function ImprovedBattleArena() {
               </div>
             </div>
           )}
-          
+
           {/* Penalties */}
           {Object.keys(headquartersEffects.penalties).length > 0 && (
             <div className="p-3 bg-red-900/20 rounded-lg border border-red-500/30">
@@ -1125,7 +1125,7 @@ export default function ImprovedBattleArena() {
 
       {/* Battle End - Victory/Restart */}
       {phase === 'battle-end' && (
-        <motion.div 
+        <motion.div
           className="text-center space-y-6"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -1133,14 +1133,14 @@ export default function ImprovedBattleArena() {
           <div className="text-6xl mb-4">
             {player1.currentHp > player2.currentHp ? '🏆' : player2.currentHp > player1.currentHp ? '💀' : '🤝'}
           </div>
-          
+
           <h2 className="text-4xl font-bold text-white mb-4">
-            {player1.currentHp <= 0 ? `${player2.name} Wins!` : 
-             player2.currentHp <= 0 ? `${player1.name} Wins!` : 
-             player1.currentHp > player2.currentHp ? `${player1.name} Wins!` : 
+            {player1.currentHp <= 0 ? `${player2.name} Wins!` :
+             player2.currentHp <= 0 ? `${player1.name} Wins!` :
+             player1.currentHp > player2.currentHp ? `${player1.name} Wins!` :
              `${player2.name} Wins!`}
           </h2>
-          
+
           <div className="grid grid-cols-2 gap-6 max-w-md mx-auto text-center">
             <div className="bg-blue-600/20 p-4 rounded-lg">
               <h4 className="font-bold text-white">{player1.name}</h4>
@@ -1271,7 +1271,7 @@ export default function ImprovedBattleArena() {
                 <button
                   onClick={() => coachingSystem.buildTeamFromCards(
                     playerCards,
-                    selectedTeamCards, 
+                    selectedTeamCards,
                     setShowCardCollection,
                     setSelectedTeamCards
                   )}
@@ -1313,7 +1313,7 @@ export default function ImprovedBattleArena() {
                 {showTeamSelection ? 'Hide Selection' : 'Change Team'}
               </button>
             </div>
-            
+
             {/* Current team members */}
             <div className="flex gap-4">
               {playerTeam.characters.slice(0, 3).map((character, index) => (
@@ -1332,12 +1332,12 @@ export default function ImprovedBattleArena() {
               <h4 className="text-white font-bold mb-4">
                 Select Team Members ({selectedTeamMembers.length}/3)
               </h4>
-              
+
               <div className="grid grid-cols-3 gap-3 mb-4 max-h-60 overflow-y-auto">
                 {coachRoster.map((character) => {
                   const isSelected = selectedTeamMembers.includes(character.id);
                   const canSelect = !isSelected && selectedTeamMembers.length < 3;
-                  
+
                   return (
                     <button
                       key={character.id}
@@ -1377,7 +1377,7 @@ export default function ImprovedBattleArena() {
                       const selectedChars = selectedTeamMembers
                         .map(id => coachRoster.find(char => char.id === id))
                         .filter(Boolean);
-                      
+
                       const newTeam = {
                         id: 'player_team',
                         name: 'Player Team',
@@ -1395,7 +1395,7 @@ export default function ImprovedBattleArena() {
                         battlesPlayed: 0,
                         lastBattleDate: new Date()
                       };
-                      
+
                       actions.setPlayerTeam(newTeam);
                       setShowTeamSelection(false);
                     }
@@ -1409,7 +1409,7 @@ export default function ImprovedBattleArena() {
                 >
                   Confirm Team
                 </button>
-                
+
                 <button
                   onClick={() => setShowTeamSelection(false)}
                   className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold transition-colors"
@@ -1429,14 +1429,14 @@ export default function ImprovedBattleArena() {
             >
               Begin Team Battle!
             </button>
-            
+
             <button
               onClick={() => setShowMatchmaking(true)}
               className="px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform hover:scale-105"
             >
               🏆 Competitive Match
             </button>
-            
+
             <button
               onClick={handleFastBattleRequest}
               className="px-6 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform hover:scale-105 flex items-center gap-2"
@@ -1445,7 +1445,7 @@ export default function ImprovedBattleArena() {
               ⚡ Fast Battle
             </button>
             </div>
-            
+
             <p className="text-gray-400 text-sm">
               3v3 Team Combat • Quick Battle or Competitive Matchmaking • Psychology & Chemistry Matter
             </p>

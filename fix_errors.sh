@@ -11,7 +11,7 @@ if [ -s "$HOME/.nvm/nvm.sh" ]; then
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-    
+
     # Use Node.js 20.x which is compatible with Next.js
     echo "Switching to Node.js 20.x (LTS Iron)..."
     nvm use 20.19.4 2>/dev/null || nvm use lts/iron 2>/dev/null || nvm use --lts

@@ -35,7 +35,7 @@ export interface UserProfile {
 
   // Character management
   charactersOwned?: OwnedCharacter[];
-  
+
   // Achievements
   achievements?: Achievement[];
 }

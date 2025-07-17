@@ -24,7 +24,7 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
   try {
     const response = await characterAPI.getUserCharacters();
     const characters = response.characters || [];
-    
+
     return characters.map((char: any) => {
       const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
       return {
@@ -70,7 +70,7 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
 // Personal Problem Engine - Random challenges characters face
 const PROBLEM_CATEGORIES = [
   'neighbor_disputes',
-  'family_conflicts', 
+  'family_conflicts',
   'work_stress',
   'relationship_issues',
   'financial_problems',
@@ -89,28 +89,28 @@ const PROBLEM_CATEGORIES = [
 // Generate character-specific interpretation of random problem
 const generatePersonalProblem = (character: EnhancedCharacter): { problem: string, intro: string } => {
   const { name, archetype } = character;
-  
+
   // Use character's actual level and bond level to influence problem type
   const lowLevelProblems = ['identity_crisis', 'impostor_syndrome', 'social_isolation'];
   const highLevelProblems = ['moral_dilemmas', 'authority_conflicts', 'grief_loss'];
   const lowBondProblems = ['trust_issues', 'social_isolation', 'anger_management'];
   const highBondProblems = ['family_conflicts', 'relationship_issues', 'perfectionism'];
-  
+
   let availableProblems = [...PROBLEM_CATEGORIES];
-  
+
   // Filter problems based on character stats
   if (character.level && character.level < 5) {
     availableProblems = availableProblems.filter(p => lowLevelProblems.includes(p) || !highLevelProblems.includes(p));
   } else if (character.level && character.level > 15) {
     availableProblems = availableProblems.filter(p => highLevelProblems.includes(p) || !lowLevelProblems.includes(p));
   }
-  
+
   if (character.displayBondLevel && character.displayBondLevel < 3) {
     availableProblems = availableProblems.filter(p => lowBondProblems.includes(p) || !highBondProblems.includes(p));
   } else if (character.displayBondLevel && character.displayBondLevel > 7) {
     availableProblems = availableProblems.filter(p => highBondProblems.includes(p) || !lowBondProblems.includes(p));
   }
-  
+
   // Add character-specific problems based on name/identity
   if (name?.toLowerCase().includes('achilles')) {
     availableProblems.push('pride_and_honor', 'destiny_pressure');
@@ -121,9 +121,9 @@ const generatePersonalProblem = (character: EnhancedCharacter): { problem: strin
   } else if (name?.toLowerCase().includes('sherlock')) {
     availableProblems.push('intellectual_isolation', 'obsessive_analysis');
   }
-  
+
   const randomProblem = availableProblems[Math.floor(Math.random() * availableProblems.length)];
-  
+
   const problemInterpretations: Record<string, Record<string, string>> = {
     neighbor_disputes: {
       warrior: `Coach, I'm having issues with neighboring warriors who keep challenging my honor. Every tavern visit becomes a potential duel...`,
@@ -283,8 +283,8 @@ const generatePersonalProblem = (character: EnhancedCharacter): { problem: strin
   };
 
   const characterArchetype = archetype || 'default';
-  const problemText = problemInterpretations[randomProblem]?.[characterArchetype] || 
-                     problemInterpretations[randomProblem]?.['default'] || 
+  const problemText = problemInterpretations[randomProblem]?.[characterArchetype] ||
+                     problemInterpretations[randomProblem]?.['default'] ||
                      `Coach, I'm dealing with some personal challenges and could use your guidance.`;
 
   return {
@@ -297,12 +297,12 @@ const generatePersonalProblem = (character: EnhancedCharacter): { problem: strin
 const generateCoachingPrompts = (character: EnhancedCharacter): string[] => {
   const prompts: string[] = [];
   const { personalityTraits, archetype, level, name } = character;
-  
+
   // Universal coaching prompts
   prompts.push(`How are you feeling mentally after recent battles?`);
   prompts.push(`What's been weighing on your mind lately?`);
   prompts.push(`Tell me about any stress or pressure you're experiencing.`);
-  
+
   // Personality-based prompts
   if (personalityTraits?.includes('proud') || personalityTraits?.includes('Proud')) {
     prompts.push(`I know showing vulnerability is difficult for you. What challenges are you facing?`);
@@ -316,7 +316,7 @@ const generateCoachingPrompts = (character: EnhancedCharacter): string[] => {
   if (personalityTraits?.includes('loyal') || personalityTraits?.includes('Loyal')) {
     prompts.push(`Do you ever feel torn between loyalty to others and your own needs?`);
   }
-  
+
   // Archetype-based coaching
   if (archetype === 'warrior') {
     prompts.push(`As a warrior, do you struggle with the violence of battle?`);
@@ -334,7 +334,7 @@ const generateCoachingPrompts = (character: EnhancedCharacter): string[] => {
     prompts.push(`Behind the humor and tricks, what are you really feeling?`);
     prompts.push(`Do you use jokes to avoid dealing with deeper emotions?`);
   }
-  
+
   // Level-based concerns
   if (level < 10) {
     prompts.push(`As someone newer to this life, what fears do you have about your future?`);
@@ -342,7 +342,7 @@ const generateCoachingPrompts = (character: EnhancedCharacter): string[] => {
   if (level > 30) {
     prompts.push(`With your experience, do you ever feel the weight of what you've seen?`);
   }
-  
+
   return prompts.slice(0, 2);
 };
 
@@ -361,10 +361,10 @@ interface CoachingSessionChatProps {
   onCharacterChange?: (characterId: string) => void;
 }
 
-export default function CoachingSessionChat({ 
-  selectedCharacterId, 
+export default function CoachingSessionChat({
+  selectedCharacterId,
   sessionType = 'general',
-  onCharacterChange 
+  onCharacterChange
 }: CoachingSessionChatProps) {
   const [availableCharacters, setAvailableCharacters] = useState<EnhancedCharacter[]>([]);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState(selectedCharacterId || 'achilles');
@@ -379,7 +379,7 @@ export default function CoachingSessionChat({
       setAvailableCharacters(characters);
       setCharactersLoading(false);
     };
-    
+
     loadCharacters();
   }, []);
 
@@ -392,13 +392,13 @@ export default function CoachingSessionChat({
       setIsTyping(false);
     }
   }, [selectedCharacterId, globalSelectedCharacterId]);
-  
-  const selectedCharacter = availableCharacters.find(c => 
-    c.baseName === globalSelectedCharacterId || 
+
+  const selectedCharacter = availableCharacters.find(c =>
+    c.baseName === globalSelectedCharacterId ||
     c.name?.toLowerCase() === globalSelectedCharacterId?.toLowerCase() ||
     c.id === globalSelectedCharacterId
   ) || availableCharacters[0];
-  
+
   // Debug logging
   console.log('🔍 CoachingSessionChat character selection:', {
     globalSelectedCharacterId,
@@ -415,7 +415,7 @@ export default function CoachingSessionChat({
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
     console.log('🔌 [CoachingSession] Connecting to local backend:', socketUrl);
-    
+
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
@@ -443,7 +443,7 @@ export default function CoachingSessionChat({
 
     socketRef.current.on('chat_response', (data: { character: string; message: string; bondIncrease?: boolean }) => {
       console.log('📨 CoachingSession response:', data);
-      
+
       const characterMessage: Message = {
         id: Date.now(),
         type: 'character',
@@ -451,7 +451,7 @@ export default function CoachingSessionChat({
         timestamp: new Date(),
         bondIncrease: data.bondIncrease || Math.random() > 0.5, // Higher chance of bonding in coaching
       };
-      
+
       setMessages(prev => [...prev, characterMessage]);
       setIsTyping(false);
     });
@@ -543,7 +543,7 @@ ${selectedCharacter?.archetype === 'warrior' ? '- Possible PTSD from battle, sur
   '- General stress from battles, relationships, and finding purpose in this world'}
 
 Respond as ${selectedCharacter?.name || 'the character'} would in a real psychological coaching session, showing appropriate emotional depth while maintaining character authenticity.`,
-        
+
         sessionContext: {
           type: currentSessionType,
           focusAreas: ['Mental health', 'Emotional wellness', 'Personal growth', 'Stress management', 'Relationship issues', 'Identity and purpose'],
@@ -567,7 +567,7 @@ Respond as ${selectedCharacter?.name || 'the character'} would in a real psychol
   const getCoachingIntro = (character: EnhancedCharacter): string => {
     // Generate a random personal problem for this character
     const personalProblem = generatePersonalProblem(character);
-    
+
     return personalProblem.intro;
   };
 
@@ -592,7 +592,7 @@ Respond as ${selectedCharacter?.name || 'the character'} would in a real psychol
 
   return (
     <div className="max-w-6xl mx-auto">
-      <motion.div 
+      <motion.div
         className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 rounded-xl backdrop-blur-sm border border-purple-500/30 overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -641,7 +641,7 @@ Respond as ${selectedCharacter?.name || 'the character'} would in a real psychol
                     ))}
                   </div>
                 </div>
-                
+
                 <div>
                   <div className="text-xs text-blue-200 mb-2">🎯 Session Focus Areas:</div>
                   <div className="flex flex-wrap gap-2">
@@ -681,7 +681,7 @@ Respond as ${selectedCharacter?.name || 'the character'} would in a real psychol
                   }`}>
                     <p>{message.content}</p>
                     {message.bondIncrease && (
-                      <motion.div 
+                      <motion.div
                         className="mt-2 flex items-center gap-1 text-xs text-yellow-200"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -693,7 +693,7 @@ Respond as ${selectedCharacter?.name || 'the character'} would in a real psychol
                   </div>
                 </motion.div>
               ))}
-              
+
               {isTyping && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -709,17 +709,17 @@ Respond as ${selectedCharacter?.name || 'the character'} would in a real psychol
                   </div>
                 </motion.div>
               )}
-              
+
               <div ref={messagesEndRef} />
             </div>
 
             <div className="p-4 border-t border-purple-500/30 bg-purple-900/10">
               <div className="text-xs text-purple-300 mb-2">
-                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} | 
-                {isTyping ? ' 💭 Processing thoughts...' : ' ✅ Ready for coaching'} | 
+                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} |
+                {isTyping ? ' 💭 Processing thoughts...' : ' ✅ Ready for coaching'} |
                 Session: {currentSessionType} | Messages: {messages.length}
               </div>
-              
+
               <div className="flex gap-2">
                 <input
                   type="text"

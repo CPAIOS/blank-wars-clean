@@ -166,7 +166,15 @@ export default function LobbyComponent({ userProfile }: LobbyProps) {
                       <p className="text-sm text-gray-300">Host: {lobby.hostId}</p>
                       <p className="text-sm text-gray-400 flex items-center justify-center sm:justify-start gap-1">
                         <Users className="w-4 h-4" /> {lobby.members.length}/{lobby.maxMembers} members
-                        {lobby.isPrivate ? <Lock className="w-4 h-4 ml-2 text-gray-400" title="Private Lobby" /> : <Globe className="w-4 h-4 ml-2 text-blue-400" title="Public Lobby" />}
+                        {lobby.isPrivate ? (
+                          <span title="Private Lobby">
+                            <Lock className="w-4 h-4 ml-2 text-gray-400" />
+                          </span>
+                        ) : (
+                          <span title="Public Lobby">
+                            <Globe className="w-4 h-4 ml-2 text-blue-400" />
+                          </span>
+                        )}
                       </p>
                     </div>
                     <button onClick={() => joinLobby(lobby.id)} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg font-semibold shadow-md transition-all duration-300 transform hover:scale-105">
@@ -200,7 +208,11 @@ export default function LobbyComponent({ userProfile }: LobbyProps) {
                       <div>
                         <p className="font-semibold text-xl text-white flex items-center gap-2">
                           {member.profile.displayName}
-                          {currentLobby.hostId === member.profile.userId && <Crown className="w-5 h-5 text-yellow-400" title="Lobby Host" />}
+                          {currentLobby.hostId === member.profile.userId && (
+                            <span title="Lobby Host">
+                              <Crown className="w-5 h-5 text-yellow-400" />
+                            </span>
+                          )}
                         </p>
                         <p className="text-sm text-gray-400">Level: {member.profile.level}</p>
                       </div>

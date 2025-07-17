@@ -58,7 +58,7 @@ import {
   // allItems, // Not exported  
   // getEquipmentById, // Not exported
   // getItemById, // Not exported
-  getRarityColor,
+  // getRarityColor, // Not exported - defined locally instead
   // canEquipItem // Not exported
 } from '@/data/equipment';
 
@@ -89,6 +89,18 @@ interface InventoryManagerProps {
   onInventoryChange?: (inventory: CharacterInventory) => void;
   onStatsChange?: (newStats: Record<string, number>) => void;
 }
+
+// Helper function for rarity colors
+const getRarityColor = (rarity: string) => {
+  const colors: Record<string, string> = {
+    common: 'from-gray-600 to-gray-700',
+    uncommon: 'from-green-600 to-green-700',
+    rare: 'from-blue-600 to-blue-700',
+    epic: 'from-purple-600 to-purple-700',
+    legendary: 'from-yellow-600 to-yellow-700'
+  };
+  return colors[rarity] || colors.common;
+};
 
 export default function InventoryManager({
   character,
@@ -586,7 +598,7 @@ export default function InventoryManager({
 
               const isEquipment = 'slot' in itemData;
               const canEquip = isEquipment && !item.isEquipped && 
-                canEquipItem(itemData as Equipment, character.archetype, character.level);
+                canEquipItem(itemData as Equipment, character);
 
               return (
                 <motion.div

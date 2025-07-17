@@ -1,16 +1,16 @@
 import { useCallback, useRef } from 'react';
 import { BattleEngine } from '@/systems/battleEngine';
 import { PhysicalBattleEngine } from '@/systems/physicalBattleEngine';
-import { 
-  BattleState, 
-  RoundResult, 
-  TeamCharacter, 
+import {
+  BattleState,
+  RoundResult,
+  TeamCharacter,
   Team,
   BattleSetup
 } from '@/data/teamBattleSystem';
 import { BattlePhase, type BattleCharacter, type ExecutedAction, type PlannedAction } from '@/data/battleFlow';
 import { type BattleStateData, type BattleStateAction } from '@/hooks/temp/useBattleState';
-import { 
+import {
   initializePsychologyState,
   updatePsychologyState,
   calculateDeviationRisk,
@@ -80,10 +80,10 @@ interface UseBattleEngineLogicProps {
   calculateFastBattleResult?: (battleSetup: any) => any;
 }
 
-export const useBattleEngineLogic = ({ 
-  state, 
-  actions, 
-  timeoutManager, 
+export const useBattleEngineLogic = ({
+  state,
+  actions,
+  timeoutManager,
   speak,
   announceBattleStart,
   announceVictory,
@@ -99,11 +99,11 @@ export const useBattleEngineLogic = ({
   headquartersEffects
 }: UseBattleEngineLogicProps) => {
   const { setTimeout: safeSetTimeout } = timeoutManager;
-  
+
   // Refs to avoid stale closures
   const battleStateRef = useRef<BattleState | null>(null);
   const currentRoundRef = useRef(1);
-  
+
   // Update refs when state changes
   battleStateRef.current = state.battleState;
   currentRoundRef.current = state.currentRound;
@@ -111,25 +111,25 @@ export const useBattleEngineLogic = ({
   const startTeamBattle = useCallback(() => {
     // Initialize character psychology for all fighters
     const psychologyMap = new Map<string, PsychologyState>();
-    
+
     // Initialize player team psychology with headquarters effects and teammates
     state.playerTeam.characters.forEach(char => {
       psychologyMap.set(char.id, initializePsychologyState(char, headquartersEffects, state.playerTeam.characters));
     });
-    
+
     // Initialize opponent team psychology (no headquarters effects)
     state.opponentTeam.characters.forEach(char => {
       psychologyMap.set(char.id, initializePsychologyState(char));
     });
-    
+
     actions.setCharacterPsychology(psychologyMap);
     actions.setActiveDeviations([]);
     actions.setJudgeDecisions([]);
-    
+
     // Randomly select a judge for this battle
     const randomJudge = judgePersonalities[Math.floor(Math.random() * judgePersonalities.length)];
     actions.setCurrentJudge(randomJudge);
-    
+
     const setup: BattleSetup = {
       playerTeam: state.playerTeam,
       opponentTeam: state.opponentTeam,
@@ -154,7 +154,7 @@ export const useBattleEngineLogic = ({
     actions.setBattleState(newBattleState);
     actions.setPhase('pre_battle_huddle');
     announceBattleStart(state.playerTeam.name, state.opponentTeam.name);
-    actions.setCurrentAnnouncement(`🏆 3v3 TEAM BATTLE: ${state.playerTeam.name} vs ${state.opponentTeam.name}! 
+    actions.setCurrentAnnouncement(`🏆 3v3 TEAM BATTLE: ${state.playerTeam.name} vs ${state.opponentTeam.name}!
     Your lineup: ${state.playerTeam.characters.map(c => c.name).join(', ')}
     Opponents: ${state.opponentTeam.characters.map(c => c.name).join(', ')}`);
 
@@ -178,7 +178,7 @@ export const useBattleEngineLogic = ({
       targetId: opponentFighter.id,
       coachingInfluence: state.playerMorale / 100 // Convert morale to coaching influence
     };
-    
+
     const adherenceCheck = PhysicalBattleEngine.performGameplanAdherenceCheck(battlePlayerFighter, plannedAction);
 
     let roundResult: RoundResult | null = null;
@@ -187,13 +187,13 @@ export const useBattleEngineLogic = ({
       // Character goes rogue!
       const rogueAction = AIJudge.generateRogueAction(
         playerFighter,
-        opponentFighter, 
+        opponentFighter,
         state.playerMorale,
         state.playerMorale > state.opponentMorale ? 'winning' : 'losing'
       );
 
       const ruling = AIJudge.judgeRogueAction(rogueAction, opponentFighter, state.playerMorale);
-      
+
       actions.setCurrentRogueAction(rogueAction);
       actions.setJudgeRuling(ruling);
 
@@ -221,7 +221,7 @@ export const useBattleEngineLogic = ({
       const baseAttack = playerFighter.attack + Math.random() * 10;
       const defense = opponentFighter.defense + Math.random() * 5;
       const damage = Math.max(1, Math.floor(baseAttack - defense));
-      
+
       roundResult = {
         round: state.currentRound,
         attacker: playerFighter,
@@ -244,7 +244,7 @@ export const useBattleEngineLogic = ({
       roundResults: [...state.battleState.roundResults, roundResult],
       currentRound: state.currentRound + 1
     };
-    
+
     actions.setBattleState(updatedBattleState);
     actions.setCurrentRound(state.currentRound + 1);
 
@@ -263,7 +263,7 @@ export const useBattleEngineLogic = ({
 
   const endBattle = useCallback((winner: 'player' | 'opponent' | 'draw') => {
     actions.setPhase('battle_complete');
-    
+
     let endMessage = '';
     if (winner === 'player') {
       endMessage = `Victory! ${state.playerTeam.name} has triumphed through teamwork and strategy!`;
@@ -276,12 +276,12 @@ export const useBattleEngineLogic = ({
     }
 
     actions.setCurrentAnnouncement(endMessage);
-    
+
     // Show post-battle team chemistry effects
     timeoutManager.setTimeout(() => {
       const newChemistry = Math.max(0, Math.min(100, state.playerTeam.teamChemistry + (winner === 'player' ? 10 : -5)));
       actions.setPlayerTeam({ ...state.playerTeam, teamChemistry: newChemistry });
-      
+
       const chemistryUpdate = `Post-battle team chemistry: ${Math.round(newChemistry * 10) / 10}% ${newChemistry > state.playerTeam.teamChemistry ? '(+)' : '(-)'}}`;
       actions.setCurrentAnnouncement(chemistryUpdate);
     }, 3000);
@@ -294,7 +294,7 @@ export const useBattleEngineLogic = ({
     const announcement = `Round ${state.currentRound} begins! The warriors clash in epic combat!`;
     actions.setCurrentAnnouncement(announcement);
     announceRoundStart(state.currentRound);
-    
+
     // Execute combat after a brief delay
     timeoutManager.setTimeout(() => {
       executeCombatRound();
@@ -315,7 +315,7 @@ export const useBattleEngineLogic = ({
   const calculateBattleOutcome = useCallback((playerTeam: Team, opponentTeam: Team) => {
     const playerHP = playerTeam.characters.reduce((sum, char) => sum + char.currentHp, 0);
     const opponentHP = opponentTeam.characters.reduce((sum, char) => sum + char.currentHp, 0);
-    
+
     if (playerHP <= 0 && opponentHP <= 0) {
       return 'draw';
     } else if (playerHP <= 0) {
@@ -326,7 +326,7 @@ export const useBattleEngineLogic = ({
       // If both teams have HP, determine winner by remaining HP percentage
       const playerHealthPercent = playerHP / playerTeam.characters.reduce((sum, char) => sum + char.maxHp, 0);
       const opponentHealthPercent = opponentHP / opponentTeam.characters.reduce((sum, char) => sum + char.maxHp, 0);
-      
+
       if (playerHealthPercent > opponentHealthPercent) {
         return 'player';
       } else if (opponentHealthPercent > playerHealthPercent) {
