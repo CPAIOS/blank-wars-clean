@@ -462,7 +462,7 @@ export function createDemoPlayerTeamWithBonuses(
 }
 
 // Convert Character to TeamCharacter for team chemistry calculations
-function convertToTeamCharacter(character: Character): TeamCharacter {
+export function convertToTeamCharacter(character: Character): TeamCharacter {
   return {
     id: character.id,
     name: character.name,

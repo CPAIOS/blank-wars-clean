@@ -80,7 +80,8 @@ import {
   getMoraleModifier,
   getTeamChemistryModifier,
   updateCoachingPointsAfterBattle,
-  getEffectiveStats
+  getEffectiveStats,
+  convertToTeamCharacter
 } from '@/data/teamBattleSystem';
 import { AIJudge, RogueAction, CharacterResponseGenerator } from '@/data/aiJudge';
 import { CoachingEngine, CoachingSession } from '@/data/coachingSystem';
@@ -727,9 +728,10 @@ export default function ImprovedBattleArena() {
 
   const handleChatMessage = useCallback((message: any) => {
     console.log('Chat message received:', message);
-    setChatMessages(prev => [...prev, `${formatCharacterName(message.character)}: ${message.message}`]);
+    const newMessage = `${formatCharacterName(message.character)}: ${message.message}`;
+    setChatMessages([...chatMessages, newMessage]);
     setIsCharacterTyping(false);
-  }, []);
+  }, [setChatMessages, setIsCharacterTyping, chatMessages]);
 
   // WebSocket event setup with proper cleanup
   useEffect(() => {
@@ -987,7 +989,7 @@ export default function ImprovedBattleArena() {
         playerTeam={playerTeam}
         opponentTeam={opponentTeam}
         currentRound={currentRound}
-        phase={phase as BattlePhase}
+        phase={phase as any}
         battleCries={battleCries}
         chatMessages={chatMessages}
         customMessage={customMessage}
@@ -1019,7 +1021,7 @@ export default function ImprovedBattleArena() {
         <CharacterSpecificStrategyPanel
           currentRound={currentRound}
           currentMatch={currentMatch}
-          playerTeam={playerTeam}
+          playerTeam={{ characters: playerTeam.characters.map(convertToTeamCharacter) }}
           characterStrategies={characterStrategies}
           onStrategyChange={coachingSystem.handleCharacterStrategyChange}
           onAllStrategiesComplete={coachingSystem.handleAllCharacterStrategiesComplete}
@@ -1106,8 +1108,8 @@ export default function ImprovedBattleArena() {
         {/* Team Chat Panel - Always Available (Extended) */}
         <div className="h-[400px]"> {/* Extended height for better chat experience */}
           <TeamChatPanel
-            playerTeam={playerTeam}
-            phase={phase}
+            playerTeam={{ characters: playerTeam.characters.map(convertToTeamCharacter) }}
+            phase={{ name: phase }}
             currentRound={currentRound}
             currentMatch={currentMatch}
             isVisible={true}
@@ -1272,7 +1274,12 @@ export default function ImprovedBattleArena() {
                   Cancel
                 </button>
                 <button
-                  onClick={coachingSystem.buildTeamFromCards}
+                  onClick={() => coachingSystem.buildTeamFromCards(
+                    playerCards,
+                    selectedTeamCards,
+                    setShowCardCollection,
+                    setSelectedTeamCards
+                  )}
                   disabled={selectedTeamCards.length !== 3}
                   className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
                     selectedTeamCards.length === 3

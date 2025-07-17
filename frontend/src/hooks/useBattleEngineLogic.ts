@@ -47,7 +47,7 @@ interface UseBattleEngineLogicProps {
   // Coaching System
   conductIndividualCoaching?: (character: any) => void;
   executeCoachingSession?: (focus: string) => void;
-  handleStrategyRecommendation?: (type: 'attack' | 'defense' | 'special', strategy: string) => Promise<string>;
+  handleStrategyRecommendation?: (type: 'attack' | 'defense' | 'special', strategy: string) => Promise<void>;
   getCharacterOpinion?: (type: string, strategy: string) => Promise<string>;
   insistOnStrategy?: (character: any, strategy: string) => void;
   checkForBerserk?: (character: any) => any;
@@ -72,7 +72,7 @@ interface UseBattleEngineLogicProps {
   calculateTeamPower?: (team: any) => number;
   handleTimerExpired?: () => void;
   showModal?: (modalType: string) => void;
-  hideModal?: () => void;
+  hideModal?: (modalType: string) => void;
   startTimer?: (duration: number) => void;
   stopTimer?: () => void;
   showBattleCries?: (cries: string[]) => void;
@@ -81,8 +81,8 @@ interface UseBattleEngineLogicProps {
   // Battle Simulation
   isOpponentAI?: boolean | (() => boolean);
   handleFastBattleRequest?: () => void;
-  startFastBattle?: (battleSetup: any) => void;
-  resolveFastBattle?: () => void;
+  startFastBattle?: () => void;
+  resolveFastBattle?: (battleSetup: any) => void;
   calculateFastBattleResult?: (battleSetup: any) => any;
 }
 
