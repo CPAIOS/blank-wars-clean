@@ -340,6 +340,8 @@ class RealEstateAgentBonusService {
    */
   private saveToStorage(): void {
     try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      
       if (this.selectedAgentId) {
         localStorage.setItem(this.STORAGE_KEY, this.selectedAgentId);
       } else {
@@ -355,6 +357,8 @@ class RealEstateAgentBonusService {
    */
   private loadFromStorage(): void {
     try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      
       const savedAgentId = localStorage.getItem(this.STORAGE_KEY);
       if (savedAgentId && AGENT_BONUSES[savedAgentId]) {
         this.selectedAgentId = savedAgentId;
