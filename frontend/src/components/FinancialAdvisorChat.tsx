@@ -10,6 +10,7 @@ import { Character } from '../data/characters';
 import ConflictContextService from '../services/conflictContextService';
 import EventContextService from '../services/eventContextService';
 import { makeFinancialJudgeDecision, FinancialJudgeDecision, FinancialEventContext } from '../data/aiJudgeSystem';
+import { FinancialDecision } from '../data/characters';
 import { FinancialPsychologyService } from '../services/financialPsychologyService';
 import { FinancialPromptTemplateService } from '../data/financialPromptTemplateService';
 
@@ -27,7 +28,7 @@ interface Message {
   };
 }
 
-interface FinancialDecision {
+interface LocalFinancialDecision {
   id: string;
   characterId: string;
   amount: number;
@@ -67,7 +68,7 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [pendingDecision, setPendingDecision] = useState<FinancialDecision | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<LocalFinancialDecision | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
   const [connected, setConnected] = useState(false);
@@ -167,7 +168,7 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
   }, [selectedCharacter]);
 
   // Generate random financial decisions for characters
-  const generateFinancialDecision = (character: EnhancedCharacter): FinancialDecision => {
+  const generateFinancialDecision = (character: EnhancedCharacter): LocalFinancialDecision => {
     const decisionTypes = [
       {
         description: "want to buy a luxury sports car",
@@ -218,7 +219,7 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
   };
 
   // Process character making a decision based on coach influence
-  const processCharacterDecision = async (decision: FinancialDecision, coachInput?: string) => {
+  const processCharacterDecision = async (decision: LocalFinancialDecision, coachInput?: string) => {
     if (!selectedCharacter) return;
 
     const trustLevel = selectedCharacter.financials?.coachFinancialTrust || 50;
@@ -371,7 +372,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
             monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
             financialStress: selectedCharacter.financials?.financialStress || 0,
             coachFinancialTrust: selectedCharacter.financials?.coachFinancialTrust || 0,
-            financialGoals[0]: selectedCharacter.financials?.financialGoals[0] || 'moderate',
+            spendingPersonality: selectedCharacter.financials?.financialGoals[0] || 'moderate',
             recentDecisions: selectedCharacter.financials?.recentDecisions || []
           },
           // Pending decision context
@@ -424,7 +425,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
     };
   };
 
-  const shouldAutomate = (decision: FinancialDecision, character: EnhancedCharacter): 'bad' | 'good' | null => {
+  const shouldAutomate = (decision: LocalFinancialDecision, character: EnhancedCharacter): 'bad' | 'good' | null => {
     const wallet = character.financials?.wallet || 19073;
     const stress = character.financials?.financialStress || 30;
     const trust = character.financials?.coachFinancialTrust || 50;
@@ -448,14 +449,14 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
     return null;
   };
 
-  const processDecisionOutcome = async (decision: FinancialDecision, coachDecision: 'rejected' | 'approved' | 'character_choice', trustLevel: number, stressLevel: number) => {
+  const processDecisionOutcome = async (decision: LocalFinancialDecision, coachDecision: 'rejected' | 'approved' | 'character_choice', trustLevel: number, stressLevel: number) => {
     if (!selectedCharacter) return null;
 
     const characterFinancials = selectedCharacter.financials || {
       wallet: 19073,
       financialStress: stressLevel,
       coachFinancialTrust: trustLevel,
-      financialGoals[0]: 'moderate',
+      spendingPersonality: 'moderate',
       recentDecisions: [],
       monthlyEarnings: 6055
     };
@@ -482,8 +483,8 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
           eventType: 'decision',
           financialImpact: decision.amount,
           stressLevel: stressLevel,
-          battleContext: undefined,
-          coachAdvice: 'rejected'
+          coachInvolvement: false,
+          battleContext: undefined
         };
 
         const judgeRuling = makeFinancialJudgeDecision(judgeContext, decision, undefined);
@@ -525,8 +526,8 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
         eventType: 'decision',
         financialImpact: decision.amount,
         stressLevel: stressLevel,
-        battleContext: undefined,
-        coachAdvice: 'neutral'
+        coachInvolvement: true,
+        battleContext: undefined
       };
 
       const judgeRuling = makeFinancialJudgeDecision(judgeContext, decision, undefined);
@@ -580,11 +581,17 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
         selectedCharacter.financials.financialStress = Math.max(0, Math.min(100, selectedCharacter.financials.financialStress + outcome.stressChange));
         selectedCharacter.financials.coachFinancialTrust = Math.max(0, Math.min(100, selectedCharacter.financials.coachFinancialTrust + outcome.trustChange));
         selectedCharacter.financials.recentDecisions.push({
-          decision: decision.description,
+          id: `decision_${Date.now()}`,
+          characterId: selectedCharacter.id,
+          decision: 'other',
           amount: decision.amount,
-          coachDecision,
-          outcome: outcome.result,
-          timestamp: new Date()
+          outcome: outcome.result as 'positive' | 'negative' | 'neutral' | 'pending',
+          followedAdvice: coachDecision === 'approved',
+          timestamp: new Date(),
+          description: decision.description,
+          financialImpact: outcome.moneyChange,
+          stressImpact: outcome.stressChange,
+          relationshipImpact: outcome.trustChange
         });
       }
     };
@@ -703,7 +710,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
             monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
             financialStress: selectedCharacter.financials?.financialStress || 0,
             coachFinancialTrust: selectedCharacter.financials?.coachFinancialTrust || 0,
-            financialGoals[0]: selectedCharacter.financials?.financialGoals[0] || 'moderate',
+            spendingPersonality: selectedCharacter.financials?.financialGoals[0] || 'moderate',
             recentDecisions: selectedCharacter.financials?.recentDecisions || []
           },
           decision: pendingDecision ? {
@@ -758,7 +765,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
               monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
               financialStress: selectedCharacter.financials?.financialStress || 0,
               coachFinancialTrust: selectedCharacter.financials?.coachFinancialTrust || 0,
-              financialGoals[0]: selectedCharacter.financials?.financialGoals[0] || 'moderate',
+              spendingPersonality: selectedCharacter.financials?.financialGoals[0] || 'moderate',
               recentDecisions: selectedCharacter.financials?.recentDecisions || []
             },
             // Pending decision context (should be null after decision is made)
@@ -892,7 +899,7 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
                 monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
                 financialStress: selectedCharacter.financials?.financialStress || 0,
                 coachFinancialTrust: selectedCharacter.financials?.coachFinancialTrust || 0,
-                financialGoals[0]: selectedCharacter.financials?.financialGoals[0] || 'moderate',
+                spendingPersonality: selectedCharacter.financials?.financialGoals[0] || 'moderate',
                 recentDecisions: selectedCharacter.financials?.recentDecisions || []
               },
               // Add comprehensive financial coaching conversation context like CoachingSessionChat
