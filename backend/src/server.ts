@@ -1657,10 +1657,18 @@ const PORT = process.env.PORT || 3006;
 
 async function startServer() {
   try {
+    console.log('🟡 Starting server initialization...');
+    console.log('🟡 PORT:', PORT);
+    console.log('🟡 NODE_ENV:', process.env.NODE_ENV);
+    console.log('🟡 DATABASE_URL exists:', !!process.env.DATABASE_URL);
+    
     // Initialize database
+    console.log('🟡 Initializing database...');
     await initializeDatabase();
+    console.log('✅ Database initialized successfully');
     
     // Start the server
+    console.log('🟡 Starting HTTP server...');
     httpServer.listen(PORT, () => {
       console.log(`🚀 Blank Wars API Server running!`);
       console.log(`📍 Port: ${PORT}`);
@@ -1670,6 +1678,7 @@ async function startServer() {
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
+    console.error('❌ Error stack:', error.stack);
     process.exit(1);
   }
 }
