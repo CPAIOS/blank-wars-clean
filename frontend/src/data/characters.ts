@@ -1,11 +1,38 @@
 // Comprehensive Character Database
 // Full character stats, abilities, progression trees, and game data
 
-import { CharacterExperience } from '../../../frontend/src/data/experience';
-import { CharacterAbilities } from '../../../frontend/src/data/abilities';
-import { CharacterSkills } from '../../../frontend/src/data/characterProgression';
-import { Equipment, allEquipment } from '../../../frontend/src/data/equipment';
-import { Item } from '../../../frontend/src/data/items';
+// Character experience tracking
+export interface CharacterExperience {
+  currentXP: number;
+  totalXP: number;
+  level: number;
+  experienceToNext: number;
+}
+
+// Character skills tracking
+export interface CharacterSkills {
+  combat: Record<string, number>;
+  magic: Record<string, number>;
+  social: Record<string, number>;
+  survival: Record<string, number>;
+}
+
+// Equipment interface
+export interface Equipment {
+  id: string;
+  name: string;
+  type: string;
+  stats: Record<string, number>;
+  rarity: string;
+}
+
+// Item interface
+export interface Item {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+}
 
 export type CharacterArchetype =
   | 'warrior' | 'mage' | 'assassin' | 'tank' | 'support'
@@ -152,6 +179,13 @@ export interface SpecialPower {
   teamPlayerRequired?: number; // Some abilities require teamwork
 }
 
+// Character abilities tracking
+export interface CharacterAbilities {
+  passive: string[];
+  active: string[];
+  signature: string[];
+}
+
 export interface Character {
   // Basic Info
   id: string;
@@ -264,7 +298,7 @@ export interface Character {
 }
 
 // Character Templates (excluding runtime fields that get initialized when character is created)
-export const characterTemplates: Record<string, Omit<Character, 'id' | 'experience' | 'skills' | 'abilities' | 'financials' | 'traditionalStats' | 'temporaryStats' | 'currentHp' | 'maxHp' | 'experienceToNext' | 'personalityTraits' | 'speakingStyle' | 'decisionMaking' | 'conflictResponse' | 'statusEffects' | 'injuries' | 'restDaysNeeded' | 'battleAbilities' | 'specialPowers' | 'financialPersonality'>> = {
+export const characterTemplates: Record<string, Omit<Character, 'id' | 'experience' | 'skills' | 'abilities' | 'financials' | 'personalityTraits' | 'speakingStyle' | 'decisionMaking' | 'conflictResponse' | 'statusEffects' | 'injuries' | 'restDaysNeeded' | 'battleAbilities' | 'specialPowers' | 'financialPersonality'>> = {
   achilles: {
     name: 'Achilles',
     title: 'Hero of Troy',
@@ -498,7 +532,55 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
         'By the old ways, I command thee!',
         'Witness the might of ages past'
       ]
-    }
+    },
+
+    // Battle-specific fields from TeamCharacter merge
+    traditionalStats: {
+      strength: 30,      // Maps directly from baseStats.strength
+      vitality: 70,      // Maps directly from baseStats.vitality
+      speed: 50,         // Maps directly from baseStats.agility
+      dexterity: 50,     // Maps directly from baseStats.agility
+      stamina: 70,       // Maps directly from baseStats.vitality
+      intelligence: 98,  // Maps directly from baseStats.intelligence
+      charisma: 85,      // Maps directly from baseStats.charisma
+      spirit: 95         // Maps directly from baseStats.wisdom
+    },
+    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
+    currentHp: 800,       // Maps directly from combatStats.health
+    maxHp: 800,           // Maps directly from combatStats.maxHealth
+    experienceToNext: 100, // Level 1 → 2 requires 100 XP (from XP_CURVE_BASE)
+    personalityTraits: ['Wise', 'Mysterious', 'Patient', 'Calculating'],
+    speakingStyle: 'archaic',
+    decisionMaking: 'logical',
+    conflictResponse: 'diplomatic',
+    statusEffects: [],
+    injuries: [],
+    restDaysNeeded: 0,
+    battleAbilities: [
+      {
+        id: 'arcane_missile',
+        name: 'Arcane Missile',
+        type: 'attack',
+        power: 40,
+        cooldown: 1,
+        currentCooldown: 0,
+        description: 'Channel arcane energy for precise magical attack',
+        icon: '🔮',
+        mentalHealthRequired: 70
+      }
+    ],
+    specialPowers: [
+      {
+        id: 'time_manipulation',
+        name: 'Time Manipulation',
+        type: 'active',
+        description: 'Ancient magic allows brief manipulation of battlefield time',
+        effect: 'Team gets extra turn, enemies skip next turn',
+        icon: '⏰',
+        cooldown: 8,
+        currentCooldown: 0
+      }
+    ]
   },
 
 
@@ -707,8 +789,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Solving mysteries', 'Intellectual superiority', 'Outwitting rivals'],
       fears: ['Failure to solve a case', 'Emotional vulnerability'],
       relationships: [
-        { characterId: 'dracula', relationship: 'rival', strength: -80 },
-        { characterId: 'joan', relationship: 'ally', strength: 60 }
+        { characterId: 'dracula', relationship: 'rival', strength: -80, history: 'Rival detectives with opposing methods and philosophies' },
+        { characterId: 'joan', relationship: 'ally', strength: 60, history: 'Mutual respect for dedication to justice and truth' }
       ]
     },
     level: 1,
@@ -747,7 +829,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'deductive_gambit',
               name: 'Deductive Gambit',
               description: 'Exposes enemy weaknesses, lowering defense for 3 turns.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['deductive_gambit'] },
               position: { x: 0, y: 0 },
@@ -804,8 +886,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Dominance', 'Immortality', 'Conquest'],
       fears: ['Sunlight', 'Oblivion', 'Holy artifacts'],
       relationships: [
-        { characterId: 'joan', relationship: 'enemy', strength: -95 },
-        { characterId: 'holmes', relationship: 'rival', strength: -80 }
+        { characterId: 'joan', relationship: 'enemy', strength: -95, history: 'Ancient evil opposes divine light - eternal enemies' },
+        { characterId: 'holmes', relationship: 'rival', strength: -80, history: 'Intellectual games between predator and analytical mind' }
       ]
     },
     level: 1,
@@ -901,8 +983,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Divine mission', 'Liberation', 'Faith'],
       fears: ['Abandoning her cause', 'Letting others down'],
       relationships: [
-        { characterId: 'dracula', relationship: 'enemy', strength: -95 },
-        { characterId: 'holmes', relationship: 'ally', strength: 60 }
+        { characterId: 'dracula', relationship: 'enemy', strength: -95, history: 'Holy warrior sworn to defeat creatures of darkness' },
+        { characterId: 'holmes', relationship: 'ally', strength: 60, history: 'Both seek truth and justice through different means' }
       ]
     },
     level: 1,
@@ -998,8 +1080,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Acceptance', 'Freedom', 'Protection (of friends)'],
       fears: ['Rejection', 'Fire', 'Hurting innocents'],
       relationships: [
-        { characterId: 'dracula', relationship: 'enemy', strength: -60 },
-        { characterId: 'joan', relationship: 'ally', strength: 40 }
+        { characterId: 'dracula', relationship: 'enemy', strength: -60, history: 'Monster versus monster - different kinds of outcasts' },
+        { characterId: 'joan', relationship: 'ally', strength: 40, history: 'Kindred spirit recognizes his gentle nature beneath the horror' }
       ]
     },
     level: 1,
@@ -1095,8 +1177,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Freedom', 'Adventure', 'Proving worth'],
       fears: ['Enslavement', 'Boredom'],
       relationships: [
-        { characterId: 'merlin', relationship: 'rival', strength: -60 },
-        { characterId: 'achilles', relationship: 'ally', strength: 30 }
+        { characterId: 'merlin', relationship: 'rival', strength: -60, history: 'Magical rivalry between ancient wisdom and chaotic trickery' },
+        { characterId: 'achilles', relationship: 'ally', strength: 30, history: 'Warriors who respect each others fighting prowess' }
       ]
     },
     level: 1,
