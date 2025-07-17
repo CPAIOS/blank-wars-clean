@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  MessageCircle, Clock, AlertTriangle, Heart, Brain, 
+import {
+  MessageCircle, Clock, AlertTriangle, Heart, Brain,
   Users, Target, CheckCircle, XCircle, Pause, Play,
   TrendingUp, TrendingDown, Activity, Zap
 } from 'lucide-react';
@@ -34,12 +34,12 @@ interface CoachingSessionData {
   effectiveness: number;
 }
 
-export default function CoachingInterface({ 
-  character, 
-  isTimeoutActive = false, 
+export default function CoachingInterface({
+  character,
+  isTimeoutActive = false,
   timeRemaining = 0,
   onCoachingAction,
-  onCloseCoaching 
+  onCloseCoaching
 }: CoachingInterfaceProps) {
   const [sessionData, setSessionData] = useState<CoachingSessionData>({
     coachingMessages: [],
@@ -49,7 +49,7 @@ export default function CoachingInterface({
     timeSpent: 0,
     effectiveness: 0
   });
-  
+
   const [currentMessage, setCurrentMessage] = useState('');
   const [selectedCoachingType, setSelectedCoachingType] = useState<CoachingAction['type'] | null>(null);
   const [selectedIntensity, setSelectedIntensity] = useState<CoachingAction['intensity']>('gentle');
@@ -60,7 +60,7 @@ export default function CoachingInterface({
   const generateCharacterResponse = (coachingType: string, message: string, intensity: string): string => {
     const mental = character.mentalState;
     const personality = character.character.personality;
-    
+
     // High stress characters respond differently
     if (mental.stress > 70) {
       if (intensity === 'intense') {
@@ -118,7 +118,7 @@ export default function CoachingInterface({
     const sendCoachingRequest = async () => {
       try {
         const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-        
+
         const response = await fetch(`${BACKEND_URL}/coaching/individual`, {
           method: 'POST',
           credentials: 'include',
@@ -132,7 +132,7 @@ export default function CoachingInterface({
             intensity: selectedIntensity,
             context: {
               mentalState: character.mentalState,
-              bondLevel: character.bondLevel || 50,
+              bondLevel: character.character.bondLevel || 50,
               previousMessages: sessionData.characterResponses.slice(-3)
             }
           })
@@ -143,7 +143,7 @@ export default function CoachingInterface({
         }
 
         const data = await response.json();
-        
+
         setSessionData(prev => ({
           ...prev,
           characterResponses: [...prev.characterResponses, data.message],
@@ -291,7 +291,7 @@ export default function CoachingInterface({
               {timeRemaining}s
             </div>
           )}
-          
+
           <button
             onClick={() => setShowEffectivenessMetrics(!showEffectivenessMetrics)}
             className="p-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 rounded-lg transition-all"
@@ -316,7 +316,7 @@ export default function CoachingInterface({
             <Brain className="w-5 h-5" />
             Psychology Status
           </h3>
-          
+
           <div className="space-y-3">
             {/* Mental Health */}
             <div>
@@ -331,7 +331,7 @@ export default function CoachingInterface({
                 </span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
+                <div
                   className={`h-full rounded-full transition-all ${
                     character.mentalState.currentMentalHealth >= 70 ? 'bg-green-500' :
                     character.mentalState.currentMentalHealth >= 40 ? 'bg-yellow-500' :
@@ -351,7 +351,7 @@ export default function CoachingInterface({
                 </span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
+                <div
                   className="h-full rounded-full bg-red-500 transition-all"
                   style={{ width: `${character.mentalState.stress}%` }}
                 />
@@ -371,7 +371,7 @@ export default function CoachingInterface({
                 </span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
+                <div
                   className={`h-full rounded-full transition-all ${
                     character.gameplanAdherence >= 70 ? 'bg-blue-500' :
                     character.gameplanAdherence >= 40 ? 'bg-yellow-500' :
@@ -391,7 +391,7 @@ export default function CoachingInterface({
                 </span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
+                <div
                   className="h-full rounded-full bg-purple-500 transition-all"
                   style={{ width: `${character.mentalState.teamTrust}%` }}
                 />
@@ -446,8 +446,8 @@ export default function CoachingInterface({
                 key={option.type}
                 onClick={() => setSelectedCoachingType(option.type)}
                 className={`w-full p-3 rounded-lg text-left transition-all border ${
-                  selectedCoachingType === option.type 
-                    ? 'bg-blue-600/30 border-blue-500' 
+                  selectedCoachingType === option.type
+                    ? 'bg-blue-600/30 border-blue-500'
                     : getUrgencyColor(option.urgency)
                 } hover:opacity-80`}
               >
@@ -465,7 +465,7 @@ export default function CoachingInterface({
 
           {/* Custom Message Input */}
           {selectedCoachingType && (
-            <motion.div 
+            <motion.div
               className="mt-4 pt-4 border-t border-gray-600"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -498,7 +498,7 @@ export default function CoachingInterface({
 
           {/* Effectiveness Metrics */}
           {showEffectivenessMetrics && sessionData.sessionActive && (
-            <motion.div 
+            <motion.div
               className="mb-4 p-3 bg-blue-600/20 rounded border border-blue-500/50"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -541,7 +541,7 @@ export default function CoachingInterface({
               sessionData.coachingMessages.map((message, idx) => (
                 <div key={idx} className="space-y-2">
                   {/* Coach Message */}
-                  <motion.div 
+                  <motion.div
                     className="bg-green-600/20 border-l-4 border-green-500 p-2 rounded-r"
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -552,7 +552,7 @@ export default function CoachingInterface({
 
                   {/* Character Response */}
                   {sessionData.characterResponses[idx] && (
-                    <motion.div 
+                    <motion.div
                       className="bg-blue-600/20 border-l-4 border-blue-500 p-2 rounded-r ml-4"
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -568,7 +568,7 @@ export default function CoachingInterface({
 
             {/* Character Typing Indicator */}
             {isCharacterTyping && (
-              <motion.div 
+              <motion.div
                 className="bg-gray-600/20 border-l-4 border-gray-500 p-2 rounded-r ml-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

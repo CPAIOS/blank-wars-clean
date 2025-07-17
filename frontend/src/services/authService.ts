@@ -10,6 +10,7 @@ interface AuthResponse {
 interface ProfileResponse {
   success: boolean;
   user: UserProfile;
+  error?: string;
 }
 
 interface TokenRefreshResponse {
@@ -20,12 +21,12 @@ interface TokenRefreshResponse {
 class AuthService {
   private readonly baseURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
   private readonly timeout = 10000; // 10 seconds
-  
+
   // Helper method to add timeout to fetch requests
   private async fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-    
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -59,7 +60,7 @@ class AuthService {
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Login failed');
       }
@@ -91,7 +92,7 @@ class AuthService {
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Registration failed');
       }
@@ -108,6 +109,7 @@ class AuthService {
 
   async getProfile(): Promise<UserProfile> {
     try {
+      console.log('🔄 [AuthService] Fetching user profile...');
       const response = await this.fetchWithTimeout(`${this.baseURL}/api/auth/profile`, {
         method: 'GET',
         headers: {
@@ -118,27 +120,32 @@ class AuthService {
 
       if (!response.ok) {
         if (response.status === 401) {
+          console.log('⚠️ [AuthService] Token expired, need to refresh');
           throw new Error('Token expired');
         }
         const errorData = await response.json();
+        console.error('❌ [AuthService] Profile fetch failed:', errorData);
         throw new Error(errorData.error || 'Failed to get profile');
       }
 
       const data: ProfileResponse = await response.json();
-      
+
       if (!data.success) {
+        console.error('❌ [AuthService] Profile response unsuccessful:', data);
         throw new Error(data.error || 'Failed to get profile');
       }
 
+      console.log('✅ [AuthService] Profile fetched successfully for user:', data.user.username);
       return data.user;
     } catch (error) {
-      console.error('Get profile error:', error);
+      console.error('❌ [AuthService] Get profile error:', error);
       throw error instanceof Error ? error : new Error('Failed to get profile');
     }
   }
 
   async refreshToken(): Promise<void> {
     try {
+      console.log('🔄 [AuthService] Refreshing token...');
       const response = await this.fetchWithTimeout(`${this.baseURL}/api/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -149,19 +156,22 @@ class AuthService {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ [AuthService] Token refresh failed:', errorData);
         throw new Error(errorData.error || 'Token refresh failed');
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
+        console.error('❌ [AuthService] Token refresh response unsuccessful:', data);
         throw new Error(data.error || 'Token refresh failed');
       }
 
+      console.log('✅ [AuthService] Token refreshed successfully');
       // SECURITY: New tokens are now set as httpOnly cookies by server
       // No need to return them
     } catch (error) {
-      console.error('Token refresh error:', error);
+      console.error('❌ [AuthService] Token refresh error:', error);
       throw error instanceof Error ? error : new Error('Token refresh failed');
     }
   }

@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Zap, 
-  Star, 
-  Crown, 
+import {
+  Zap,
+  Star,
+  Crown,
   Target,
   Clock,
   Flame,
@@ -20,8 +20,8 @@ import {
   Send,
   User
 } from 'lucide-react';
-import { 
-  Ability, 
+import {
+  Ability,
   AbilityType,
   AbilityProgress,
   getAbilitiesForCharacter,
@@ -56,7 +56,7 @@ export default function AbilityManager({
   const [selectedAbility, setSelectedAbility] = useState<Ability | null>(null);
   const [filterType, setFilterType] = useState<AbilityType | 'all'>('all');
   const [showLockedAbilities, setShowLockedAbilities] = useState(false);
-  
+
   // Skill Development Chat State
   const [showSkillChat, setShowSkillChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{
@@ -83,7 +83,7 @@ export default function AbilityManager({
   const getAbilityProgress = (abilityId: string): AbilityProgress => {
     const existing = abilityProgress.find(p => p.abilityId === abilityId);
     if (existing) return existing;
-    
+
     return {
       abilityId,
       currentRank: 1,
@@ -155,7 +155,7 @@ export default function AbilityManager({
       // Real API call to skills coaching service
       const token = localStorage.getItem('accessToken');
       const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-      
+
       const response = await fetch(`${BACKEND_URL}/coaching/skills`, {
         method: 'POST',
         headers: {
@@ -184,7 +184,7 @@ export default function AbilityManager({
       }
 
       const data = await response.json();
-      
+
       const aiResponse = {
         id: Date.now() + 1,
         sender: 'character' as const,
@@ -192,7 +192,7 @@ export default function AbilityManager({
         timestamp: new Date(),
         characterName: data.character || characterName
       };
-      
+
       setChatMessages(prev => [...prev, aiResponse]);
       setIsChatLoading(false);
     } catch (error) {
@@ -386,7 +386,7 @@ export default function AbilityManager({
                     Use Ability
                   </button>
                 )}
-                
+
                 {context !== 'battle' && isAvailable && progress.currentRank < ability.maxRank && onUpgradeAbility && (
                   <button
                     onClick={(e) => {
@@ -410,7 +410,7 @@ export default function AbilityManager({
           <Zap className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-400 mb-2">No Abilities Found</h3>
           <p className="text-gray-500">
-            {showLockedAbilities 
+            {showLockedAbilities
               ? "This character has no abilities of the selected type"
               : "Try showing locked abilities or changing the filter"}
           </p>
@@ -474,7 +474,7 @@ export default function AbilityManager({
                         Rank {progress.currentRank}/{selectedAbility.maxRank}
                       </span>
                     </div>
-                    
+
                     {progress.currentRank < selectedAbility.maxRank && (
                       <div className="mb-2">
                         <div className="bg-gray-700 rounded-full h-3 overflow-hidden">
@@ -524,9 +524,9 @@ export default function AbilityManager({
                       <div className="text-sm text-gray-300">
                         {effect.type === 'damage' && `${effect.value} ${effect.damageType} damage`}
                         {effect.type === 'heal' && `Restores ${effect.value} HP`}
-                        {effect.type === 'stat_modifier' && 
+                        {effect.type === 'stat_modifier' &&
                           `${effect.value > 0 ? '+' : ''}${effect.value}% ${effect.stat?.toUpperCase()} ${effect.duration ? `for ${effect.duration} turns` : ''}`}
-                        {effect.type === 'status_effect' && 
+                        {effect.type === 'status_effect' &&
                           `Applies ${effect.statusEffect} ${effect.duration ? `for ${effect.duration} turns` : ''}`}
                         {effect.type === 'special' && 'Special effect (see ability description)'}
                       </div>
@@ -577,7 +577,7 @@ export default function AbilityManager({
                     Use Ability
                   </button>
                 )}
-                
+
                 <button
                   onClick={() => setSelectedAbility(null)}
                   className="flex-1 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"

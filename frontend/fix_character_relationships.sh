@@ -18,7 +18,7 @@ cp "$FILE" "${FILE}.backup"
 sed -i "s/{ characterId: 'merlin', relationship: 'rival', strength: -60 },/{ characterId: 'merlin', relationship: 'rival', strength: -60, history: 'Magical rivalry between ancient wisdom and chaotic trickery' },/g" "$FILE"
 sed -i "s/{ characterId: 'achilles', relationship: 'ally', strength: 30 }/{ characterId: 'achilles', relationship: 'ally', strength: 30, history: 'Warriors who respect each others fighting prowess' }/g" "$FILE"
 
-# Fix Sammy Slugger relationships  
+# Fix Sammy Slugger relationships
 sed -i "s/{ characterId: 'holmes', relationship: 'rival', strength: -55 },/{ characterId: 'holmes', relationship: 'rival', strength: -55, history: 'Different detective methods create professional tension' },/g" "$FILE"
 sed -i "s/{ characterId: 'dracula', relationship: 'enemy', strength: -30 },/{ characterId: 'dracula', relationship: 'enemy', strength: -30, history: 'Street cop versus supernatural evil' },/g" "$FILE"
 sed -i "s/{ characterId: 'robin_hood', relationship: 'ally', strength: 25 },/{ characterId: 'robin_hood', relationship: 'ally', strength: 25, history: 'Both fight for justice against corruption' },/g" "$FILE"
@@ -46,7 +46,7 @@ sed -i "s/{ characterId: 'genghis_khan', relationship: 'ally', strength: 20 }/{ 
 sed -i "s/{ characterId: 'merlin', relationship: 'rival', strength: -60 },/{ characterId: 'merlin', relationship: 'rival', strength: -60, history: 'Science versus magic - competing worldviews' },/g" "$FILE"
 sed -i "s/{ characterId: 'dracula', relationship: 'enemy', strength: -35 }/{ characterId: 'dracula', relationship: 'enemy', strength: -35, history: 'Illumination and progress against ancient evil' }/g" "$FILE"
 
-# Fix Alien Grey relationships  
+# Fix Alien Grey relationships
 sed -i "s/{ characterId: 'tesla', relationship: 'ally', strength: 65 },/{ characterId: 'tesla', relationship: 'ally', strength: 65, history: 'Advanced science recognizes pioneering electrical genius' },/g" "$FILE"
 sed -i "s/{ characterId: 'dracula', relationship: 'enemy', strength: -80 }/{ characterId: 'dracula', relationship: 'enemy', strength: -80, history: 'Advanced logical beings oppose chaotic evil entities' }/g" "$FILE"
 

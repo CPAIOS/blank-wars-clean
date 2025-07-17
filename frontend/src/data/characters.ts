@@ -31,7 +31,7 @@ export interface Item {
 
 export type CharacterArchetype =
   | 'warrior' | 'mage' | 'assassin' | 'tank' | 'support'
-  | 'beast' | 'trickster' | 'mystic' | 'elementalist' | 'berserker' | 'scholar';
+  | 'beast' | 'trickster' | 'mystic' | 'elementalist' | 'berserker' | 'scholar' | 'leader';
 
 export type CharacterRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
@@ -2324,7 +2324,8 @@ function generateFinancialPersonality(templateId: string, archetype: CharacterAr
     mystic: { spendingStyle: 'strategic', riskTolerance: 50, financialWisdom: 80 },
     elementalist: { spendingStyle: 'moderate', riskTolerance: 60, luxuryDesire: 40 },
     berserker: { spendingStyle: 'impulsive', riskTolerance: 95, financialWisdom: 10 },
-    scholar: { spendingStyle: 'conservative', riskTolerance: 20, financialWisdom: 95 }
+    scholar: { spendingStyle: 'conservative', riskTolerance: 20, financialWisdom: 95 },
+    leader: { spendingStyle: 'strategic', riskTolerance: 50, generosity: 70 }
   };
 
   const base = defaultByArchetype[archetype] || defaultByArchetype.warrior;

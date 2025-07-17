@@ -27,7 +27,7 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
   try {
     const response = await characterAPI.getUserCharacters();
     const characters = response.characters || [];
-    
+
     return characters.map((char: any) => {
       const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
       return {
@@ -73,14 +73,14 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
 // Generate character-specific equipment advice based on actual gear and stats
 const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
-  
+
   // Safety check to prevent destructuring errors
   if (!character) {
     return ["Check your equipment regularly", "Upgrade when possible", "Match gear to your fighting style"];
   }
-  
+
   const { baseStats, combatStats, archetype } = character;
-  
+
   // Archetype-specific equipment recommendations
   if (archetype === 'warrior' && baseStats?.strength && baseStats.strength < 80) {
     advice.push(`As a warrior, you need strength-boosting weapons - current strength is only ${baseStats.strength}`);
@@ -91,7 +91,7 @@ const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
   if (archetype === 'assassin' && baseStats?.agility && baseStats.agility < 80) {
     advice.push(`Precision weapons would suit your assassin skills better - agility is ${baseStats.agility}`);
   }
-  
+
   // Defense recommendations based on vitality
   if (baseStats?.vitality && baseStats.vitality < 70) {
     advice.push(`Your vitality (${baseStats.vitality}) is low - consider heavier armor for protection`);
@@ -99,7 +99,7 @@ const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
   if (baseStats?.vitality && baseStats.vitality > 90) {
     advice.push(`Your high vitality (${baseStats.vitality}) allows for lighter, faster armor`);
   }
-  
+
   // Speed-based equipment advice
   if (combatStats?.speed && combatStats.speed < 60) {
     advice.push(`Your speed (${combatStats.speed}) needs mobility-enhancing gear`);
@@ -107,7 +107,7 @@ const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
   if (combatStats?.speed && combatStats.speed > 85) {
     advice.push(`Your excellent speed (${combatStats.speed}) would benefit from agility-focused equipment`);
   }
-  
+
   // Combat stat-based equipment needs
   if (combatStats?.attack && combatStats.attack < 100) {
     advice.push('Focus on offensive weapons to boost your attack power');
@@ -118,7 +118,7 @@ const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
   if (combatStats?.criticalChance && combatStats.criticalChance < 20) {
     advice.push('Consider crit-boosting accessories to enhance your damage output');
   }
-  
+
   // Mental state equipment considerations
   if (character.psychStats?.mentalHealth && character.psychStats.mentalHealth < 60) {
     advice.push('Choose reliable, simple equipment until your mental health improves');
@@ -126,7 +126,7 @@ const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
   if (character.psychStats?.ego && character.psychStats.ego > 80) {
     advice.push('Flashy, prestigious equipment would suit your high ego personality');
   }
-  
+
   // Character-specific recommendations
   if (character.personality?.traits?.includes('Prideful')) {
     advice.push('Your pride demands equipment that makes a statement');
@@ -134,14 +134,14 @@ const generateEquipmentAdvice = (character: EnhancedCharacter): string[] => {
   if (character.personality?.traits?.includes('Honorable')) {
     advice.push('Focus on traditional, well-crafted gear over flashy appearance');
   }
-  
+
   // Fallback advice if nothing specific applies
   if (advice.length === 0) {
     advice.push('Balance offense and defense based on your role');
     advice.push('Consider equipment that enhances your strongest stats');
     advice.push('Upgrade gear that matches your fighting style');
   }
-  
+
   return advice.slice(0, 8);
 };
 
@@ -152,8 +152,8 @@ interface EquipmentAdvisorChatProps {
   availableCharacters?: EnhancedCharacter[];
 }
 
-export default function EquipmentAdvisorChat({ 
-  selectedCharacterId, 
+export default function EquipmentAdvisorChat({
+  selectedCharacterId,
   onCharacterChange,
   selectedCharacter: propSelectedCharacter,
   availableCharacters: propAvailableCharacters
@@ -172,7 +172,7 @@ export default function EquipmentAdvisorChat({
         setLocalAvailableCharacters(characters);
         setCharactersLoading(false);
       };
-      
+
       loadCharacters();
     } else {
       setCharactersLoading(false);
@@ -207,7 +207,7 @@ export default function EquipmentAdvisorChat({
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
     console.log('🔌 [EquipmentAdvisor] Connecting to local backend:', socketUrl);
-    
+
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
@@ -235,7 +235,7 @@ export default function EquipmentAdvisorChat({
 
     socketRef.current.on('chat_response', (data: { character: string; message: string; bondIncrease?: boolean }) => {
       console.log('📨 EquipmentAdvisor response:', data);
-      
+
       const characterMessage: Message = {
         id: Date.now(),
         type: 'character',
@@ -243,7 +243,7 @@ export default function EquipmentAdvisorChat({
         timestamp: new Date(),
         bondIncrease: data.bondIncrease || false,
       };
-      
+
       setMessages(prev => [...prev, characterMessage]);
       setIsTyping(false);
     });
@@ -268,7 +268,7 @@ export default function EquipmentAdvisorChat({
       if (selectedCharacter) {
         try {
           console.log('🏠 EquipmentAdvisor loading living context for:', selectedCharacter.baseName || selectedCharacter.name);
-          const context = await conflictService.generateLivingContext(selectedCharacter.baseName || 
+          const context = await conflictService.generateLivingContext(selectedCharacter.baseName ||
             selectedCharacter.name?.toLowerCase() || selectedCharacter.id);
           setLivingContext(context);
           console.log('✅ EquipmentAdvisor living context loaded:', context);
@@ -287,11 +287,11 @@ export default function EquipmentAdvisorChat({
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
-      console.log('❌ Equipment chat cannot send message:', { 
-        hasContent: !!content.trim(), 
-        isTyping, 
-        connected, 
-        hasSocket: !!socketRef.current 
+      console.log('❌ Equipment chat cannot send message:', {
+        hasContent: !!content.trim(),
+        isTyping,
+        connected,
+        hasSocket: !!socketRef.current
       });
       return;
     }
@@ -339,10 +339,10 @@ export default function EquipmentAdvisorChat({
     }
 
     // Use real character equipment data instead of fake data
-    const currentEquipment = selectedCharacter.equippedItems || selectedCharacter.equipment || {};
+    const currentEquipment = selectedCharacter.equippedItems || {};
     const inventory = selectedCharacter.inventory || [];
     const characterLevel = selectedCharacter.level || 1;
-    
+
     socketRef.current.emit('chat_message', {
       message: content,
       character: selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id,
@@ -380,14 +380,14 @@ YOUR CURRENT STATS (reference these specific numbers):
 - Archetype: ${selectedCharacter.archetype}
 
 YOUR CURRENT EQUIPMENT:
-${Object.keys(currentEquipment).length > 0 ? 
-  Object.entries(currentEquipment).map(([slot, item]) => `- ${slot}: ${item.name} (${item.type})`).join('\n') : 
+${Object.keys(currentEquipment).length > 0 ?
+  Object.entries(currentEquipment).map(([slot, item]) => `- ${slot}: ${item.name} (${item.type})`).join('\n') :
   '- No equipment currently equipped'
 }
 
 YOUR INVENTORY (${inventory.length} items):
-${inventory.length > 0 ? 
-  inventory.slice(0, 5).map(item => `- ${item.name} (${item.type}) - ${item.description || 'Equipment item'}`).join('\n') : 
+${inventory.length > 0 ?
+  inventory.slice(0, 5).map(item => `- ${item.name} (${item.type}) - ${item.description || 'Equipment item'}`).join('\n') :
   '- No items in inventory'
 }
 
@@ -471,7 +471,7 @@ You should naturally reference your current equipment, mention specific items in
 
   return (
     <div className="max-w-6xl mx-auto">
-      <motion.div 
+      <motion.div
         className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 rounded-xl backdrop-blur-sm border border-blue-500/30 overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -529,7 +529,7 @@ You should naturally reference your current equipment, mention specific items in
                   }`}>
                     <p>{message.content}</p>
                     {message.bondIncrease && (
-                      <motion.div 
+                      <motion.div
                         className="mt-2 flex items-center gap-1 text-xs text-yellow-200"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -541,7 +541,7 @@ You should naturally reference your current equipment, mention specific items in
                   </div>
                 </motion.div>
               ))}
-              
+
               {isTyping && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -557,17 +557,17 @@ You should naturally reference your current equipment, mention specific items in
                   </div>
                 </motion.div>
               )}
-              
+
               <div ref={messagesEndRef} />
             </div>
 
             <div className="p-4 border-t border-blue-500/30 bg-blue-900/10">
               <div className="text-xs text-blue-300 mb-2">
-                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} | 
-                {isTyping ? ' ⏳ Examining equipment...' : ' ✅ Ready for gear discussion'} | 
+                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} |
+                {isTyping ? ' ⏳ Examining equipment...' : ' ✅ Ready for gear discussion'} |
                 Messages: {messages.length}
               </div>
-              
+
               <div className="flex gap-2">
                 <input
                   type="text"

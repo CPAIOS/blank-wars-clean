@@ -82,7 +82,8 @@ export default function CombatDemo() {
         { name: 'Rage of Achilles', type: 'special', power: 120, cooldown: 4, currentCooldown: 0, description: 'Berserker rage mode', icon: '⚡' },
         { name: 'Invulnerable Stance', type: 'defense', power: 0, cooldown: 5, currentCooldown: 0, description: 'Temporary invulnerability', icon: '✨' }
       ],
-      avatar: '⚔️'
+      avatar: '⚔️',
+      items: []
     },
     player2: {
       name: 'Merlin',
@@ -97,7 +98,8 @@ export default function CombatDemo() {
         { name: 'Lightning Bolt', type: 'attack', power: 110, cooldown: 3, currentCooldown: 0, description: 'Devastating lightning strike', icon: '⚡' },
         { name: 'Time Warp', type: 'special', power: 0, cooldown: 6, currentCooldown: 0, description: 'Manipulate time flow', icon: '🕐' }
       ],
-      avatar: '🧙'
+      avatar: '🧙',
+      items: []
     }
   });
 
@@ -136,12 +138,12 @@ export default function CombatDemo() {
   const executeAttack = (attacker: 'player1' | 'player2') => {
     const attackingChar = gameState[attacker];
     const defendingChar = attacker === 'player1' ? gameState.player2 : gameState.player1;
-    
+
     const damage = Math.round((attackingChar.atk - defendingChar.def * 0.5) * (0.8 + Math.random() * 0.4));
     const finalDamage = Math.max(5, damage);
-    
+
     const ability = attackingChar.abilities[Math.floor(Math.random() * attackingChar.abilities.length)];
-    
+
     setGameState(prev => ({
       ...prev,
       [attacker === 'player1' ? 'player2' : 'player1']: {
@@ -166,22 +168,22 @@ export default function CombatDemo() {
   };
 
   const enterChatPhase = () => {
-    setGameState(prev => ({ 
-      ...prev, 
-      round: prev.round + 1, 
+    setGameState(prev => ({
+      ...prev,
+      round: prev.round + 1,
       phase: 'chat',
-      combatActive: false 
+      combatActive: false
     }));
     setShowChat(true);
     addLog(`💬 Chat break! Talk to your warrior...`);
-    
+
     const messages = [
       "That wizard&apos;s magic stings! But I&apos;ve faced worse at Troy.",
       "Their defenses are weak - I can exploit that next round!",
       "Ha! Is that the best they can do? My shield has weathered stronger storms.",
       "I feel the rage building... shall I unleash it next round?"
     ];
-    
+
     setTimeout(() => {
       const message = messages[Math.floor(Math.random() * messages.length)];
       setChatPreview(`Achilles: "${message}"`);
@@ -191,10 +193,10 @@ export default function CombatDemo() {
   const continueFromChat = () => {
     setShowChat(false);
     setChatPreview('');
-    setGameState(prev => ({ 
-      ...prev, 
+    setGameState(prev => ({
+      ...prev,
       phase: 'strategy',
-      selectedStrategy: null 
+      selectedStrategy: null
     }));
     addLog("💪 Achilles feels inspired by your words! (+5% to next attack)");
   };
@@ -219,7 +221,7 @@ export default function CombatDemo() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <motion.div 
+      <motion.div
         className="bg-black/40 rounded-xl p-8 backdrop-blur-sm border border-gray-700"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -228,7 +230,7 @@ export default function CombatDemo() {
         {/* Battle Arena */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Player 1 */}
-          <motion.div 
+          <motion.div
             className={`bg-gray-800/50 rounded-lg p-6 border-2 transition-all ${
               gameState.combatActive ? 'border-green-500 shadow-lg shadow-green-500/25' : 'border-gray-600'
             }`}
@@ -238,11 +240,11 @@ export default function CombatDemo() {
               <div className="text-6xl mb-2">{gameState.player1.avatar}</div>
               <h3 className="text-xl font-bold text-white">{gameState.player1.name}</h3>
             </div>
-            
+
             <div className="space-y-3">
               {/* Health Bar */}
               <div className="bg-gray-700 rounded-full p-1">
-                <motion.div 
+                <motion.div
                   className="bg-gradient-to-r from-red-500 to-red-400 rounded-full h-5 flex items-center justify-center text-white text-sm font-bold"
                   style={{ width: `${(gameState.player1.hp / gameState.player1.maxHp) * 100}%` }}
                   layoutId="p1-health"
@@ -250,7 +252,7 @@ export default function CombatDemo() {
                   HP: {gameState.player1.hp}/{gameState.player1.maxHp}
                 </motion.div>
               </div>
-              
+
               <div className="text-sm text-gray-300">
                 ATK: {gameState.player1.atk} | DEF: {gameState.player1.def} | SPD: {gameState.player1.spd}
               </div>
@@ -265,7 +267,7 @@ export default function CombatDemo() {
           </div>
 
           {/* Player 2 */}
-          <motion.div 
+          <motion.div
             className="bg-gray-800/50 rounded-lg p-6 border-2 border-gray-600"
             whileHover={{ scale: 1.02 }}
           >
@@ -273,11 +275,11 @@ export default function CombatDemo() {
               <div className="text-6xl mb-2">{gameState.player2.avatar}</div>
               <h3 className="text-xl font-bold text-white">{gameState.player2.name}</h3>
             </div>
-            
+
             <div className="space-y-3">
               {/* Health Bar */}
               <div className="bg-gray-700 rounded-full p-1">
-                <motion.div 
+                <motion.div
                   className="bg-gradient-to-r from-red-500 to-red-400 rounded-full h-5 flex items-center justify-center text-white text-sm font-bold"
                   style={{ width: `${(gameState.player2.hp / gameState.player2.maxHp) * 100}%` }}
                   layoutId="p2-health"
@@ -285,7 +287,7 @@ export default function CombatDemo() {
                   HP: {gameState.player2.hp}/{gameState.player2.maxHp}
                 </motion.div>
               </div>
-              
+
               <div className="text-sm text-gray-300">
                 ATK: {gameState.player2.atk} | DEF: {gameState.player2.def} | SPD: {gameState.player2.spd}
               </div>
@@ -296,7 +298,7 @@ export default function CombatDemo() {
 
         {/* Strategy Panel */}
         {gameState.phase === 'strategy' && (
-          <motion.div 
+          <motion.div
             className="bg-gray-800/30 rounded-lg p-6 mb-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -334,7 +336,7 @@ export default function CombatDemo() {
         {/* Combat Log */}
         <div className="bg-black/50 rounded-lg p-4 h-48 overflow-y-auto mb-6 font-mono text-sm">
           {combatLog.map((entry, index) => (
-            <motion.div 
+            <motion.div
               key={index}
               className="mb-2 border-l-2 border-green-500 pl-3"
               initial={{ opacity: 0, x: -20 }}
@@ -348,7 +350,7 @@ export default function CombatDemo() {
 
         {/* Chat Preview */}
         {showChat && chatPreview && (
-          <motion.div 
+          <motion.div
             className="bg-blue-900/30 border-2 border-blue-500 rounded-lg p-4 mb-6"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -383,7 +385,7 @@ export default function CombatDemo() {
               Chat with Achilles
             </motion.button>
           )}
-          
+
           <motion.button
             onClick={resetBattle}
             className="bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white font-bold py-3 px-8 rounded-full transition-all"

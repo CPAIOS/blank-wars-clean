@@ -2,16 +2,16 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  Users, 
-  Package, 
+import {
+  User,
+  Users,
+  Package,
   Crown,
   Sparkles
 } from 'lucide-react';
 import CharacterCollection from './CharacterCollection';
 import UserProfile from './UserProfile';
-import { 
+import {
   UserProfile as IUserProfile,
   OwnedCharacter,
   SubscriptionTier,
@@ -31,7 +31,7 @@ export default function AccountManager({
   onProfileUpdate
 }: AccountManagerProps) {
   const [activeTab, setActiveTab] = useState<'collection' | 'profile' | 'packs'>('collection');
-  
+
   // Mock user profile data - in real app this would come from backend
   const [userProfile, setUserProfile] = useState<IUserProfile>(initialUserProfile || {
     id: 'user_001',
@@ -73,44 +73,9 @@ export default function AccountManager({
       longestPlayStreak: 30
     },
     achievements: [
-      {
-        id: 'first_victory',
-        name: 'First Victory',
-        description: 'Win your first battle',
-        icon: '🏆',
-        rarity: 'common',
-        category: 'battle',
-        progress: 1,
-        maxProgress: 1,
-        isCompleted: true,
-        completedDate: new Date('2024-01-16'),
-        rewards: [{ type: 'gold', amount: 100 }]
-      },
-      {
-        id: 'win_streak_10',
-        name: 'Unstoppable',
-        description: 'Win 10 battles in a row',
-        icon: '🔥',
-        rarity: 'rare',
-        category: 'battle',
-        progress: 10,
-        maxProgress: 10,
-        isCompleted: true,
-        completedDate: new Date('2024-02-01'),
-        rewards: [{ type: 'gold', amount: 1000 }]
-      },
-      {
-        id: 'collector_10',
-        name: 'Character Collector',
-        description: 'Collect 10 different characters',
-        icon: '👥',
-        rarity: 'uncommon',
-        category: 'collection',
-        progress: 8,
-        maxProgress: 10,
-        isCompleted: false,
-        rewards: [{ type: 'gold', amount: 500 }]
-      }
+      'first_victory',
+      'win_streak_10',
+      'collector_10'
     ],
     charactersOwned: [
       {
@@ -202,8 +167,7 @@ export default function AccountManager({
         totalTrainingTime: 120
       }
     ],
-    characterSlots: 10,
-    maxCharacterSlots: 10,
+    characterSlotCapacity: 10,
     currency: {
       gold: 7000,
       gems: 150,
@@ -248,7 +212,7 @@ export default function AccountManager({
     const updatedProfile = {
       ...userProfile,
       subscriptionTier: tier,
-      maxCharacterSlots: tierConfig.characterSlots,
+      characterSlotCapacity: tierConfig.characterSlots,
       subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
     };
     setUserProfile(updatedProfile);
@@ -259,14 +223,14 @@ export default function AccountManager({
   const handleCharacterSelect = (character: OwnedCharacter) => {
     setSelectedCharacter(character);
     onCharacterSelect?.(character);
-    
+
     // Update last used time
     const updatedCharacters = userProfile.charactersOwned.map(c =>
-      c.characterId === character.characterId 
+      c.characterId === character.characterId
         ? { ...c, lastUsed: new Date() }
         : c
     );
-    
+
     handleProfileUpdate({ charactersOwned: updatedCharacters });
   };
 
@@ -277,13 +241,13 @@ export default function AccountManager({
       // Simulate pack opening logic here
       // This would normally involve API calls and complex reward generation
       console.log('Opening character pack...');
-      
+
       // Deduct pack credit
       const updatedCurrency = {
         ...userProfile.currency,
         packCredits: userProfile.currency.packCredits - 1
       };
-      
+
       handleProfileUpdate({ currency: updatedCurrency });
     } else {
       console.log('No pack credits available');
@@ -448,7 +412,7 @@ export default function AccountManager({
             <p className="text-gray-400 mb-6">
               Open packs to discover new legendary warriors!
             </p>
-            
+
             {userProfile.currency.packCredits > 0 ? (
               <div className="space-y-4">
                 <div className="text-lg text-white">

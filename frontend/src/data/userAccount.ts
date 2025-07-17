@@ -16,24 +16,24 @@ export interface UserProfile {
   joinDate: Date;
   lastActive: Date;
   characterSlotCapacity: number; // New: Dynamic character slot capacity
-  
+
   // Subscription info
   subscriptionTier: SubscriptionTier;
   subscriptionExpiry?: Date;
   isActive: boolean;
-  
+
   // Currency and resources
   currency: PlayerCurrency;
-  
+
   // Settings and preferences
   preferences: UserPreferences;
-  
+
   // Character collection
   charactersOwned: OwnedCharacter[];
-  
+
   // Player statistics
   stats: PlayerStats;
-  
+
   // Achievements
   achievements: string[];
 }
@@ -47,29 +47,29 @@ export interface PlayerStats {
   winRate: number;
   winStreak: number;
   bestWinStreak: number;
-  
+
   // Training statistics
   trainingSessionsCompleted: number;
   totalTrainingTime: number; // in minutes
   skillPointsEarned: number;
   trainingPointsEarned: number;
-  
+
   // Character collection
   charactersUnlocked: number;
   totalCharacterLevels: number;
   highestCharacterLevel: number;
-  
+
   // Economy
   goldEarned: number;
   goldSpent: number;
   itemsUsed: number;
   equipmentCrafted: number;
-  
+
   // Special achievements
   perfectBattles: number; // won without taking damage
   criticalHitStreak: number;
   abilitiesUnlocked: number;
-  
+
   // Time tracking
   totalPlayTime: number; // in minutes
   dailyPlayStreak: number;
@@ -104,23 +104,23 @@ export interface OwnedCharacter {
   rarity: CharacterRarity;
   acquisitionMethod: AcquisitionMethod;
   acquisitionDate: Date;
-  
+
   // Character progression
   level: number;
   xp: number;
   totalXP: number;
-  
+
   // Battle stats for this character
   wins: number;
   losses: number;
   draws: number;
-  
+
   // Training progress
   trainingLevel: number;
   skillsLearned: string[];
   abilitiesUnlocked: string[];
   abilityProgress: { abilityId: string; rank: number; experience: number }[];
-  
+
   // Equipment and items
   equippedItems: {
     weapon?: string;
@@ -128,13 +128,13 @@ export interface OwnedCharacter {
     accessory?: string;
   };
   favoriteLoadout?: string;
-  
+
   // Customization
   nickname?: string;
   customAvatar?: string;
   isFavorite: boolean;
   isStarter: boolean;
-  
+
   // Metadata
   lastUsed: Date;
   totalBattleTime: number;
@@ -156,22 +156,22 @@ export interface UserPreferences {
   soundEnabled: boolean;
   musicEnabled: boolean;
   notificationsEnabled: boolean;
-  
+
   // Display preferences
   theme: 'dark' | 'light' | 'auto';
   language: string;
   timeZone: string;
-  
+
   // Gameplay preferences
   autoSaveEnabled: boolean;
   tutorialCompleted: boolean;
   expertMode: boolean;
-  
+
   // Privacy settings
   profilePublic: boolean;
   showOnlineStatus: boolean;
   allowFriendRequests: boolean;
-  
+
   // Collection preferences
   defaultSortOrder: 'level' | 'rarity' | 'recent' | 'alphabetical';
   showDuplicates: boolean;
@@ -274,7 +274,7 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     name: 'legendary',
     displayName: 'Legendary Hero',
     price: 99.99,
-    
+
     benefits: [
       'Access to Legendary facilities',
       '+500% XP and gold rewards',
@@ -413,7 +413,7 @@ export const achievements: Achievement[] = [
       { type: 'gold', amount: 2500 }
     ]
   },
-  
+
   // Collection achievements
   {
     id: 'collector_10',
@@ -446,7 +446,7 @@ export const achievements: Achievement[] = [
       { type: 'cosmetic', itemId: 'golden_frame' }
     ]
   },
-  
+
   // Training achievements
   {
     id: 'training_master',
@@ -463,7 +463,7 @@ export const achievements: Achievement[] = [
       { type: 'title', itemId: 'training_master' }
     ]
   },
-  
+
   // Progression achievements
   {
     id: 'level_50_character',
@@ -551,20 +551,20 @@ export function getXPRequiredForLevel(level: number): number {
 }
 
 export function updateAchievementProgress(
-  achievements: Achievement[], 
-  achievementId: string, 
+  achievements: Achievement[],
+  achievementId: string,
   progress: number
 ): { updatedAchievements: Achievement[]; newlyCompleted: Achievement[] } {
   const updatedAchievements = [...achievements];
   const newlyCompleted: Achievement[] = [];
-  
+
   const achievementIndex = updatedAchievements.findIndex(a => a.id === achievementId);
   if (achievementIndex >= 0) {
     const achievement = updatedAchievements[achievementIndex];
     const oldProgress = achievement.progress;
-    
+
     achievement.progress = Math.min(achievement.maxProgress, progress);
-    
+
     // Check if newly completed
     if (!achievement.isCompleted && achievement.progress >= achievement.maxProgress) {
       achievement.isCompleted = true;
@@ -572,16 +572,16 @@ export function updateAchievementProgress(
       newlyCompleted.push(achievement);
     }
   }
-  
+
   return { updatedAchievements, newlyCompleted };
 }
 
 export function grantAchievementRewards(
-  rewards: AchievementReward[], 
+  rewards: AchievementReward[],
   currency: PlayerCurrency
 ): PlayerCurrency {
   const updatedCurrency = { ...currency };
-  
+
   rewards.forEach(reward => {
     switch (reward.type) {
       case 'gold':
@@ -593,7 +593,7 @@ export function grantAchievementRewards(
       // Other reward types would be handled by other systems
     }
   });
-  
+
   return updatedCurrency;
 }
 
@@ -618,15 +618,15 @@ export function getCollectionStats(characters: OwnedCharacter[]): {
     averageLevel: 0,
     totalLevels: 0
   };
-  
+
   characters.forEach(char => {
     stats.byRarity[char.rarity]++;
     stats.byArchetype[char.archetype] = (stats.byArchetype[char.archetype] || 0) + 1;
     stats.totalLevels += char.level;
   });
-  
+
   stats.averageLevel = characters.length > 0 ? stats.totalLevels / characters.length : 0;
-  
+
   return stats;
 }
 
@@ -658,6 +658,6 @@ export function generatePackContents(packType: 'basic' | 'premium' | 'legendary'
       ]
     }
   };
-  
+
   return packConfigs[packType];
 }

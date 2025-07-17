@@ -310,17 +310,17 @@ FINANCIAL COACHING CONTEXT:
 - Current wallet: $${selectedCharacter.financials?.wallet?.toLocaleString() || '0'}
 - Monthly earnings: $${selectedCharacter.financials?.monthlyEarnings?.toLocaleString() || '0'}
 - Financial stress level: ${selectedCharacter.financials?.financialStress || 0}%
-- Trust in coach: ${selectedCharacter.financials?.coachTrustLevel || 0}%
-- Spending personality: ${selectedCharacter.financials?.spendingPersonality || 'moderate'}
+- Trust in coach: ${selectedCharacter.financials?.coachFinancialTrust || 0}%
+- Spending personality: ${selectedCharacter.financialPersonality?.spendingStyle || 'moderate'}
 - Recent decisions: ${selectedCharacter.financials?.recentDecisions?.length || 0} previous financial choices
 ${pendingDecision ? `- Pending Decision: ${pendingDecision.description} for $${pendingDecision.amount.toLocaleString()}` : ''}
 
 CHARACTER FINANCIAL PSYCHOLOGY:
 - You are a legendary figure from your era, so modern financial concepts might be foreign or fascinating
 - React to financial advice based on your background and personality
-- Your trust level (${selectedCharacter.financials?.coachTrustLevel || 0}%) affects how you receive coaching
+- Your trust level (${selectedCharacter.financials?.coachFinancialTrust || 0}%) affects how you receive coaching
 - Your financial stress (${selectedCharacter.financials?.financialStress || 0}%) influences your decision-making
-- Your spending personality (${selectedCharacter.financials?.spendingPersonality || 'moderate'}) shapes your money attitudes
+- Your spending personality (${selectedCharacter.financialPersonality?.spendingStyle || 'moderate'}) shapes your money attitudes
 
 FINANCIAL COACHING SESSION GUIDELINES:
 - This is specialized financial counseling focused on money decisions and financial wellness
