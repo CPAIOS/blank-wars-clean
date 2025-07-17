@@ -419,7 +419,7 @@ export interface TeamStatusEffect {
 
 export interface RelationshipModifier {
   withCharacter: string;
-  relationship: 'ally' | 'rival' | 'enemy' | 'mentor' | 'student';
+  relationship: 'ally' | 'rival' | 'enemy' | 'mentor' | 'student' | 'neutral';
   strength: number; // -100 to 100
   battleModifiers: Record<string, number>;
 }
@@ -570,10 +570,10 @@ export class BattleFlowManager {
       relationshipModifiers: this.calculateRelationshipModifiers(character),
       // EQUIPMENT BONUSES - Physical combat modifiers from gear
       equipmentBonuses: {
-        attackBonus: character.equipment?.weapon?.stats.atk || 0,
-        defenseBonus: character.equipment?.armor?.stats.def || 0,
-        speedBonus: character.equipment?.accessory?.stats.spd || 0,
-        criticalChanceBonus: character.equipment?.weapon?.stats.critRate || 0
+        attackBonus: character.equippedItems?.weapon?.stats.atk || 0,
+        defenseBonus: character.equippedItems?.armor?.stats.def || 0,
+        speedBonus: character.equippedItems?.accessory?.stats.spd || 0,
+        criticalChanceBonus: character.equippedItems?.weapon?.stats.critRate || 0
       }
     };
   }
@@ -651,6 +651,10 @@ export class BattleFlowManager {
           eagerness: modifier * 20,
           gameplan_adherence_boost: modifier * 15,
           growth_potential: modifier * 25
+        };
+      case 'neutral':
+        return {
+          no_special_modifiers: 0
         };
       default:
         return {};

@@ -2,10 +2,16 @@
 // Full character stats, abilities, progression trees, and game data
 
 import { CharacterExperience } from '../../../frontend/src/data/experience';
-import { CharacterAbilities } from '../../../frontend/src/data/abilities';
 import { CharacterSkills } from '../../../frontend/src/data/characterProgression';
 import { Equipment, allEquipment } from '../../../frontend/src/data/equipment';
 import { Item } from '../../../frontend/src/data/items';
+
+// Simple abilities type alias
+export type CharacterAbilities = {
+  active: string[];
+  passive: string[];
+  signature: string[];
+};
 
 export type CharacterArchetype = 
   | 'warrior' | 'mage' | 'assassin' | 'tank' | 'support' 
@@ -356,55 +362,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
         'The gods smile upon me!',
         'None can stand against my might!'
       ]
-    },
-
-    // Battle-specific fields from TeamCharacter merge
-    traditionalStats: {
-      strength: 95,      // Maps directly from baseStats.strength
-      vitality: 90,      // Maps directly from baseStats.vitality
-      speed: 85,         // Maps directly from baseStats.agility
-      dexterity: 85,     // Maps directly from baseStats.agility
-      stamina: 90,       // Maps directly from baseStats.vitality
-      intelligence: 60,  // Maps directly from baseStats.intelligence
-      charisma: 80,      // Maps directly from baseStats.charisma
-      spirit: 45         // Maps directly from baseStats.wisdom
-    },
-    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
-    currentHp: 1200,      // Maps directly from combatStats.health
-    maxHp: 1200,          // Maps directly from combatStats.maxHealth
-    experienceToNext: 100, // Level 1 → 2 requires 100 XP (from XP_CURVE_BASE)
-    personalityTraits: ['Honorable', 'Wrathful', 'Courageous', 'Prideful'],
-    speakingStyle: 'formal',
-    decisionMaking: 'emotional',
-    conflictResponse: 'aggressive',
-    statusEffects: [],
-    injuries: [],
-    restDaysNeeded: 0,
-    battleAbilities: [
-      {
-        id: 'divine_strike',
-        name: 'Divine Strike',
-        type: 'attack',
-        power: 35,
-        cooldown: 2,
-        currentCooldown: 0,
-        description: 'Channel divine power for devastating attack',
-        icon: '⚔️',
-        mentalHealthRequired: 60
-      }
-    ],
-    specialPowers: [
-      {
-        id: 'wrath_of_achilles',
-        name: 'Wrath of Achilles',
-        type: 'active',
-        description: 'Legendary rage increases damage but reduces defense',
-        effect: '+50% damage, -25% defense for 3 rounds',
-        icon: '🔥',
-        cooldown: 5,
-        currentCooldown: 0
-      }
-    ]
+    }
   },
 
   merlin: {
@@ -707,8 +665,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Solving mysteries', 'Intellectual superiority', 'Outwitting rivals'],
       fears: ['Failure to solve a case', 'Emotional vulnerability'],
       relationships: [
-        { characterId: 'dracula', relationship: 'rival', strength: -80 },
-        { characterId: 'joan', relationship: 'ally', strength: 60 }
+        { characterId: 'dracula', relationship: 'rival', strength: -80, history: 'Ancient rivalry between warriors' },
+        { characterId: 'joan', relationship: 'ally', strength: 60, history: 'Mutual respect for honor and courage' }
       ]
     },
     level: 1,
@@ -747,7 +705,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'deductive_gambit',
               name: 'Deductive Gambit',
               description: 'Exposes enemy weaknesses, lowering defense for 3 turns.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['deductive_gambit'] },
               position: { x: 0, y: 0 },
@@ -804,8 +762,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Dominance', 'Immortality', 'Conquest'],
       fears: ['Sunlight', 'Oblivion', 'Holy artifacts'],
       relationships: [
-        { characterId: 'joan', relationship: 'enemy', strength: -95 },
-        { characterId: 'holmes', relationship: 'rival', strength: -80 }
+        { characterId: 'joan', relationship: 'enemy', strength: -95, history: 'Historic relationship' },
+        { characterId: 'holmes', relationship: 'rival', strength: -80, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -844,7 +802,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'blood_drain',
               name: 'Blood Drain',
               description: 'Drains health from enemies to heal self.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['blood_drain'] },
               position: { x: 0, y: 0 },
@@ -901,8 +859,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Divine mission', 'Liberation', 'Faith'],
       fears: ['Abandoning her cause', 'Letting others down'],
       relationships: [
-        { characterId: 'dracula', relationship: 'enemy', strength: -95 },
-        { characterId: 'holmes', relationship: 'ally', strength: 60 }
+        { characterId: 'dracula', relationship: 'enemy', strength: -95, history: 'Historic relationship' },
+        { characterId: 'holmes', relationship: 'ally', strength: 60, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -941,7 +899,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'holy_aegis',
               name: 'Holy Aegis',
               description: 'Shields entire team from damage for 1 turn.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['holy_aegis'] },
               position: { x: 0, y: 0 },
@@ -998,8 +956,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Acceptance', 'Freedom', 'Protection (of friends)'],
       fears: ['Rejection', 'Fire', 'Hurting innocents'],
       relationships: [
-        { characterId: 'dracula', relationship: 'enemy', strength: -60 },
-        { characterId: 'joan', relationship: 'ally', strength: 40 }
+        { characterId: 'dracula', relationship: 'enemy', strength: -60, history: 'Historic relationship' },
+        { characterId: 'joan', relationship: 'ally', strength: 40, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1038,7 +996,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'fury_smash',
               name: 'Fury Smash',
               description: 'Deals massive damage but stuns self for 1 turn.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['fury_smash'] },
               position: { x: 0, y: 0 },
@@ -1095,8 +1053,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Freedom', 'Adventure', 'Proving worth'],
       fears: ['Enslavement', 'Boredom'],
       relationships: [
-        { characterId: 'merlin', relationship: 'rival', strength: -60 },
-        { characterId: 'achilles', relationship: 'ally', strength: 30 }
+        { characterId: 'merlin', relationship: 'rival', strength: -60, history: 'Historic relationship' },
+        { characterId: 'achilles', relationship: 'ally', strength: 30, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1135,7 +1093,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'seventy_two_forms',
               name: '72 Transformations',
               description: 'Transform into animals/objects for evasion, stealth, or unique attacks.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['seventy_two_forms'] },
               position: { x: 0, y: 0 },
@@ -1192,10 +1150,10 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Justice', 'Redemption', 'Keeping streets safe', 'Loyalty to friends'],
       fears: ['Betrayal', 'Letting villain escape', 'Not living up to code'],
       relationships: [
-        { characterId: 'holmes', relationship: 'rival', strength: -55 },
-        { characterId: 'dracula', relationship: 'enemy', strength: -30 },
-        { characterId: 'robin_hood', relationship: 'ally', strength: 25 },
-        { characterId: 'billy_the_kid', relationship: 'ally', strength: 20 }
+        { characterId: 'holmes', relationship: 'rival', strength: -55, history: 'Historic relationship' },
+        { characterId: 'dracula', relationship: 'enemy', strength: -30, history: 'Historic relationship' },
+        { characterId: 'robin_hood', relationship: 'ally', strength: 25, history: 'Historic relationship' },
+        { characterId: 'billy_the_kid', relationship: 'ally', strength: 20, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1234,7 +1192,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'knockout_punch',
               name: 'Knockout Punch',
               description: 'Stuns enemy for 1 turn, bonus damage vs criminal/monster',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['knockout_punch'] },
               position: { x: 0, y: 0 },
@@ -1291,10 +1249,10 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Freedom', 'Fame', 'Living fast', 'Helping outcasts'],
       fears: ['Capture', 'Dying forgotten', 'Betrayal'],
       relationships: [
-        { characterId: 'robin_hood', relationship: 'ally', strength: 40 },
-        { characterId: 'achilles', relationship: 'rival', strength: -30 },
-        { characterId: 'sammy_slugger', relationship: 'ally', strength: 20 },
-        { characterId: 'dracula', relationship: 'enemy', strength: -60 }
+        { characterId: 'robin_hood', relationship: 'ally', strength: 40, history: 'Historic relationship' },
+        { characterId: 'achilles', relationship: 'rival', strength: -30, history: 'Historic relationship' },
+        { characterId: 'sammy_slugger', relationship: 'ally', strength: 20, history: 'Historic relationship' },
+        { characterId: 'dracula', relationship: 'enemy', strength: -60, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1333,7 +1291,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'deadeye_draw',
               name: 'Deadeye Draw',
               description: 'Acts first this turn, guaranteed crit if HP > 50%',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['deadeye_draw'] },
               position: { x: 0, y: 0 },
@@ -1390,10 +1348,10 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Conquest', 'Legacy', 'Unity', 'Testing strength against the world'],
       fears: ['Betrayal', 'Losing control', 'Legacy forgotten or divided'],
       relationships: [
-        { characterId: 'achilles', relationship: 'rival', strength: -70 },
-        { characterId: 'cleopatra', relationship: 'ally', strength: 40 },
-        { characterId: 'billy_the_kid', relationship: 'rival', strength: -30 },
-        { characterId: 'dracula', relationship: 'rival', strength: -25 }
+        { characterId: 'achilles', relationship: 'rival', strength: -70, history: 'Historic relationship' },
+        { characterId: 'cleopatra', relationship: 'ally', strength: 40, history: 'Historic relationship' },
+        { characterId: 'billy_the_kid', relationship: 'rival', strength: -30, history: 'Historic relationship' },
+        { characterId: 'dracula', relationship: 'rival', strength: -25, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1432,7 +1390,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'thunderous_charge',
               name: 'Thunderous Charge',
               description: 'All allies attack together; team speed +20% for 1 turn',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['thunderous_charge'] },
               position: { x: 0, y: 0 },
@@ -1489,10 +1447,10 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Perfection', 'Profit', 'Self-discovery', 'Finding a cause worth fighting for'],
       fears: ['Loss of control', 'Obsolescence', 'Being used'],
       relationships: [
-        { characterId: 'alien_grey', relationship: 'ally', strength: 55 },
-        { characterId: 'frankenstein_monster', relationship: 'rival', strength: -40 },
-        { characterId: 'tesla', relationship: 'ally', strength: 30 },
-        { characterId: 'genghis_khan', relationship: 'ally', strength: 20 }
+        { characterId: 'alien_grey', relationship: 'ally', strength: 55, history: 'Historic relationship' },
+        { characterId: 'frankenstein_monster', relationship: 'rival', strength: -40, history: 'Historic relationship' },
+        { characterId: 'tesla', relationship: 'ally', strength: 30, history: 'Historic relationship' },
+        { characterId: 'genghis_khan', relationship: 'ally', strength: 20, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1531,7 +1489,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'nanite_regeneration',
               name: 'Nanite Regeneration',
               description: 'Heal for 30% max HP over 3 turns, immune to poison/bleed/burn',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['nanite_regeneration'] },
               position: { x: 0, y: 0 },
@@ -1588,8 +1546,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Discovery', 'Human progress', 'Recognition'],
       fears: ['Failure', 'Being forgotten'],
       relationships: [
-        { characterId: 'merlin', relationship: 'rival', strength: -60 },
-        { characterId: 'dracula', relationship: 'enemy', strength: -35 }
+        { characterId: 'merlin', relationship: 'rival', strength: -60, history: 'Historic relationship' },
+        { characterId: 'dracula', relationship: 'enemy', strength: -35, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1628,7 +1586,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'tesla_coil',
               name: 'Tesla Coil',
               description: 'Sets up a field that deals AoE lightning damage for 3 turns.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['tesla_coil'] },
               position: { x: 0, y: 0 },
@@ -1685,8 +1643,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Experimentation', 'Knowledge gathering', 'Control'],
       fears: ['Exposure', 'Uncontrolled chaos'],
       relationships: [
-        { characterId: 'tesla', relationship: 'ally', strength: 65 },
-        { characterId: 'dracula', relationship: 'enemy', strength: -80 }
+        { characterId: 'tesla', relationship: 'ally', strength: 65, history: 'Historic relationship' },
+        { characterId: 'dracula', relationship: 'enemy', strength: -80, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1725,7 +1683,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'mind_probe',
               name: 'Mind Probe',
               description: 'Reads enemy intent, increasing team evasion and revealing their next move.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['mind_probe'] },
               position: { x: 0, y: 0 },
@@ -1782,8 +1740,8 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['Justice', 'Freedom', 'Defying authority'],
       fears: ['Failure to protect the weak', 'Betrayal'],
       relationships: [
-        { characterId: 'napoleon', relationship: 'rival', strength: -60 },
-        { characterId: 'joan', relationship: 'ally', strength: 50 }
+        { characterId: 'napoleon', relationship: 'rival', strength: -60, history: 'Historic relationship' },
+        { characterId: 'joan', relationship: 'ally', strength: 50, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1822,7 +1780,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'impossible_shot',
               name: 'Impossible Shot',
               description: 'Ignores defense, guaranteed critical hit.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['impossible_shot'] },
               position: { x: 0, y: 0 },
@@ -1879,11 +1837,11 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
       motivations: ['The mission', 'Outwitting rivals', 'Protecting the world from hidden threats'],
       fears: ['Blowing their cover', 'Losing a teammate', 'Failing a mission that matters'],
       relationships: [
-        { characterId: 'holmes', relationship: 'rival', strength: 30 },
-        { characterId: 'dracula', relationship: 'enemy', strength: -40 },
-        { characterId: 'cleopatra', relationship: 'ally', strength: 25 },
-        { characterId: 'alien_grey', relationship: 'ally', strength: 20 },
-        { characterId: 'robin_hood', relationship: 'ally', strength: 15 }
+        { characterId: 'holmes', relationship: 'rival', strength: 30, history: 'Historic relationship' },
+        { characterId: 'dracula', relationship: 'enemy', strength: -40, history: 'Historic relationship' },
+        { characterId: 'cleopatra', relationship: 'ally', strength: 25, history: 'Historic relationship' },
+        { characterId: 'alien_grey', relationship: 'ally', strength: 20, history: 'Historic relationship' },
+        { characterId: 'robin_hood', relationship: 'ally', strength: 15, history: 'Historic relationship' }
       ]
     },
     level: 1,
@@ -1922,7 +1880,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
               id: 'license_to_illude',
               name: 'License to Illude',
               description: 'Gains stealth for 2 turns, next attack from stealth is guaranteed crit.',
-              type: 'active',
+              type: 'ability',
               requirements: { level: 5, points: 1 },
               rewards: { abilities: ['license_to_illude'] },
               position: { x: 0, y: 0 },
@@ -2041,9 +1999,8 @@ export function createCharacter(templateId: string, customizations?: Partial<Cha
       xpToNextLevel: 1000,
       statPoints: 0,
       skillPoints: 0,
-      milestoneRewards: [],
       levelHistory: [],
-      lastUpdated: new Date()
+      xpHistory: []
     },
     skills: {
       characterId: templateId,
@@ -2058,18 +2015,48 @@ export function createCharacter(templateId: string, customizations?: Partial<Cha
       archetypeSkills: {},
       passiveAbilities: [],
       activeAbilities: [],
-      unlockedNodes: [],
-      skillPoints: 0,
-      lastUpdated: new Date()
+      unlockedNodes: []
     },
     abilities: {
-      characterId: templateId,
-      equipped: { slot1: null, slot2: null, slot3: null, slot4: null },
-      available: [],
-      cooldowns: {},
-      lastUpdated: new Date()
+      active: [],
+      passive: [],
+      signature: []
     },
     ...template,
+    // Add missing required properties
+    traditionalStats: {
+      strength: template.baseStats.strength,
+      vitality: template.baseStats.vitality,
+      speed: template.baseStats.agility,
+      dexterity: template.baseStats.agility,
+      stamina: template.baseStats.vitality,
+      intelligence: template.baseStats.intelligence,
+      charisma: template.baseStats.charisma,
+      spirit: template.baseStats.wisdom
+    },
+    temporaryStats: {
+      strength: 0,
+      vitality: 0,
+      speed: 0,
+      dexterity: 0,
+      stamina: 0,
+      intelligence: 0,
+      charisma: 0,
+      spirit: 0
+    },
+    // Add other missing battle system properties
+    currentHp: template.combatStats.health,
+    maxHp: template.combatStats.maxHealth,
+    experienceToNext: 1000,
+    personalityTraits: template.personality.traits,
+    speakingStyle: 'formal',
+    decisionMaking: 'logical',
+    conflictResponse: 'aggressive',
+    statusEffects: [],
+    injuries: [],
+    restDaysNeeded: 0,
+    battleAbilities: [],
+    specialPowers: [],
     // Generate financial personality based on character template
     financialPersonality: generateFinancialPersonality(templateId, template.archetype),
     // Initialize dynamic financial data
@@ -2162,7 +2149,12 @@ export function getCharacterUnlockRequirements(templateId: string): {
   currency?: Record<string, number>;
   special?: string;
 } {
-  const requirements: Record<string, { description: string; hint: string }> = {
+  const requirements: Record<string, {
+    level?: number;
+    achievements?: string[];
+    currency?: Record<string, number>;
+    special?: string;
+  }> = {
     achilles: { level: 1 }, // Starting character
     merlin: { level: 10, achievements: ['first_victory'] },
     loki: { level: 15, currency: { gems: 1000 } },
