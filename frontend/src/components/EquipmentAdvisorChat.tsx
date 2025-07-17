@@ -205,8 +205,23 @@ export default function EquipmentAdvisorChat({
   const eventPublisher = EventPublisher.getInstance();
 
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
-    console.log('🔌 [EquipmentAdvisor] Connecting to local backend:', socketUrl);
+    // Determine backend URL based on environment
+    let socketUrl: string;
+    
+    // Check if we're running locally (either in dev or local production build)
+    const isLocalhost = typeof window !== 'undefined' && 
+                       (window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1');
+    
+    if (isLocalhost) {
+      // Local development or local production build
+      socketUrl = 'http://localhost:3006';
+    } else {
+      // Deployed production
+      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-clean-production.up.railway.app';
+    }
+    
+    console.log('🔌 [EquipmentAdvisor] Connecting to backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -215,17 +230,8 @@ export default function EquipmentAdvisorChat({
     });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ EquipmentAdvisor Socket connected! Waiting for authentication...');
-    });
-
-    socketRef.current.on('auth_success', (data: { userId: string; username: string }) => {
-      console.log('🔐 EquipmentAdvisor Socket authenticated!', data);
+      console.log('✅ EquipmentAdvisor Socket connected!');
       setConnected(true);
-    });
-
-    socketRef.current.on('auth_error', (error: { error: string }) => {
-      console.error('❌ EquipmentAdvisor Socket authentication failed:', error);
-      setConnected(false);
     });
 
     socketRef.current.on('disconnect', () => {
