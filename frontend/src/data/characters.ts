@@ -13,8 +13,8 @@ export type CharacterAbilities = {
   signature: string[];
 };
 
-export type CharacterArchetype = 
-  | 'warrior' | 'mage' | 'assassin' | 'tank' | 'support' 
+export type CharacterArchetype =
+  | 'warrior' | 'mage' | 'assassin' | 'tank' | 'support'
   | 'beast' | 'trickster' | 'mystic' | 'elementalist' | 'berserker' | 'scholar';
 
 export type CharacterRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
@@ -166,25 +166,25 @@ export interface Character {
   avatar: string;
   archetype: CharacterArchetype;
   rarity: CharacterRarity;
-  
+
   // Lore & Personality
   description: string;
   historicalPeriod: string;
   mythology: string;
   personality: CharacterPersonality;
-  
+
   // Core Stats
   level: number;
   baseStats: BaseStats;
   combatStats: CombatStats;
   statPoints: number;
-  
+
   // Progression
   experience: CharacterExperience;
   skills: CharacterSkills;
   abilities: CharacterAbilities;
   progressionTree: ProgressionTree;
-  
+
   // Equipment & Items
   equippedItems: {
     weapon?: Equipment;
@@ -192,17 +192,17 @@ export interface Character {
     accessory?: Equipment;
   };
   inventory: Item[];
-  
+
   // Unlocks & Achievements
   unlockedContent: string[];
   achievements: string[];
-  
+
   // Game Mechanics
   trainingLevel: number;        // 0-100, affects gameplan adherence and learning rate
   bondLevel: number;            // 0-100, relationship with player
   fatigue: number;              // 0-100, affects performance
   lastTrainingDate?: Date;
-  
+
   // Psychology Stats - determines mental state and team dynamics
   psychStats: {
     training: number;           // 0-100, how well they follow instructions
@@ -211,10 +211,10 @@ export interface Character {
     mentalHealth: number;      // 0-100, psychological stability
     communication: number;     // 0-100, how well they express themselves
   };
-  
+
   // Financial Personality (immutable template data)
   financialPersonality: FinancialPersonality;
-  
+
   // Financial System - Dynamic Data (runtime only)
   financials: {
     wallet: number;                    // Current money available
@@ -228,7 +228,7 @@ export interface Character {
     moneyRelatedStress: number;        // 0-100, anxiety specifically about money
     lastFinancialDecision?: Date;      // When they last made a major financial choice
   };
-  
+
   // Battle AI
   battleAI: {
     aggression: number;         // 0-100
@@ -237,7 +237,7 @@ export interface Character {
     adaptability: number;       // 0-100
     preferredStrategies: string[];
   };
-  
+
   // Customization
   customization: {
     outfit?: string;
@@ -252,25 +252,25 @@ export interface Character {
   currentHp: number;                           // Current HP in battle
   maxHp: number;                              // Maximum HP in battle
   experienceToNext: number;                   // Experience needed for next level
-  
+
   // Battle personality traits (different from main personality)
   personalityTraits: string[];                // ['Brilliant', 'Arrogant', etc.]
   speakingStyle: 'formal' | 'casual' | 'archaic' | 'technical' | 'poetic' | 'gruff' | 'mysterious';
   decisionMaking: 'logical' | 'emotional' | 'impulsive' | 'calculated';
   conflictResponse: 'aggressive' | 'diplomatic' | 'withdrawn' | 'manipulative';
-  
+
   // Battle status
   statusEffects: string[];                    // Active status effects in battle
   injuries: string[];                         // Current injuries affecting performance
   restDaysNeeded: number;                     // Recovery time needed
-  
+
   // Battle abilities (enhanced from abilities)
   battleAbilities: BattleAbility[];           // Battle-specific abilities with cooldowns
   specialPowers: SpecialPower[];              // Special powers with team requirements
 }
 
 // Character Templates (excluding runtime fields that get initialized when character is created)
-export const characterTemplates: Record<string, Omit<Character, 'id' | 'experience' | 'skills' | 'abilities' | 'financials' | 'traditionalStats' | 'temporaryStats' | 'currentHp' | 'maxHp' | 'experienceToNext' | 'personalityTraits' | 'speakingStyle' | 'decisionMaking' | 'conflictResponse' | 'statusEffects' | 'injuries' | 'restDaysNeeded' | 'battleAbilities' | 'specialPowers' | 'financialPersonality'>> = {
+export const characterTemplates: Record<string, Omit<Character, 'id' | 'experience' | 'skills' | 'abilities' | 'financials' | 'traditionalStats' | 'temporaryStats' | 'currentHp' | 'maxHp' | 'experienceToNext' | 'personalityTraits' | 'speakingStyle' | 'decisionMaking' | 'conflictResponse' | 'statusEffects' | 'injuries' | 'restDaysNeeded' | 'battleAbilities' | 'specialPowers' | 'financialPersonality' | 'traditionalStats' >> = {
   achilles: {
     name: 'Achilles',
     title: 'Hero of Troy',
@@ -362,7 +362,55 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
         'The gods smile upon me!',
         'None can stand against my might!'
       ]
-    }
+    },
+
+    // Battle-specific fields from TeamCharacter merge
+    traditionalStats: {
+      strength: 95,      // Maps directly from baseStats.strength
+      vitality: 90,      // Maps directly from baseStats.vitality
+      speed: 85,         // Maps directly from baseStats.agility
+      dexterity: 85,     // Maps directly from baseStats.agility
+      stamina: 90,       // Maps directly from baseStats.vitality
+      intelligence: 60,  // Maps directly from baseStats.intelligence
+      charisma: 80,      // Maps directly from baseStats.charisma
+      spirit: 45         // Maps directly from baseStats.wisdom
+    },
+    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
+    currentHp: 1200,      // Maps directly from combatStats.health
+    maxHp: 1200,          // Maps directly from combatStats.maxHealth
+    experienceToNext: 100, // Level 1 → 2 requires 100 XP (from XP_CURVE_BASE)
+    personalityTraits: ['Honorable', 'Wrathful', 'Courageous', 'Prideful'],
+    speakingStyle: 'formal',
+    decisionMaking: 'emotional',
+    conflictResponse: 'aggressive',
+    statusEffects: [],
+    injuries: [],
+    restDaysNeeded: 0,
+    battleAbilities: [
+      {
+        id: 'divine_strike',
+        name: 'Divine Strike',
+        type: 'attack',
+        power: 35,
+        cooldown: 2,
+        currentCooldown: 0,
+        description: 'Channel divine power for devastating attack',
+        icon: '⚔️',
+        mentalHealthRequired: 60
+      }
+    ],
+    specialPowers: [
+      {
+        id: 'wrath_of_achilles',
+        name: 'Wrath of Achilles',
+        type: 'active',
+        description: 'Legendary rage increases damage but reduces defense',
+        effect: '+50% damage, -25% defense for 3 rounds',
+        icon: '🔥',
+        cooldown: 5,
+        currentCooldown: 0
+      }
+    ]
   },
 
   merlin: {
@@ -1969,7 +2017,7 @@ function generateFinancialPersonality(templateId: string, archetype: CharacterAr
   };
 
   const base = defaultByArchetype[archetype] || defaultByArchetype.warrior;
-  
+
   return {
     spendingStyle: specific?.spendingStyle || base.spendingStyle || 'moderate',
     moneyMotivations: specific?.moneyMotivations || ['security', 'status'],
@@ -2090,20 +2138,20 @@ function applyTrainingImprovements(character: Character, templateId: string): vo
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
     return; // Skip during server-side rendering
   }
-  
+
   // Get training improvements from localStorage (where training system stores them)
   const psychStatFields: (keyof Character['psychStats'])[] = ['training', 'teamPlayer', 'ego', 'mentalHealth', 'communication'];
-  
+
   psychStatFields.forEach(statType => {
     const improvementKey = `${templateId}_${statType}_improvement`;
     const improvement = parseFloat(localStorage.getItem(improvementKey) || '0');
-    
+
     if (Math.abs(improvement) > 0.1) { // Apply both positive and negative changes
       // Apply improvement to the character's psychStats
       const oldValue = character.psychStats[statType];
       const newValue = Math.max(0, Math.min(100, oldValue + improvement));
       character.psychStats[statType] = newValue;
-      
+
       // Log the improvement for debugging
       const changeStr = improvement > 0 ? `+${improvement.toFixed(1)}` : improvement.toFixed(1);
       console.log(`Applied training/combat: ${character.name}'s ${statType} ${oldValue} → ${newValue.toFixed(1)} (${changeStr})`);

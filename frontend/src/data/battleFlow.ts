@@ -25,11 +25,11 @@ export interface BattleState {
   lastUpdate: Date;
 }
 
-export type BattlePhase = 
-  | 'pre_battle_huddle' 
-  | 'combat' 
-  | 'coaching_timeout' 
-  | 'post_battle' 
+export type BattlePhase =
+  | 'pre_battle_huddle'
+  | 'combat'
+  | 'coaching_timeout'
+  | 'post_battle'
   | 'battle_complete'
   | 'matchmaking'
   | 'strategy-selection'
@@ -587,12 +587,12 @@ export class BattleFlowManager {
       for (let j = i + 1; j < characters.length; j++) {
         const char1 = characters[i];
         const char2 = characters[j];
-        
+
         // Find relationship between characters
         const relationship = char1.personality.relationships.find(
           rel => rel.characterId === char2.name.toLowerCase().replace(/\s+/g, '_')
         );
-        
+
         if (relationship) {
           totalChemistry += relationship.strength;
           relationshipCount++;
@@ -620,7 +620,7 @@ export class BattleFlowManager {
 
   static getRelationshipBattleModifiers(relationship: string, strength: number): Record<string, number> {
     const modifier = Math.abs(strength) / 100;
-    
+
     switch (relationship) {
       case 'ally':
         return {
