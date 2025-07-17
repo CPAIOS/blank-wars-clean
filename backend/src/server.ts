@@ -65,7 +65,11 @@ app.set('trust proxy', true);
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3007',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3007',
+    'https://blank-wars-clean.vercel.app',
+    'https://www.blankwars.com'
+  ],
   credentials: true,
 }));
 app.use(morgan('dev'));
