@@ -78,31 +78,31 @@ import { getElementCapacity } from '../services/headquartersService';
 
 
 export default function TeamHeadquarters() {
-  
+
   // Create persistent kitchen chat service instance with conflict detection
   const kitchenChatServiceRef = useRef<KitchenChatService | null>(null);
   if (!kitchenChatServiceRef.current) {
     kitchenChatServiceRef.current = new KitchenChatService();
   }
   const kitchenChatService = kitchenChatServiceRef.current;
-  
+
   const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
   const [charactersLoading, setCharactersLoading] = useState(true);
 
   // Auto-assign all characters to rooms when they're loaded
   const autoAssignCharactersToRooms = (characters: any[], currentHeadquarters: HeadquartersState) => {
     if (!characters.length || !currentHeadquarters.rooms.length) return currentHeadquarters;
-    
+
     // Create a new headquarters state with auto-assigned characters
     const newHeadquarters = { ...currentHeadquarters };
     const charactersToAssign = [...characters];
-    
+
     // Clear existing assignments first
     newHeadquarters.rooms = newHeadquarters.rooms.map(room => ({
       ...room,
       assignedCharacters: []
     }));
-    
+
     // Distribute characters evenly across all rooms
     let roomIndex = 0;
     charactersToAssign.forEach((char) => {
@@ -112,12 +112,12 @@ export default function TeamHeadquarters() {
         roomIndex = (roomIndex + 1) % newHeadquarters.rooms.length;
       }
     });
-    
-    console.log('🏠 Auto-assigned characters to rooms:', newHeadquarters.rooms.map(r => ({ 
-      name: r.name, 
-      assigned: r.assignedCharacters.length 
+
+    console.log('🏠 Auto-assigned characters to rooms:', newHeadquarters.rooms.map(r => ({
+      name: r.name,
+      assigned: r.assignedCharacters.length
     })));
-    
+
     return newHeadquarters;
   };
 
@@ -128,14 +128,14 @@ export default function TeamHeadquarters() {
         setCharactersLoading(true);
         const response = await characterAPI.getUserCharacters();
         const characters = response.characters || [];
-        
+
         // Map database characters to expected format
         const mappedCharacters = characters.map((char: any) => {
           console.log('🔍 Processing character:', char.name, {
             personality_traits: char.personality_traits,
             conversation_topics: char.conversation_topics
           });
-          
+
           try {
             return {
               // Basic database fields
@@ -145,7 +145,7 @@ export default function TeamHeadquarters() {
               avatar: char.avatar_emoji || '⚔️',
               archetype: char.archetype || 'warrior',
               rarity: char.rarity || 'common',
-              
+
               // Parse JSON fields from database with error handling
               personality: {
                 traits: (() => {
@@ -168,17 +168,17 @@ export default function TeamHeadquarters() {
                 fears: ['Defeat'], // Default fallback
                 relationships: []
               },
-          
+
           // Map database fields to demo character format
           historicalPeriod: char.origin_era || 'Modern Era',
           mythology: char.archetype + ' tradition',
           description: char.backstory || 'A legendary warrior.',
-          
+
           // Game progression fields
           level: char.level || 1,
           experience: char.experience || 0,
           bond_level: char.bond_level || 0,
-          
+
           // Combat stats
           combatStats: {
             maxHealth: char.max_health || char.base_health,
@@ -187,7 +187,7 @@ export default function TeamHeadquarters() {
             defense: char.base_defense,
             speed: char.base_speed
           },
-          
+
               // Add baseName for compatibility
               baseName: char.character_id
             };
@@ -215,10 +215,10 @@ export default function TeamHeadquarters() {
             };
           }
         });
-        
+
         console.log('📊 Loaded database characters for kitchen chat:', mappedCharacters);
         setAvailableCharacters(mappedCharacters);
-        
+
         // Auto-assign all characters to rooms
         setHeadquarters(prev => autoAssignCharactersToRooms(mappedCharacters, prev));
       } catch (error) {
@@ -234,10 +234,10 @@ export default function TeamHeadquarters() {
 
   // Usage tracking state
   const [usageStatus, setUsageStatus] = useState<UsageStatus | null>(null);
-  
+
   // Tutorial system
   const { isFirstTimeUser, startTutorial, isActive: isTutorialActive, resetTutorial } = useTutorial();
-  
+
   // Debug helper for testing (remove in production)
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -256,9 +256,9 @@ export default function TeamHeadquarters() {
         console.error('Failed to load usage status:', error);
       }
     };
-    
+
     loadUsageStatus();
-    
+
     // Refresh usage status every 5 minutes
     const interval = setInterval(loadUsageStatus, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -277,14 +277,14 @@ export default function TeamHeadquarters() {
         beds: [
           {
             id: 'master_bed_1',
-            type: 'bed',
+            type: 'bed' as 'bed',
             position: { x: 0, y: 0 },
             capacity: 1,
             comfortBonus: 15 // Best sleep quality
           },
           {
             id: 'master_couch_1',
-            type: 'couch',
+            type: 'couch' as 'couch',
             position: { x: 1, y: 0 },
             capacity: 1,
             comfortBonus: 5 // Lower comfort than bed
@@ -292,7 +292,7 @@ export default function TeamHeadquarters() {
         ]
       },
       {
-        id: 'room_2', 
+        id: 'room_2',
         name: 'Bunk Room',
         theme: null,
         elements: [],
@@ -301,7 +301,7 @@ export default function TeamHeadquarters() {
         beds: [
           {
             id: 'bunk_1',
-            type: 'bunk_bed',
+            type: 'bunk_bed' as 'bunk_bed',
             position: { x: 0, y: 0 },
             capacity: 2,
             comfortBonus: 10 // Decent sleep quality
@@ -323,7 +323,7 @@ export default function TeamHeadquarters() {
   // calculateRoomCapacity and calculateSleepingArrangement imported from ./utils/roomCalculations.ts
 
   // purchaseBed function imported from ./services/bedService.ts
-  
+
   // Calculate battle bonuses from room themes
   const battleBonuses = headquarters?.rooms?.reduce((bonuses: Record<string, number>, room) => {
     if (room.theme) {
@@ -338,12 +338,12 @@ export default function TeamHeadquarters() {
   const [sceneInitialized, setSceneInitialized] = useState(false);
   const [coachMessage, setCoachMessage] = useState('');
   const [draggedCharacter, setDraggedCharacter] = useState<string | null>(null);
-  
+
   // Enhanced visual feedback states
   const [moveNotification, setMoveNotification] = useState<{message: string, type: 'success' | 'warning'} | null>(null);
   const [highlightedRoom, setHighlightedRoom] = useState<string | null>(null);
   const notificationTimeout = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Confessional Interview State
   const [confessionalData, setConfessionalData] = useState<{
     activeCharacter: string | null;
@@ -360,7 +360,7 @@ export default function TeamHeadquarters() {
     questionCount: 0,
     isLoading: false
   });
-  
+
   // Track active timeouts to prevent multiple interviews
   const confessionalTimeouts = useRef<Set<NodeJS.Timeout>>(new Set());
   const [selectedElementCategory, setSelectedElementCategory] = useState<'wallDecor' | 'furniture' | 'lighting' | 'accessories' | 'flooring' | null>(null);
@@ -421,7 +421,7 @@ export default function TeamHeadquarters() {
     // Apply real estate agent discount
     const bonusService = RealEstateAgentBonusService.getInstance();
     const discountedCost = bonusService.applyFacilityCostReduction(tier.cost);
-    
+
     if (headquarters.currency.coins >= discountedCost.coins && headquarters.currency.gems >= discountedCost.gems) {
       const newHeadquarters = {
         ...headquarters,
@@ -440,7 +440,7 @@ export default function TeamHeadquarters() {
           beds: [
             {
               id: `bed_${i + 1}_1`,
-              type: 'bed',
+              type: 'bed' as 'bed',
               position: { x: 0, y: 0 },
               capacity: 1,
               comfortBonus: 10
@@ -448,10 +448,10 @@ export default function TeamHeadquarters() {
           ]
         }))
       };
-      
+
       // Update local state first for immediate UI feedback
       setHeadquarters(newHeadquarters);
-      
+
       // Save to backend database
       try {
         await saveHeadquarters(newHeadquarters);
@@ -523,7 +523,7 @@ export default function TeamHeadquarters() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <motion.div 
+      <motion.div
         className="bg-gray-800/80 rounded-xl p-6 border border-gray-700"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -542,13 +542,13 @@ export default function TeamHeadquarters() {
               const agentService = RealEstateAgentBonusService.getInstance();
               const selectedAgentId = agentService.getSelectedAgent();
               if (!selectedAgentId) return null;
-              
+
               const agentData = {
                 'barry_the_closer': { name: 'Barry', icon: '⚡', color: 'text-yellow-400' },
                 'lmb_3000': { name: 'LMB-3000', icon: '👑', color: 'text-purple-400' },
                 'zyxthala_reptilian': { name: 'Zyxthala', icon: '🦎', color: 'text-green-400' }
               }[selectedAgentId];
-              
+
               return agentData ? (
                 <div className="bg-black/30 rounded-lg px-3 py-2 border border-gray-600">
                   <div className={`flex items-center gap-2 text-sm font-semibold ${agentData.color}`}>
@@ -559,7 +559,7 @@ export default function TeamHeadquarters() {
                 </div>
               ) : null;
             })()}
-            
+
             {/* Battle Effects Display */}
             {Object.keys(battleEffects).length > 0 && (
               <div className="flex items-center gap-3">
@@ -621,8 +621,8 @@ export default function TeamHeadquarters() {
             }`}
             data-tutorial={mode === 'kitchen_chat' ? 'kitchen-chat-tab' : mode === 'upgrade_shop' ? 'upgrade-tab' : mode === 'confessionals' ? 'confessionals-tab' : undefined}
           >
-            {mode === 'overview' ? 'Living Quarters' : 
-             mode === 'kitchen_chat' ? 'Kitchen Table' : 
+            {mode === 'overview' ? 'Living Quarters' :
+             mode === 'kitchen_chat' ? 'Kitchen Table' :
              mode === 'confessionals' ? 'Confessionals' :
              'Facilities'}
           </button>
@@ -666,7 +666,7 @@ export default function TeamHeadquarters() {
                     DRAMA OVERLOAD - Viewers love conflict but battles suffer!
                   </div>
                 </div>
-                
+
                 {/* Personal Stress */}
                 <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -680,7 +680,7 @@ export default function TeamHeadquarters() {
                     {headquarters.rooms.reduce((sum, room) => sum + room.assignedCharacters.length, 0)} team members sharing {headquarters.rooms.reduce((sum, room) => sum + calculateRoomCapacity(room), 0)} beds
                   </div>
                 </div>
-                
+
                 {/* Next Action */}
                 <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -738,7 +738,7 @@ export default function TeamHeadquarters() {
                 </motion.div>
               );
             })()}
-            
+
             {/* Move Notification */}
             {moveNotification && (
               <motion.div
@@ -746,8 +746,8 @@ export default function TeamHeadquarters() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 className={`p-4 rounded-lg border-2 flex items-center gap-3 ${
-                  moveNotification.type === 'success' 
-                    ? 'bg-green-900/50 border-green-500 text-green-200' 
+                  moveNotification.type === 'success'
+                    ? 'bg-green-900/50 border-green-500 text-green-200'
                     : 'bg-orange-900/50 border-orange-500 text-orange-200'
                 }`}
               >
@@ -771,8 +771,8 @@ export default function TeamHeadquarters() {
               {/* Show Entrance */}
               <div className="text-center">
                 <div className="inline-block relative">
-                  <img 
-                    src="/images/front-door.png" 
+                  <img
+                    src="/images/front-door.png"
                     alt="Blank Wars Team Housing Entrance"
                     className="w-48 h-64 object-cover rounded-xl border border-gray-600 shadow-lg"
                   />
@@ -791,7 +791,7 @@ export default function TeamHeadquarters() {
               </div>
 
               {/* Living Quarters Grid */}
-              <div 
+              <div
                 className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
                 data-tutorial="room-grid"
               >
@@ -799,13 +799,13 @@ export default function TeamHeadquarters() {
               const theme = room.theme ? ROOM_THEMES.find(t => t.id === room.theme) : null;
               const conflicts = getCharacterConflicts(room.id, headquarters);
               const roomCapacity = calculateRoomCapacity(room);
-              
+
               return (
                 <motion.div
                   key={room.id}
                   className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                    theme 
-                      ? `${theme.backgroundColor} border-gray-600` 
+                    theme
+                      ? `${theme.backgroundColor} border-gray-600`
                       : 'bg-gray-800/50 border-gray-700'
                   } ${draggedCharacter ? 'border-blue-400 border-dashed' : ''} ${
                     highlightedRoom === room.id ? 'ring-2 ring-green-400 border-green-400 bg-green-900/20' : ''
@@ -854,7 +854,7 @@ export default function TeamHeadquarters() {
                         const bedStartIndex = room.beds.slice(0, room.beds.indexOf(bed)).reduce((sum, b) => sum + b.capacity, 0);
                         const bedEndIndex = bedStartIndex + bed.capacity;
                         const occupiedSlots = Math.max(0, Math.min(bed.capacity, room.assignedCharacters.length - bedStartIndex));
-                        
+
                         return (
                           <BedComponent
                             key={bed.id}
@@ -873,10 +873,10 @@ export default function TeamHeadquarters() {
                       const character = availableCharacters.find(c => c.baseName === charName);
                       const happiness = getCharacterHappiness(charName, room.id, headquarters);
                       const themeCompatibility = getThemeCompatibility(charName, room.theme);
-                      
+
                       return character ? (
-                        <div 
-                          key={charName} 
+                        <div
+                          key={charName}
                           className={`flex flex-col items-center group relative cursor-move ${
                             themeCompatibility.type === 'incompatible' ? 'ring-2 ring-amber-400/50 rounded-lg p-1' : ''
                           }`}
@@ -964,14 +964,14 @@ export default function TeamHeadquarters() {
                       😤 {conflicts[0]}
                     </div>
                   )}
-                  
+
                   {/* Theme Compatibility Warnings */}
                   {(() => {
                     const warnings = getRoomThemeWarnings(room.id, headquarters);
                     const missedBonuses = calculateMissedBonuses(room.id, headquarters);
-                    
+
                     if (warnings.length === 0 && missedBonuses.length === 0) return null;
-                    
+
                     return (
                       <div className="space-y-1">
                         {warnings.map((warning, index) => (
@@ -979,7 +979,7 @@ export default function TeamHeadquarters() {
                             ⚠️ {warning.message}
                           </div>
                         ))}
-                        
+
                         {/* Suggestions for better assignments */}
                         {missedBonuses.length > 0 && (
                           <div className="text-xs text-blue-300 italic">
@@ -1039,8 +1039,8 @@ export default function TeamHeadquarters() {
             {/* Kitchen Table Visual */}
             <div className="bg-gradient-to-b from-amber-900/20 to-amber-800/10 rounded-xl p-6 mb-6 border border-amber-700/30">
               <div className="text-center mb-4">
-                <img 
-                  src="/images/kitchen-table.png" 
+                <img
+                  src="/images/kitchen-table.png"
                   alt="Blank Wars Kitchen Table"
                   className="w-64 h-48 object-cover rounded-lg border border-amber-600/50 shadow-lg mx-auto mb-3"
                 />
@@ -1209,21 +1209,21 @@ export default function TeamHeadquarters() {
                 {HEADQUARTERS_TIERS.map((tier) => {
                   const isCurrentTier = headquarters.currentTier === tier.id;
                   const isUpgrade = HEADQUARTERS_TIERS.indexOf(tier) > HEADQUARTERS_TIERS.indexOf(currentTier);
-                  
+
                   // Apply real estate agent discount for display
                   const bonusService = RealEstateAgentBonusService.getInstance();
                   const discountedCost = bonusService.applyFacilityCostReduction(tier.cost);
                   const hasDiscount = discountedCost.coins < tier.cost.coins || discountedCost.gems < tier.cost.gems;
-                  
-                  const canAfford = headquarters.currency.coins >= discountedCost.coins && 
+
+                  const canAfford = headquarters.currency.coins >= discountedCost.coins &&
                                    headquarters.currency.gems >= discountedCost.gems;
 
                   return (
                     <div
                       key={tier.id}
                       className={`p-4 rounded-lg border transition-all ${
-                        isCurrentTier 
-                          ? 'border-green-500 bg-green-900/20' 
+                        isCurrentTier
+                          ? 'border-green-500 bg-green-900/20'
                           : isUpgrade && canAfford
                           ? 'border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/30'
                           : 'border-gray-600 bg-gray-700/30'
@@ -1284,12 +1284,12 @@ export default function TeamHeadquarters() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {ROOM_THEMES.map((theme) => {
-                  // Apply real estate agent discount for display  
+                  // Apply real estate agent discount for display
                   const bonusService = RealEstateAgentBonusService.getInstance();
                   const discountedCost = bonusService.applyFacilityCostReduction(theme.cost);
                   const hasDiscount = discountedCost.coins < theme.cost.coins || discountedCost.gems < theme.cost.gems;
-                  
-                  const canAfford = headquarters.currency.coins >= discountedCost.coins && 
+
+                  const canAfford = headquarters.currency.coins >= discountedCost.coins &&
                                    headquarters.currency.gems >= discountedCost.gems;
                   const isUnlocked = headquarters.unlockedThemes.includes(theme.id);
 
@@ -1298,7 +1298,7 @@ export default function TeamHeadquarters() {
                       // Apply real estate agent discount
                       const bonusService = RealEstateAgentBonusService.getInstance();
                       const discountedCost = bonusService.applyFacilityCostReduction(theme.cost);
-                      
+
                       const newHeadquarters = {
                         ...headquarters,
                         currency: {
@@ -1307,10 +1307,10 @@ export default function TeamHeadquarters() {
                         },
                         unlockedThemes: [...headquarters.unlockedThemes, theme.id]
                       };
-                      
+
                       // Update local state first for immediate UI feedback
                       setHeadquarters(newHeadquarters);
-                      
+
                       // Save to backend database
                       try {
                         await saveHeadquarters(newHeadquarters);
@@ -1386,7 +1386,7 @@ export default function TeamHeadquarters() {
             </div>
 
             {/* Character Slot Capacity Upgrade Component */}
-            <CharacterSlotUpgrade 
+            <CharacterSlotUpgrade
               currency={headquarters.currency}
               onCurrencyUpdate={(coins, gems) => {
                 setHeadquarters(prev => ({
@@ -1395,7 +1395,7 @@ export default function TeamHeadquarters() {
                 }));
               }}
             />
-            
+
             {/* Real Estate Agent Chat */}
             <RealEstateAgentChat />
           </motion.div>
@@ -1512,7 +1512,7 @@ export default function TeamHeadquarters() {
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Instructions */}
                           <div className="text-center">
                             <h2 className="text-xl font-bold text-white mb-2">Ready for Confessional</h2>
@@ -1526,7 +1526,7 @@ export default function TeamHeadquarters() {
                         <div className="flex flex-col items-center gap-6">
                           {/* Character Confessional Image */}
                           <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-purple-600 shadow-2xl">
-                            <img 
+                            <img
                               src={(() => {
                                 // Map character names to their confessional image file names for Spartan Apartment
                                 const characterImageMap: Record<string, string> = {
@@ -1559,7 +1559,7 @@ export default function TeamHeadquarters() {
                                   'cleopatra vii': 'Cleopatra_Conf_SptnApt.png',
                                   'vega-x': 'Agent_X_Conf_SptnApt.png',
                                 };
-                                
+
                                 const activeCharacter = availableCharacters.find(c => c.id === confessionalData.activeCharacter);
                                 const characterName = activeCharacter?.name?.toLowerCase()?.trim();
                                 console.log('🎬 Confessional Image Debug:', {
@@ -1567,12 +1567,12 @@ export default function TeamHeadquarters() {
                                   characterName,
                                   hasMapping: !!characterImageMap[characterName || ''],
                                 });
-                                
+
                                 // Only use mapped images, no fallback to wrong character
                                 if (characterName && characterImageMap[characterName]) {
                                   return `/images/Confessional/Spartan Apartment/${characterImageMap[characterName]}`;
                                 }
-                                
+
                                 // Return empty string if no match found
                                 return '';
                               })()}
@@ -1586,7 +1586,7 @@ export default function TeamHeadquarters() {
                               }}
                             />
                           </div>
-                          
+
                           {/* Character Info */}
                           <div className="text-center">
                             <h2 className="text-xl font-bold text-white mb-2">
@@ -1620,7 +1620,7 @@ export default function TeamHeadquarters() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${confessionalData.isPaused ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`}></div>
@@ -1655,7 +1655,7 @@ export default function TeamHeadquarters() {
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Interview Messages */}
                   <div className="bg-black/50 rounded-lg p-4 max-h-80 overflow-y-auto mb-4 space-y-3">
                     {confessionalData.messages
@@ -1670,7 +1670,7 @@ export default function TeamHeadquarters() {
                         </div>
                       </div>
                     ))}
-                    
+
                     {/* Loading Spinner */}
                     {confessionalData.isLoading && (
                       <div className="flex justify-center">
@@ -1681,7 +1681,7 @@ export default function TeamHeadquarters() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Interview Status */}
                   <div className="text-center text-gray-400 text-sm">
                     {confessionalData.isPaused ? (
@@ -1746,9 +1746,9 @@ export default function TeamHeadquarters() {
 
               <div className="space-y-4">
                 {PURCHASABLE_BEDS.map((bed) => {
-                  const canAfford = headquarters.currency.coins >= bed.cost.coins && 
+                  const canAfford = headquarters.currency.coins >= bed.cost.coins &&
                                    headquarters.currency.gems >= bed.cost.gems;
-                  
+
                   return (
                     <div key={bed.id} className="border border-gray-600 rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
@@ -1768,7 +1768,7 @@ export default function TeamHeadquarters() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <button
                         onClick={async () => {
                           await purchaseBed(selectedRoomForBeds, bed, headquarters, setHeadquarters, setMoveNotification);
@@ -1776,8 +1776,8 @@ export default function TeamHeadquarters() {
                         }}
                         disabled={!canAfford}
                         className={`w-full py-2 px-4 rounded-lg transition-all ${
-                          canAfford 
-                            ? 'bg-green-600 hover:bg-green-500 text-white' 
+                          canAfford
+                            ? 'bg-green-600 hover:bg-green-500 text-white'
                             : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                         }`}
                       >
@@ -1836,8 +1836,8 @@ export default function TeamHeadquarters() {
                     <div className="bg-gradient-to-b from-blue-900/20 to-blue-800/10 rounded-xl p-6 mb-6 border border-blue-700/30">
                       <div className="text-center mb-4">
                         {room.customImageUrl ? (
-                          <img 
-                            src={room.customImageUrl} 
+                          <img
+                            src={room.customImageUrl}
                             alt={`${room.name} custom design`}
                             className="w-full h-48 object-cover rounded-lg border border-gray-600 shadow-lg"
                           />
@@ -1851,15 +1851,15 @@ export default function TeamHeadquarters() {
                                 disabled={isGeneratingRoomImage || room.elements.length === 0}
                                 className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded-lg transition-colors"
                               >
-                                {isGeneratingRoomImage ? 'Generating...' : 
-                                 room.elements.length === 0 ? 'Add elements first' : 
+                                {isGeneratingRoomImage ? 'Generating...' :
+                                 room.elements.length === 0 ? 'Add elements first' :
                                  '🎨 Generate Custom Image'}
                               </button>
                             </div>
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Element Capacity */}
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
@@ -1867,7 +1867,7 @@ export default function TeamHeadquarters() {
                           <span className="text-blue-200">{room.elements.length}/{elementCapacity}</span>
                         </div>
                         <div className="w-full bg-gray-700 rounded-full h-2">
-                          <div 
+                          <div
                             className="bg-blue-500 h-2 rounded-full transition-all"
                             style={{ width: `${(room.elements.length / elementCapacity) * 100}%` }}
                           />
@@ -1946,7 +1946,7 @@ export default function TeamHeadquarters() {
                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                             }`}
                           >
-                            {category === 'wallDecor' ? 'Wall Decor' : 
+                            {category === 'wallDecor' ? 'Wall Decor' :
                              category === 'furniture' ? 'Furniture' :
                              category === 'lighting' ? 'Lighting' :
                              category === 'accessories' ? 'Accessories' : 'Flooring'}
@@ -1963,7 +1963,7 @@ export default function TeamHeadquarters() {
                               .filter(element => element.category === selectedElementCategory)
                               .map(element => {
                                 const isOwned = room.elements.includes(element.id);
-                                const canAfford = headquarters.currency.coins >= element.cost.coins && 
+                                const canAfford = headquarters.currency.coins >= element.cost.coins &&
                                                  headquarters.currency.gems >= element.cost.gems;
                                 const atCapacity = room.elements.length >= elementCapacity;
 
@@ -1971,8 +1971,8 @@ export default function TeamHeadquarters() {
                                   <div
                                     key={element.id}
                                     className={`p-3 rounded-lg border transition-all ${
-                                      isOwned 
-                                        ? 'border-green-500 bg-green-900/20' 
+                                      isOwned
+                                        ? 'border-green-500 bg-green-900/20'
                                         : canAfford && !atCapacity
                                         ? 'border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/30'
                                         : 'border-gray-600 bg-gray-700/30'
@@ -1990,7 +1990,7 @@ export default function TeamHeadquarters() {
                                         <div className="text-sm text-gray-400">{element.description}</div>
                                       </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center justify-between text-sm">
                                       <div className="text-blue-400">
                                         +{element.bonusValue}% {element.bonus}

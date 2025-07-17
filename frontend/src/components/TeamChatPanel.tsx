@@ -59,7 +59,7 @@ export default function TeamChatPanel({
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
     console.log('🔌 TeamChat connecting to backend:', socketUrl);
-    
+
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
@@ -77,7 +77,7 @@ export default function TeamChatPanel({
 
     socketRef.current.on('team_chat_response', (data: { character: string; message: string; characterId: string }) => {
       console.log('📨 Team chat response:', data);
-      
+
       const respondingCharacter = playerTeam.characters.find(c => c.id === data.characterId);
       if (respondingCharacter) {
         const characterMessage: ChatMessage = {
@@ -89,7 +89,7 @@ export default function TeamChatPanel({
           timestamp: new Date(),
           messageType: 'general'
         };
-        
+
         setMessages(prev => [...prev, characterMessage]);
       }
       setIsTyping(null);
@@ -98,7 +98,7 @@ export default function TeamChatPanel({
     socketRef.current.on('team_chat_error', (error: { message?: string; error?: string; usageLimitReached?: boolean }) => {
       console.error('❌ Team chat error:', error);
       setIsTyping(null);
-      
+
       if (error.usageLimitReached) {
         setUsageLimitReached(true);
         // Add a system message about the usage limit
@@ -130,7 +130,7 @@ export default function TeamChatPanel({
 
   // Add initial team greeting
   useEffect(() => {
-    if (phase === 'strategy-selection' && messages.length === 0) {
+    if (phase.name === 'strategy-selection' && messages.length === 0) {
       const initialMessages: ChatMessage[] = [
         {
           id: 'coach-welcome',
@@ -215,7 +215,7 @@ export default function TeamChatPanel({
 
       respondingCharacters.forEach((character, index) => {
         setIsTyping(character.id);
-        
+
         setTimeout(() => {
           // Send to AI backend with battle context
           socketRef.current?.emit('team_chat_message', {
@@ -301,7 +301,7 @@ export default function TeamChatPanel({
       // No connection - retry connection and show error
       console.log('🔄 AI backend offline - attempting to reconnect...');
       socketRef.current?.connect();
-      
+
       setTimeout(() => {
         if (!socketRef.current?.connected) {
           console.log('❌ Failed to reconnect to AI backend');
@@ -344,7 +344,7 @@ export default function TeamChatPanel({
       </div>
 
       {/* Chat Messages */}
-      <div 
+      <div
         ref={chatContainerRef}
         className="h-80 overflow-y-auto space-y-3 mb-4 pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
       >
@@ -352,7 +352,7 @@ export default function TeamChatPanel({
           {messages.map((message) => {
             const isCoach = message.sender === 'coach';
             const MessageIcon = messageTypeIcons[message.messageType];
-            
+
             return (
               <motion.div
                 key={message.id}
@@ -386,7 +386,7 @@ export default function TeamChatPanel({
             );
           })}
         </AnimatePresence>
-        
+
         {/* Typing indicator */}
         {isTyping && (
           <motion.div

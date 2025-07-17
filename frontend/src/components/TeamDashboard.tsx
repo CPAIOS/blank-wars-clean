@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  DollarSign, AlertTriangle, TrendingUp, TrendingDown, 
+import {
+  DollarSign, AlertTriangle, TrendingUp, TrendingDown,
   Users, Shield, Zap, Brain, Target, Activity,
   Clock, Calendar, ChevronRight, User, Crown,
   Wallet, PiggyBank, CreditCard, TrendingDown as Spiral
@@ -59,7 +59,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
   const loadTeamFinancialData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Get recent financial events
       const eventFilter: EventFilter = {
         timeRange: selectedTimeRange,
@@ -77,7 +77,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
       // Calculate team metrics and character summaries
       const metrics = await calculateTeamMetrics(events);
       const summaries = await calculateCharacterSummaries(events);
-      
+
       setTeamMetrics(metrics);
       setCharacterSummaries(summaries);
     } catch (error) {
@@ -92,7 +92,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
     const financialDecisions = events.filter(e => e.type === 'financial_decision_made');
     const successfulDecisions = financialDecisions.filter(e => e.metadata.outcome === 'positive');
     const crisisEvents = events.filter(e => e.type === 'financial_crisis');
-    
+
     let totalStress = 0;
     let spiralCount = 0;
     let totalTrust = 0;
@@ -102,7 +102,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
       const recentDecisions = financialDecisions
         .filter(e => e.primaryCharacterId === char.id)
         .map(e => e.metadata as any);
-      
+
       const stressData = financialPsychology.calculateFinancialStress(
         char.id,
         char.financials?.wallet || 0,
@@ -110,18 +110,18 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
         recentDecisions,
         char.financialPersonality
       );
-      
+
       totalStress += stressData.stress;
-      
+
       if (stressData.stress > 70) {
         highRiskChars.push(char.id);
       }
-      
+
       const spiralState = financialPsychology.calculateSpiralState(recentDecisions, stressData.stress);
       if (spiralState.isInSpiral) {
         spiralCount++;
       }
-      
+
       totalTrust += char.financials?.coachFinancialTrust || 50;
     }
 
@@ -139,13 +139,13 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
 
   const calculateCharacterSummaries = async (events: GameEvent[]): Promise<CharacterFinancialSummary[]> => {
     const summaries: CharacterFinancialSummary[] = [];
-    
+
     for (const char of characters) {
       const charEvents = events.filter(e => e.primaryCharacterId === char.id);
       const recentDecisions = charEvents
         .filter(e => e.type === 'financial_decision_made')
         .map(e => e.metadata as any);
-      
+
       const stressData = financialPsychology.calculateFinancialStress(
         char.id,
         char.financials?.wallet || 0,
@@ -153,16 +153,16 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
         recentDecisions,
         char.financialPersonality
       );
-      
+
       const spiralState = financialPsychology.calculateSpiralState(recentDecisions, stressData.stress);
-      
+
       const getRiskLevel = (stress: number): 'low' | 'medium' | 'high' | 'critical' => {
         if (stress < 30) return 'low';
         if (stress < 50) return 'medium';
         if (stress < 70) return 'high';
         return 'critical';
       };
-      
+
       summaries.push({
         id: char.id,
         name: char.name,
@@ -175,7 +175,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
         lastActivity: charEvents.length > 0 ? charEvents[0].timestamp : new Date()
       });
     }
-    
+
     return summaries.sort((a, b) => b.stress - a.stress); // Sort by stress level
   };
 
@@ -318,7 +318,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ characters, className }) 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${
-                      char.isInSpiral ? 'bg-red-500' : 
+                      char.isInSpiral ? 'bg-red-500' :
                       char.riskLevel === 'critical' ? 'bg-red-400' :
                       char.riskLevel === 'high' ? 'bg-orange-400' :
                       char.riskLevel === 'medium' ? 'bg-yellow-400' : 'bg-green-400'

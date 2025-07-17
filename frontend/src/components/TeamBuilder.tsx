@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Users, 
-  Star, 
-  Crown, 
+import {
+  Users,
+  Star,
+  Crown,
   Shield,
   Sword,
   Zap,
@@ -26,7 +26,7 @@ import {
   Filter,
   Search
 } from 'lucide-react';
-import { 
+import {
   TeamFormation,
   TeamPosition,
   TeamComposition,
@@ -38,7 +38,7 @@ import {
   getFormationRecommendations,
   validateTeamComposition
 } from '@/data/teamBuilding';
-import { 
+import {
   OwnedCharacter,
   characterRarityConfig
 } from '@/data/userAccount';
@@ -79,7 +79,7 @@ export default function TeamBuilder({
   }).filter(member => member.archetype);
 
   const activeSynergies = calculateTeamSynergies(teamMembersWithData);
-  
+
   // Calculate team power
   const teamPower = calculateTeamPower(
     teamMembersWithData.map(member => {
@@ -126,20 +126,20 @@ export default function TeamBuilder({
   // Add character to team
   const addCharacterToPosition = (character: OwnedCharacter, positionId: string) => {
     if (!canFillPosition(character, positionId)) return;
-    
+
     const position = selectedFormation.positions.find(p => p.id === positionId);
     const isLeader = position?.role === 'leader';
-    
+
     // Remove any existing character from this position
     const updatedMembers = teamMembers.filter(member => member.position !== positionId);
-    
+
     // Add new character
     updatedMembers.push({
       characterId: character.characterId,
       position: positionId,
       isLeader
     });
-    
+
     setTeamMembers(updatedMembers);
     setSelectedPosition(null);
   };
@@ -158,7 +158,7 @@ export default function TeamBuilder({
   // Save team
   const saveTeam = () => {
     if (!teamName.trim() || teamMembers.length === 0) return;
-    
+
     const team: TeamComposition = {
       id: `team_${Date.now()}`,
       name: teamName,
@@ -180,7 +180,7 @@ export default function TeamBuilder({
       isActive: false,
       isFavorite: false
     };
-    
+
     onSaveTeam?.(team);
     setTeamName('');
   };
@@ -270,7 +270,7 @@ export default function TeamBuilder({
                 <Shield className="w-6 h-6 text-blue-400" />
                 Formation Selection
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {teamFormations.map((formation) => (
                   <motion.div
@@ -329,7 +329,7 @@ export default function TeamBuilder({
               <div className="relative bg-gray-800/50 rounded-lg p-6 mb-4" style={{ minHeight: '300px' }}>
                 {selectedFormation.positions.map((position) => {
                   const assignedMember = teamMembers.find(member => member.position === position.id);
-                  const assignedCharacter = assignedMember 
+                  const assignedCharacter = assignedMember
                     ? characters.find(c => c.characterId === assignedMember.characterId)
                     : null;
 
@@ -380,7 +380,7 @@ export default function TeamBuilder({
                           </>
                         )}
                       </div>
-                      
+
                       {/* Position tooltip */}
                       <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
                         <div className="font-semibold">{position.name}</div>
@@ -418,7 +418,7 @@ export default function TeamBuilder({
                     </div>
                     <div className="text-center">
                       <div className="text-lg font-bold text-green-400">
-                        {teamMembersWithData.length > 0 
+                        {teamMembersWithData.length > 0
                           ? Math.round(teamMembersWithData.reduce((sum, member) => {
                               const char = characters.find(c => c.characterId === member.characterId);
                               return sum + (char?.level || 1);
@@ -457,7 +457,7 @@ export default function TeamBuilder({
                     {activeSynergies.map(synergyId => {
                       const synergy = getSynergyById(synergyId);
                       if (!synergy) return null;
-                      
+
                       return (
                         <div key={synergyId} className="flex items-center gap-3 text-sm">
                           <span className="text-lg">{synergy.icon}</span>
@@ -539,7 +539,7 @@ export default function TeamBuilder({
                     className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                   />
                 </div>
-                
+
                 <select
                   value={filterArchetype}
                   onChange={(e) => setFilterArchetype(e.target.value)}
@@ -571,12 +571,12 @@ export default function TeamBuilder({
                   </span>
                 )}
               </h3>
-              
+
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {availableCharacters.map((character) => {
                   const canFill = selectedPosition ? canFillPosition(character, selectedPosition) : true;
                   const rarityConfig = characterRarityConfig[character?.rarity || 'common'] || characterRarityConfig.common;
-                  
+
                   return (
                     <motion.div
                       key={character?.characterId || Math.random()}
@@ -623,7 +623,7 @@ export default function TeamBuilder({
                   );
                 })}
               </div>
-              
+
               {availableCharacters.length === 0 && (
                 <div className="text-center py-8 text-gray-400">
                   <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -640,7 +640,7 @@ export default function TeamBuilder({
             <Save className="w-6 h-6 text-green-400" />
             Saved Teams ({savedTeams.length})
           </h2>
-          
+
           {savedTeams.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {savedTeams.map((team) => (
@@ -656,7 +656,7 @@ export default function TeamBuilder({
                       {team.isActive && <span className="text-green-400">●</span>}
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                     <div>
                       <span className="text-gray-400">Power:</span>
@@ -675,7 +675,7 @@ export default function TeamBuilder({
                       <span className="text-green-400 ml-1">{team.wins}W/{team.losses}L</span>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => onStartBattle?.(team)}
