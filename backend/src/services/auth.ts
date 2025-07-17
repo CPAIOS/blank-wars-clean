@@ -83,7 +83,7 @@ export class AuthService {
     // Check if user exists
     console.log('🔍 Checking for existing user...');
     const existingUser = await query(
-      'SELECT id FROM users WHERE email = ? OR username = ?',
+      'SELECT id FROM users WHERE email = $1 OR username = $2',
       [email, username]
     );
 
@@ -103,7 +103,7 @@ export class AuthService {
     const userId = uuidv4();
     await query(
       `INSERT INTO users (id, username, email, password_hash, subscription_tier, level, experience, total_battles, total_wins, rating, character_slot_capacity)
-       VALUES (?, ?, ?, ?, 'free', 1, 0, 0, 0, 1000, 12)`,
+       VALUES ($1, $2, $3, $4, 'free', 1, 0, 0, 0, 1000, 12)`,
       [userId, username, email, passwordHash]
     );
 
@@ -112,7 +112,7 @@ export class AuthService {
     // Get the created user
     console.log('📋 Fetching created user data...');
     const result = await query(
-      'SELECT id, username, email, subscription_tier, level, experience, total_battles, total_wins, rating, created_at, updated_at FROM users WHERE id = ?',
+      'SELECT id, username, email, subscription_tier, level, experience, total_battles, total_wins, rating, created_at, updated_at FROM users WHERE id = $1',
       [userId]
     );
 
@@ -151,7 +151,7 @@ export class AuthService {
     const result = await query(
       `SELECT id, username, email, password_hash, subscription_tier, subscription_expires_at, 
               level, experience, total_battles, total_wins, rating, created_at, updated_at 
-       FROM users WHERE email = ?`,
+       FROM users WHERE email = $1`,
       [email]
     );
 
@@ -189,7 +189,7 @@ export class AuthService {
       }
 
       // Check if user still exists
-      const result = await query('SELECT id FROM users WHERE id = ?', [decoded.userId]);
+      const result = await query('SELECT id FROM users WHERE id = $1', [decoded.userId]);
       if (result.rows.length === 0) {
         throw new Error('User not found');
       }
@@ -212,7 +212,7 @@ export class AuthService {
     const result = await query(
       `SELECT id, username, email, subscription_tier, subscription_expires_at,
               level, experience, total_battles, total_wins, rating, created_at, updated_at
-       FROM users WHERE id = ?`,
+       FROM users WHERE id = $1`,
       [userId]
     );
 
