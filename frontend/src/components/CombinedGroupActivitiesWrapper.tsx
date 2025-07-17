@@ -698,8 +698,18 @@ export default function CombinedGroupActivitiesWrapper() {
       
       console.log('📝 Generated prompt length:', characterPrompt.length);
       
-      // Use direct HTTP API call to working backend
-      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
+      // Use environment-based URL selection
+      let BACKEND_URL: string;
+      const isLocalhost = typeof window !== 'undefined' && 
+                         (window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1');
+      
+      if (isLocalhost) {
+        BACKEND_URL = 'http://localhost:3006';
+      } else {
+        BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-clean-production.up.railway.app';
+      }
+      
       console.log('🌐 Making API call to:', `${BACKEND_URL}/api/coaching/group-activity`);
       
       const response = await fetch(`${BACKEND_URL}/api/coaching/group-activity`, {
@@ -999,26 +1009,8 @@ RESPOND AS ${character.name}: ${facilitatorMessage === 'Start a natural conversa
     try {
       console.log('🎯 Continuing group activity session:', activeSession.eventTitle);
       
-      // Generate facilitator follow-up message
-      const facilitatorMessage = await generateFacilitatorFollowUp();
-      
-      // Add facilitator message to chat
-      const facilitatorMsg: ChatMessage = {
-        id: `facilitator-${Date.now()}`,
-        sender: 'facilitator',
-        senderName: 'Activity Facilitator',
-        senderAvatar: '🎯',
-        message: facilitatorMessage,
-        timestamp: new Date()
-      };
-
-      setActiveSession(prev => prev ? {
-        ...prev,
-        chatMessages: [...prev.chatMessages, facilitatorMsg]
-      } : null);
-
-      // Wait a moment, then get character responses
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Skip facilitator - go directly to character responses
+      console.log('🎯 Continuing session without facilitator - characters only');
       
       // Get responses from participants (randomized and not everyone)
       const shuffledParticipants = [...activeSession.participants].sort(() => Math.random() - 0.5);
@@ -1035,7 +1027,7 @@ RESPOND AS ${character.name}: ${facilitatorMessage === 'Start a natural conversa
           try {
             const characterResponse = await generateCharacterResponse(
               character,
-              facilitatorMessage,
+              'Continue the group conversation naturally',
               activeSession.eventType,
               activeSession.chatMessages
             );
