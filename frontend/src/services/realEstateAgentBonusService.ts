@@ -340,10 +340,12 @@ class RealEstateAgentBonusService {
    */
   private saveToStorage(): void {
     try {
-      if (this.selectedAgentId) {
-        localStorage.setItem(this.STORAGE_KEY, this.selectedAgentId);
-      } else {
-        localStorage.removeItem(this.STORAGE_KEY);
+      if (typeof window !== 'undefined') {
+        if (this.selectedAgentId) {
+          localStorage.setItem(this.STORAGE_KEY, this.selectedAgentId);
+        } else {
+          localStorage.removeItem(this.STORAGE_KEY);
+        }
       }
     } catch (error) {
       console.warn('Failed to save agent selection to localStorage:', error);
@@ -355,10 +357,12 @@ class RealEstateAgentBonusService {
    */
   private loadFromStorage(): void {
     try {
-      const savedAgentId = localStorage.getItem(this.STORAGE_KEY);
-      if (savedAgentId && AGENT_BONUSES[savedAgentId]) {
-        this.selectedAgentId = savedAgentId;
-        console.log(`🏠 Restored agent selection from storage: ${savedAgentId}`);
+      if (typeof window !== 'undefined') {
+        const savedAgentId = localStorage.getItem(this.STORAGE_KEY);
+        if (savedAgentId && AGENT_BONUSES[savedAgentId]) {
+          this.selectedAgentId = savedAgentId;
+          console.log(`🏠 Restored agent selection from storage: ${savedAgentId}`);
+        }
       }
     } catch (error) {
       console.warn('Failed to load agent selection from localStorage:', error);
