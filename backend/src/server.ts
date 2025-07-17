@@ -223,6 +223,56 @@ app.post('/api/grant-all-characters/:userId', async (req, res) => {
   }
 });
 
+// Export local database to production (one-time use)
+app.post('/api/export-local-database', async (req, res) => {
+  try {
+    // This is a dangerous operation, add some protection
+    const { confirm } = req.body;
+    if (confirm !== 'YES_EXPORT_LOCAL_TO_PRODUCTION') {
+      return res.status(400).json({ 
+        error: 'Must send {"confirm": "YES_EXPORT_LOCAL_TO_PRODUCTION"} to confirm this operation' 
+      });
+    }
+
+    console.log('🚀 Starting local database export to production...');
+    
+    // Import the export script and run it
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    // Set the production database URL for the script
+    const exportCommand = `cd /app && DATABASE_URL="${process.env.DATABASE_URL}" npm run ts-node export_local_to_production.ts`;
+    
+    const result = await execAsync(exportCommand, { 
+      timeout: 60000, // 1 minute timeout
+      env: { 
+        ...process.env, 
+        DATABASE_URL: process.env.DATABASE_URL 
+      }
+    });
+    
+    console.log('Export stdout:', result.stdout);
+    if (result.stderr) {
+      console.warn('Export stderr:', result.stderr);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Local database exported to production successfully!',
+      output: result.stdout
+    });
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Export failed',
+      details: error.stdout || error.stderr || error.toString()
+    });
+  }
+});
+
 // New Card Pack Routes (These are now handled by cardPackRouter)
 // app.post('/api/packs/purchase', authenticateToken, async (req, res) => {
 //   try {
