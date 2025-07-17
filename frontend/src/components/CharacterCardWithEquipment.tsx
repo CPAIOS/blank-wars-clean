@@ -262,17 +262,17 @@ export default function CharacterCardWithEquipment({
           <div className="grid grid-cols-3 gap-2">
             <EquipmentSlot
               slot="weapon"
-              equipment={character.equippedItems.weapon}
+              equipment={character.equippedItems.weapon || null}
               icon={Sword}
             />
             <EquipmentSlot
               slot="armor"
-              equipment={character.equippedItems.armor}
+              equipment={character.equippedItems.armor || null}
               icon={Shield}
             />
             <EquipmentSlot
               slot="accessory"
-              equipment={character.equippedItems.accessory}
+              equipment={character.equippedItems.accessory || null}
               icon={Crown}
             />
           </div>

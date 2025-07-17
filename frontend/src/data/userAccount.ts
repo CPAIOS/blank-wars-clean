@@ -33,6 +33,9 @@ export interface UserProfile {
   
   // Player statistics
   stats: PlayerStats;
+  
+  // Achievements
+  achievements: string[];
 }
 
 export interface PlayerStats {

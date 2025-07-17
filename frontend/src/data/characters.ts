@@ -18,13 +18,8 @@ export interface CharacterSkills {
 }
 
 // Equipment interface
-export interface Equipment {
-  id: string;
-  name: string;
-  type: string;
-  stats: Record<string, number>;
-  rarity: string;
-}
+// Import Equipment from equipment.ts instead of defining here
+import { Equipment } from './equipment';
 
 // Item interface
 export interface Item {
