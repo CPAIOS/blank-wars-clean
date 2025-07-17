@@ -17,7 +17,7 @@ interface UseUIPresentationProps {
     setShowMatchmaking: (show: boolean) => void;
     setTimer: (time: number | null) => void;
     setIsTimerActive: (active: boolean) => void;
-    setBattleCries: (cries: string[]) => void;
+    setBattleCries: (cries: { player1: string; player2: string }) => void;
     setPhase: (phase: string) => void;
   };
   timeoutManager: {
@@ -48,11 +48,11 @@ export const useUIPresentation = ({
         break;
       case 'victory':
         speak(`Victory! ${message}`);
-        actions.setBattleCries(['🎉 VICTORY! 🎉', 'Well fought!', 'Legendary battle!']);
+        actions.setBattleCries({ player1: '🎉 VICTORY! 🎉', player2: 'Well fought!' });
         break;
       case 'defeat':
         speak(`Defeat... ${message}`);
-        actions.setBattleCries(['😔 Defeat...', 'Better luck next time', 'Learn and grow']);
+        actions.setBattleCries({ player1: '😔 Defeat...', player2: 'Better luck next time' });
         break;
       case 'phase-transition':
         speak(message);
@@ -62,7 +62,7 @@ export const useUIPresentation = ({
         break;
       case 'battle-cry':
         speak(message);
-        actions.setBattleCries([message]);
+        actions.setBattleCries({ player1: message, player2: '' });
         break;
       case 'special-event':
         speak(`Special event: ${message}`);
@@ -196,11 +196,11 @@ export const useUIPresentation = ({
 
   // Visual feedback helpers
   const showBattleCries = useCallback((cries: string[]) => {
-    actions.setBattleCries(cries);
+    actions.setBattleCries({ player1: cries[0] || '', player2: cries[1] || '' });
     
     // Clear battle cries after display time
     timeoutManager.setTimeout(() => {
-      actions.setBattleCries([]);
+      actions.setBattleCries({ player1: '', player2: '' });
     }, 5000);
   }, [actions, timeoutManager]);
 

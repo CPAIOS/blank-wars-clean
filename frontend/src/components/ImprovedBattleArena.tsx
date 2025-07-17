@@ -24,10 +24,9 @@ import { combatRewards, createBattleStats, BattleStats } from '@/data/combatRewa
 import { type MatchmakingCriteria, type OpponentProfile } from '@/data/competitiveMatchmaking';
 import { BattlePhase } from '@/data/battleFlow';
 import { createDemoCharacterCollection, type Character } from '@/data/characters';
-import { createBattleReadyCharacter } from '@/data/teamBattleSystem';
 import { generateAIResponse } from '@/utils/aiChatResponses';
 import { createBattlePerformance, CombatSkillEngine, CombatSkillReward } from '@/data/combatSkillProgression';
-import { type MatchmakingResult, getTeamWeightClass, calculateWeightClassXP } from '@/data/weightClassSystem';
+import { type MatchmakingResult, getTeamWeightClass, calculateWeightClassXP, weightClasses } from '@/data/weightClassSystem';
 import { 
   initializePsychologyState, 
   updatePsychologyState, 
@@ -265,7 +264,14 @@ export default function ImprovedBattleArena() {
         coachingPoints: 3,
         consecutiveLosses: 0,
         teamChemistry: 75,
-        overallMorale: 80
+        teamCulture: 'brotherhood' as const,
+        averageLevel: Math.round(randomTeam.reduce((sum, char) => sum + char.level, 0) / randomTeam.length),
+        totalPower: randomTeam.reduce((sum, char) => sum + (char.level * 10), 0),
+        psychologyScore: 75,
+        wins: 0,
+        losses: 0,
+        battlesPlayed: 0,
+        lastBattleDate: new Date()
       };
       
       actions.setPlayerTeam(team);
@@ -502,8 +508,6 @@ export default function ImprovedBattleArena() {
     conductTeamHuddle: coachingSystem.conductTeamHuddle,
     convertToBattleCharacter,
     checkForChaos: psychologySystem.checkForChaos,
-    conductIndividualCoaching: coachingSystem.conductIndividualCoaching,
-    executeCoachingSession: coachingSystem.executeCoachingSession,
     handleStrategyRecommendation: coachingSystem.handleStrategyRecommendation,
     getCharacterOpinion: coachingSystem.getCharacterOpinion,
     insistOnStrategy: coachingSystem.insistOnStrategy,
@@ -573,7 +577,7 @@ export default function ImprovedBattleArena() {
       const demoOpponent = {
         opponent: { 
           teamLevel: 25,
-          weightClass: 'amateur' as const,
+          weightClass: weightClasses.find(wc => wc.id === 'elite')!,
           levelDifference: 0
         },
         estimatedWaitTime: 0,
@@ -720,7 +724,7 @@ export default function ImprovedBattleArena() {
 
   const handleChatMessage = useCallback((message: any) => {
     console.log('Chat message received:', message);
-    setChatMessages(prev => [...prev, `${formatCharacterName(message.character)}: ${message.message}`]);
+    actions.addChatMessage(`${formatCharacterName(message.character)}: ${message.message}`);
     setIsCharacterTyping(false);
   }, []);
 
@@ -980,7 +984,7 @@ export default function ImprovedBattleArena() {
         playerTeam={playerTeam}
         opponentTeam={opponentTeam}
         currentRound={currentRound}
-        phase={phase}
+        phase={{ name: phase }}
         battleCries={battleCries}
         chatMessages={chatMessages}
         customMessage={customMessage}
@@ -1012,7 +1016,7 @@ export default function ImprovedBattleArena() {
         <CharacterSpecificStrategyPanel
           currentRound={currentRound}
           currentMatch={currentMatch}
-          playerTeam={playerTeam}
+          playerTeam={{ characters: playerTeam.characters as unknown as TeamCharacter[] }}
           characterStrategies={characterStrategies}
           onStrategyChange={coachingSystem.handleCharacterStrategyChange}
           onAllStrategiesComplete={coachingSystem.handleAllCharacterStrategiesComplete}
@@ -1099,8 +1103,8 @@ export default function ImprovedBattleArena() {
         {/* Team Chat Panel - Always Available (Extended) */}
         <div className="h-[400px]"> {/* Extended height for better chat experience */}
           <TeamChatPanel
-            playerTeam={playerTeam}
-            phase={phase}
+            playerTeam={{ characters: playerTeam.characters as unknown as TeamCharacter[] }}
+            phase={{ name: phase }}
             currentRound={currentRound}
             currentMatch={currentMatch}
             isVisible={true}
@@ -1265,7 +1269,12 @@ export default function ImprovedBattleArena() {
                   Cancel
                 </button>
                 <button
-                  onClick={coachingSystem.buildTeamFromCards}
+                  onClick={() => coachingSystem.buildTeamFromCards(
+                    playerCards,
+                    selectedTeamCards, 
+                    setShowCardCollection,
+                    setSelectedTeamCards
+                  )}
                   disabled={selectedTeamCards.length !== 3}
                   className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
                     selectedTeamCards.length === 3
@@ -1377,7 +1386,14 @@ export default function ImprovedBattleArena() {
                         coachingPoints: 3,
                         consecutiveLosses: 0,
                         teamChemistry: 75,
-                        overallMorale: 80
+                        teamCulture: 'brotherhood' as const,
+                        averageLevel: Math.round(selectedChars.reduce((sum, char) => sum + char.level, 0) / selectedChars.length),
+                        totalPower: selectedChars.reduce((sum, char) => sum + (char.level * 10), 0),
+                        psychologyScore: 75,
+                        wins: 0,
+                        losses: 0,
+                        battlesPlayed: 0,
+                        lastBattleDate: new Date()
                       };
                       
                       actions.setPlayerTeam(newTeam);

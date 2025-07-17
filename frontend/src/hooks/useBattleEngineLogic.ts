@@ -43,6 +43,41 @@ interface UseBattleEngineLogicProps {
   executeCombatRound: () => void;
   calculateBattleRewards: (playerWon?: boolean, character?: any) => void;
   headquartersEffects: any;
+  // Additional coaching and strategy system properties
+  handleStrategyRecommendation?: (type: "attack" | "defense" | "special", strategy: string) => Promise<void>;
+  getCharacterOpinion?: (type: string, strategy: string) => Promise<string>;
+  insistOnStrategy?: (strategy: any) => void;
+  checkForBerserk?: () => void;
+  handleCharacterStrategyChange?: (characterId: string, category: "attack" | "defense" | "special", strategy: string) => void;
+  initializeCharacterStrategies?: () => void;
+  areAllCharacterStrategiesComplete?: () => boolean;
+  handleAllCharacterStrategiesComplete?: () => void;
+  handleTeamChatMessage?: (message: string) => void;
+  buildTeamFromCards?: (playerCards: any[], selectedTeamCards: string[], setShowCardCollection: (show: boolean) => void, setSelectedTeamCards: (cards: string[]) => void) => void;
+  // Card collection system properties
+  initializeCardCollection?: () => void;
+  handleCardSelect?: (cardId: string) => void;
+  handleCardDeselect?: (cardId: string) => void;
+  handleCardsReceived?: (cards: any[]) => void;
+  handleCurrencySpent?: (amount: number) => void;
+  // UI presentation properties
+  handleSelectChatCharacter?: (character: any) => void;
+  getCurrentPlayerFighter?: () => any;
+  getCurrentOpponentFighter?: () => any;
+  calculateTeamPower?: (team: any) => number;
+  handleTimerExpired?: () => void;
+  showModal?: (modalType: string) => void;
+  hideModal?: (modalType: string) => void;
+  startTimer?: (duration: number) => void;
+  stopTimer?: () => void;
+  showBattleCries?: (cries: string[]) => void;
+  transitionToPhase?: (phase: string, announcement?: string) => void;
+  // Fast battle system properties
+  isOpponentAI?: (opponent: any) => boolean;
+  handleFastBattleRequest?: () => void;
+  startFastBattle?: () => void;
+  resolveFastBattle?: (battleSetup: any) => any;
+  calculateFastBattleResult?: (battleSetup: any) => any;
 }
 
 export const useBattleEngineLogic = ({ 

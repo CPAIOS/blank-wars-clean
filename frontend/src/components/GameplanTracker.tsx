@@ -289,7 +289,7 @@ export default function GameplanTracker({
     autoAlert: true
   });
 
-  const updateTimerRef = useRef<NodeJS.Timeout>();
+  const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Simulate gameplan adherence fluctuations based on character psychology
   const simulateGameplanCheck = (character: BattleCharacter) => {
