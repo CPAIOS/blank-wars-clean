@@ -22,7 +22,8 @@ import {
   CombatRound,
   CoachingTimeout,
   PostBattleAnalysis,
-  BattleCharacter
+  BattleCharacter,
+  PlannedAction
 } from '@/data/battleFlow';
 import { BattleEngine } from '@/systems/battleEngine';
 
@@ -145,7 +146,7 @@ export default function CompletePsychologyBattleSystem() {
     addPsychologyEvent("⚔️ Combat phase initiated - psychology will drive every action!");
 
     // Execute combat round with AI psychology
-    const playerActions: Record<string, { actionType: string; targetId?: string; abilityId?: string }> = {};
+    const playerActions: Record<string, PlannedAction> = {};
     battleState.teams.player.characters.forEach(char => {
       playerActions[char.character.id] = {
         type: 'ability',

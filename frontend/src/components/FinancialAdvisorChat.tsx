@@ -370,8 +370,8 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
             wallet: selectedCharacter.financials?.wallet || 0,
             monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
             financialStress: selectedCharacter.financials?.financialStress || 0,
-            coachTrustLevel: selectedCharacter.financials?.coachTrustLevel || 0,
-            spendingPersonality: selectedCharacter.financials?.spendingPersonality || 'moderate',
+            coachTrustLevel: selectedCharacter.financials?.coachFinancialTrust || 0,
+            spendingPersonality: selectedCharacter.financialPersonality?.spendingStyle || 'moderate',
             recentDecisions: selectedCharacter.financials?.recentDecisions || []
           },
           // Pending decision context
@@ -416,8 +416,8 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
       financialStatus: {
         wallet: character.financials?.wallet || 19073,
         stress: character.financials?.financialStress || 30,
-        trust: character.financials?.coachTrustLevel || 50,
-        spendingStyle: character.financials?.spendingPersonality || 'moderate'
+        trust: character.financials?.coachFinancialTrust || 50,
+        spendingStyle: character.financialPersonality?.spendingStyle || 'moderate'
       },
       recentDecisions: character.financials?.recentDecisions || [],
       monthlyEarnings: character.financials?.monthlyEarnings || 6055

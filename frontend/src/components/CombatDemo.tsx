@@ -69,6 +69,7 @@ export default function CombatDemo() {
     phase: 'strategy',
     combatActive: false,
     selectedStrategy: null,
+    battleLog: [],
     player1: {
       name: 'Achilles',
       maxHp: 100,

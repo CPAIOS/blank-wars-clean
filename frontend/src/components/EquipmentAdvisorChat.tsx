@@ -372,11 +372,11 @@ IMPORTANT: You MUST reference your actual equipment and inventory in conversatio
 
 YOUR CURRENT STATS (reference these specific numbers):
 - Level: ${selectedCharacter.level}
-- Attack: ${selectedCharacter.base_attack}
-- Health: ${selectedCharacter.current_health}/${selectedCharacter.max_health} (current/max)
-- Defense: ${selectedCharacter.base_defense}
-- Speed: ${selectedCharacter.base_speed}
-- Special: ${selectedCharacter.base_special}
+- Attack: ${selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 0}
+- Health: ${selectedCharacter.combatStats?.health || 0}/${selectedCharacter.combatStats?.maxHealth || 0} (current/max)
+- Defense: ${selectedCharacter.combatStats?.defense || 0}
+- Speed: ${selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 0}
+- Special: ${selectedCharacter.baseStats?.wisdom || 0}
 - Archetype: ${selectedCharacter.archetype}
 
 YOUR CURRENT EQUIPMENT:
@@ -391,32 +391,32 @@ ${inventory.length > 0 ?
   '- No items in inventory'
 }
 
-You should naturally reference your current equipment, mention specific items in your inventory, and suggest equipment changes based on your stats. For example: "My attack is ${selectedCharacter.base_attack}, so I think that sword in my inventory would boost my damage" or "I'm currently using ${Object.keys(currentEquipment)[0] || 'basic gear'}, but I noticed that [specific item] might work better for my ${selectedCharacter.archetype} fighting style."`,
+You should naturally reference your current equipment, mention specific items in your inventory, and suggest equipment changes based on your stats. For example: "My attack is ${selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 0}, so I think that sword in my inventory would boost my damage" or "I'm currently using ${Object.keys(currentEquipment)[0] || 'basic gear'}, but I noticed that [specific item] might work better for my ${selectedCharacter.archetype} fighting style."`,
         equipmentData: {
           currentEquipment: currentEquipment,
           inventory: inventory,
           characterLevel: characterLevel,
           realCharacterStats: {
-            base_attack: selectedCharacter.base_attack,
-            base_health: selectedCharacter.base_health,
-            base_defense: selectedCharacter.base_defense,
-            base_speed: selectedCharacter.base_speed,
-            base_special: selectedCharacter.base_special,
-            current_health: selectedCharacter.current_health,
-            max_health: selectedCharacter.max_health,
-            level: selectedCharacter.level,
+            base_attack: selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 0,
+            base_health: selectedCharacter.combatStats?.maxHealth || 0,
+            base_defense: selectedCharacter.combatStats?.defense || 0,
+            base_speed: selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 0,
+            base_special: selectedCharacter.baseStats?.wisdom || 0,
+            current_health: selectedCharacter.combatStats?.health || 0,
+            max_health: selectedCharacter.combatStats?.maxHealth || 0,
+            level: selectedCharacter.level || 1,
             archetype: selectedCharacter.archetype
           },
           statBasedRecommendations: {
-            strengthBased: selectedCharacter.base_attack > 80,
-            speedBased: selectedCharacter.base_speed > 80,
-            defenseBased: selectedCharacter.base_defense > 80,
-            healthBased: selectedCharacter.base_health > 80,
-            specialBased: selectedCharacter.base_special > 80,
-            needsAttackBoost: selectedCharacter.base_attack < 60,
-            needsHealthBoost: selectedCharacter.base_health < 60,
-            needsDefenseBoost: selectedCharacter.base_defense < 60,
-            needsSpeedBoost: selectedCharacter.base_speed < 60
+            strengthBased: (selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 0) > 80,
+            speedBased: (selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 0) > 80,
+            defenseBased: (selectedCharacter.combatStats?.defense || 0) > 80,
+            healthBased: (selectedCharacter.combatStats?.maxHealth || 0) > 80,
+            specialBased: (selectedCharacter.baseStats?.wisdom || 0) > 80,
+            needsAttackBoost: (selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 0) < 60,
+            needsHealthBoost: (selectedCharacter.combatStats?.maxHealth || 0) < 60,
+            needsDefenseBoost: (selectedCharacter.combatStats?.defense || 0) < 60,
+            needsSpeedBoost: (selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 0) < 60
           }
         },
         // Add living context for kitchen table conflict awareness
