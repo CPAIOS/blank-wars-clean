@@ -239,9 +239,9 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
     }
     
     // Adjust based on personality
-    if (financialGoals[0] === 'impulsive') {
+    if (spendingPersonality === 'impulsive') {
       decisionScore -= 15;
-    } else if (financialGoals[0] === 'conservative') {
+    } else if (spendingPersonality === 'conservative') {
       decisionScore += 15;
     }
     
