@@ -25,11 +25,11 @@ export interface BattleState {
   lastUpdate: Date;
 }
 
-export type BattlePhase = 
-  | 'pre_battle_huddle' 
-  | 'combat' 
-  | 'coaching_timeout' 
-  | 'post_battle' 
+export type BattlePhase =
+  | 'pre_battle_huddle'
+  | 'combat'
+  | 'coaching_timeout'
+  | 'post_battle'
   | 'battle_complete'
   | 'matchmaking'
   | 'strategy-selection'
@@ -75,7 +75,7 @@ export interface MentalState {
   confidence: number; // 0-100
   teamTrust: number; // 0-100 - trust in teammates and coaching staff
   battleFocus: number; // 0-100
-  strategyDeviationRisk: number; // 0-100 - chance to deviate from gameplan
+  gameplanDeviationRisk: number; // 0-100 - chance to deviate from gameplan
 }
 
 export interface BattlePerformance {
@@ -555,7 +555,7 @@ export class BattleFlowManager {
         confidence: 70, // Affects damage output
         teamTrust: character.bondLevel,
         battleFocus: 75, // Affects critical hit chance
-        strategyDeviationRisk: Math.max(0, 100 - character.trainingLevel)
+        gameplanDeviationRisk: Math.max(0, 100 - character.trainingLevel)
       },
       gameplanAdherence: character.trainingLevel, // How likely to follow coach's strategy
       battlePerformance: {
@@ -587,12 +587,12 @@ export class BattleFlowManager {
       for (let j = i + 1; j < characters.length; j++) {
         const char1 = characters[i];
         const char2 = characters[j];
-        
+
         // Find relationship between characters
         const relationship = char1.personality.relationships.find(
           rel => rel.characterId === char2.name.toLowerCase().replace(/\s+/g, '_')
         );
-        
+
         if (relationship) {
           totalChemistry += relationship.strength;
           relationshipCount++;
@@ -620,7 +620,7 @@ export class BattleFlowManager {
 
   static getRelationshipBattleModifiers(relationship: string, strength: number): Record<string, number> {
     const modifier = Math.abs(strength) / 100;
-    
+
     switch (relationship) {
       case 'ally':
         return {

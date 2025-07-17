@@ -96,7 +96,7 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
       advice.push(`Develop your defensive skill tree to complement your ${defenseAbilities.length} protection abilities`);
     }
     if (specialAbilities.length > 0) {
-      advice.push(`Your ${specialAbilities[0].name} special ability needs skill point investment`);
+      advice.push(`Your ${specialAbilities[0]} special ability needs skill point investment`);
     }
   }
 
@@ -132,8 +132,8 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   if (archetype === 'mage') {
     advice.push('Develop your spell power and mana efficiency skill branches');
   }
-  if (archetype === 'detective') {
-    advice.push('Focus on observation and deduction skill trees');
+  if (archetype === 'scholar') {
+    advice.push('Focus on knowledge and analysis skill trees');
   }
 
   // Character-specific approaches
@@ -360,15 +360,11 @@ export default function SkillDevelopmentChat({
         baseStats: selectedCharacter.baseStats,
         combatStats: selectedCharacter.combatStats,
         // Current abilities and their skill requirements
-        abilities: selectedCharacter.abilities.map(a => ({
-          name: a.name,
-          type: a.type,
-          power: a.power,
-          cooldown: a.cooldown,
-          currentCooldown: a.currentCooldown,
-          mentalHealthRequired: a.mentalHealthRequired,
-          description: a.description
-        })),
+        abilities: [
+          ...(selectedCharacter.abilities.active || []).map(name => ({ name, type: 'active' })),
+          ...(selectedCharacter.abilities.passive || []).map(name => ({ name, type: 'passive' })),
+          ...(selectedCharacter.abilities.signature || []).map(name => ({ name, type: 'signature' }))
+        ],
         // Current status
         experience: selectedCharacter.experience,
         bondLevel: selectedCharacter.displayBondLevel,
@@ -378,62 +374,70 @@ export default function SkillDevelopmentChat({
 IMPORTANT: You MUST reference your actual skills, abilities, and training progress in conversation. You are fully aware of:
 
 YOUR CURRENT ABILITIES AND SKILLS:
-${selectedCharacter.abilities?.length > 0 ?
-  selectedCharacter.abilities.map(ability => `- ${ability.name}: ${ability.description || 'Special ability'} (Power: ${ability.power}, Cooldown: ${ability.cooldown})`).join('\n') :
-  '- No abilities learned yet'
-}
+${(() => {
+  const allAbilities = [
+    ...(selectedCharacter.abilities?.active || []),
+    ...(selectedCharacter.abilities?.passive || []),
+    ...(selectedCharacter.abilities?.signature || [])
+  ];
+  return allAbilities.length > 0
+    ? allAbilities.map(ability => `- ${ability}: Special ability`).join('\n')
+    : '- No abilities learned yet';
+})()}
 
 YOUR CURRENT STATS (reference these specific numbers):
 - Level: ${selectedCharacter.level}
-- Attack: ${selectedCharacter.baseStats?.strength || selectedCharacter.base_attack || 70}
-- Health: ${selectedCharacter.baseStats?.vitality || selectedCharacter.base_health || 80}
-- Defense: ${selectedCharacter.baseStats?.wisdom || selectedCharacter.base_defense || 70}
-- Speed: ${selectedCharacter.baseStats?.agility || selectedCharacter.base_speed || 70}
-- Special: ${selectedCharacter.baseStats?.intelligence || selectedCharacter.base_special || 70}
+- Attack: ${selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 70}
+- Health: ${selectedCharacter.baseStats?.vitality || selectedCharacter.currentHp || 80}
+- Defense: ${selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 70}
+- Speed: ${selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 70}
+- Special: ${selectedCharacter.baseStats?.intelligence || selectedCharacter.combatStats?.magicAttack || 70}
 - Experience: ${selectedCharacter.experience}
 - Archetype: ${selectedCharacter.archetype}
 
 YOUR TRAINING PROGRESS:
 - Training Points Available: ${Math.floor(selectedCharacter.level * 1.5)}
-- Bond Level: ${selectedCharacter.bondLevel || selectedCharacter.bond_level || 50}
-- Skills Learned: ${selectedCharacter.abilities?.length || 0} abilities
+- Bond Level: ${selectedCharacter.bondLevel || 50}
+- Skills Learned: ${((selectedCharacter.abilities?.active || []).length + (selectedCharacter.abilities?.passive || []).length + (selectedCharacter.abilities?.signature || []).length)} abilities
 
-You should naturally reference your current abilities, discuss which skills you want to learn next, and explain how new abilities would improve your combat effectiveness. For example: "I currently have ${selectedCharacter.abilities?.length || 0} abilities, but I think learning a defensive skill would help since my defense is only ${selectedCharacter.baseStats?.wisdom || selectedCharacter.base_defense || 70}" or "My ${selectedCharacter.archetype} archetype suggests I should focus on [specific skill type] abilities."`,
+You should naturally reference your current abilities, discuss which skills you want to learn next, and explain how new abilities would improve your combat effectiveness. For example: "I currently have ${((selectedCharacter.abilities?.active || []).length + (selectedCharacter.abilities?.passive || []).length + (selectedCharacter.abilities?.signature || []).length)} abilities, but I think learning a defensive skill would help since my defense is only ${selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 70}" or "My ${selectedCharacter.archetype} archetype suggests I should focus on [specific skill type] abilities."`,
         skillData: {
           availableSkillPoints: Math.floor(selectedCharacter.level * 1.5),
-          currentAbilities: selectedCharacter.abilities || [],
+          currentAbilities: selectedCharacter.abilities || { active: [], passive: [], signature: [] },
           realCharacterStats: {
-            base_attack: selectedCharacter.base_attack,
-            base_health: selectedCharacter.base_health,
-            base_defense: selectedCharacter.base_defense,
-            base_speed: selectedCharacter.base_speed,
-            base_special: selectedCharacter.base_special,
-            current_health: selectedCharacter.current_health,
-            max_health: selectedCharacter.max_health,
+            base_attack: selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 70,
+            base_health: selectedCharacter.baseStats?.vitality || selectedCharacter.currentHp || 80,
+            base_defense: selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 70,
+            base_speed: selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 70,
+            base_special: selectedCharacter.baseStats?.intelligence || selectedCharacter.combatStats?.magicAttack || 70,
+            current_health: selectedCharacter.currentHp || 80,
+            max_health: selectedCharacter.maxHp || 100,
             level: selectedCharacter.level,
             experience: selectedCharacter.experience,
-            bond_level: selectedCharacter.bond_level,
+            bond_level: selectedCharacter.bondLevel,
             archetype: selectedCharacter.archetype
           },
           statFocusRecommendations: {
-            attackBased: selectedCharacter.base_attack > 75,
-            specialBased: selectedCharacter.base_special > 75,
-            speedBased: selectedCharacter.base_speed > 75,
-            defenseBased: selectedCharacter.base_defense > 75,
-            healthBased: selectedCharacter.base_health > 75,
-            needsAttackFocus: selectedCharacter.base_attack < 60,
-            needsSpeedFocus: selectedCharacter.base_speed < 60,
-            needsDefenseFocus: selectedCharacter.base_defense < 60
+            attackBased: (selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 70) > 75,
+            specialBased: (selectedCharacter.baseStats?.intelligence || selectedCharacter.combatStats?.magicAttack || 70) > 75,
+            speedBased: (selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 70) > 75,
+            defenseBased: (selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 70) > 75,
+            healthBased: (selectedCharacter.baseStats?.vitality || selectedCharacter.currentHp || 80) > 75,
+            needsAttackFocus: (selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 70) < 60,
+            needsSpeedFocus: (selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 70) < 60,
+            needsDefenseFocus: (selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 70) < 60
           },
           learningCapacity: {
             currentLevel: selectedCharacter.level,
             experience: selectedCharacter.experience,
-            canLearnAdvanced: selectedCharacter.level > 10 && selectedCharacter.base_special > 70,
-            bondLevel: selectedCharacter.bond_level
+            canLearnAdvanced: selectedCharacter.level > 10 && (selectedCharacter.baseStats?.intelligence || selectedCharacter.combatStats?.magicAttack || 70) > 70,
+            bondLevel: selectedCharacter.bondLevel
           },
           archetypeSkillTrees: {
             primary: selectedCharacter.archetype,
-            abilityCount: selectedCharacter.abilities?.length || 0
+            abilityCount: (selectedCharacter.abilities?.active?.length || 0) +
+                         (selectedCharacter.abilities?.passive?.length || 0) +
+                         (selectedCharacter.abilities?.signature?.length || 0)
           }
         },
         // Add living context for kitchen table conflict awareness
@@ -468,7 +472,7 @@ You should naturally reference your current abilities, discuss which skills you 
 
   const getSkillIntro = (character: EnhancedCharacter): string => {
     // Simple intro that lets the AI take over from there
-    return `Coach, I have ${character.abilities.length} abilities and ${Math.floor(character.level * 1.5)} skill points available. What skill development do you recommend for my ${character.archetype} build?`;
+    return `Coach, I have ${(character.abilities?.active?.length || 0) + (character.abilities?.passive?.length || 0) + (character.abilities?.signature?.length || 0)} abilities and ${Math.floor(character.level * 1.5)} skill points available. What skill development do you recommend for my ${character.archetype} build?`;
   };
 
   useEffect(() => {
