@@ -1684,7 +1684,7 @@ async function startServer() {
       console.log(`🚀 Blank Wars API Server running!`);
       console.log(`📍 Port: ${PORT}`);
       console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-      console.log(`💾 Database: SQLite (development mode)`);
+      console.log(`💾 Database: ${process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres') ? 'PostgreSQL' : 'SQLite'} (${process.env.NODE_ENV || 'development'} mode)`);
       console.log(`🎮 Ready to serve battles and chats!`);
     });
   } catch (error) {
