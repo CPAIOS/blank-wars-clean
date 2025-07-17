@@ -191,17 +191,17 @@ export class FinancialPsychologyService {
   /**
    * Simulate financial decision outcome based on choice quality
    */
-  simulateDecisionOutcome(
+  async simulateDecisionOutcome(
     decision: FinancialDecision,
     decisionQuality: FinancialDecisionQuality,
     financialPersonality: FinancialPersonality
-  ): { 
+  ): Promise<{ 
     financialImpact: number; 
     stressImpact: number; 
     trustImpact: number; 
     outcome: 'positive' | 'negative' | 'neutral';
     description: string;
-  } {
+  }> {
     
     // Better decision quality = better outcomes (but still some randomness)
     const qualityBonus = (decisionQuality.overallQuality - 50) / 100; // -0.5 to +0.5

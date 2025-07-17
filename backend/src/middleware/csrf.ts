@@ -8,7 +8,7 @@ const csrfProtection = doubleCsrf({
   cookieOptions: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'none',
     path: '/',
   },
   getSessionIdentifier: (req: Request) => req.ip || 'anonymous',
