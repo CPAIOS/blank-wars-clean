@@ -122,6 +122,107 @@ app.use('/api/headquarters', headquartersRouter);
 app.use('/api/coaching', coachingRouter);
 app.use('/api/coach-progression', coachProgressionRouter);
 
+// One-time character seeding endpoint
+app.post('/api/seed-17-characters', async (req, res) => {
+  try {
+    // Check current character count
+    const existing = await query('SELECT COUNT(*) as count FROM characters');
+    console.log(`Current characters in DB: ${existing.rows[0].count}`);
+    
+    if (existing.rows[0].count >= 17) {
+      return res.json({ 
+        success: true, 
+        message: `Database already has ${existing.rows[0].count} characters` 
+      });
+    }
+
+    // Clear and reseed characters
+    await query('DELETE FROM user_characters');
+    await query('DELETE FROM characters');
+    
+    // Run the manual seeding script
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    await execAsync('cd /app && npm run ts-node manual_seed_characters.ts');
+    
+    res.json({ 
+      success: true, 
+      message: 'Characters seeded successfully. Check logs for details.' 
+    });
+  } catch (error) {
+    console.error('Seeding error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to seed characters' 
+    });
+  }
+});
+
+// Grant all characters to a specific user (for testing)
+app.post('/api/grant-all-characters/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    // Get all characters from database
+    const allChars = await query('SELECT id FROM characters');
+    console.log(`Found ${allChars.rows.length} characters to grant`);
+    
+    if (allChars.rows.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No characters in database. Run /api/seed-17-characters first.' 
+      });
+    }
+
+    // Check if user already has characters
+    const existing = await query(
+      'SELECT COUNT(*) as count FROM user_characters WHERE user_id = $1',
+      [userId]
+    );
+
+    if (existing.rows[0].count > 0) {
+      return res.json({ 
+        success: true, 
+        message: `User already has ${existing.rows[0].count} characters` 
+      });
+    }
+
+    // Grant all characters to user
+    let granted = 0;
+    for (const char of allChars.rows) {
+      try {
+        const userCharId = `userchar_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const serialNumber = `${char.id.slice(-3)}-${Date.now().toString().slice(-6)}`;
+        
+        await query(`
+          INSERT INTO user_characters (
+            id, user_id, character_id, serial_number, level, experience, 
+            bond_level, total_battles, total_wins, current_health, max_health, 
+            is_injured, equipment, enhancements, conversation_memory, 
+            significant_memories, personality_drift
+          ) VALUES ($1, $2, $3, $4, 1, 0, 0, 0, 0, 100, 100, false, '[]', '[]', '[]', '[]', '{}')
+        `, [userCharId, userId, char.id, serialNumber]);
+        granted++;
+      } catch (error) {
+        console.error(`Failed to grant ${char.id}:`, error);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Granted ${granted} characters to user ${userId}` 
+    });
+  } catch (error) {
+    console.error('Grant error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to grant characters' 
+    });
+  }
+});
+
 // New Card Pack Routes (These are now handled by cardPackRouter)
 // app.post('/api/packs/purchase', authenticateToken, async (req, res) => {
 //   try {
@@ -1666,7 +1767,7 @@ async function startServer() {
       console.log(`🚀 Blank Wars API Server running!`);
       console.log(`📍 Port: ${PORT}`);
       console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-      console.log(`💾 Database: SQLite (development mode)`);
+      console.log(`💾 Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite (development mode)'}`);
       console.log(`🎮 Ready to serve battles and chats!`);
     });
   } catch (error) {
