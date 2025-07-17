@@ -282,8 +282,23 @@ export default function PerformanceCoachingChat({
   const eventPublisher = EventPublisher.getInstance();
 
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
-    console.log('🔌 [PerformanceCoaching] Connecting to local backend:', socketUrl);
+    // Determine backend URL based on environment
+    let socketUrl: string;
+    
+    // Check if we're running locally (either in dev or local production build)
+    const isLocalhost = typeof window !== 'undefined' && 
+                       (window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1');
+    
+    if (isLocalhost) {
+      // Local development or local production build
+      socketUrl = 'http://localhost:3006';
+    } else {
+      // Deployed production
+      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-clean-production.up.railway.app';
+    }
+    
+    console.log('🔌 [PerformanceCoaching] Connecting to backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -447,7 +462,16 @@ export default function PerformanceCoachingChat({
         injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Performance-specific context
-        conversationContext: `This is a performance coaching session. You are ${selectedCharacter.name}, speaking to your coach about your combat performance.
+        conversationContext: `This is a 1-on-1 COMBAT COACHING session. You are ${selectedCharacter.name}, working with your combat coach to improve your battle performance and fighting techniques.
+
+YOUR COACH'S MESSAGE: "${content}"
+
+Respond as a warrior discussing combat strategy, training methods, and battle tactics with your coach. Focus on:
+- Your fighting techniques and how to improve them
+- Battle strategies based on your archetype (${selectedCharacter.archetype})
+- Combat weaknesses you need to work on
+- Training regimens to boost your stats
+- Recent battle experiences and lessons learned
 
 IMPORTANT: You MUST reference your actual stats and performance data in conversation. You are aware of your:
 
@@ -474,7 +498,9 @@ EQUIPMENT & COMBAT TOOLS:
 - Available Abilities: ${selectedCharacter.abilities?.length || 0} combat abilities
 - Preferred Strategies: ${selectedCharacter.preferredStrategies?.join(', ') || 'Adaptive'}
 
-You should naturally reference these numbers when discussing your performance, comparing to previous levels, or talking about areas for improvement. For example: "My attack is at ${selectedCharacter.base_attack || selectedCharacter.baseStats?.strength || 'N/A'} now, which feels stronger than when I was level ${Math.max(1, (selectedCharacter.level || 1) - 1)}" or "I've won ${selectedCharacter.wins || 0} out of my last ${(selectedCharacter.wins || 0) + (selectedCharacter.losses || 0)} battles. My gameplan adherence has been ${Math.round((selectedCharacter.gameplanAdherence || 0) * 100)}%, which ${(selectedCharacter.gameplanAdherence || 0) > 0.7 ? 'shows good discipline' : 'needs improvement'}."`,
+You should naturally reference these numbers when discussing your performance, comparing to previous levels, or talking about areas for improvement. For example: "My attack is at ${selectedCharacter.base_attack || selectedCharacter.baseStats?.strength || 'N/A'} now, which feels stronger than when I was level ${Math.max(1, (selectedCharacter.level || 1) - 1)}" or "I've won ${selectedCharacter.wins || 0} out of my last ${(selectedCharacter.wins || 0) + (selectedCharacter.losses || 0)} battles. My gameplan adherence has been ${Math.round((selectedCharacter.gameplanAdherence || 0) * 100)}%, which ${(selectedCharacter.gameplanAdherence || 0) > 0.7 ? 'shows good discipline' : 'needs improvement'}."
+
+Keep your response focused on combat coaching, training, and battle performance (2-3 sentences). Stay in character as a warrior working with their combat coach.`,
         performanceData: {
           recentBattles,
           battlesWon,
