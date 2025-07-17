@@ -27,6 +27,12 @@ export interface UserProfile {
   
   // Settings and preferences
   preferences: UserPreferences;
+  
+  // Character collection
+  charactersOwned: OwnedCharacter[];
+  
+  // Player statistics
+  stats: PlayerStats;
 }
 
 export interface PlayerStats {
@@ -178,6 +184,7 @@ export const subscriptionTiers: Record<SubscriptionTier, {
   color: string;
   icon: string;
   priority: number;
+  characterSlots: number;
 }> = {
   free: {
     name: 'free',
@@ -191,7 +198,8 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     ],
     color: 'text-gray-400',
     icon: '🆓',
-    priority: 0
+    priority: 0,
+    characterSlots: 3
   },
   bronze: {
     name: 'bronze',
@@ -205,7 +213,8 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     ],
     color: 'text-orange-600',
     icon: '🥉',
-    priority: 1
+    priority: 1,
+    characterSlots: 5
   },
   silver: {
     name: 'silver',
@@ -220,7 +229,8 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     ],
     color: 'text-gray-300',
     icon: '🥈',
-    priority: 2
+    priority: 2,
+    characterSlots: 8
   },
   gold: {
     name: 'gold',
@@ -236,7 +246,8 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     ],
     color: 'text-yellow-400',
     icon: '🥇',
-    priority: 3
+    priority: 3,
+    characterSlots: 12
   },
   platinum: {
     name: 'platinum',
@@ -253,7 +264,8 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     ],
     color: 'text-blue-300',
     icon: '💎',
-    priority: 4
+    priority: 4,
+    characterSlots: 20
   },
   legendary: {
     name: 'legendary',
@@ -272,7 +284,8 @@ export const subscriptionTiers: Record<SubscriptionTier, {
     ],
     color: 'text-purple-400',
     icon: '👑',
-    priority: 5
+    priority: 5,
+    characterSlots: 100
   }
 };
 
