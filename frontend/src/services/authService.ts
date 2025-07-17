@@ -5,27 +5,30 @@ interface AuthResponse {
   success: boolean;
   user: UserProfile;
   tokens: AuthTokens;
+  error?: string;
 }
 
 interface ProfileResponse {
   success: boolean;
   user: UserProfile;
+  error?: string;
 }
 
 interface TokenRefreshResponse {
   success: boolean;
   tokens: AuthTokens;
+  error?: string;
 }
 
 class AuthService {
   private readonly baseURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
   private readonly timeout = 10000; // 10 seconds
-  
+
   // Helper method to add timeout to fetch requests
   private async fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-    
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -59,7 +62,7 @@ class AuthService {
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Login failed');
       }
@@ -91,7 +94,7 @@ class AuthService {
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Registration failed');
       }
@@ -125,7 +128,7 @@ class AuthService {
       }
 
       const data: ProfileResponse = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to get profile');
       }
@@ -153,7 +156,7 @@ class AuthService {
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Token refresh failed');
       }

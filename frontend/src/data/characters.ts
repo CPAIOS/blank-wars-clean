@@ -362,55 +362,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
         'The gods smile upon me!',
         'None can stand against my might!'
       ]
-    },
-
-    // Battle-specific fields from TeamCharacter merge
-    traditionalStats: {
-      strength: 95,      // Maps directly from baseStats.strength
-      vitality: 90,      // Maps directly from baseStats.vitality
-      speed: 85,         // Maps directly from baseStats.agility
-      dexterity: 85,     // Maps directly from baseStats.agility
-      stamina: 90,       // Maps directly from baseStats.vitality
-      intelligence: 60,  // Maps directly from baseStats.intelligence
-      charisma: 80,      // Maps directly from baseStats.charisma
-      spirit: 45         // Maps directly from baseStats.wisdom
-    },
-    temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
-    currentHp: 1200,      // Maps directly from combatStats.health
-    maxHp: 1200,          // Maps directly from combatStats.maxHealth
-    experienceToNext: 100, // Level 1 → 2 requires 100 XP (from XP_CURVE_BASE)
-    personalityTraits: ['Honorable', 'Wrathful', 'Courageous', 'Prideful'],
-    speakingStyle: 'formal',
-    decisionMaking: 'emotional',
-    conflictResponse: 'aggressive',
-    statusEffects: [],
-    injuries: [],
-    restDaysNeeded: 0,
-    battleAbilities: [
-      {
-        id: 'divine_strike',
-        name: 'Divine Strike',
-        type: 'attack',
-        power: 35,
-        cooldown: 2,
-        currentCooldown: 0,
-        description: 'Channel divine power for devastating attack',
-        icon: '⚔️',
-        mentalHealthRequired: 60
-      }
-    ],
-    specialPowers: [
-      {
-        id: 'wrath_of_achilles',
-        name: 'Wrath of Achilles',
-        type: 'active',
-        description: 'Legendary rage increases damage but reduces defense',
-        effect: '+50% damage, -25% defense for 3 rounds',
-        icon: '🔥',
-        cooldown: 5,
-        currentCooldown: 0
-      }
-    ]
+    }
   },
 
   merlin: {

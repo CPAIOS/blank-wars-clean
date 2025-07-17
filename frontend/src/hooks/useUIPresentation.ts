@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { TeamCharacter } from '@/data/teamBattleSystem';
-import { type BattleStateData } from '@/hooks/temp/useBattleState';
+import { type BattleStateData } from '@/hooks/useBattleState';
 
 interface UseUIPresentationProps {
   state: BattleStateData;
@@ -105,7 +105,7 @@ export const useUIPresentation = ({
 
   // Handle timer expiration with visual feedback
   const handleTimerExpired = useCallback(() => {
-    if (state.phase === 'strategy_selection') {
+    if (state.phase === 'strategy-selection') {
       // Auto-proceed when strategy timer expires
       actions.setTimer(null);
       actions.setIsTimerActive(false);
@@ -117,7 +117,7 @@ export const useUIPresentation = ({
       timeoutManager.setTimeout(() => {
         actions.setPhase('pre_battle_huddle');
       }, 2000);
-    } else if (state.phase === 'character_strategy_selection') {
+    } else if (state.phase === 'pre-battle') {
       // Handle character strategy timeout
       actions.setTimer(null);
       actions.setIsTimerActive(false);

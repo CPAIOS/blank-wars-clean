@@ -156,15 +156,21 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
   }
 
   // Ability utilization advice
-  if (abilities && abilities.length > 0) {
-    const highCooldownAbilities = abilities.filter(ability => ability.cooldown > 3);
-    if (highCooldownAbilities.length > 2) {
-      advice.push('Consider balancing high-cooldown abilities with faster moves');
+  if (abilities && ((abilities.active?.length || 0) + (abilities.passive?.length || 0) + (abilities.signature?.length || 0)) > 0) {
+    const totalAbilities = (abilities.active?.length || 0) + (abilities.passive?.length || 0) + (abilities.signature?.length || 0);
+
+    // Note: Since abilities are just strings in CharacterAbilities, we can't check cooldown/element
+    // But we can provide general advice based on ability counts
+    if (abilities.active && abilities.active.length > 3) {
+      advice.push('Consider balancing your active abilities with defensive options');
     }
 
-    const elementalAbilities = abilities.filter(ability => ability.element);
-    if (elementalAbilities.length > 0) {
-      advice.push(`Your ${elementalAbilities[0].element} abilities could synergize better with matching equipment`);
+    if (abilities.signature && abilities.signature.length > 0) {
+      advice.push(`Your signature ability "${abilities.signature[0]}" should be a key part of your strategy`);
+    }
+
+    if (totalAbilities > 5) {
+      advice.push('With many abilities available, focus on timing and synergy between them');
     }
   }
 
@@ -471,7 +477,12 @@ BATTLE RECORD YOU SHOULD MENTION:
 
 EQUIPMENT & COMBAT TOOLS:
 - Current Equipment: ${selectedCharacter.equipment?.length || 0} items equipped
-- Available Abilities: ${selectedCharacter.abilities?.length || 0} combat abilities
+- Available Abilities: ${
+  selectedCharacter.abilities ?
+    (selectedCharacter.abilities.active?.length || 0) +
+    (selectedCharacter.abilities.passive?.length || 0) +
+    (selectedCharacter.abilities.signature?.length || 0) : 0
+} combat abilities
 - Preferred Strategies: ${selectedCharacter.preferredStrategies?.join(', ') || 'Adaptive'}
 
 You should naturally reference these numbers when discussing your performance, comparing to previous levels, or talking about areas for improvement. For example: "My attack is at ${selectedCharacter.base_attack || selectedCharacter.baseStats?.strength || 'N/A'} now, which feels stronger than when I was level ${Math.max(1, (selectedCharacter.level || 1) - 1)}" or "I've won ${selectedCharacter.wins || 0} out of my last ${(selectedCharacter.wins || 0) + (selectedCharacter.losses || 0)} battles. My gameplan adherence has been ${Math.round((selectedCharacter.gameplanAdherence || 0) * 100)}%, which ${(selectedCharacter.gameplanAdherence || 0) > 0.7 ? 'shows good discipline' : 'needs improvement'}."`,
@@ -554,7 +565,10 @@ You should naturally reference these numbers when discussing your performance, c
 
   const getPerformanceIntro = (character: EnhancedCharacter): string => {
     const equipmentCount = (character.equipment || []).length;
-    const abilitiesCount = (character.abilities || []).length;
+    const abilitiesCount = character.abilities ?
+      (character.abilities.active?.length || 0) +
+      (character.abilities.passive?.length || 0) +
+      (character.abilities.signature?.length || 0) : 0;
     const gameplanAdherence = Math.round(((character.gameplanAdherence || 0) as number) * 100);
 
     return `Coach, I'm ready for our combat training session. I've got ${equipmentCount} pieces of equipment and ${abilitiesCount} abilities at my disposal. My gameplan adherence has been ${gameplanAdherence}%. Let's work on improving my battle strategy and effectiveness.`;

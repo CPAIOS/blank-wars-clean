@@ -94,7 +94,7 @@ export interface Team {
   id: string;
   name: string;
   coachName: string;
-  characters: Character[];
+  characters: TeamCharacter[];
 
   // Team Dynamics
   coachingPoints: number; // Points to spend on coaching actions
@@ -353,7 +353,7 @@ export function createDemoPlayerTeamWithBonuses(
   const baseTeam = createDemoPlayerTeam();
 
   // Apply headquarters effects to all team characters
-  baseTeam.characters = baseTeam.characters.map(character => {
+  const modifiedCharacters = baseTeam.characters.map(character => {
     let modifiedStats = { ...character.temporaryStats };
 
     // Apply bonuses
@@ -451,9 +451,12 @@ export function createDemoPlayerTeamWithBonuses(
     };
   });
 
+  // Update the team with modified characters
+  baseTeam.characters = modifiedCharacters;
+
   // Recalculate team chemistry with headquarters effects
   baseTeam.teamChemistry = calculateTeamChemistry(
-    baseTeam.characters,
+    modifiedCharacters,
     { bonuses: headquartersBonuses || {}, penalties: headquartersPenalties || {} }
   );
 
@@ -486,30 +489,99 @@ export function createDemoPlayerTeam(): Team {
   console.log(`Merlin weapon: ${merlin.equippedItems?.weapon?.name || 'NO WEAPON'}`);
   console.log(`Fenrir weapon: ${fenrir.equippedItems?.weapon?.name || 'NO WEAPON'}`);
 
-  const characters = [achilles, merlin, fenrir] as Character[];
+  const baseCharacters = [achilles, merlin, fenrir] as Character[];
+
+  // Convert Character[] to TeamCharacter[]
+  const teamCharacters: TeamCharacter[] = baseCharacters.map(character => ({
+    id: character.id,
+    name: character.name,
+    avatar: character.avatar,
+    archetype: character.archetype,
+    rarity: character.rarity,
+    level: character.level,
+    experience: character.experience.currentXP,
+    experienceToNext: character.experience.xpToNextLevel,
+    traditionalStats: character.traditionalStats,
+    currentHp: character.combatStats.health,
+    maxHp: character.combatStats.maxHealth,
+    psychStats: character.psychStats,
+    temporaryStats: {
+      strength: 0,
+      vitality: 0,
+      speed: 0,
+      dexterity: 0,
+      stamina: 0,
+      intelligence: 0,
+      charisma: 0,
+      spirit: 0
+    },
+    abilities: [
+      ...character.abilities.active.map((name: string) => ({
+        id: name,
+        name,
+        type: 'attack' as const,
+        power: 10,
+        cooldown: 0,
+        currentCooldown: 0,
+        description: `${name} ability`,
+        icon: 'default-icon',
+        mentalHealthRequired: 0,
+      })),
+      ...character.abilities.passive.map((name: string) => ({
+        id: name,
+        name,
+        type: 'support' as const,
+        power: 0,
+        cooldown: 0,
+        currentCooldown: 0,
+        description: `${name} ability`,
+        icon: 'default-icon',
+        mentalHealthRequired: 0,
+      })),
+      ...character.abilities.signature.map((name: string) => ({
+        id: name,
+        name,
+        type: 'special' as const,
+        power: 50,
+        cooldown: 5,
+        currentCooldown: 0,
+        description: `${name} ability`,
+        icon: 'default-icon',
+        mentalHealthRequired: 0,
+      })),
+    ],
+    specialPowers: [],
+    personalityTraits: character.personality.traits,
+    speakingStyle: 'formal' as const,
+    decisionMaking: 'calculated' as const,
+    conflictResponse: 'aggressive' as const,
+    statusEffects: [],
+    injuries: [],
+    restDaysNeeded: 0,
+  }));
 
   const team: Team = {
     id: 'demo_team_001',
     name: 'Legendary Squad',
     coachName: 'Demo Coach',
-    characters: characters,
+    characters: teamCharacters,
     coachingPoints: 3,
     consecutiveLosses: 0,
     teamChemistry: 75, // Will be calculated below
-    teamCulture: 'balanced', // Team of diverse character types
+    teamCulture: 'brotherhood', // Team of diverse character types
     // Calculate real averages from character data
-    averageLevel: Math.round(characters.reduce((sum, char) => sum + char.level, 0) / characters.length),
-    totalPower: characters.reduce((sum, char) => sum + getCharacterPowerLevel(char), 0),
-    psychologyScore: Math.round(characters.reduce((sum, char) => sum + char.psychStats.mentalHealth, 0) / characters.length),
+    averageLevel: Math.round(teamCharacters.reduce((sum, char) => sum + char.level, 0) / teamCharacters.length),
+    totalPower: baseCharacters.reduce((sum, char) => sum + getCharacterPowerLevel(char), 0),
+    psychologyScore: Math.round(teamCharacters.reduce((sum, char) => sum + char.psychStats.mentalHealth, 0) / teamCharacters.length),
     wins: 0, // Fresh team starts with no battle history
     losses: 0,
     battlesPlayed: 0,
     lastBattleDate: new Date()
   };
 
-  // Calculate actual team chemistry (using safe fallback for now due to interface mismatch)
+  // Calculate actual team chemistry
   try {
-    team.teamChemistry = calculateTeamChemistry(team.characters as any, undefined);
+    team.teamChemistry = calculateTeamChemistry(team.characters, undefined);
   } catch (error) {
     console.log('Team chemistry calculation failed, using default value');
     team.teamChemistry = 75; // Default reasonable value
@@ -537,45 +609,63 @@ export function createDemoOpponentTeam(): Team {
       level: selectedCharacterTemplate.level,
       experience: selectedCharacterTemplate.experience.currentXP,
       experienceToNext: selectedCharacterTemplate.experience.xpToNextLevel,
-      traditionalStats: {
-        strength: selectedCharacterTemplate.baseStats.strength,
-        vitality: selectedCharacterTemplate.baseStats.vitality,
-        speed: selectedCharacterTemplate.baseStats.agility, // Agility maps to speed
-        dexterity: selectedCharacterTemplate.baseStats.agility, // Dexterity maps to agility
-        stamina: selectedCharacterTemplate.baseStats.vitality, // Stamina maps to vitality
-        intelligence: selectedCharacterTemplate.baseStats.intelligence,
-        charisma: selectedCharacterTemplate.baseStats.charisma,
-        spirit: selectedCharacterTemplate.baseStats.wisdom, // Spirit maps to wisdom
+      traditionalStats: selectedCharacterTemplate.traditionalStats,
+      currentHp: selectedCharacterTemplate.combatStats.health,
+      maxHp: selectedCharacterTemplate.combatStats.maxHealth,
+      psychStats: selectedCharacterTemplate.psychStats,
+      temporaryStats: {
+        strength: 0,
+        vitality: 0,
+        speed: 0,
+        dexterity: 0,
+        stamina: 0,
+        intelligence: 0,
+        charisma: 0,
+        spirit: 0
       },
-      currentHp: Math.floor((selectedCharacterTemplate.combatStats.health * selectedCharacterTemplate.level) / 10),
-      maxHp: Math.floor((selectedCharacterTemplate.combatStats.maxHealth * selectedCharacterTemplate.level) / 10),
-      psychStats: {
-        training: selectedCharacterTemplate.trainingLevel,
-        teamPlayer: 50, // Default for AI opponents
-        ego: 50, // Default for AI opponents
-        mentalHealth: 70, // Default for AI opponents
-        communication: 50, // Default for AI opponents
-      },
-      temporaryStats: { strength: 0, vitality: 0, speed: 0, dexterity: 0, stamina: 0, intelligence: 0, charisma: 0, spirit: 0 },
+      abilities: [
+        ...selectedCharacterTemplate.abilities.active.map((name: string) => ({
+          id: name,
+          name,
+          type: 'attack' as const,
+          power: 10,
+          cooldown: 0,
+          currentCooldown: 0,
+          description: `${name} ability`,
+          icon: 'default-icon',
+          mentalHealthRequired: 0,
+        })),
+        ...selectedCharacterTemplate.abilities.passive.map((name: string) => ({
+          id: name,
+          name,
+          type: 'support' as const,
+          power: 0,
+          cooldown: 0,
+          currentCooldown: 0,
+          description: `${name} ability`,
+          icon: 'default-icon',
+          mentalHealthRequired: 0,
+        })),
+        ...selectedCharacterTemplate.abilities.signature.map((name: string) => ({
+          id: name,
+          name,
+          type: 'special' as const,
+          power: 50,
+          cooldown: 5,
+          currentCooldown: 0,
+          description: `${name} ability`,
+          icon: 'default-icon',
+          mentalHealthRequired: 0,
+        })),
+      ],
+      specialPowers: [],
       personalityTraits: selectedCharacterTemplate.personality.traits,
-      speakingStyle: selectedCharacterTemplate.personality.speechStyle,
+      speakingStyle: 'formal' as const, // Use default allowed value
       decisionMaking: 'calculated', // Default for AI opponents
       conflictResponse: 'aggressive', // Default for AI opponents
       statusEffects: [],
       injuries: [],
       restDaysNeeded: 0,
-      abilities: selectedCharacterTemplate.abilities.available.map(ability => ({
-        id: ability.id,
-        name: ability.name,
-        type: ability.type === 'active' ? 'attack' : ability.type === 'passive' ? 'support' : 'special', // Map to TeamCharacterAbilityType
-        power: 50, // Default power
-        cooldown: 1, // Default cooldown
-        currentCooldown: 0, // Default currentCooldown
-        description: ability.description,
-        icon: '✨', // Generic icon
-        mentalHealthRequired: 0, // Default mentalHealthRequired
-      })),
-      specialPowers: [], // Character interface doesn't have specialPowers in the template, using empty array
     };
 
     // Ensure uniqueness

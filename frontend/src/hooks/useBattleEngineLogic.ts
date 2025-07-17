@@ -9,7 +9,7 @@ import {
   BattleSetup
 } from '@/data/teamBattleSystem';
 import { BattlePhase, type BattleCharacter, type ExecutedAction, type PlannedAction } from '@/data/battleFlow';
-import { type BattleStateData, type BattleStateAction } from '@/hooks/temp/useBattleState';
+import { type BattleStateData, type BattleStateAction } from '@/hooks/useBattleState';
 import {
   initializePsychologyState,
   updatePsychologyState,
@@ -173,7 +173,6 @@ export const useBattleEngineLogic = ({
     const battlePlayerFighter = convertToBattleCharacter(playerFighter, state.playerMorale);
     const plannedAction: PlannedAction = {
       type: 'ability',
-      actionType: 'ability',
       abilityId: playerFighter.abilities[0]?.name || 'basic_attack',
       targetId: opponentFighter.id,
       coachingInfluence: state.playerMorale / 100 // Convert morale to coaching influence
@@ -218,15 +217,15 @@ export const useBattleEngineLogic = ({
     } else {
       // Character follows the strategy
       const ability = playerFighter.abilities[Math.floor(Math.random() * playerFighter.abilities.length)];
-      const baseAttack = playerFighter.attack + Math.random() * 10;
-      const defense = opponentFighter.defense + Math.random() * 5;
+      const baseAttack = playerFighter.traditionalStats.strength + Math.random() * 10;
+      const defense = opponentFighter.traditionalStats.vitality + Math.random() * 5;
       const damage = Math.max(1, Math.floor(baseAttack - defense));
 
       roundResult = {
         round: state.currentRound,
         attacker: playerFighter,
         defender: opponentFighter,
-        attackerAction: ability.name,
+        attackerAction: ability,
         damage: damage,
         wasStrategyAdherent: true,
         moraleImpact: 0,

@@ -248,6 +248,88 @@ export default function ImprovedBattleArena() {
     completedChallenges: user?.completed_challenges || []
   };
 
+  // Helper function to convert Character to TeamCharacter
+  const convertCharacterToTeamCharacter = (character: Character): TeamCharacter => ({
+    id: character.id,
+    name: character.name,
+    avatar: character.avatar,
+    archetype: character.archetype,
+    rarity: character.rarity,
+    level: character.level,
+    experience: character.experience.currentXP,
+    experienceToNext: character.experience.xpToNextLevel,
+    traditionalStats: character.traditionalStats,
+    currentHp: character.combatStats.health,
+    maxHp: character.combatStats.maxHealth,
+    psychStats: character.psychStats,
+    temporaryStats: {
+      strength: 0,
+      vitality: 0,
+      speed: 0,
+      dexterity: 0,
+      stamina: 0,
+      intelligence: 0,
+      charisma: 0,
+      spirit: 0
+    },
+    abilities: [
+      ...character.abilities.active.map((name: string) => ({
+        id: name,
+        name,
+        type: 'attack' as const,
+        power: 10,
+        cooldown: 0,
+        currentCooldown: 0,
+        description: `${name} ability`,
+        icon: 'default-icon',
+        mentalHealthRequired: 0,
+      })),
+      ...character.abilities.passive.map((name: string) => ({
+        id: name,
+        name,
+        type: 'support' as const,
+        power: 0,
+        cooldown: 0,
+        currentCooldown: 0,
+        description: `${name} ability`,
+        icon: 'default-icon',
+        mentalHealthRequired: 0,
+      })),
+      ...character.abilities.signature.map((name: string) => ({
+        id: name,
+        name,
+        type: 'special' as const,
+        power: 50,
+        cooldown: 5,
+        currentCooldown: 0,
+        description: `${name} ability`,
+        icon: 'default-icon',
+        mentalHealthRequired: 0,
+      })),
+    ],
+    specialPowers: [],
+    personalityTraits: character.personality.traits,
+    speakingStyle: 'formal' as const,
+    decisionMaking: 'calculated' as const,
+    conflictResponse: 'aggressive' as const,
+    statusEffects: [],
+    injuries: [],
+    restDaysNeeded: 0,
+  });
+
+  // Helper function to convert TeamCharacter back to Character format for components that need it
+  const convertTeamCharacterToCharacter = (teamChar: TeamCharacter): Character => {
+    // Find the original character from the roster to get the full data
+    const originalChar = coachRoster.find(char => char.id === teamChar.id);
+    if (originalChar) {
+      return originalChar;
+    }
+
+    // If not found in roster, create a minimal Character object
+    // This shouldn't happen in normal flow, but provides a fallback
+    throw new Error(`Character with id ${teamChar.id} not found in roster`);
+  };
+
   // Initialize player team with 3 random characters from roster
   useEffect(() => {
     if (state.playerTeam.characters.length === 0) {
@@ -255,12 +337,12 @@ export default function ImprovedBattleArena() {
       const shuffled = [...coachRoster].sort(() => 0.5 - Math.random());
       const randomTeam = shuffled.slice(0, 3);
 
-      // Convert to team format
+      // Convert to team format with proper TeamCharacter conversion
       const team = {
         id: 'player_team',
         name: 'Player Team',
         coachName: 'Player',
-        characters: randomTeam,
+        characters: randomTeam.map(convertCharacterToTeamCharacter),
         coachingPoints: 3,
         consecutiveLosses: 0,
         teamChemistry: 75,
@@ -1382,7 +1464,7 @@ export default function ImprovedBattleArena() {
                         id: 'player_team',
                         name: 'Player Team',
                         coachName: 'Player',
-                        characters: selectedChars,
+                        characters: selectedChars.map(convertCharacterToTeamCharacter),
                         coachingPoints: 3,
                         consecutiveLosses: 0,
                         teamChemistry: 75,
@@ -1456,7 +1538,7 @@ export default function ImprovedBattleArena() {
       {showMatchmaking && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <CompetitiveMatchmaking
-            playerTeam={playerTeam.characters}
+            playerTeam={playerTeam.characters.map(convertTeamCharacterToCharacter)}
             playerStats={playerStats}
             onMatchFound={handleMatchFound}
             onCancel={handleMatchmakingCancel}

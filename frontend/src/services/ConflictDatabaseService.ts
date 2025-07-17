@@ -15,6 +15,22 @@ interface Character {
   speaking_style?: string;
   decision_making?: string;
   conflict_response?: string;
+  financialData?: {
+    wallet?: number;
+    monthlyEarnings?: number;
+    debt?: number;
+    decisions?: Array<{
+      optionChosen: string;
+      outcome?: {
+        success: boolean;
+      };
+    }>;
+    personality?: {
+      spendingStyle: string;
+      riskTolerance: string;
+    };
+    coachTrust?: number;
+  };
 }
 
 interface ConflictData {
@@ -68,35 +84,35 @@ const EXTENDED_CONFLICT_CATEGORIES = [
   'financial_problems', 'health_concerns', 'identity_crisis', 'authority_conflicts',
   'moral_dilemmas', 'social_isolation', 'trust_issues', 'anger_management',
   'perfectionism', 'impostor_syndrome', 'grief_loss',
-  
+
   // Combat & Performance
   'combat_trauma', 'survivor_guilt', 'battle_fatigue', 'performance_anxiety',
   'competitive_jealousy', 'skill_plateau', 'retirement_fears', 'legacy_pressure',
-  
+
   // Leadership & Team
   'leadership_burnout', 'command_isolation', 'decision_paralysis', 'team_betrayal',
   'power_corruption', 'responsibility_weight', 'delegation_difficulty', 'succession_anxiety',
-  
+
   // Living Situation
   'overcrowding_stress', 'privacy_invasion', 'resource_competition', 'cleanliness_disputes',
   'noise_conflicts', 'temperature_wars', 'space_territorial', 'routine_clashes',
-  
+
   // Cultural & Temporal
   'cultural_displacement', 'time_period_adjustment', 'language_barriers', 'value_conflicts',
   'tradition_preservation', 'modernization_resistance', 'generational_gaps', 'customs_misunderstanding',
-  
+
   // Magical & Supernatural
   'magical_corruption', 'power_addiction', 'spell_backlash', 'dimensional_displacement',
   'curse_effects', 'immortality_burden', 'transformation_trauma', 'supernatural_isolation',
-  
+
   // Fame & Public Life
   'fame_pressure', 'public_expectations', 'media_scrutiny', 'fan_obsession',
   'reputation_management', 'privacy_loss', 'role_model_burden', 'celebrity_loneliness',
-  
+
   // Personal Growth
   'purpose_questioning', 'meaning_crisis', 'spiritual_confusion', 'philosophical_doubt',
   'change_resistance', 'growth_stagnation', 'potential_unfulfilled', 'direction_uncertainty',
-  
+
   // Financial & Money
   'spending_addiction', 'financial_jealousy', 'debt_shame', 'investment_anxiety',
   'luxury_guilt', 'money_hoarding', 'financial_betrayal', 'wealth_disparity_tension'
@@ -215,7 +231,7 @@ class ConflictDatabaseService {
   // Generate dynamic therapy context with live data
   async generateTherapyContext(characterId: string): Promise<TherapyContext> {
     await this.loadCharacters();
-    
+
     const character = this.characters.find(c => c.id === characterId);
     if (!character) {
       throw new Error(`Character ${characterId} not found`);
@@ -235,7 +251,7 @@ class ConflictDatabaseService {
 
     // Get financial context data
     const financialData = this.getFinancialContextData(characterId);
-    
+
     return {
       character,
       roommates,
@@ -279,7 +295,7 @@ class ConflictDatabaseService {
       // Import financial psychology service dynamically to avoid circular dependencies
       const { FinancialPsychologyService } = require('./FinancialPsychologyService');
       const financialService = FinancialPsychologyService.getInstance();
-      
+
       // Get current financial state from the character
       const character = this.characters.find(c => c.id === characterId);
       if (!character || !character.financialData) {
@@ -298,7 +314,7 @@ class ConflictDatabaseService {
       }
 
       const { financialData } = character;
-      
+
       // Calculate current stress and decision quality
       const stress = financialService.calculateFinancialStress(
         financialData.wallet || 10000,
@@ -334,7 +350,7 @@ class ConflictDatabaseService {
         monthlyEarnings: financialData.monthlyEarnings || 2000,
         debt: financialData.debt || 0
       };
-      
+
     } catch (error) {
       console.warn('Could not load financial context for therapy:', error);
       // Return safe defaults if financial service unavailable
@@ -355,7 +371,7 @@ class ConflictDatabaseService {
   // Generate dynamic therapy prompt with behavioral scripting
   generateTherapyPrompt(context: TherapyContext, therapistId: string, sessionStage: 'initial' | 'resistance' | 'breakthrough'): string {
     const { character, roommates, housingTier, roomCapacity, currentOccupancy, leagueRanking, teamRating, recentBattleResults, teamChemistry, personalStressFactors, activeConflicts, financialStress, financialDecisionQuality, financialTrust, recentFinancialDecisions, isInFinancialSpiral, consecutivePoorDecisions, wallet, monthlyEarnings, debt } = context;
-    
+
     const overcrowdingLevel = currentOccupancy > roomCapacity ? 'severe' : currentOccupancy === roomCapacity ? 'moderate' : 'none';
     const conflictSeverity = activeConflicts.filter(c => c.severity === 'high' || c.severity === 'critical').length > 2 ? 'high' : 'moderate';
     const battlePerformance = recentBattleResults.filter(r => r.includes('Victory')).length / recentBattleResults.length;
@@ -417,7 +433,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     console.warn('🎭 THERAPY PROMPT GENERATED (length:', basePrompt.length, ')');
     console.warn('🎭 PROMPT PREVIEW:', basePrompt.substring(0, 200) + '...');
     console.warn('🎭 BEHAVIORAL SCRIPT INCLUDED:', basePrompt.includes('YOU ARE THE PATIENT, NOT THE THERAPIST'));
-    
+
     return basePrompt;
   }
 
@@ -427,7 +443,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     if (!therapistStyle) return "How are you feeling today?";
 
     const { character, roommates } = context;
-    
+
     let questions: string[];
     switch (sessionStage) {
       case 'initial':
@@ -442,7 +458,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     }
 
     const question = questions[Math.floor(Math.random() * questions.length)];
-    
+
     // Replace dynamic placeholders
     return question
       .replace('{archetype}', character.archetype)
@@ -476,7 +492,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
 
   private generateRecentBattles(): string[] {
     const results = ['Victory', 'Defeat', 'Draw'];
-    return Array.from({ length: 5 }, () => 
+    return Array.from({ length: 5 }, () =>
       `${results[Math.floor(Math.random() * results.length)]} vs ${this.generateOpponentName()}`
     );
   }
@@ -502,29 +518,29 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
 
   private generateActiveConflicts(character: Character, roommates: Character[]): ConflictData[] {
     const conflicts: ConflictData[] = [];
-    
+
     // FIRST PRIORITY: Get real conflicts involving this character
     const realConflicts = this.getConflictsByCharacter(character.id)
       .filter(conflict => !conflict.resolved)
       .sort((a, b) => b.therapy_priority - a.therapy_priority)
       .slice(0, 5); // Limit to top 5 most important conflicts
-    
+
     console.log(`🔍 Found ${realConflicts.length} real conflicts for ${character.name}`);
-    
+
     // Add real conflicts first
     conflicts.push(...realConflicts);
-    
+
     // SECOND PRIORITY: Generate minimal fake conflicts only if we have less than 3 total
     const needMoreConflicts = conflicts.length < 3;
     const conflictsToGenerate = needMoreConflicts ? (3 - conflicts.length) : 0;
-    
+
     if (conflictsToGenerate > 0) {
       console.log(`🎭 Generating ${conflictsToGenerate} fallback conflicts for ${character.name} (real conflicts: ${realConflicts.length})`);
-      
+
       for (let i = 0; i < conflictsToGenerate; i++) {
         const category = EXTENDED_CONFLICT_CATEGORIES[Math.floor(Math.random() * EXTENDED_CONFLICT_CATEGORIES.length)];
         const involvedCharacters = [character.id, ...roommates.slice(0, Math.floor(Math.random() * 2) + 1).map(r => r.id)];
-        
+
         conflicts.push({
           id: `fallback_${Date.now()}_${i}`,
           category,
@@ -541,7 +557,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     } else {
       console.log(`✅ Using ${realConflicts.length} real conflicts for ${character.name}, no fallbacks needed`);
     }
-    
+
     return conflicts;
   }
 
@@ -556,7 +572,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
       'cultural_displacement': `${character.name} struggles to adapt to modern living with characters from different eras`,
       'identity_crisis': `${character.name} questions their role as a ${character.archetype} in this new context`
     };
-    
+
     return descriptions[category as keyof typeof descriptions] || `${character.name} is dealing with ${category.replace('_', ' ')} issues`;
   }
 
@@ -642,7 +658,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
    */
   private async handleFinancialCrisisEvent(data: any): Promise<void> {
     const { characterId, stressLevel, triggerReason } = data;
-    
+
     // High probability of generating conflict during financial crisis
     if (Math.random() < 0.8) {
       await this.generateFinancialConflict(characterId, 'critical', stressLevel, triggerReason);
@@ -654,7 +670,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
    */
   private async handleFinancialStressEvent(data: any): Promise<void> {
     const { characterId, stressLevel, triggerReason } = data;
-    
+
     // Moderate probability of generating conflict during high stress
     if (stressLevel >= 70 && Math.random() < 0.5) {
       await this.generateFinancialConflict(characterId, 'high', stressLevel, triggerReason);
@@ -666,7 +682,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
    */
   private async handleFinancialSpiralEvent(data: any): Promise<void> {
     const { characterId, spiralIntensity, consecutivePoorDecisions } = data;
-    
+
     // Spirals often create conflicts with teammates
     if (spiralIntensity >= 60 && Math.random() < 0.6) {
       await this.generateFinancialConflict(characterId, 'high', spiralIntensity, 'financial_spiral');
@@ -684,7 +700,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
   ): Promise<void> {
     const conflictType = this.selectFinancialConflictType(stressLevel, triggerReason);
     const character = this.characters.find(c => c.id === characterId);
-    
+
     if (!character) {
       console.warn(`Character ${characterId} not found for financial conflict generation`);
       return;
@@ -693,7 +709,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     // Get potential teammates for conflict
     const teammates = this.characters.filter(c => c.id !== characterId);
     const involvedCharacters = [characterId];
-    
+
     // Add a random teammate to the conflict
     if (teammates.length > 0) {
       const randomTeammate = teammates[Math.floor(Math.random() * teammates.length)];
@@ -714,13 +730,13 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     };
 
     this.conflicts.push(conflict);
-    
+
     // Publish conflict creation event
     await this.eventBus.publishFinancialEvent(
       'financial_conflict_created',
       characterId,
       `Financial stress has created a ${conflictType} conflict for ${character.name}`,
-      { 
+      {
         conflictId: conflict.id,
         conflictType,
         severity,
@@ -738,12 +754,12 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     const conflictTypes = {
       // High stress conflicts
       severe: ['financial_betrayal', 'wealth_disparity_tension', 'debt_shame'],
-      // Medium stress conflicts  
+      // Medium stress conflicts
       moderate: ['financial_jealousy', 'spending_addiction', 'money_hoarding'],
       // Lower stress conflicts
       mild: ['luxury_guilt', 'investment_anxiety']
     };
-    
+
     let selectedTypes: string[];
     if (stressLevel >= 85) {
       selectedTypes = conflictTypes.severe;
@@ -752,7 +768,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     } else {
       selectedTypes = conflictTypes.mild;
     }
-    
+
     // Modify selection based on trigger reason
     if (triggerReason === 'debt_pressure') {
       selectedTypes = ['debt_shame', 'financial_betrayal'];
@@ -763,7 +779,7 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     } else if (triggerReason === 'financial_spiral') {
       selectedTypes = ['spending_addiction', 'financial_betrayal'];
     }
-    
+
     return selectedTypes[Math.floor(Math.random() * selectedTypes.length)];
   }
 
@@ -788,14 +804,14 @@ Remember: This is a REALITY SHOW. Drama, authenticity, and character growth are 
     };
 
     const baseDescription = descriptions[conflictType] || `${character.name} is experiencing ${conflictType.replace('_', ' ')} issues`;
-    
+
     // Add stress context
     if (stressLevel >= 80) {
       return `${baseDescription} - stress levels are critical (${stressLevel}%) due to ${triggerReason}`;
     } else if (stressLevel >= 70) {
       return `${baseDescription} - high stress (${stressLevel}%) from ${triggerReason}`;
     }
-    
+
     return baseDescription;
   }
 }

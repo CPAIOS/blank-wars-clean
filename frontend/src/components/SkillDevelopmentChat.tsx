@@ -82,20 +82,20 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   const { baseStats, combatStats, abilities, archetype } = character;
 
   // Ability-specific skill development advice
-  if (abilities && abilities.length > 0) {
-    const attackAbilities = abilities.filter(a => a.type === 'attack');
-    const defenseAbilities = abilities.filter(a => a.type === 'defense');
-    const specialAbilities = abilities.filter(a => a.type === 'special');
-    const supportAbilities = abilities.filter(a => a.type === 'support');
+  if (abilities && (abilities.active?.length > 0 || abilities.passive?.length > 0 || abilities.signature?.length > 0)) {
+    const totalAbilities = (abilities.active?.length || 0) + (abilities.passive?.length || 0) + (abilities.signature?.length || 0);
 
-    if (attackAbilities.length > 2) {
-      advice.push(`Focus on mastering your ${attackAbilities.length} attack abilities for maximum damage`);
+    if (abilities.active?.length > 2) {
+      advice.push(`Focus on mastering your ${abilities.active.length} attack abilities for maximum damage`);
     }
-    if (defenseAbilities.length > 1) {
-      advice.push(`Develop your defensive skill tree to complement your ${defenseAbilities.length} protection abilities`);
+    if (abilities.passive?.length > 1) {
+      advice.push(`Develop your defensive skill tree to complement your ${abilities.passive.length} passive abilities`);
     }
-    if (specialAbilities.length > 0) {
-      advice.push(`Your ${specialAbilities[0].name} special ability needs skill point investment`);
+    if (abilities.signature?.length > 0) {
+      advice.push(`Your ${abilities.signature[0]} signature ability needs skill point investment`);
+    }
+    if (totalAbilities > 3) {
+      advice.push(`With ${totalAbilities} total abilities, focus on synergy between your skills`);
     }
   }
 
@@ -359,15 +359,11 @@ export default function SkillDevelopmentChat({
         baseStats: selectedCharacter.baseStats,
         combatStats: selectedCharacter.combatStats,
         // Current abilities and their skill requirements
-        abilities: selectedCharacter.abilities.map(a => ({
-          name: a.name,
-          type: a.type,
-          power: a.power,
-          cooldown: a.cooldown,
-          currentCooldown: a.currentCooldown,
-          mentalHealthRequired: a.mentalHealthRequired,
-          description: a.description
-        })),
+        abilities: {
+          active: selectedCharacter.abilities?.active || [],
+          passive: selectedCharacter.abilities?.passive || [],
+          signature: selectedCharacter.abilities?.signature || []
+        },
         // Current status
         experience: selectedCharacter.experience,
         bondLevel: selectedCharacter.displayBondLevel,
@@ -377,8 +373,16 @@ export default function SkillDevelopmentChat({
 IMPORTANT: You MUST reference your actual skills, abilities, and training progress in conversation. You are fully aware of:
 
 YOUR CURRENT ABILITIES AND SKILLS:
-${selectedCharacter.abilities?.length > 0 ?
-  selectedCharacter.abilities.map(ability => `- ${ability.name}: ${ability.description || 'Special ability'} (Power: ${ability.power}, Cooldown: ${ability.cooldown})`).join('\n') :
+${selectedCharacter.abilities && (
+  (selectedCharacter.abilities.active?.length || 0) +
+  (selectedCharacter.abilities.passive?.length || 0) +
+  (selectedCharacter.abilities.signature?.length || 0)
+) > 0 ?
+  [
+    ...(selectedCharacter.abilities.active || []).map(name => `- ${name}: Active ability`),
+    ...(selectedCharacter.abilities.passive || []).map(name => `- ${name}: Passive ability`),
+    ...(selectedCharacter.abilities.signature || []).map(name => `- ${name}: Signature ability`)
+  ].join('\n') :
   '- No abilities learned yet'
 }
 
@@ -395,9 +399,17 @@ YOUR CURRENT STATS (reference these specific numbers):
 YOUR TRAINING PROGRESS:
 - Training Points Available: ${Math.floor(selectedCharacter.level * 1.5)}
 - Bond Level: ${selectedCharacter.bondLevel || 50}
-- Skills Learned: ${selectedCharacter.abilities?.length || 0} abilities
+- Skills Learned: ${
+  (selectedCharacter.abilities?.active?.length || 0) +
+  (selectedCharacter.abilities?.passive?.length || 0) +
+  (selectedCharacter.abilities?.signature?.length || 0)
+} abilities
 
-You should naturally reference your current abilities, discuss which skills you want to learn next, and explain how new abilities would improve your combat effectiveness. For example: "I currently have ${selectedCharacter.abilities?.length || 0} abilities, but I think learning a defensive skill would help since my defense is only ${selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 70}" or "My ${selectedCharacter.archetype} archetype suggests I should focus on [specific skill type] abilities."`,
+You should naturally reference your current abilities, discuss which skills you want to learn next, and explain how new abilities would improve your combat effectiveness. For example: "I currently have ${
+  (selectedCharacter.abilities?.active?.length || 0) +
+  (selectedCharacter.abilities?.passive?.length || 0) +
+  (selectedCharacter.abilities?.signature?.length || 0)
+} abilities, but I think learning a defensive skill would help since my defense is only ${selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 70}" or "My ${selectedCharacter.archetype} archetype suggests I should focus on [specific skill type] abilities."`,
         skillData: {
           availableSkillPoints: Math.floor(selectedCharacter.level * 1.5),
           currentAbilities: selectedCharacter.abilities || [],
@@ -432,7 +444,9 @@ You should naturally reference your current abilities, discuss which skills you 
           },
           archetypeSkillTrees: {
             primary: selectedCharacter.archetype,
-            abilityCount: selectedCharacter.abilities?.length || 0
+            abilityCount: (selectedCharacter.abilities?.active?.length || 0) +
+                         (selectedCharacter.abilities?.passive?.length || 0) +
+                         (selectedCharacter.abilities?.signature?.length || 0)
           }
         },
         // Add living context for kitchen table conflict awareness
@@ -466,8 +480,11 @@ You should naturally reference your current abilities, discuss which skills you 
   };
 
   const getSkillIntro = (character: EnhancedCharacter): string => {
-    // Simple intro that lets the AI take over from there
-    return `Coach, I have ${character.abilities.length} abilities and ${Math.floor(character.level * 1.5)} skill points available. What skill development do you recommend for my ${character.archetype} build?`;
+    const totalAbilities = (character.abilities?.active?.length || 0) +
+                          (character.abilities?.passive?.length || 0) +
+                          (character.abilities?.signature?.length || 0);
+
+    return `Coach, I have ${totalAbilities} abilities and ${Math.floor(character.level * 1.5)} skill points available. What skill development do you recommend for my ${character.archetype} build?`;
   };
 
   useEffect(() => {
