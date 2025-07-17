@@ -13,6 +13,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Character } from '@/data/characters';
+import { Equipment } from '@/data/equipment';
 import { 
   createEquippedCharacter, 
   getCharacterPowerLevel,
@@ -139,7 +140,7 @@ export default function CharacterCardWithEquipment({
     icon: Icon 
   }: { 
     slot: 'weapon' | 'armor' | 'accessory';
-    equipment: object | null;
+    equipment: Equipment | null;
     icon: React.ComponentType<{ className?: string }>;
   }) => (
     <motion.div

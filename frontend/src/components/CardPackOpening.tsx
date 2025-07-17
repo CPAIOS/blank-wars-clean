@@ -104,17 +104,50 @@ export default function CardPackOpening({
     return {
       id: characterId,
       name: template.name,
+      avatar: template.avatar || '⚔️',
       archetype: template.archetype,
       rarity: template.rarity,
-      health: template.baseStats.health,
-      attack: template.baseStats.attack,
-      defense: template.baseStats.defense,
-      speed: template.baseStats.speed,
-      abilities: template.abilities,
-      psychologyProfile: template.psychologyProfile,
-      equipment: template.equipment || [],
       level: 1,
-      experience: 0
+      experience: 0,
+      experienceToNext: 100,
+      traditionalStats: {
+        strength: template.baseStats?.strength || 50,
+        vitality: template.baseStats?.vitality || 50,
+        speed: template.baseStats?.agility || 50,
+        dexterity: template.baseStats?.agility || 50,
+        stamina: template.baseStats?.vitality || 50,
+        intelligence: template.baseStats?.intelligence || 50,
+        charisma: template.baseStats?.charisma || 50,
+        spirit: template.baseStats?.wisdom || 50
+      },
+      currentHp: (template.baseStats?.vitality || 50) * 2,
+      maxHp: (template.baseStats?.vitality || 50) * 2,
+      psychStats: {
+        training: 50,
+        teamPlayer: 50,
+        ego: 50,
+        mentalHealth: 75,
+        communication: 50
+      },
+      temporaryStats: {
+        strength: 0,
+        vitality: 0,
+        speed: 0,
+        dexterity: 0,
+        stamina: 0,
+        intelligence: 0,
+        charisma: 0,
+        spirit: 0
+      },
+      personalityTraits: ['brave', 'determined'],
+      speakingStyle: 'casual',
+      decisionMaking: 'logical',
+      conflictResponse: 'aggressive',
+      statusEffects: [],
+      injuries: [],
+      restDaysNeeded: 0,
+      abilities: [],
+      specialPowers: []
     };
   };
 

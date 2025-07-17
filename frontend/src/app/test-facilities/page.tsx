@@ -48,7 +48,7 @@ export default function TestFacilities() {
           <p className="text-gray-400">Testing the integrated real estate agents with mock data</p>
         </div>
         
-        <RealEstateAgentChat teamStats={mockTeamStats} />
+        <RealEstateAgentChat />
       </div>
     </div>
   );

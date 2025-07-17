@@ -82,6 +82,7 @@ export default function CombatDemo() {
         { name: 'Rage of Achilles', type: 'special', power: 120, cooldown: 4, currentCooldown: 0, description: 'Berserker rage mode', icon: '⚡' },
         { name: 'Invulnerable Stance', type: 'defense', power: 0, cooldown: 5, currentCooldown: 0, description: 'Temporary invulnerability', icon: '✨' }
       ],
+      items: [],
       avatar: '⚔️'
     },
     player2: {
@@ -97,8 +98,10 @@ export default function CombatDemo() {
         { name: 'Lightning Bolt', type: 'attack', power: 110, cooldown: 3, currentCooldown: 0, description: 'Devastating lightning strike', icon: '⚡' },
         { name: 'Time Warp', type: 'special', power: 0, cooldown: 6, currentCooldown: 0, description: 'Manipulate time flow', icon: '🕐' }
       ],
+      items: [],
       avatar: '🧙'
-    }
+    },
+    battleLog: []
   });
 
   const [combatLog, setCombatLog] = useState<string[]>([

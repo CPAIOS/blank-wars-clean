@@ -132,7 +132,7 @@ export default function CoachingInterface({
             intensity: selectedIntensity,
             context: {
               mentalState: character.mentalState,
-              bondLevel: character.bondLevel || 50,
+              bondLevel: character.mentalState?.teamTrust || 50,
               previousMessages: sessionData.characterResponses.slice(-3)
             }
           })

@@ -83,9 +83,9 @@ export default function CharacterDatabase({
     return true;
   });
 
-  function checkUnlockRequirements(requirements: Record<string, unknown>): boolean {
-    if (requirements.level && userLevel < requirements.level) return false;
-    if (requirements.achievements && !requirements.achievements.every((ach: string) => userAchievements.includes(ach))) return false;
+  function checkUnlockRequirements(requirements: Record<string, any>): boolean {
+    if (requirements.level && userLevel < (requirements.level as number)) return false;
+    if (requirements.achievements && !(requirements.achievements as string[]).every((ach: string) => userAchievements.includes(ach))) return false;
     if (requirements.currency) {
       for (const [currency, amount] of Object.entries(requirements.currency)) {
         if ((userCurrencies[currency] || 0) < (amount as number)) return false;
@@ -364,7 +364,7 @@ function CharacterDetailView({ character }: { character: Character }) {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'all' | 'mythology' | 'history' | 'literature' | 'anime')}
+              onClick={() => setActiveTab(tab.id as 'overview' | 'stats' | 'abilities' | 'interactions' | 'progression')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                 activeTab === tab.id
                   ? 'bg-blue-600 text-white'
@@ -621,9 +621,18 @@ function InteractionsTab({ character }: { character: Character }) {
     id: character.id,
     name: character.name,
     avatar: character.avatar,
-    archetype: character.archetype,
+    archetype: character.archetype as string,
     coreSkills: character.skills.coreSkills,
-    signatureSkills: character.skills.signatureSkills
+    signatureSkills: Object.fromEntries(
+      Object.entries(character.skills.signatureSkills).map(([key, skill]) => [
+        key,
+        {
+          level: skill.level,
+          experience: 0,
+          maxLevel: 100
+        }
+      ])
+    )
   };
 
   return (

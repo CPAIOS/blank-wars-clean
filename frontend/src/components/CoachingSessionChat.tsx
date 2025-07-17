@@ -322,9 +322,9 @@ const generateCoachingPrompts = (character: EnhancedCharacter): string[] => {
     prompts.push(`As a warrior, do you struggle with the violence of battle?`);
     prompts.push(`How do you maintain honor while dealing with the brutal realities of war?`);
   }
-  if (archetype === 'leader') {
+  if (archetype === 'tank') {
     prompts.push(`What's the heaviest burden of leadership you're carrying?`);
-    prompts.push(`How do you handle the responsibility of others' lives in your hands?`);
+    prompts.push(`How do you handle the responsibility of protecting others in battle?`);
   }
   if (archetype === 'scholar') {
     prompts.push(`Do you ever feel isolated by your intelligence or knowledge?`);
@@ -524,7 +524,7 @@ CURRENT CHARACTER PSYCHOLOGICAL PROFILE:
 - Decision Making: ${selectedCharacter?.decisionMaking || 'Analytical'}
 - Conflict Response: ${selectedCharacter?.conflictResponse || 'Confrontational'}
 - Trust Level with Coach: ${selectedCharacter?.displayBondLevel || 1}/10
-- Character Background: ${selectedCharacter?.archetype || 'warrior'} from ${selectedCharacter?.backstory || 'unknown origins'}
+- Character Background: ${selectedCharacter?.archetype || 'warrior'} from ${selectedCharacter?.historicalPeriod || 'unknown origins'}
 
 COACHING SESSION GUIDELINES:
 - This is a safe space for vulnerability and emotional honesty
@@ -537,7 +537,7 @@ COACHING SESSION GUIDELINES:
 
 PSYCHOLOGICAL CONSIDERATIONS FOR ${selectedCharacter?.archetype || 'warrior'}s:
 ${selectedCharacter?.archetype === 'warrior' ? '- Possible PTSD from battle, survivor guilt, struggle with violence vs honor, pressure to be strong' :
-  selectedCharacter?.archetype === 'leader' ? '- Leadership burden, decision fatigue, isolation, responsibility for others\' lives' :
+  selectedCharacter?.archetype === 'tank' ? '- Leadership burden, decision fatigue, isolation, responsibility for protecting others' :
   selectedCharacter?.archetype === 'scholar' ? '- Intellectual isolation, analysis paralysis, disconnection from emotions, impostor syndrome' :
   selectedCharacter?.archetype === 'trickster' ? '- Using humor to mask pain, fear of vulnerability, identity confusion, need for acceptance' :
   '- General stress from battles, relationships, and finding purpose in this world'}

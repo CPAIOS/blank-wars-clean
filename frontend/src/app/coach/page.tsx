@@ -76,14 +76,7 @@ const PsychologyMasteryChart: React.FC<{ masteryLevels: Record<string, number> }
           margin={{ top: 50, bottom: 50, left: 50, right: 50 }}
           slotProps={{
             legend: {
-              direction: 'column',
-              position: { vertical: 'middle', horizontal: 'right' },
-              itemMarkWidth: 10,
-              itemMarkHeight: 10,
-              labelStyle: {
-                fontSize: 12,
-                fill: '#E0E0E0', // Light gray for labels
-              },
+              position: { vertical: 'middle', horizontal: 'end' }
             },
           }}
           sx={{

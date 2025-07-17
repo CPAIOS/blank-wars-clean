@@ -339,7 +339,7 @@ export default function EquipmentAdvisorChat({
     }
 
     // Use real character equipment data instead of fake data
-    const currentEquipment = selectedCharacter.equippedItems || selectedCharacter.equipment || {};
+    const currentEquipment = selectedCharacter.equippedItems || {};
     const inventory = selectedCharacter.inventory || [];
     const characterLevel = selectedCharacter.level || 1;
     
@@ -372,16 +372,16 @@ IMPORTANT: You MUST reference your actual equipment and inventory in conversatio
 
 YOUR CURRENT STATS (reference these specific numbers):
 - Level: ${selectedCharacter.level}
-- Attack: ${selectedCharacter.base_attack}
-- Health: ${selectedCharacter.current_health}/${selectedCharacter.max_health} (current/max)
-- Defense: ${selectedCharacter.base_defense}
-- Speed: ${selectedCharacter.base_speed}
-- Special: ${selectedCharacter.base_special}
+- Attack: ${selectedCharacter.combatStats?.attack || selectedCharacter.baseStats?.strength || 0}
+- Health: ${selectedCharacter.combatStats?.health || 100}/${selectedCharacter.combatStats?.maxHealth || 100} (current/max)
+- Defense: ${selectedCharacter.combatStats?.defense || selectedCharacter.baseStats?.vitality || 0}
+- Speed: ${selectedCharacter.combatStats?.speed || selectedCharacter.baseStats?.agility || 0}
+- Special: ${selectedCharacter.baseStats?.intelligence || 0}
 - Archetype: ${selectedCharacter.archetype}
 
 YOUR CURRENT EQUIPMENT:
 ${Object.keys(currentEquipment).length > 0 ? 
-  Object.entries(currentEquipment).map(([slot, item]) => `- ${slot}: ${item.name} (${item.type})`).join('\n') : 
+  Object.entries(currentEquipment).map(([slot, item]) => `- ${slot}: ${(item as any)?.name || 'Unknown'} (${(item as any)?.type || 'Equipment'})`).join('\n') : 
   '- No equipment currently equipped'
 }
 
@@ -391,32 +391,32 @@ ${inventory.length > 0 ?
   '- No items in inventory'
 }
 
-You should naturally reference your current equipment, mention specific items in your inventory, and suggest equipment changes based on your stats. For example: "My attack is ${selectedCharacter.base_attack}, so I think that sword in my inventory would boost my damage" or "I'm currently using ${Object.keys(currentEquipment)[0] || 'basic gear'}, but I noticed that [specific item] might work better for my ${selectedCharacter.archetype} fighting style."`,
+You should naturally reference your current equipment, mention specific items in your inventory, and suggest equipment changes based on your stats. For example: "My attack is ${selectedCharacter.combatStats?.attack || selectedCharacter.baseStats?.strength || 0}, so I think that sword in my inventory would boost my damage" or "I'm currently using ${Object.keys(currentEquipment)[0] || 'basic gear'}, but I noticed that [specific item] might work better for my ${selectedCharacter.archetype} fighting style."`,
         equipmentData: {
           currentEquipment: currentEquipment,
           inventory: inventory,
           characterLevel: characterLevel,
           realCharacterStats: {
-            base_attack: selectedCharacter.base_attack,
-            base_health: selectedCharacter.base_health,
-            base_defense: selectedCharacter.base_defense,
-            base_speed: selectedCharacter.base_speed,
-            base_special: selectedCharacter.base_special,
-            current_health: selectedCharacter.current_health,
-            max_health: selectedCharacter.max_health,
+            base_attack: selectedCharacter.combatStats?.attack || selectedCharacter.baseStats?.strength || 0,
+            base_health: selectedCharacter.combatStats?.maxHealth || 100,
+            base_defense: selectedCharacter.combatStats?.defense || selectedCharacter.baseStats?.vitality || 0,
+            base_speed: selectedCharacter.combatStats?.speed || selectedCharacter.baseStats?.agility || 0,
+            base_special: selectedCharacter.baseStats?.intelligence || 0,
+            current_health: selectedCharacter.combatStats?.health || 100,
+            max_health: selectedCharacter.combatStats?.maxHealth || 100,
             level: selectedCharacter.level,
             archetype: selectedCharacter.archetype
           },
           statBasedRecommendations: {
-            strengthBased: selectedCharacter.base_attack > 80,
-            speedBased: selectedCharacter.base_speed > 80,
-            defenseBased: selectedCharacter.base_defense > 80,
-            healthBased: selectedCharacter.base_health > 80,
-            specialBased: selectedCharacter.base_special > 80,
-            needsAttackBoost: selectedCharacter.base_attack < 60,
-            needsHealthBoost: selectedCharacter.base_health < 60,
-            needsDefenseBoost: selectedCharacter.base_defense < 60,
-            needsSpeedBoost: selectedCharacter.base_speed < 60
+            strengthBased: (selectedCharacter.combatStats?.attack || selectedCharacter.baseStats?.strength || 0) > 80,
+            speedBased: (selectedCharacter.combatStats?.speed || selectedCharacter.baseStats?.agility || 0) > 80,
+            defenseBased: (selectedCharacter.combatStats?.defense || selectedCharacter.baseStats?.vitality || 0) > 80,
+            healthBased: (selectedCharacter.combatStats?.maxHealth || 100) > 80,
+            specialBased: (selectedCharacter.baseStats?.intelligence || 0) > 80,
+            needsAttackBoost: (selectedCharacter.combatStats?.attack || selectedCharacter.baseStats?.strength || 0) < 60,
+            needsHealthBoost: (selectedCharacter.combatStats?.maxHealth || 100) < 60,
+            needsDefenseBoost: (selectedCharacter.combatStats?.defense || selectedCharacter.baseStats?.vitality || 0) < 60,
+            needsSpeedBoost: (selectedCharacter.combatStats?.speed || selectedCharacter.baseStats?.agility || 0) < 60
           }
         },
         // Add living context for kitchen table conflict awareness

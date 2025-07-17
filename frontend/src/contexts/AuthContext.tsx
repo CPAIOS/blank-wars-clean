@@ -54,6 +54,7 @@ export interface AuthTokens {
 
 interface AuthContextType {
   user: UserProfile | null;
+  userProfile: UserProfile | null; // Added for CharacterSlotUpgrade
   tokens: AuthTokens | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -62,6 +63,7 @@ interface AuthContextType {
   logout: () => void;
   refreshToken: () => Promise<void>;
   updateProfile: (profileData: Partial<UserProfile>) => void;
+  updateUserProfile: (profileData: Partial<UserProfile>) => void; // Added for CharacterSlotUpgrade
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -170,6 +172,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value: AuthContextType = {
     user,
+    userProfile: user, // Same as user for now
     tokens,
     isAuthenticated,
     isLoading,
@@ -177,7 +180,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     register,
     logout,
     refreshToken,
-    updateProfile
+    updateProfile,
+    updateUserProfile: updateProfile // Same function for now
   };
 
   return (

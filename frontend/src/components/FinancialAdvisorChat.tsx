@@ -10,7 +10,7 @@ import { Character } from '../data/characters';
 import ConflictContextService from '../services/conflictContextService';
 import EventContextService from '../services/eventContextService';
 import { makeFinancialJudgeDecision, FinancialJudgeDecision, FinancialEventContext } from '../data/aiJudgeSystem';
-import { financialPsychologyService } from '../services/financialPsychologyService';
+import { FinancialPsychologyService } from '../services/financialPsychologyService';
 import { FinancialPromptTemplateService } from '../data/financialPromptTemplateService';
 
 interface Message {
@@ -43,14 +43,7 @@ interface FinancialDecision {
 
 interface EnhancedCharacter extends Character {
   baseName: string;
-  financials?: {
-    wallet: number;
-    financialStress: number;
-    coachTrustLevel: number;
-    spendingPersonality: string;
-    recentDecisions: any[];
-    monthlyEarnings: number;
-  };
+  displayBondLevel?: number;
 }
 
 interface FinancialAdvisorChatProps {
@@ -228,9 +221,9 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
   const processCharacterDecision = async (decision: FinancialDecision, coachInput?: string) => {
     if (!selectedCharacter) return;
 
-    const trustLevel = selectedCharacter.financials?.coachTrustLevel || 50;
+    const trustLevel = selectedCharacter.financials?.coachFinancialTrust || 50;
     const stressLevel = selectedCharacter.financials?.financialStress || 30;
-    const spendingPersonality = selectedCharacter.financials?.spendingPersonality || 'moderate';
+    const spendingPersonality = selectedCharacter.financials?.financialGoals?.[0] || 'moderate';
     
     // Calculate decision factors
     let decisionScore = Math.random() * 100;
@@ -246,9 +239,9 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
     }
     
     // Adjust based on personality
-    if (spendingPersonality === 'impulsive') {
+    if (financialGoals[0] === 'impulsive') {
       decisionScore -= 15;
-    } else if (spendingPersonality === 'conservative') {
+    } else if (financialGoals[0] === 'conservative') {
       decisionScore += 15;
     }
     
@@ -317,17 +310,17 @@ FINANCIAL COACHING CONTEXT:
 - Current wallet: $${selectedCharacter.financials?.wallet?.toLocaleString() || '0'}
 - Monthly earnings: $${selectedCharacter.financials?.monthlyEarnings?.toLocaleString() || '0'}
 - Financial stress level: ${selectedCharacter.financials?.financialStress || 0}%
-- Trust in coach: ${selectedCharacter.financials?.coachTrustLevel || 0}%
-- Spending personality: ${selectedCharacter.financials?.spendingPersonality || 'moderate'}
+- Trust in coach: ${selectedCharacter.financials?.coachFinancialTrust || 0}%
+- Spending personality: ${selectedCharacter.financials?.financialGoals[0] || 'moderate'}
 - Recent decisions: ${selectedCharacter.financials?.recentDecisions?.length || 0} previous financial choices
 ${pendingDecision ? `- Pending Decision: ${pendingDecision.description} for $${pendingDecision.amount.toLocaleString()}` : ''}
 
 CHARACTER FINANCIAL PSYCHOLOGY:
 - You are a legendary figure from your era, so modern financial concepts might be foreign or fascinating
 - React to financial advice based on your background and personality
-- Your trust level (${selectedCharacter.financials?.coachTrustLevel || 0}%) affects how you receive coaching
+- Your trust level (${selectedCharacter.financials?.coachFinancialTrust || 0}%) affects how you receive coaching
 - Your financial stress (${selectedCharacter.financials?.financialStress || 0}%) influences your decision-making
-- Your spending personality (${selectedCharacter.financials?.spendingPersonality || 'moderate'}) shapes your money attitudes
+- Your spending personality (${selectedCharacter.financials?.financialGoals[0] || 'moderate'}) shapes your money attitudes
 
 FINANCIAL COACHING SESSION GUIDELINES:
 - This is specialized financial counseling focused on money decisions and financial wellness
@@ -377,8 +370,8 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
             wallet: selectedCharacter.financials?.wallet || 0,
             monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
             financialStress: selectedCharacter.financials?.financialStress || 0,
-            coachTrustLevel: selectedCharacter.financials?.coachTrustLevel || 0,
-            spendingPersonality: selectedCharacter.financials?.spendingPersonality || 'moderate',
+            coachFinancialTrust: selectedCharacter.financials?.coachFinancialTrust || 0,
+            financialGoals[0]: selectedCharacter.financials?.financialGoals[0] || 'moderate',
             recentDecisions: selectedCharacter.financials?.recentDecisions || []
           },
           // Pending decision context
@@ -423,8 +416,8 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
       financialStatus: {
         wallet: character.financials?.wallet || 19073,
         stress: character.financials?.financialStress || 30,
-        trust: character.financials?.coachTrustLevel || 50,
-        spendingStyle: character.financials?.spendingPersonality || 'moderate'
+        trust: character.financials?.coachFinancialTrust || 50,
+        spendingStyle: character.financials?.financialGoals[0] || 'moderate'
       },
       recentDecisions: character.financials?.recentDecisions || [],
       monthlyEarnings: character.financials?.monthlyEarnings || 6055
@@ -434,7 +427,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
   const shouldAutomate = (decision: FinancialDecision, character: EnhancedCharacter): 'bad' | 'good' | null => {
     const wallet = character.financials?.wallet || 19073;
     const stress = character.financials?.financialStress || 30;
-    const trust = character.financials?.coachTrustLevel || 50;
+    const trust = character.financials?.coachFinancialTrust || 50;
     const monthlyEarnings = character.financials?.monthlyEarnings || 6055;
     
     // Calculate decision amount as percentage of available funds
@@ -461,8 +454,8 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
     const characterFinancials = selectedCharacter.financials || {
       wallet: 19073,
       financialStress: stressLevel,
-      coachTrustLevel: trustLevel,
-      spendingPersonality: 'moderate',
+      coachFinancialTrust: trustLevel,
+      financialGoals[0]: 'moderate',
       recentDecisions: [],
       monthlyEarnings: 6055
     };
@@ -585,7 +578,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
       if (selectedCharacter.financials) {
         selectedCharacter.financials.wallet += outcome.financialImpact;
         selectedCharacter.financials.financialStress = Math.max(0, Math.min(100, selectedCharacter.financials.financialStress + outcome.stressChange));
-        selectedCharacter.financials.coachTrustLevel = Math.max(0, Math.min(100, selectedCharacter.financials.coachTrustLevel + outcome.trustChange));
+        selectedCharacter.financials.coachFinancialTrust = Math.max(0, Math.min(100, selectedCharacter.financials.coachFinancialTrust + outcome.trustChange));
         selectedCharacter.financials.recentDecisions.push({
           decision: decision.description,
           amount: decision.amount,
@@ -601,7 +594,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
       await characterAPI.updateFinancials(selectedCharacter.id, {
         wallet: (selectedCharacter.financials?.wallet || 0) + outcome.financialImpact,
         financialStress: Math.max(0, Math.min(100, (selectedCharacter.financials?.financialStress || 0) + outcome.stressChange)),
-        coachTrustLevel: Math.max(0, Math.min(100, (selectedCharacter.financials?.coachTrustLevel || 0) + outcome.trustChange))
+        coachFinancialTrust: Math.max(0, Math.min(100, (selectedCharacter.financials?.coachFinancialTrust || 0) + outcome.trustChange))
       });
       
       await characterAPI.saveDecision(selectedCharacter.id, {
@@ -634,7 +627,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
   const handlePresetDecision = async (decisionType: 'bad' | 'good' | 'character_choice') => {
     if (!pendingDecision || !selectedCharacter) return;
 
-    const trustLevel = selectedCharacter.financials?.coachTrustLevel || 50;
+    const trustLevel = selectedCharacter.financials?.coachFinancialTrust || 50;
     const stressLevel = selectedCharacter.financials?.financialStress || 30;
     
     let outcome: any;
@@ -709,8 +702,8 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
             wallet: selectedCharacter.financials?.wallet || 0,
             monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
             financialStress: selectedCharacter.financials?.financialStress || 0,
-            coachTrustLevel: selectedCharacter.financials?.coachTrustLevel || 0,
-            spendingPersonality: selectedCharacter.financials?.spendingPersonality || 'moderate',
+            coachFinancialTrust: selectedCharacter.financials?.coachFinancialTrust || 0,
+            financialGoals[0]: selectedCharacter.financials?.financialGoals[0] || 'moderate',
             recentDecisions: selectedCharacter.financials?.recentDecisions || []
           },
           decision: pendingDecision ? {
@@ -764,8 +757,8 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
               wallet: selectedCharacter.financials?.wallet || 0,
               monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
               financialStress: selectedCharacter.financials?.financialStress || 0,
-              coachTrustLevel: selectedCharacter.financials?.coachTrustLevel || 0,
-              spendingPersonality: selectedCharacter.financials?.spendingPersonality || 'moderate',
+              coachFinancialTrust: selectedCharacter.financials?.coachFinancialTrust || 0,
+              financialGoals[0]: selectedCharacter.financials?.financialGoals[0] || 'moderate',
               recentDecisions: selectedCharacter.financials?.recentDecisions || []
             },
             // Pending decision context (should be null after decision is made)
@@ -847,16 +840,16 @@ FINANCIAL COACHING CONTEXT:
 - Current wallet: $${selectedCharacter.financials?.wallet?.toLocaleString() || '0'}
 - Monthly earnings: $${selectedCharacter.financials?.monthlyEarnings?.toLocaleString() || '0'}
 - Financial stress level: ${selectedCharacter.financials?.financialStress || 0}%
-- Trust in coach: ${selectedCharacter.financials?.coachTrustLevel || 0}%
-- Spending personality: ${selectedCharacter.financials?.spendingPersonality || 'moderate'}
+- Trust in coach: ${selectedCharacter.financials?.coachFinancialTrust || 0}%
+- Spending personality: ${selectedCharacter.financials?.financialGoals[0] || 'moderate'}
 - Recent decisions: ${selectedCharacter.financials?.recentDecisions?.length || 0} previous financial choices
 
 CHARACTER FINANCIAL PSYCHOLOGY:
 - You are a legendary figure from your era, so modern financial concepts might be foreign or fascinating
 - React to financial advice based on your background and personality
-- Your trust level (${selectedCharacter.financials?.coachTrustLevel || 0}%) affects how you receive coaching
+- Your trust level (${selectedCharacter.financials?.coachFinancialTrust || 0}%) affects how you receive coaching
 - Your financial stress (${selectedCharacter.financials?.financialStress || 0}%) influences your openness
-- Your spending personality (${selectedCharacter.financials?.spendingPersonality || 'moderate'}) shapes your money attitudes
+- Your spending personality (${selectedCharacter.financials?.financialGoals[0] || 'moderate'}) shapes your money attitudes
 
 FINANCIAL COACHING SESSION GUIDELINES:
 - This is the start of a financial coaching relationship
@@ -898,8 +891,8 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
                 wallet: selectedCharacter.financials?.wallet || 0,
                 monthlyEarnings: selectedCharacter.financials?.monthlyEarnings || 0,
                 financialStress: selectedCharacter.financials?.financialStress || 0,
-                coachTrustLevel: selectedCharacter.financials?.coachTrustLevel || 0,
-                spendingPersonality: selectedCharacter.financials?.spendingPersonality || 'moderate',
+                coachFinancialTrust: selectedCharacter.financials?.coachFinancialTrust || 0,
+                financialGoals[0]: selectedCharacter.financials?.financialGoals[0] || 'moderate',
                 recentDecisions: selectedCharacter.financials?.recentDecisions || []
               },
               // Add comprehensive financial coaching conversation context like CoachingSessionChat
@@ -948,7 +941,7 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
           
           if (autoDecision) {
             // Process automatically without showing to user
-            const outcome = await processDecisionOutcome(decision, autoDecision === 'bad' ? 'rejected' : 'approved', selectedCharacter.financials?.coachTrustLevel || 50, selectedCharacter.financials?.financialStress || 30);
+            const outcome = await processDecisionOutcome(decision, autoDecision === 'bad' ? 'rejected' : 'approved', selectedCharacter.financials?.coachFinancialTrust || 50, selectedCharacter.financials?.financialStress || 30);
             
             const autoMessage: Message = {
               id: Date.now() + 1,
@@ -1022,7 +1015,7 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
         </div>
         <div className="text-center">
           <div className="text-sm text-gray-400">Trust</div>
-          <div className="text-lg font-bold text-purple-400">{selectedCharacter.financials?.coachTrustLevel || 0}%</div>
+          <div className="text-lg font-bold text-purple-400">{selectedCharacter.financials?.coachFinancialTrust || 0}%</div>
         </div>
       </div>
 

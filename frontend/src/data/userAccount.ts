@@ -16,6 +16,8 @@ export interface UserProfile {
   joinDate: Date;
   lastActive: Date;
   characterSlotCapacity: number; // New: Dynamic character slot capacity
+  characterSlots: number; // Current available character slots
+  maxCharacterSlots: number; // Maximum character slots for subscription tier
 
   // Subscription info
   subscriptionTier: SubscriptionTier;
@@ -32,7 +34,10 @@ export interface UserProfile {
   stats?: PlayerStats;
 
   // Character management
-  charactersOwned?: number;
+  charactersOwned?: OwnedCharacter[];
+  
+  // Achievements
+  achievements?: Achievement[];
 }
 
 export interface PlayerStats {

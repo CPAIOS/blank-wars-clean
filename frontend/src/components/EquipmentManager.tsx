@@ -198,7 +198,7 @@ export default function EquipmentManager({
             availableEquipment: inventory,
             bondLevel: 50,
             previousMessages: chatMessages.slice(-5).map(msg => ({
-              role: msg.sender === 'user' ? 'user' : 'assistant',
+              role: msg.sender === 'coach' ? 'user' : 'assistant',
               content: msg.message
             }))
           }
@@ -397,7 +397,7 @@ export default function EquipmentManager({
               {/* Sort */}
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'rarity' | 'attack' | 'defense')}
+                onChange={(e) => setSortBy(e.target.value as 'name' | 'level' | 'rarity' | 'stats')}
                 className="px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
               >
                 <option value="level">Sort by Level</option>

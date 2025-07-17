@@ -202,6 +202,7 @@ export default function AccountManager({
         totalTrainingTime: 120
       }
     ],
+    characterSlotCapacity: 10,
     characterSlots: 10,
     maxCharacterSlots: 10,
     currency: {
