@@ -1,6 +1,10 @@
+console.log('🔵 Starting server.ts execution...');
+
 // Load environment variables FIRST
 import { config } from 'dotenv';
 config();
+
+console.log('🔵 Environment loaded, starting imports...');
 
 import express from 'express';
 import cors from 'cors';
