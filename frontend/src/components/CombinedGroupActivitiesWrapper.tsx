@@ -287,7 +287,7 @@ export default function CombinedGroupActivitiesWrapper() {
     let socketUrl: string;
     
     if (process.env.NODE_ENV === 'production') {
-      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-backend.railway.app';
+      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-clean-production.up.railway.app';
     } else {
       socketUrl = 'http://localhost:3006';
     }
@@ -782,9 +782,13 @@ export default function CombinedGroupActivitiesWrapper() {
         groupSocketRef.current.on('chat_response', responseHandler);
         groupSocketRef.current.on('chat_error', errorHandler);
         
-        // Send message via socket
+        // Send message via socket  
         console.log('📤 Sending group chat message for:', character.name);
-        groupSocketRef.current.emit('chat_message', requestData);
+        groupSocketRef.current.emit('chat_message', {
+          message: facilitatorMessage,
+          character: character.baseName || character.name?.toLowerCase() || character.id,
+          characterData: requestData
+        });
         
         // Timeout after 15 seconds
         setTimeout(() => {
