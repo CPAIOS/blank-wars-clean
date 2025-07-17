@@ -219,10 +219,10 @@ export default function ProgressionDashboard({
           userMessage: currentChatMessage,
           context: {
             level: character.level,
-            stats: character.stats,
+            stats: character.baseStats || character.combatStats,
             bondLevel: character.bondLevel || 50,
             previousMessages: chatMessages.slice(-5).map(msg => ({
-              role: msg.sender === 'user' ? 'user' : 'assistant',
+              role: msg.sender === 'coach' ? 'assistant' : 'user',
               content: msg.message
             }))
           }

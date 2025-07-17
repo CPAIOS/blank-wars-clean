@@ -239,7 +239,7 @@ export default function MembershipSelection({
                       <X className="w-5 h-5 text-red-400 mx-auto" />
                     ) : memberships[tier]?.limits?.skillLearningSessions === 7 ? (
                       'Daily'
-                    ) : memberships[tier]?.limits?.skillLearningSessions === 'unlimited' ? (
+                    ) : (memberships[tier]?.limits?.skillLearningSessions as any) === 'unlimited' ? (
                       <div className="flex items-center justify-center gap-1">
                         <Infinity className="w-4 h-4" />
                         <span>Unlimited</span>

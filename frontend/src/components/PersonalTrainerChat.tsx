@@ -344,7 +344,7 @@ export default function PersonalTrainerChat({
             speedDeficit: (selectedCharacter.baseStats?.agility || 0) < 75,
             defenseDeficit: (selectedCharacter.baseStats?.vitality || 0) < 70,
             currentLevel: selectedCharacter.level,
-            experienceToNext: Math.max(0, (selectedCharacter.level + 1) * 1000 - (selectedCharacter.experience || 0))
+            experienceToNext: Math.max(0, (selectedCharacter.level + 1) * 1000 - (Number(selectedCharacter.experience) || 0))
           }
         } : null,
         conversationContext: `You are Argock The Inspirerer, an enthusiastic Orc personal trainer. You're genuinely well-meaning but have zero self-awareness about how intense and dramatic you sound. You constantly use battle metaphors for exercise.

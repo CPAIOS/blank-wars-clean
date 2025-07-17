@@ -187,7 +187,7 @@ const generateCoachingAdvice = (character: EnhancedCharacter): string[] => {
       }, {} as Record<string, number>);
     
     const topProblem = Object.entries(commonProblems)
-      .sort(([,a], [,b]) => b - a)[0];
+      .sort(([, a], [, b]) => (b as number) - (a as number))[0];
     
     if (topProblem) {
       advice.push(`You've been struggling with ${topProblem[0]} - let's work on that together`);

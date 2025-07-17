@@ -103,7 +103,7 @@ export default function PackOpening() {
       setPhase('opening');
       // You might want to fetch the pack details based on the session ID here
       // For now, we'll rely on the user selecting a pack again or having it in state
-      router.replace('/pack-opening', undefined, { shallow: true }); // Clean URL
+      router.replace('/pack-opening'); // Clean URL
     }
   }, [searchParams, router]);
 

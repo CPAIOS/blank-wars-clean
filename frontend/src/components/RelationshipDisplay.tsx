@@ -328,7 +328,7 @@ export default function RelationshipDisplay({
       return {
         target: target!,
         relationship: rel,
-        battleImpact: rel.strength > 20 ? 'positive' : rel.strength < -20 ? 'negative' : 'neutral'
+        battleImpact: (rel.strength > 20 ? 'positive' : rel.strength < -20 ? 'negative' : 'neutral') as 'positive' | 'negative' | 'neutral'
       };
     }).filter(r => r.target)
   }));
@@ -339,7 +339,7 @@ export default function RelationshipDisplay({
       source: node.character,
       target: rel.target,
       relationship: rel.relationship,
-      id: `${node.character.id}-${rel.target.id}`
+      id: `${node.character.character.id}-${rel.target.character.id}`
     }))
   ).filter((rel, index, array) => 
     array.findIndex(r => 

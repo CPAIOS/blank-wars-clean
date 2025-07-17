@@ -131,7 +131,7 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   if (archetype === 'mage') {
     advice.push('Develop your spell power and mana efficiency skill branches');
   }
-  if (archetype === 'detective') {
+  if (archetype === 'trickster') {
     advice.push('Focus on observation and deduction skill trees');
   }
   
@@ -384,11 +384,11 @@ ${selectedCharacter.abilities?.length > 0 ?
 
 YOUR CURRENT STATS (reference these specific numbers):
 - Level: ${selectedCharacter.level}
-- Attack: ${selectedCharacter.baseStats?.strength || selectedCharacter.base_attack || 70}
-- Health: ${selectedCharacter.baseStats?.vitality || selectedCharacter.base_health || 80}
-- Defense: ${selectedCharacter.baseStats?.wisdom || selectedCharacter.base_defense || 70}
-- Speed: ${selectedCharacter.baseStats?.agility || selectedCharacter.base_speed || 70}
-- Special: ${selectedCharacter.baseStats?.intelligence || selectedCharacter.base_special || 70}
+- Attack: ${selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 70}
+- Health: ${selectedCharacter.baseStats?.vitality || selectedCharacter.combatStats?.health || 80}
+- Defense: ${selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 70}
+- Speed: ${selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 70}
+- Special: ${selectedCharacter.baseStats?.intelligence || selectedCharacter.combatStats?.magicAttack || 70}
 - Experience: ${selectedCharacter.experience}
 - Archetype: ${selectedCharacter.archetype}
 
@@ -397,28 +397,28 @@ YOUR TRAINING PROGRESS:
 - Bond Level: ${selectedCharacter.bondLevel || selectedCharacter.bond_level || 50}
 - Skills Learned: ${selectedCharacter.abilities?.length || 0} abilities
 
-You should naturally reference your current abilities, discuss which skills you want to learn next, and explain how new abilities would improve your combat effectiveness. For example: "I currently have ${selectedCharacter.abilities?.length || 0} abilities, but I think learning a defensive skill would help since my defense is only ${selectedCharacter.baseStats?.wisdom || selectedCharacter.base_defense || 70}" or "My ${selectedCharacter.archetype} archetype suggests I should focus on [specific skill type] abilities."`,
+You should naturally reference your current abilities, discuss which skills you want to learn next, and explain how new abilities would improve your combat effectiveness. For example: "I currently have ${selectedCharacter.abilities?.length || 0} abilities, but I think learning a defensive skill would help since my defense is only ${selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 70}" or "My ${selectedCharacter.archetype} archetype suggests I should focus on [specific skill type] abilities."`,
         skillData: {
           availableSkillPoints: Math.floor(selectedCharacter.level * 1.5),
           currentAbilities: selectedCharacter.abilities || [],
           realCharacterStats: {
-            base_attack: selectedCharacter.base_attack,
-            base_health: selectedCharacter.base_health,
-            base_defense: selectedCharacter.base_defense,
-            base_speed: selectedCharacter.base_speed,
-            base_special: selectedCharacter.base_special,
-            current_health: selectedCharacter.current_health,
-            max_health: selectedCharacter.max_health,
+            base_attack: selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack,
+            base_health: selectedCharacter.baseStats?.vitality || selectedCharacter.combatStats?.health,
+            base_defense: selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense,
+            base_speed: selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed,
+            base_special: selectedCharacter.baseStats?.intelligence || selectedCharacter.combatStats?.magicAttack,
+            current_health: selectedCharacter.combatStats?.health,
+            max_health: selectedCharacter.combatStats?.maxHealth,
             level: selectedCharacter.level,
             experience: selectedCharacter.experience,
-            bond_level: selectedCharacter.bond_level,
+            bond_level: selectedCharacter.bondLevel,
             archetype: selectedCharacter.archetype
           },
           statFocusRecommendations: {
-            attackBased: selectedCharacter.base_attack > 75,
-            specialBased: selectedCharacter.base_special > 75,
-            speedBased: selectedCharacter.base_speed > 75,
-            defenseBased: selectedCharacter.base_defense > 75,
+            attackBased: (selectedCharacter.baseStats?.strength || selectedCharacter.combatStats?.attack || 0) > 75,
+            specialBased: (selectedCharacter.baseStats?.intelligence || selectedCharacter.combatStats?.magicAttack || 0) > 75,
+            speedBased: (selectedCharacter.baseStats?.agility || selectedCharacter.combatStats?.speed || 0) > 75,
+            defenseBased: (selectedCharacter.baseStats?.wisdom || selectedCharacter.combatStats?.defense || 0) > 75,
             healthBased: selectedCharacter.base_health > 75,
             needsAttackFocus: selectedCharacter.base_attack < 60,
             needsSpeedFocus: selectedCharacter.base_speed < 60,

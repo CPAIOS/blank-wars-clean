@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Users, Dumbbell, Sword, Home, ShoppingBag,
-  Database, TrendingUp, Package, MessageCircle, 
+  Database, TrendingUp, Package, MessageCircle,
   Sparkles, Crown, Building, Target, Brain,
   Trophy, ChevronDown, ChevronRight, Activity, Shield,
   BookOpen, Star, User, Eye, EyeOff, BarChart3, DollarSign,
@@ -101,8 +101,8 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   const [activeSubTab, setActiveSubTab] = useState(initialSubTab || (initialTab === 'coach' ? 'front-office' : 'progression'));
   const [isMainTabExpanded, setIsMainTabExpanded] = useState(true);
   const [globalSelectedCharacterId, setGlobalSelectedCharacterId] = useState('achilles');
-  
-  
+
+
   console.log('🔥 MainTabSystem state:', { activeMainTab, activeSubTab, globalSelectedCharacterId });
 
   // Demo character data with enhanced training integration
@@ -224,14 +224,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   const ProgressionDashboardWrapper = () => {
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
     const [charactersLoading, setCharactersLoading] = useState(true);
-    
+
     // Load real characters from API
     useEffect(() => {
       const loadCharacters = async () => {
         try {
           const response = await characterAPI.getUserCharacters();
           const characters = response.characters || [];
-          
+
           const enhancedCharacters = characters.map((char: any) => {
             const baseName = char.name?.toLowerCase() || char.character_id || char.id;
             return {
@@ -261,7 +261,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               }
             };
           });
-          
+
           setAvailableCharacters(enhancedCharacters);
           setCharactersLoading(false);
         } catch (error) {
@@ -269,7 +269,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           setCharactersLoading(false);
         }
       };
-      
+
       loadCharacters();
     }, []);
 
@@ -278,7 +278,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     }, [availableCharacters, globalSelectedCharacterId]);
     console.log('Progression - Real character data:', selectedCharacter?.name, 'Level:', selectedCharacter?.level, 'Base Attack:', selectedCharacter?.base_attack);
     console.log('Progression - Training bonuses:', selectedCharacter?.trainingBonuses);
-    
+
     if (charactersLoading) {
       return (
         <div className="flex items-center justify-center p-8">
@@ -332,7 +332,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               <div className="flex flex-col items-center gap-6">
                 {/* Character Image */}
                 <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
-                  <img 
+                  <img
                     src={(() => {
                       // Map character names to their image file names
                       const characterImageMap: Record<string, string> = {
@@ -360,12 +360,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                         'sammy "slugger" sullivan': 'sammy_slugger.png', // Real Sammy image
                         'sammy_slugger': 'sammy_slugger.png', // Underscore version
                         'robin hood': 'robin_hood.png', // Real Robin Hood image
-                        'robin_hood': 'robin_hood.png', // Underscore version  
+                        'robin_hood': 'robin_hood.png', // Underscore version
                         'count dracula': 'Dracula 02.png', // Count Dracula variation
                         'cleopatra vii': 'Cleopatra 01.png', // Cleopatra VII variation
                         'vega-x': 'Cyborg 03.png', // Vega-X uses Cyborg image
                       };
-                      
+
                       const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
                       console.log('🖼️ Character Image Debug:', {
                         originalName: selectedCharacter?.name,
@@ -373,12 +373,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                         hasMapping: !!characterImageMap[characterName || ''],
                         availableKeys: Object.keys(characterImageMap)
                       });
-                      
+
                       // Only use mapped images, no fallback to wrong character
                       if (characterName && characterImageMap[characterName]) {
                         return `/images/Character /Progression/${characterImageMap[characterName]}`;
                       }
-                      
+
                       // Return empty string if no match found - this will trigger alt text instead of wrong image
                       return '';
                     })()}
@@ -392,7 +392,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                     }}
                   />
                 </div>
-                
+
                 {/* Character Info */}
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
@@ -412,7 +412,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               onAllocateStatPoint={(stat) => console.log(`${selectedCharacter?.name || 'Character'} allocated stat point to ${stat}`)}
               onViewDetails={(section) => console.log(`${selectedCharacter?.name || 'Character'} viewing details for ${section}`)}
             />
-            
+
             {/* Training Enhancement Banner */}
             <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-xl p-4 border border-orange-500/30">
               <div className="flex items-center gap-2 mb-2">
@@ -451,14 +451,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     const [characterEquipment, setCharacterEquipment] = useState<Record<string, any>>({});
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
     const [charactersLoading, setCharactersLoading] = useState(true);
-    
+
     // Load real characters from API
     useEffect(() => {
       const loadCharacters = async () => {
         try {
           const response = await characterAPI.getUserCharacters();
           const characters = response.characters || [];
-          
+
           const enhancedCharacters = characters.map((char: any) => {
             const baseName = char.name?.toLowerCase() || char.character_id || char.id;
             return {
@@ -489,7 +489,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               equippedItems: char.equippedItems || char.equipment || {}
             };
           });
-          
+
           setAvailableCharacters(enhancedCharacters);
           setCharactersLoading(false);
         } catch (error) {
@@ -497,7 +497,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           setCharactersLoading(false);
         }
       };
-      
+
       loadCharacters();
     }, []);
 
@@ -505,7 +505,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
     console.log('Equipment - Real character data:', selectedCharacter?.name, 'Inventory count:', selectedCharacter?.inventory?.length, 'Equipment:', selectedCharacter?.equipment);
-    
+
     if (charactersLoading) {
       return (
         <div className="flex items-center justify-center p-8">
@@ -522,7 +522,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
       console.log('🔧 handleEquip called:', equipment);
       console.log('🔧 Current character:', globalSelectedCharacterId);
       console.log('🔧 Current equipment state:', characterEquipment);
-      
+
       setCharacterEquipment(prev => {
         const updated = {
           ...prev,
@@ -535,7 +535,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         return updated;
       });
     };
-    
+
     const handleUnequip = (slot: string) => {
       setCharacterEquipment(prev => ({
         ...prev,
@@ -545,7 +545,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         }
       }));
     };
-    
+
     return (
     <div className="space-y-6">
       <div className="flex gap-6">
@@ -589,7 +589,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               <div className="flex flex-col items-center gap-6">
                 {/* Character Image */}
                 <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
-                  <img 
+                  <img
                     src={(() => {
                       // Map character names to their equipment image file names
                       const characterImageMap: Record<string, string> = {
@@ -622,19 +622,19 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                         'cleopatra vii': 'cleopatra_equipment.png',
                         'vega-x': 'cyborg_equipment.png',
                       };
-                      
+
                       const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
                       console.log('🎨 Equipment Image Debug:', {
                         originalName: selectedCharacter?.name,
                         characterName,
                         hasMapping: !!characterImageMap[characterName || ''],
                       });
-                      
+
                       // Only use mapped images, no fallback to wrong character
                       if (characterName && characterImageMap[characterName]) {
                         return `/images/Character /Equipment /${characterImageMap[characterName]}`;
                       }
-                      
+
                       // Return empty string if no match found
                       return '';
                     })()}
@@ -648,7 +648,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                     }}
                   />
                 </div>
-                
+
                 {/* Character Info */}
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
@@ -663,13 +663,13 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             </div>
 
             {/* Equipment Advisor Chat */}
-            <EquipmentAdvisorChat 
+            <EquipmentAdvisorChat
               selectedCharacterId={globalSelectedCharacterId}
               onCharacterChange={setGlobalSelectedCharacterId}
               selectedCharacter={selectedCharacter}
               availableCharacters={availableCharacters}
             />
-            
+
             <EquipmentManager
             characterName={selectedCharacter.name}
             characterLevel={selectedCharacter.level}
@@ -679,7 +679,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             onEquip={handleEquip}
             onUnequip={handleUnequip}
           />
-          
+
           {/* Training Equipment Synergy Display */}
           <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl p-4 border border-blue-500/30">
             <div className="flex items-center gap-2 mb-3">
@@ -717,14 +717,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     const [characterAbilities, setCharacterAbilities] = useState<Record<string, any>>({});
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
     const [charactersLoading, setCharactersLoading] = useState(true);
-    
+
     // Load real characters from API
     useEffect(() => {
       const loadCharacters = async () => {
         try {
           const response = await characterAPI.getUserCharacters();
           const characters = response.characters || [];
-          
+
           const enhancedCharacters = characters.map((char: any) => {
             const baseName = char.name?.toLowerCase() || char.character_id || char.id;
             return {
@@ -754,7 +754,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               }
             };
           });
-          
+
           setAvailableCharacters(enhancedCharacters);
           setCharactersLoading(false);
         } catch (error) {
@@ -762,7 +762,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           setCharactersLoading(false);
         }
       };
-      
+
       loadCharacters();
     }, []);
 
@@ -771,7 +771,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     }, [availableCharacters, globalSelectedCharacterId]);
     const currentTrainingPoints = characterAbilities[globalSelectedCharacterId]?.trainingPoints || (selectedCharacter?.level * 2);
     console.log('Skills - Real character data:', selectedCharacter?.name, 'Abilities count:', selectedCharacter?.abilities?.length, 'Level:', selectedCharacter?.level);
-    
+
     if (charactersLoading) {
       return (
         <div className="flex items-center justify-center p-8">
@@ -825,7 +825,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               <div className="flex flex-col items-center gap-6">
                 {/* Character Image */}
                 <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
-                  <img 
+                  <img
                     src={(() => {
                       // Map character names to their skills image file names
                       const characterImageMap: Record<string, string> = {
@@ -858,19 +858,19 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                         'cleopatra vii': 'cleopatra_skills.png',
                         'vega-x': 'vega_x_skills.png',
                       };
-                      
+
                       const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
                       console.log('⚡ Skills Image Debug:', {
                         originalName: selectedCharacter?.name,
                         characterName,
                         hasMapping: !!characterImageMap[characterName || ''],
                       });
-                      
+
                       // Only use mapped images, no fallback to wrong character
                       if (characterName && characterImageMap[characterName]) {
                         return `/images/Character /Skills:Abilities/${characterImageMap[characterName]}`;
                       }
-                      
+
                       // Return empty string if no match found
                       return '';
                     })()}
@@ -884,7 +884,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                     }}
                   />
                 </div>
-                
+
                 {/* Character Info */}
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
@@ -905,7 +905,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               selectedCharacter={selectedCharacter}
               availableCharacters={availableCharacters}
             />
-            
+
             <AbilityManager
               characterId={selectedCharacter.id}
               characterName={selectedCharacter.name}
@@ -964,7 +964,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   const PersonalTrainerWrapper = () => {
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
     const [charactersLoading, setCharactersLoading] = useState(true);
-    
+
     // Load characters on component mount
     useEffect(() => {
       const loadCharacters = async () => {
@@ -972,7 +972,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         try {
           const response = await characterAPI.getUserCharacters();
           const characters = response.characters || [];
-          
+
           const mappedCharacters = characters.map((char: any) => {
             const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
             return {
@@ -1005,7 +1005,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               name: char.name || 'Unknown Character'
             };
           });
-          
+
           setAvailableCharacters(mappedCharacters);
         } catch (error) {
           console.error('❌ Failed to load characters:', error);
@@ -1015,14 +1015,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           setCharactersLoading(false);
         }
       };
-      
+
       loadCharacters();
     }, []);
-    
+
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
-    
+
     return (
       <div className="space-y-6">
         <div className="flex gap-6">
@@ -1061,11 +1061,11 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               )}
             </div>
           </div>
-          
+
           {/* Personal Trainer Chat */}
           <div className="flex-1">
             {selectedCharacter && (
-              <PersonalTrainerChat 
+              <PersonalTrainerChat
                 selectedCharacterId={globalSelectedCharacterId}
                 onCharacterChange={setGlobalSelectedCharacterId}
               />
@@ -1115,12 +1115,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   );
 
   // New Coach Section Components
-  
+
   const TeamDashboardWrapper = () => {
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
     const [teamStats, setTeamStats] = useState<any>({});
     const [activeConflicts, setActiveConflicts] = useState<any[]>([]);
-    
+
     // Load team data
     useEffect(() => {
       const loadTeamData = async () => {
@@ -1128,7 +1128,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           const response = await characterAPI.getUserCharacters();
           const characters = response.characters || [];
           setAvailableCharacters(characters);
-          
+
           // Calculate team stats
           const stats = {
             teamSize: characters.length,
@@ -1137,15 +1137,15 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             teamChemistry: 75 // Placeholder
           };
           setTeamStats(stats);
-          
+
         } catch (error) {
           console.error('Error loading team data:', error);
         }
       };
-      
+
       loadTeamData();
     }, []);
-    
+
     return (
       <div className="space-y-6">
         {/* Team Overview Stats */}
@@ -1154,7 +1154,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             <BarChart3 className="w-6 h-6 text-purple-400" />
             <h2 className="text-2xl font-bold text-white">Dashboard</h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-gray-800/50 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-blue-400">{teamStats.teamSize || 0}</div>
@@ -1174,7 +1174,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             </div>
           </div>
         </div>
-        
+
         {/* Active Issues & Alerts */}
         <div className="bg-gradient-to-r from-red-900/30 to-orange-900/30 rounded-xl p-6 border border-red-500/30">
           <h3 className="text-xl font-bold text-white mb-4">Team Issues & Alerts</h3>
@@ -1185,7 +1185,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             <p>• Recommended action: Continue current training regimen</p>
           </div>
         </div>
-        
+
         {/* Character Status Grid */}
         <div className="bg-gray-800/50 rounded-xl p-6">
           <h3 className="text-xl font-bold text-white mb-4">Character Status</h3>
@@ -1220,14 +1220,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   const PerformanceCoachingWrapper = () => {
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
     const [charactersLoading, setCharactersLoading] = useState(true);
-    
+
     // Load characters
     useEffect(() => {
       const loadCharacters = async () => {
         try {
           const response = await characterAPI.getUserCharacters();
           const characters = response.characters || [];
-          
+
           const enhancedCharacters = characters.map((char: any) => {
             const baseName = char.name?.toLowerCase() || char.character_id || char.id;
             return {
@@ -1239,7 +1239,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               avatar: char.avatar || '⚔️'
             };
           });
-          
+
           setAvailableCharacters(enhancedCharacters);
           setCharactersLoading(false);
         } catch (error) {
@@ -1247,14 +1247,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           setCharactersLoading(false);
         }
       };
-      
+
       loadCharacters();
     }, []);
 
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
-    
+
     if (charactersLoading) {
       return (
         <div className="flex items-center justify-center p-8">
@@ -1308,7 +1308,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               <div className="flex flex-col items-center gap-6">
                 {/* Character Image */}
                 <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
-                  <img 
+                  <img
                     src={(() => {
                       // Map character names to their performance coaching image file names
                       const characterImageMap: Record<string, string> = {
@@ -1345,19 +1345,19 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                         'alien_grey': 'Zeta 01.png',
                         'frankenstein_monster': 'Frankenstein 01.png',
                       };
-                      
+
                       const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
                       console.log('🎯 Performance Coaching Image Debug:', {
                         originalName: selectedCharacter?.name,
                         characterName,
                         hasMapping: !!characterImageMap[characterName || ''],
                       });
-                      
+
                       // Only use mapped images, no fallback to wrong character
                       if (characterName && characterImageMap[characterName]) {
                         return `/images/Coaching/Performance/${characterImageMap[characterName]}`;
                       }
-                      
+
                       // Return empty string if no match found
                       return '';
                     })()}
@@ -1371,7 +1371,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                     }}
                   />
                 </div>
-                
+
                 {/* Character Info */}
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
@@ -1386,20 +1386,20 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             </div>
 
             {/* Performance Coaching Chat - MIDDLE */}
-            <PerformanceCoachingChat 
+            <PerformanceCoachingChat
               selectedCharacterId={globalSelectedCharacterId}
               onCharacterChange={setGlobalSelectedCharacterId}
               selectedCharacter={selectedCharacter}
               availableCharacters={availableCharacters}
             />
-            
+
             {/* Performance Analytics - BOTTOM */}
             <div className="bg-gradient-to-r from-green-900/30 to-blue-900/30 rounded-xl p-6 border border-green-500/30">
               <div className="flex items-center gap-2 mb-4">
                 <Target className="w-5 h-5 text-green-400" />
                 <span className="text-green-300 font-semibold">Performance Analytics for {selectedCharacter?.name}</span>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-gray-800/50 rounded-lg p-3">
                   <div className="text-green-300 font-semibold">Battle Performance</div>
@@ -1427,12 +1427,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   // AI Judge Evaluations Section Component
   const AIJudgeEvaluationsSection = ({ characterId }: { characterId: string }) => {
     const [judgeEvaluations, setJudgeEvaluations] = useState<any[]>([]);
-    
+
     useEffect(() => {
       const loadGameEventBus = async () => {
         const { default: GameEventBus } = await import('@/services/gameEventBus');
         const gameEventBus = GameEventBus.getInstance();
-      
+
         // Fetch recent judge evaluations for this character
         const fetchJudgeEvaluations = async () => {
           try {
@@ -1441,7 +1441,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               limit: 5,
               timeRange: '1_day'
             });
-            
+
             const evaluations = recentEvents
               .filter(event => event.metadata?.type === 'judge_evaluation')
               .map(event => ({
@@ -1457,29 +1457,29 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 timestamp: event.timestamp,
                 severity: event.severity
               }));
-            
+
             setJudgeEvaluations(evaluations);
           } catch (error) {
             console.error('Error fetching judge evaluations:', error);
             setJudgeEvaluations([]);
           }
         };
-        
+
         fetchJudgeEvaluations();
-        
+
         // Subscribe to new judge evaluation events
         const unsubscribe = gameEventBus.subscribe('judge_financial_evaluation', (event) => {
           if (event.primaryCharacterId === characterId) {
             fetchJudgeEvaluations();
           }
         });
-        
+
         return unsubscribe;
       };
-      
+
       loadGameEventBus();
     }, [characterId]);
-    
+
     const getRiskColor = (risk: string) => {
       switch (risk?.toLowerCase()) {
         case 'excellent': return 'text-green-400';
@@ -1490,7 +1490,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         default: return 'text-gray-400';
       }
     };
-    
+
     const getCoachEvaluationText = (evaluation: string) => {
       switch (evaluation) {
         case 'excellent_guidance': return 'Excellent Guidance';
@@ -1501,12 +1501,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         default: return 'No Evaluation';
       }
     };
-    
+
     const formatTimeAgo = (timestamp: Date) => {
       const now = new Date();
       const diffMs = now.getTime() - new Date(timestamp).getTime();
       const diffMins = Math.floor(diffMs / 60000);
-      
+
       if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins}m ago`;
       const diffHours = Math.floor(diffMins / 60);
@@ -1514,14 +1514,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
       const diffDays = Math.floor(diffHours / 24);
       return `${diffDays}d ago`;
     };
-    
+
     return (
       <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-xl p-6 border border-yellow-500/30">
         <div className="flex items-center gap-2 mb-4">
           <Scale className="w-5 h-5 text-yellow-400" />
           <span className="text-yellow-300 font-semibold">AI Judge Financial Evaluations</span>
         </div>
-        
+
         {judgeEvaluations.length > 0 ? (
           <div className="space-y-3">
             {judgeEvaluations.map((evaluation) => (
@@ -1554,7 +1554,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             <p className="text-sm mt-2">AI Judges will evaluate financial decisions as they occur</p>
           </div>
         )}
-        
+
         <div className="mt-4 text-sm text-yellow-200">
           ⚖️ AI Judges evaluate all financial decisions and provide real-time commentary on risk levels and coaching effectiveness
         </div>
@@ -1571,7 +1571,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     const getFinanceCharacterImage = (characterName: string): string => {
       const baseImagePath = '/images/Coaching/Finance/';
       const normalizedName = characterName.toLowerCase().replace(/["\s]+/g, '_').replace(/_+/g, '_');
-      
+
       // Character image mapping for finance
       const characterImageMap: { [key: string]: string } = {
         'achilles': 'achillies_balling.jpg',
@@ -1599,26 +1599,26 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         'vega_x': 'vega_x_balling.png',
         'vega-x': 'vega_x_balling.png'
       };
-      
+
       const imageName = characterImageMap[normalizedName];
       if (!imageName) {
         console.warn(`No finance image mapping found for character: ${characterName}`);
         return `${baseImagePath}Cleopatra_balling.jpg`; // Fallback to known image
       }
-      
+
       return `${baseImagePath}${imageName}`;
     };
-    
+
     // Load characters and their financial data
     useEffect(() => {
       const loadCharacters = async () => {
         try {
           const response = await characterAPI.getUserCharacters();
           const characters = response.characters || [];
-          
+
           const enhancedCharacters = await Promise.all(characters.map(async (char: any) => {
             const baseName = char.name?.toLowerCase() || char.character_id || char.id;
-            
+
             // Use real financial data if character has it, otherwise generate mock data
             const wallet = char.financials?.wallet || Math.floor(Math.random() * 50000) + 10000;
             const monthlyEarnings = char.financials?.monthlyEarnings || Math.floor(Math.random() * 5000) + 2000;
@@ -1633,7 +1633,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               financialTraumas: [],
               moneyBeliefs: ['Money provides security']
             };
-            
+
             // Calculate real financial stress and spiral state using the psychology service
             let calculatedStress = Math.floor(Math.random() * 30); // Fallback
             let spiralState = null;
@@ -1648,10 +1648,10 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 financialPersonality
               );
               calculatedStress = Math.round(stressAnalysis.stress);
-              
+
               // Calculate spiral state
               spiralState = psychService.calculateSpiralState(recentDecisions, calculatedStress);
-              
+
               // Calculate financial trust
               const baseTrust = char.financials?.coachFinancialTrust || Math.floor(Math.random() * 40) + 60;
               const trustAnalysis = psychService.calculateFinancialTrust(
@@ -1662,15 +1662,15 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 wallet,
                 monthlyEarnings
               );
-              
+
               // Update financial trust
               char.financials = char.financials || {};
               char.financials.coachFinancialTrust = trustAnalysis.financialTrust;
-              
+
             } catch (error) {
               console.warn('Could not calculate financial stress:', error);
             }
-            
+
             const mockFinancialData = {
               wallet,
               monthlyEarnings,
@@ -1681,7 +1681,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               financialPersonality,
               spiralState
             };
-            
+
             return {
               ...char,
               baseName,
@@ -1692,9 +1692,9 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               financials: mockFinancialData
             };
           }));
-          
+
           setAvailableCharacters(enhancedCharacters);
-          
+
           // Generate some mock pending decisions
           const mockDecisions = [
             {
@@ -1720,27 +1720,27 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           setCharactersLoading(false);
         }
       };
-      
+
       loadCharacters();
     }, []);
 
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
-    
+
     const handleAdviceGiven = async (decisionId: string, advice: string) => {
       console.log(`Coach advised ${advice} for decision ${decisionId}`);
-      
+
       // Find the pending decision and character
       const decision = pendingDecisions.find(d => d.id === decisionId);
       const character = availableCharacters.find(c => c.id === decision?.characterId);
-      
+
       if (decision && character) {
         try {
           // Record advice in the event system
           const { default: GameEventBus } = await import('@/services/gameEventBus');
           const eventBus = GameEventBus.getInstance();
-          
+
           await eventBus.publishFinancialEvent(
             'coach_financial_advice',
             character.id,
@@ -1748,27 +1748,27 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             { decisionId, advice, amount: decision.amount, type: 'advice' },
             'medium'
           );
-          
+
           console.log(`Financial advice recorded for ${character.name}`);
         } catch (error) {
           console.error('Error recording financial advice:', error);
         }
       }
     };
-    
+
     const handleDecisionMade = async (decisionId: string, choice: string) => {
       console.log(`Character made decision: ${choice} for ${decisionId}`);
-      
+
       // Find the decision and character
       const decision = pendingDecisions.find(d => d.id === decisionId);
       const character = availableCharacters.find(c => c.id === decision?.characterId);
-      
+
       if (decision && character) {
         try {
           // Use financial psychology service to simulate decision outcome
           const { default: FinancialPsychologyService } = await import('@/services/financialPsychologyService');
           const psychService = FinancialPsychologyService.getInstance();
-          
+
           // Calculate current decision quality
           const decisionQuality = psychService.calculateDecisionQuality(
             character.financials.financialStress,
@@ -1776,7 +1776,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             character.financials.coachTrustLevel,
             character.financials.recentDecisions
           );
-          
+
           // Create a financial decision object
           const financialDecision = {
             id: decisionId,
@@ -1792,34 +1792,34 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             stressImpact: 0,
             relationshipImpact: 0
           };
-          
+
           // Simulate the outcome
           const outcome = await psychService.simulateDecisionOutcome(
             financialDecision,
             decisionQuality,
             character.financials.financialPersonality
           );
-          
+
           // Update character financial state
           const newWallet = character.financials.wallet + outcome.financialImpact;
-          const newStress = Math.max(0, Math.min(100, 
+          const newStress = Math.max(0, Math.min(100,
             character.financials.financialStress + outcome.stressImpact
           ));
           const newTrust = Math.max(0, Math.min(100,
             character.financials.coachTrustLevel + outcome.trustImpact
           ));
-          
+
           // Publish outcome events
           const { default: GameEventBus } = await import('@/services/gameEventBus');
           const eventBus = GameEventBus.getInstance();
-          
+
           await eventBus.publishFinancialEvent(
             'financial_decision_made',
             character.id,
             `${character.name} ${choice} decision: ${outcome.description}`,
-            { 
-              decisionId, 
-              choice, 
+            {
+              decisionId,
+              choice,
               outcome: outcome.outcome,
               financialImpact: outcome.financialImpact,
               newWallet,
@@ -1827,7 +1827,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             },
             outcome.outcome === 'negative' ? 'high' : 'medium'
           );
-          
+
           // Update stress if significant change
           if (Math.abs(outcome.stressImpact) >= 5) {
             await psychService.updateCharacterFinancialStress(
@@ -1837,8 +1837,8 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               `${choice} decision outcome`
             );
           }
-          
-          // Update trust if significant change  
+
+          // Update trust if significant change
           if (Math.abs(outcome.trustImpact) >= 3) {
             await eventBus.publishTrustChange(
               character.id,
@@ -1847,7 +1847,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               `${choice} decision advice outcome`
             );
           }
-          
+
           // Update financial trust based on decision outcome
           const newFinancialTrust = await psychService.updateFinancialTrust(
             character.id,
@@ -1855,9 +1855,9 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             outcome.outcome,
             character.financials.coachFinancialTrust
           );
-          
+
           // Update character financial trust in state
-          setAvailableCharacters(prev => prev.map(c => 
+          setAvailableCharacters(prev => prev.map(c =>
             c.id === character.id ? {
               ...c,
               financials: {
@@ -1866,36 +1866,36 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               }
             } : c
           ));
-          
+
           console.log(`Decision processed: ${character.name} chose ${choice}, outcome: ${outcome.outcome}`);
           console.log(`Financial impact: $${outcome.financialImpact.toLocaleString()}, Stress: ${outcome.stressImpact >= 0 ? '+' : ''}${outcome.stressImpact}, Trust: ${outcome.trustImpact >= 0 ? '+' : ''}${outcome.trustImpact}`);
-          
+
           // Remove decision from pending list
           setPendingDecisions(prev => prev.filter(d => d.id !== decisionId));
-          
+
         } catch (error) {
           console.error('Error processing financial decision:', error);
         }
       }
     };
-    
+
     const handleIntervention = async (characterId: string, interventionType: 'coach_therapy' | 'team_support' | 'cooling_period' | 'emergency_fund') => {
       const character = availableCharacters.find(c => c.id === characterId);
       if (!character) return;
-      
+
       try {
         const { default: FinancialPsychologyService } = await import('@/services/financialPsychologyService');
         const psychService = FinancialPsychologyService.getInstance();
-        
+
         const result = await psychService.applyIntervention(
           characterId,
           interventionType,
           character.financials.financialStress,
           character.financials.spiralState?.spiralIntensity || 0
         );
-        
+
         // Update character state (in a real app, this would be persisted)
-        setAvailableCharacters(prev => prev.map(c => 
+        setAvailableCharacters(prev => prev.map(c =>
           c.id === characterId ? {
             ...c,
             financials: {
@@ -1909,29 +1909,29 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             }
           } : c
         ));
-        
+
         console.log(`Intervention ${interventionType} applied to ${character.name}: ${result.description}`);
-        
+
       } catch (error) {
         console.error('Error applying intervention:', error);
       }
     };
-    
+
     const handleFinancialCoaching = async (characterId: string) => {
       const character = availableCharacters.find(c => c.id === characterId);
       if (!character) return;
-      
+
       try {
         // Import the coaching system
         const { CoachingEngine } = await import('@/data/coachingSystem');
-        
+
         // Create a mock team for the coaching session
         const mockTeam = {
           characters: [character],
           coachingPoints: 3,
           coachName: 'Coach'
         };
-        
+
         // Conduct financial coaching session
         const session = CoachingEngine.conductIndividualCoaching(
           character as any, // Type assertion for now
@@ -1939,15 +1939,15 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           'financial_management',
           75 // Coach skill level
         );
-        
+
         // Apply the coaching outcome
         if (session.outcome.financialTrustChange) {
-          const newFinancialTrust = Math.max(0, Math.min(100, 
+          const newFinancialTrust = Math.max(0, Math.min(100,
             character.financials.coachFinancialTrust + session.outcome.financialTrustChange
           ));
-          
+
           // Update character state
-          setAvailableCharacters(prev => prev.map(c => 
+          setAvailableCharacters(prev => prev.map(c =>
             c.id === characterId ? {
               ...c,
               financials: {
@@ -1956,11 +1956,11 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               }
             } : c
           ));
-          
+
           // Publish trust change event
           const { default: GameEventBus } = await import('@/services/gameEventBus');
           const eventBus = GameEventBus.getInstance();
-          
+
           if (Math.abs(session.outcome.financialTrustChange) >= 3) {
             await eventBus.publishTrustChange(
               characterId,
@@ -1970,16 +1970,16 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             );
           }
         }
-        
+
         console.log(`Financial coaching session completed for ${character.name}`);
         console.log(`Character response: ${session.outcome.characterResponse}`);
         console.log(`Financial trust change: ${session.outcome.financialTrustChange || 0}`);
-        
+
       } catch (error) {
         console.error('Error conducting financial coaching:', error);
       }
     };
-    
+
     if (charactersLoading) {
       return (
         <div className="flex items-center justify-center p-8">
@@ -2051,7 +2051,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 <h2 className="text-2xl font-bold text-white">Financial Advisory Center</h2>
               </div>
               <p className="text-green-100">
-                Guide your team members through important financial decisions. Build trust through good advice, 
+                Guide your team members through important financial decisions. Build trust through good advice,
                 but be careful - poor guidance can damage relationships and lead to financial stress spirals.
               </p>
             </div>
@@ -2060,7 +2060,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             {selectedCharacter && (
               <div className="flex justify-center items-center mb-6">
                 <div className="w-96 h-96 rounded-xl overflow-hidden border-4 border-green-600 shadow-2xl">
-                  <img 
+                  <img
                     src={getFinanceCharacterImage(selectedCharacter.name)}
                     alt={selectedCharacter.name}
                     className="w-full h-full object-contain bg-gray-800"
@@ -2089,7 +2089,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                   <Brain className="w-5 h-5 text-red-400" />
                   <h3 className="text-lg font-bold text-white">Psychological State Analysis</h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   <div className="bg-gray-800/50 rounded-lg p-3">
                     <div className="text-red-300 font-semibold">Financial Stress Level</div>
@@ -2104,7 +2104,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                        selectedCharacter.financials?.financialStress > 40 ? 'Elevated - Monitor closely' : 'Healthy - Good decision capacity'}
                     </div>
                   </div>
-                  
+
                   <div className="bg-gray-800/50 rounded-lg p-3">
                     <div className="text-blue-300 font-semibold">Decision Quality</div>
                     <div className={`text-2xl font-bold ${
@@ -2118,7 +2118,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                       Based on stress and personality
                     </div>
                   </div>
-                  
+
                   <div className="bg-gray-800/50 rounded-lg p-3">
                     <div className="text-purple-300 font-semibold">Spending Style</div>
                     <div className="text-2xl font-bold text-purple-400 capitalize">
@@ -2128,7 +2128,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                       Core financial personality
                     </div>
                   </div>
-                  
+
                   <div className="bg-gray-800/50 rounded-lg p-3">
                     <div className="text-green-300 font-semibold">Coach Financial Trust</div>
                     <div className={`text-2xl font-bold ${
@@ -2142,21 +2142,21 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="text-sm text-gray-300">
-                  💡 <strong>Psychology Tip:</strong> High financial stress leads to impulsive decisions. 
-                  {selectedCharacter.financials?.financialStress > 50 && 
+                  💡 <strong>Psychology Tip:</strong> High financial stress leads to impulsive decisions.
+                  {selectedCharacter.financials?.financialStress > 50 &&
                     ' Consider stress-reduction activities before major financial choices.'
                   }
                 </div>
-                
+
                 {/* Financial Coaching Session Button */}
                 <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="text-sm">
                       <span className="text-blue-300 font-semibold">Financial Coaching Available</span>
                       <div className="text-blue-200/80 text-xs mt-1">
-                        {selectedCharacter.financials?.coachFinancialTrust > 70 ? 
+                        {selectedCharacter.financials?.coachFinancialTrust > 70 ?
                           'High trust - ready for advanced strategies' :
                           selectedCharacter.financials?.coachFinancialTrust > 40 ?
                           'Moderate trust - building confidence' :
@@ -2173,7 +2173,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Spiral State Warning */}
                 {selectedCharacter.financials?.spiralState?.isInSpiral && (
                   <div className="mt-4 p-4 bg-red-900/30 border border-red-500 rounded-lg">
@@ -2182,10 +2182,10 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                       <span className="text-red-300 font-bold">FINANCIAL SPIRAL DETECTED</span>
                     </div>
                     <div className="text-sm text-red-200 mb-3">
-                      {selectedCharacter.name} has made {selectedCharacter.financials.spiralState.consecutivePoorDecisions} consecutive 
+                      {selectedCharacter.name} has made {selectedCharacter.financials.spiralState.consecutivePoorDecisions} consecutive
                       poor decisions. Spiral intensity: {selectedCharacter.financials.spiralState.spiralIntensity}%
                     </div>
-                    
+
                     {/* Intervention Buttons */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       <button
@@ -2217,7 +2217,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                         Emergency Fund
                       </button>
                     </div>
-                    
+
                     <div className="mt-3 text-xs text-red-200/80">
                       <strong>Recommendations:</strong>
                       <ul className="list-disc list-inside mt-1">
@@ -2230,14 +2230,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 )}
               </div>
             )}
-            
+
             {/* Pending Financial Decisions */}
             <div className="bg-gray-800/50 rounded-xl p-6">
               <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-yellow-400" />
                 Pending Financial Decisions
               </h3>
-              
+
               {pendingDecisions.length > 0 ? (
                 <div className="space-y-4">
                   {pendingDecisions.map((decision) => (
@@ -2255,14 +2255,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                           <div className="text-sm text-gray-400">Needs decision in 3 days</div>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                         {decision.options.map((option) => (
                           <button
                             key={option.id}
                             onClick={() => handleAdviceGiven(decision.id, option.id)}
                             className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                              option.coachApproval === 'positive' 
+                              option.coachApproval === 'positive'
                                 ? 'border-green-500 bg-green-500/20 text-green-300 hover:bg-green-500/30'
                                 : option.coachApproval === 'negative'
                                 ? 'border-red-500 bg-red-500/20 text-red-300 hover:bg-red-500/30'
@@ -2284,7 +2284,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 </div>
               )}
             </div>
-            
+
             {/* Financial Influence Progress */}
             {selectedCharacter && (
               <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-6 border border-purple-500/30">
@@ -2292,7 +2292,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                   <Target className="w-5 h-5 text-purple-400" />
                   <span className="text-purple-300 font-semibold">Financial Influence with {selectedCharacter.name}</span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gray-800/50 rounded-lg p-3">
                     <div className="text-purple-300 font-semibold">Coach Trust Level</div>
@@ -2310,7 +2310,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                     <div className="text-gray-400 text-sm">Decision pattern</div>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 text-sm text-purple-200">
                   💡 Build trust through therapy sessions and good advice to increase financial influence
                 </div>
@@ -2348,7 +2348,10 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         damageDealt: 0,
         damageTaken: 0,
         abilitiesUsed: 0,
-        deviantActions: 0
+        successfulHits: 0,
+        criticalHits: 0,
+        teamplayActions: 0,
+        strategyDeviations: 0
       },
       equipmentBonuses: {
         attackBonus: 0,
@@ -2359,7 +2362,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     }));
 
     return (
-      <GameplanTracker 
+      <GameplanTracker
         characters={demoCharacters}
         isActive={true}
         onGameplanAlert={(event) => console.log('Gameplan Alert:', event)}
@@ -2393,7 +2396,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               <div className="text-purple-100">Optimize chemistry and balance</div>
             </div>
           </div>
-          
+
           {/* Temporary placeholder while fixing data integration */}
           <div className="bg-yellow-900/30 rounded-lg p-6 border border-yellow-500/30">
             <div className="flex items-center gap-3 mb-3">
@@ -2401,7 +2404,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               <h3 className="text-xl font-semibold text-yellow-300">Team Builder - Under Development</h3>
             </div>
             <p className="text-yellow-100 mb-4">
-              The team builder is being updated to work with your current character roster. 
+              The team builder is being updated to work with your current character roster.
               In the meantime, you can build teams directly in the Battle Arena.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2436,7 +2439,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           <Target className="w-6 h-6" />
           Training Progress
         </h2>
-        
+
         {/* Daily Training Status */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gray-800/50 rounded-lg p-4">
@@ -2447,7 +2450,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             <div className="text-3xl font-bold text-yellow-400">7/10</div>
             <div className="text-sm text-gray-400">Resets in 14h 32m</div>
           </div>
-          
+
           <div className="bg-gray-800/50 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <Trophy className="w-5 h-5 text-blue-400" />
@@ -2456,7 +2459,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
             <div className="text-3xl font-bold text-blue-400">23</div>
             <div className="text-sm text-gray-400">Earned today: +8</div>
           </div>
-          
+
           <div className="bg-gray-800/50 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-5 h-5 text-purple-400" />
@@ -2470,7 +2473,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         {/* Character Training Progress */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-white">Character Training Status</h3>
-          
+
           {['Achilles', 'Merlin', 'Loki'].map((name, index) => (
             <div key={name} className="bg-gray-800/30 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
@@ -2488,11 +2491,11 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                   <div className="text-sm text-gray-400">+{120 + index * 30} XP gained</div>
                 </div>
               </div>
-              
+
               {/* Training progress bar */}
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all" 
+                <div
+                  className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all"
                   style={{ width: `${70 + index * 10}%` }}
                 />
               </div>
@@ -2514,11 +2517,11 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
       { id: 'gym', level: 2, purchaseDate: new Date(), maintenancePaid: true, bonusesActive: true },
       { id: 'medical_bay', level: 1, purchaseDate: new Date(), maintenancePaid: false, bonusesActive: false }
     ]);
-    
+
     const demoCurrency = { coins: 50000, gems: 100 };
     const demoTeamLevel = 12;
     const demoAchievements = ['team_harmony', 'inner_peace', 'tech_pioneer'];
-    
+
     const handlePurchaseFacility = (facilityId: string) => {
       console.log('Purchasing facility:', facilityId);
       setDemoFacilities(prev => [...prev, {
@@ -2529,21 +2532,21 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         bonusesActive: true
       }]);
     };
-    
+
     const handleUpgradeFacility = (facilityId: string) => {
       console.log('Upgrading facility:', facilityId);
-      setDemoFacilities(prev => prev.map(f => 
+      setDemoFacilities(prev => prev.map(f =>
         f.id === facilityId ? { ...f, level: f.level + 1 } : f
       ));
     };
-    
+
     const handlePayMaintenance = (facilityId: string) => {
       console.log('Paying maintenance for facility:', facilityId);
-      setDemoFacilities(prev => prev.map(f => 
+      setDemoFacilities(prev => prev.map(f =>
         f.id === facilityId ? { ...f, maintenancePaid: true, bonusesActive: true } : f
       ));
     };
-    
+
     return (
       <FacilitiesManager
         teamLevel={demoTeamLevel}
@@ -2560,7 +2563,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   const TrainingGroundsWrapper = () => {
     const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
     const [charactersLoading, setCharactersLoading] = useState(true);
-    
+
     // Load characters on component mount
     useEffect(() => {
       const loadCharacters = async () => {
@@ -2570,16 +2573,16 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           console.log('🔄 API URL:', '/api/user/characters');
           const response = await characterAPI.getUserCharacters();
           console.log('📊 API Response:', response);
-          
+
           // Force use the characters if they exist elsewhere
           if (!response.characters || response.characters.length === 0) {
             console.log('❌ No characters in API response, checking for data in response root');
             console.log('📊 Response keys:', Object.keys(response || {}));
-            
+
             // Try to extract characters from different possible locations
             const characters = response.characters || response.data?.characters || response.users || response || [];
             console.log('🔍 Extracted characters:', characters.length);
-            
+
             if (characters.length === 0) {
               console.error('🚨 NO CHARACTERS FOUND - TRAINING REQUIRES REAL API CHARACTERS');
               setAvailableCharacters([]);
@@ -2587,13 +2590,13 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               return;
             }
           }
-          
+
           const characters = response.characters || [];
           console.log('👥 Characters received:', characters.length);
           if (characters.length === 0) {
             console.log('❌ No characters found in response:', response);
           }
-          
+
           const mappedCharacters = characters.map((char: any) => {
             const baseName = char.name?.toLowerCase() || char.id?.split('_')[0];
             return {
@@ -2631,7 +2634,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               }
             };
           });
-          
+
           setAvailableCharacters(mappedCharacters);
         } catch (error) {
           console.error('❌ Failed to load characters:', error);
@@ -2641,14 +2644,14 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           setCharactersLoading(false);
         }
       };
-      
+
       loadCharacters();
     }, []);
-    
+
     const selectedCharacter = useMemo(() => {
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
-    
+
     return (
       <div className="space-y-6">
         <div className="flex gap-6">
@@ -2692,11 +2695,11 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               )}
             </div>
           </div>
-          
+
           {/* Training Interface */}
           <div className="flex-1">
             {selectedCharacter ? (
-              <TrainingGrounds 
+              <TrainingGrounds
                 globalSelectedCharacterId={globalSelectedCharacterId}
                 setGlobalSelectedCharacterId={setGlobalSelectedCharacterId}
                 selectedCharacter={selectedCharacter}
@@ -2797,10 +2800,10 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   const currentMainTab = mainTabs.find(tab => tab.id === activeMainTab);
   const currentSubTab = currentMainTab?.subTabs.find(tab => tab.id === activeSubTab);
   const ActiveComponent = currentSubTab?.component;
-  
-  console.log('🔍 Tab Debug:', { 
-    activeMainTab, 
-    activeSubTab, 
+
+  console.log('🔍 Tab Debug:', {
+    activeMainTab,
+    activeSubTab,
     currentMainTab: currentMainTab?.id,
     currentSubTab: currentSubTab?.id,
     hasComponent: !!currentSubTab?.component,
@@ -2829,7 +2832,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 {mainTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeMainTab === tab.id;
-                  
+
                   return (
                     <button
                       key={tab.id}
@@ -2858,7 +2861,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
               {currentMainTab.subTabs.map((subTab) => {
                 const Icon = subTab.icon;
                 const isActive = activeSubTab === subTab.id;
-                
+
                 return (
                   <button
                     key={subTab.id}
@@ -2875,7 +2878,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 );
               })}
             </div>
-            
+
             {/* Sub-tab description */}
             {currentSubTab?.description && (
               <div className="mt-2 text-sm text-gray-400">
