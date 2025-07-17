@@ -78,7 +78,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 app.use(express.json());
 app.use(cookieParser());
 
-// SECURITY: Add request timeout middleware  
+// SECURITY: Add request timeout middleware
 app.use((req, res, next) => {
   const timeout = 30000; // 30 seconds
   const timer = setTimeout(() => {
@@ -89,10 +89,10 @@ app.use((req, res, next) => {
       });
     }
   }, timeout);
-  
+
   res.on('finish', () => clearTimeout(timer));
   res.on('close', () => clearTimeout(timer));
-  
+
   next();
 });
 
@@ -128,34 +128,34 @@ app.post('/api/seed-17-characters', async (req, res) => {
     // Check current character count
     const existing = await query('SELECT COUNT(*) as count FROM characters');
     console.log(`Current characters in DB: ${existing.rows[0].count}`);
-    
+
     if (existing.rows[0].count >= 17) {
-      return res.json({ 
-        success: true, 
-        message: `Database already has ${existing.rows[0].count} characters` 
+      return res.json({
+        success: true,
+        message: `Database already has ${existing.rows[0].count} characters`
       });
     }
 
     // Clear and reseed characters
     await query('DELETE FROM user_characters');
     await query('DELETE FROM characters');
-    
+
     // Run the manual seeding script
     const { exec } = require('child_process');
     const { promisify } = require('util');
     const execAsync = promisify(exec);
-    
+
     await execAsync('cd /app && npm run ts-node manual_seed_characters.ts');
-    
-    res.json({ 
-      success: true, 
-      message: 'Characters seeded successfully. Check logs for details.' 
+
+    res.json({
+      success: true,
+      message: 'Characters seeded successfully. Check logs for details.'
     });
   } catch (error) {
     console.error('Seeding error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to seed characters' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to seed characters'
     });
   }
 });
@@ -164,15 +164,15 @@ app.post('/api/seed-17-characters', async (req, res) => {
 app.post('/api/grant-all-characters/:userId', async (req, res) => {
   try {
     const userId = req.params.userId;
-    
+
     // Get all characters from database
     const allChars = await query('SELECT id FROM characters');
     console.log(`Found ${allChars.rows.length} characters to grant`);
-    
+
     if (allChars.rows.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'No characters in database. Run /api/seed-17-characters first.' 
+      return res.status(400).json({
+        success: false,
+        error: 'No characters in database. Run /api/seed-17-characters first.'
       });
     }
 
@@ -183,9 +183,9 @@ app.post('/api/grant-all-characters/:userId', async (req, res) => {
     );
 
     if (existing.rows[0].count > 0) {
-      return res.json({ 
-        success: true, 
-        message: `User already has ${existing.rows[0].count} characters` 
+      return res.json({
+        success: true,
+        message: `User already has ${existing.rows[0].count} characters`
       });
     }
 
@@ -195,12 +195,12 @@ app.post('/api/grant-all-characters/:userId', async (req, res) => {
       try {
         const userCharId = `userchar_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const serialNumber = `${char.id.slice(-3)}-${Date.now().toString().slice(-6)}`;
-        
+
         await query(`
           INSERT INTO user_characters (
-            id, user_id, character_id, serial_number, level, experience, 
-            bond_level, total_battles, total_wins, current_health, max_health, 
-            is_injured, equipment, enhancements, conversation_memory, 
+            id, user_id, character_id, serial_number, level, experience,
+            bond_level, total_battles, total_wins, current_health, max_health,
+            is_injured, equipment, enhancements, conversation_memory,
             significant_memories, personality_drift
           ) VALUES ($1, $2, $3, $4, 1, 0, 0, 0, 0, 100, 100, false, '[]', '[]', '[]', '[]', '{}')
         `, [userCharId, userId, char.id, serialNumber]);
@@ -210,15 +210,15 @@ app.post('/api/grant-all-characters/:userId', async (req, res) => {
       }
     }
 
-    res.json({ 
-      success: true, 
-      message: `Granted ${granted} characters to user ${userId}` 
+    res.json({
+      success: true,
+      message: `Granted ${granted} characters to user ${userId}`
     });
   } catch (error) {
     console.error('Grant error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to grant characters' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to grant characters'
     });
   }
 });
@@ -252,7 +252,7 @@ app.post('/api/grant-all-characters/:userId', async (req, res) => {
 app.post('/api/confessional-interview', async (req, res) => {
   try {
     const { context, userResponse } = req.body;
-    
+
     // Create HOSTMASTER prompt for follow-up questions
     const hostmasterPrompt = `You are the HOSTMASTER, an AI interviewer for the BLANK WARS reality show. You're conducting a confessional interview.
 
@@ -292,8 +292,8 @@ Generate ONE SPECIFIC, JUICY follow-up question. No generic responses. Make it r
 
     // Generate HOSTMASTER response using AI service
     const response = await aiChatService.generateCharacterResponse(
-      { 
-        characterId: 'hostmaster', 
+      {
+        characterId: 'hostmaster',
         characterName: 'HOSTMASTER',
         personality: {
           traits: ['Probing', 'Entertaining', 'Provocative'],
@@ -326,7 +326,7 @@ app.post('/api/confessional-character-response', async (req, res) => {
   try {
     const { characterContext, prompt } = req.body;
     console.log('🎭 Character Context Received:', JSON.stringify(characterContext, null, 2));
-    
+
     // Ensure personality has required structure
     if (!characterContext.personality || !characterContext.personality.traits) {
       console.log('⚠️ Missing personality data, using defaults');
@@ -337,7 +337,7 @@ app.post('/api/confessional-character-response', async (req, res) => {
         fears: ['Defeat', 'Dishonor']
       };
     }
-    
+
     // Generate character response using AI service
     const response = await aiChatService.generateCharacterResponse(
       characterContext,
@@ -400,17 +400,17 @@ async function authenticateSocket(token: string): Promise<{ id: string; username
     // Use real JWT verification only
     const jwtSecret = process.env.JWT_ACCESS_SECRET!;
     const decoded = jwt.verify(token, jwtSecret) as any;
-    
+
     if (decoded.type !== 'access') {
       return null;
     }
-    
+
     const user = await authService.getProfile(decoded.userId);
-    
+
     if (!user) {
       return null;
     }
-    
+
     return {
       id: user.id,
       username: user.username,
@@ -428,7 +428,7 @@ async function authenticateSocket(token: string): Promise<{ id: string; username
 io.use((socket, next) => {
   const req = socket.request as any;
   req.ip = socket.handshake.address;
-  
+
   wsLimiter(req, {} as any, (err?: any) => {
     if (err) {
       return next(new Error('Rate limit exceeded'));
@@ -442,37 +442,37 @@ io.use((socket, next) => {
 io.on('connection', async (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
   console.log(`📡 Total connected clients: ${io.sockets.sockets.size}`);
-  
+
   // Send immediate connection confirmation
-  socket.emit('connection_established', { 
+  socket.emit('connection_established', {
     message: 'Connected to Blank Wars server',
-    socketId: socket.id 
+    socketId: socket.id
   });
-  
+
   let authenticatedUser: { id: string; username: string } | null = null;
-  
+
   // Per-socket rate limiting for events
   const eventRateLimits = new Map<string, number[]>();
   const checkEventRateLimit = (eventName: string, limitPerMinute: number = 30): boolean => {
     const key = `${socket.id}:${eventName}`;
     const now = Date.now();
     const windowStart = now - 60000; // 1 minute window
-    
+
     // Get existing events for this key
     let events = eventRateLimits.get(key) || [];
-    
+
     // Remove events older than 1 minute
     events = events.filter(time => time > windowStart);
-    
+
     // Check if we've exceeded the limit
     if (events.length >= limitPerMinute) {
       return false; // Rate limited
     }
-    
+
     // Add this event and update the map
     events.push(now);
     eventRateLimits.set(key, events);
-    
+
     // Clean up old entries to prevent memory leak
     if (eventRateLimits.size > 1000) {
       for (const [k, events] of eventRateLimits.entries()) {
@@ -484,7 +484,7 @@ io.on('connection', async (socket) => {
         }
       }
     }
-    
+
     return true;
   };
 
@@ -492,7 +492,7 @@ io.on('connection', async (socket) => {
   const authenticateUser = async (tokenOrSocket: string | any): Promise<{ id: string; username: string; rating: number } | null> => {
     try {
       let token: string | null = null;
-      
+
       if (typeof tokenOrSocket === 'string') {
         // Direct token provided
         token = tokenOrSocket;
@@ -509,11 +509,11 @@ io.on('connection', async (socket) => {
           token = parsedCookies.accessToken;
         }
       }
-      
+
       if (!token) {
         return null;
       }
-      
+
       return await authenticateSocket(token);
     } catch (error) {
       console.error('Authentication error:', error);
@@ -543,7 +543,7 @@ io.on('connection', async (socket) => {
     }
     return false;
   };
-  
+
   // Try auto-authentication first
   await tryAutoAuth();
 
@@ -668,12 +668,12 @@ io.on('connection', async (socket) => {
       // In a real scenario, you'd pass lobby members to battleManager
       console.log(`🚀 Battle starting from lobby ${lobby.name}!`);
       io.to(lobby.id).emit('battle_starting', { lobbyId });
-      
+
       // For now, just signal that battle is starting
       // TODO: Implement proper lobby-to-battle flow
-      io.to(lobby.id).emit('battle_started', { 
+      io.to(lobby.id).emit('battle_started', {
         message: 'Battle system integration pending',
-        lobbyId: lobby.id 
+        lobbyId: lobby.id
       });
       // Remove lobby after battle starts
       lobbyService.leaveLobby(lobbyId, lobby.hostId); // Host leaves, which closes the lobby
@@ -695,7 +695,7 @@ io.on('connection', async (socket) => {
       battleManager.removeUserSocket(authenticatedUser.id);
       console.log(`👤 User ${authenticatedUser.username} disconnected`);
     }
-    
+
     // Clean up rate limit entries for this socket
     for (const key of eventRateLimits.keys()) {
       if (key.startsWith(`${socket.id}:`)) {
@@ -707,9 +707,9 @@ io.on('connection', async (socket) => {
   // Legacy authenticate event removed for security
   socket.on('authenticate', async (data) => {
     console.log(`🚫 Legacy authentication attempt blocked: ${data.username}`);
-    socket.emit('authenticated', { 
-      success: false, 
-      error: 'Legacy authentication disabled. Please use proper JWT authentication.' 
+    socket.emit('authenticated', {
+      success: false,
+      error: 'Legacy authentication disabled. Please use proper JWT authentication.'
     });
   });
 
@@ -728,13 +728,13 @@ io.on('connection', async (socket) => {
 
     try {
       console.log(`⚔️ Matchmaking request from ${authenticatedUser.username}:`, data);
-      
+
       const result = await battleManager.findMatch(
         authenticatedUser.id,
         data.characterId,
         data.mode || 'ranked'
       );
-      
+
       socket.emit('match_result', result);
     } catch (error) {
       console.error('Matchmaking error:', error);
@@ -751,14 +751,14 @@ io.on('connection', async (socket) => {
 
     try {
       console.log(`⚔️ Legacy battle request from ${authenticatedUser.username}`);
-      
+
       // Try to find user's characters
       const userCharacters = await dbAdapter.userCharacters.findByUserId(authenticatedUser.id);
-      
+
       if (userCharacters.length === 0) {
-        socket.emit('battle_found', { 
+        socket.emit('battle_found', {
           error: 'No characters found. Please acquire a character first.',
-          battleId: null 
+          battleId: null
         });
         return;
       }
@@ -769,16 +769,16 @@ io.on('connection', async (socket) => {
         userCharacters[0].id,
         'casual'
       );
-      
-      socket.emit('battle_found', { 
+
+      socket.emit('battle_found', {
         battleId: result.status === 'found' ? result.battle_id : null,
         status: result.status
       });
     } catch (error) {
       console.error('Legacy battle error:', error);
-      socket.emit('battle_found', { 
+      socket.emit('battle_found', {
         error: (error as Error).message,
-        battleId: null 
+        battleId: null
       });
     }
   });
@@ -808,7 +808,7 @@ io.on('connection', async (socket) => {
   // Chat message with dynamic AI responses
   socket.on('chat_message', async (data) => {
     console.log('🎯 CHAT MESSAGE RECEIVED:', JSON.stringify(data, null, 2));
-    
+
     // Rate limit chat messages (max 60 per minute)
     if (!checkEventRateLimit('chat_message', 60)) {
       console.log('❌ Chat rate limited');
@@ -817,11 +817,11 @@ io.on('connection', async (socket) => {
     }
 
     console.log(`💬 Chat message from ${authenticatedUser?.username || 'anonymous'}:`, data.message);
-    
+
     try {
       // Extract character data from request
       const { message, character, characterData, previousMessages, battleContext, promptOverride } = data;
-      
+
       // Prepare chat context for AI service
       const chatContext = {
         characterId: character,
@@ -840,7 +840,7 @@ io.on('connection', async (socket) => {
         eventContext: characterData?.eventContext, // Centralized event system context
         previousMessages
       };
-      
+
       // Log living context if present
       if (characterData?.livingContext) {
         console.log('🏠 Living context detected:', {
@@ -870,11 +870,11 @@ io.on('connection', async (socket) => {
         hasPromptOverride: !!promptOverride,
         promptOverrideLength: promptOverride ? promptOverride.length : 0
       });
-      
+
       if (promptOverride) {
         console.log('💰 FINANCIAL PROMPT OVERRIDE DETECTED:', promptOverride.substring(0, 200) + '...');
       }
-      
+
       const response = await aiChatService.generateCharacterResponse(
         chatContext,
         message,
@@ -883,13 +883,13 @@ io.on('connection', async (socket) => {
         battleContext,
         promptOverride // Pass the custom prompt for therapy sessions
       );
-      
+
       console.log('✅ AI Service Response:', {
         messageLength: response.message.length,
         bondIncrease: response.bondIncrease,
         isTemplateResponse: response.message.includes('template') || response.message.includes('fallback')
       });
-      
+
       // Add realistic typing delay
       setTimeout(() => {
         socket.emit('chat_response', {
@@ -898,7 +898,7 @@ io.on('connection', async (socket) => {
           bondIncrease: response.bondIncrease,
         });
       }, 500 + Math.random() * 1500);
-      
+
     } catch (error) {
       console.error('Chat error:', error);
       // Send error back to client instead of fake response
@@ -913,7 +913,7 @@ io.on('connection', async (socket) => {
   // Kitchen chat AI conversations
   socket.on('kitchen_chat_request', async (data, callback) => {
     console.log('🍽️ KITCHEN CHAT REQUEST:', data.conversationId, 'from socket:', socket.id);
-    
+
     // Rate limit kitchen chat (max 60 per minute - increased for multiple character conversations)
     if (!checkEventRateLimit('kitchen_chat', 60)) {
       socket.emit('kitchen_conversation_response', {
@@ -925,7 +925,7 @@ io.on('connection', async (socket) => {
 
     try {
       const { conversationId, characterId, prompt, trigger, context } = data;
-      
+
       console.log('🤖 Kitchen AI Request:', {
         characterId,
         trigger: trigger.substring(0, 50) + '...',
@@ -950,11 +950,11 @@ io.on('connection', async (socket) => {
       };
 
       const isCoachDirectMessage = trigger.includes('Your coach just said');
-      
+
       const characterName = kitchenContext.characterName.toLowerCase();
       let characterPrompt = '';
       const forbiddenStarters = ['Ah,', 'Ugh,', 'Well,', 'Oh,', 'Hmm,', 'Ah, the', 'Well, the', 'Oh, the', '*sighs*', '*groans*'];
-      
+
       if (characterName.includes('sherlock')) {
         characterPrompt = 'You are Sherlock Holmes. You\'re constantly annoyed by obvious things your roommates miss. Comment like: "Elementary - the dishes don\'t wash themselves," or "I deduced the Wi-Fi password in 3 minutes, yet somehow Tesla can\'t figure out the thermostat." Be sarcastic about domestic mysteries.';
       } else if (characterName.includes('dracula')) {
@@ -1004,7 +1004,7 @@ ${characterPrompt}
 
 MOCKUMENTARY STYLE RULES:
 ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you really feel about what they just said' : '- Talk naturally with your housemates - like a reality TV kitchen scene'}
-- Keep it VERY SHORT (1-2 sentences max) 
+- Keep it VERY SHORT (1-2 sentences max)
 - Be funny but genuine - this is your real personality showing
 - Complain about living conditions in character-specific ways
 - Reference your historical/legendary status vs current sad reality
@@ -1013,7 +1013,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
 
       // Get user ID from socket (you'll need to implement socket authentication)
       const userId = socket.data?.userId || 'anonymous';
-      
+
       const response = await aiChatService.generateCharacterResponse(
         kitchenContext,
         kitchenPrompt,
@@ -1021,7 +1021,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         db,
         { isInBattle: false }
       );
-      
+
       // Check if usage limit was reached
       if (response.usageLimitReached) {
         socket.emit('kitchen_conversation_response', {
@@ -1033,7 +1033,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         });
         return;
       }
-      
+
       // Post-process to catch any repetitive starters that slipped through
       let processedMessage = response.message;
       for (const forbidden of forbiddenStarters) {
@@ -1073,7 +1073,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
   // Team Chat AI Handler - CRITICAL FOR BATTLE CHAT
   socket.on('team_chat_message', async (data) => {
     console.log('🎯 TEAM CHAT MESSAGE RECEIVED:', JSON.stringify(data, null, 2));
-    
+
     // Rate limit team chat messages (max 60 per minute)
     if (!checkEventRateLimit('team_chat_message', 60)) {
       console.log('❌ Team chat rate limited');
@@ -1084,9 +1084,9 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
     try {
       // Extract character data from request
       const { message, character, characterId, characterData, previousMessages, battleContext } = data;
-      
+
       console.log('🤖 Processing team chat for character:', characterId, 'Message:', message);
-      
+
       // Prepare chat context for AI service
       const chatContext = {
         characterId: characterId || character,
@@ -1102,7 +1102,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         currentBondLevel: characterData?.bondLevel || 50,
         previousMessages: previousMessages || []
       };
-      
+
       // Generate AI response using the existing AI chat service
       console.log('🤖 Calling AI Chat Service for team chat:', {
         characterId: chatContext.characterId,
@@ -1110,10 +1110,10 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         messageLength: message.length,
         apiKeyPresent: !!process.env.OPENAI_API_KEY
       });
-      
+
       // Get user ID from socket for usage tracking
       const userId = socket.data?.userId || 'anonymous';
-      
+
       const response = await aiChatService.generateCharacterResponse(
         chatContext,
         message,
@@ -1121,7 +1121,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         db,
         battleContext || { isInBattle: true }
       );
-      
+
       // Check if usage limit was reached
       if (response.usageLimitReached) {
         socket.emit('team_chat_error', {
@@ -1130,13 +1130,13 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         });
         return;
       }
-      
+
       console.log('✅ AI Team Chat Response:', {
         characterId,
         messageLength: response.message.length,
         bondIncrease: response.bondIncrease
       });
-      
+
       // Send response back to the frontend
       socket.emit('team_chat_response', {
         character: character,
@@ -1144,7 +1144,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         message: response.message,
         bondIncrease: response.bondIncrease,
       });
-      
+
     } catch (error) {
       console.error('❌ Team chat error:', error);
       // Send proper error response
@@ -1160,7 +1160,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
   // Facilities chat with Real Estate Agents
   socket.on('facilities_chat_message', async (data) => {
     console.log('🏢 FACILITIES CHAT MESSAGE:', data.agentId, 'from socket:', socket.id);
-    
+
     // Rate limit facilities chat (max 30 per minute)
     if (!checkEventRateLimit('facilities_chat_message', 30)) {
       console.log('❌ Facilities chat rate limited');
@@ -1172,9 +1172,9 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
 
     try {
       const { message, agentId, agentData, facilitiesContext, previousMessages } = data;
-      
+
       console.log('🤖 Processing facilities chat for agent:', agentId, 'Message:', message);
-      
+
       // Prepare chat context for AI service
       const chatContext = {
         characterId: agentId,
@@ -1188,10 +1188,10 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         conversationContext: agentData?.conversationContext,
         previousMessages: previousMessages || []
       };
-      
+
       // Get user ID from socket for usage tracking
       const userId = (socket as any).userId || 'anonymous';
-      
+
       const response = await aiChatService.generateCharacterResponse(
         chatContext,
         message,
@@ -1199,7 +1199,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         db,
         { isInBattle: false, facilitiesContext: facilitiesContext, isCombatChat: true }
       );
-      
+
       // Check if usage limit was reached
       if (response.usageLimitReached) {
         socket.emit('facilities_chat_response', {
@@ -1209,18 +1209,18 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         });
         return;
       }
-      
+
       console.log('✅ AI Facilities Chat Response:', {
         agentId,
         messageLength: response.message.length,
       });
-      
+
       // Send response back to the frontend
       socket.emit('facilities_chat_response', {
         agentId: agentId,
         message: response.message,
       });
-      
+
     } catch (error) {
       console.error('❌ Facilities chat error:', error);
       socket.emit('facilities_chat_response', {
@@ -1232,17 +1232,17 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
   });
 
   // Multi-Agent Training Chat Helper Functions
-  
+
   // Determine which agents should participate in the conversation
   function determineActiveAgents(userMessage: string, trainingPhase: string, isCharacterSelection: boolean): string[] {
     const activeAgents: string[] = [];
-    
+
     // Character selection auto-triggers Argock analysis
     if (isCharacterSelection) {
       activeAgents.push('argock');
       return activeAgents;
     }
-    
+
     // Planning phase: Both agents can participate
     if (trainingPhase === 'planning') {
       // Determine based on message content or random for dynamic interaction
@@ -1253,7 +1253,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
       }
       activeAgents.push('character'); // Character always responds
     }
-    
+
     // Active phase: Both agents participate for dynamic motivation
     else if (trainingPhase === 'active') {
       if (Math.random() < 0.4) { // 40% chance both respond during training
@@ -1261,7 +1261,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
       }
       activeAgents.push('character');
     }
-    
+
     // Recovery phase: Character leads, Argock gives advice
     else if (trainingPhase === 'recovery') {
       activeAgents.push('character');
@@ -1269,7 +1269,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         activeAgents.push('argock');
       }
     }
-    
+
     return activeAgents;
   }
 
@@ -1287,9 +1287,9 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
     isCharacterSelection: boolean;
     userId: string;
   }): Promise<Array<{agentType: string; agentName: string; message: string; timestamp: string}>> {
-    
+
     const responses: Array<{agentType: string; agentName: string; message: string; timestamp: string}> = [];
-    
+
     // Generate Argock response if active
     if (params.activeAgents.includes('argock')) {
       try {
@@ -1306,7 +1306,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         console.error('❌ Argock response error:', error);
       }
     }
-    
+
     // Generate Character response if active
     if (params.activeAgents.includes('character')) {
       try {
@@ -1323,7 +1323,7 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
         console.error('❌ Character response error:', error);
       }
     }
-    
+
     return responses;
   }
 
@@ -1338,15 +1338,15 @@ ${isCoachDirectMessage ? '- React to Coach directly - be honest about how you re
     isCharacterSelection: boolean;
     userId: string;
   }): Promise<string> {
-    
+
     let argockPrompt = '';
-    
+
     if (params.isCharacterSelection) {
       // Auto-analysis when character is selected
       const timeOfDay = new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening';
       const randomTrainingFocus = ['strength', 'cardio', 'agility', 'combat technique', 'endurance', 'flexibility'][Math.floor(Math.random() * 6)];
       const sessionId = Math.random().toString(36).substr(2, 8);
-      
+
       argockPrompt = `You are ARGOCK, a gruff, no-nonsense personal trainer. It's ${timeOfDay} and ${params.characterName} just walked into your gym.
 
 ARGOCK'S PERSONALITY:
@@ -1378,7 +1378,7 @@ Examples of your style:
 - "Coach, I've seen tougher fighters, but we can make something of them!"
 
 Make YOUR assessment completely different and specific to ${params.characterName}.`;
-    
+
     } else {
       // Regular training conversation
       const phaseContext = {
@@ -1388,7 +1388,7 @@ Make YOUR assessment completely different and specific to ${params.characterName
       };
 
       const conversationId = Math.random().toString(36).substr(2, 9);
-      
+
       argockPrompt = `You are ARGOCK, the gruff personal trainer. The Coach said: "${params.userMessage}"
 
 CURRENT SITUATION:
@@ -1449,7 +1449,7 @@ Respond as Argock talking to the Coach:`;
     sessionDuration: number;
     userId: string;
   }, previousResponses: Array<{agentType: string; agentName: string; message: string}>): Promise<string> {
-    
+
     // Phase-specific prompts for the character
     const phasePrompts = {
       planning: `You are ${params.characterName}, planning your workout. You're excited and ready to train hard.
@@ -1491,7 +1491,7 @@ You're tired but proud of the work. Reflect on the training session.`
     }
 
     const characterConversationId = Math.random().toString(36).substr(2, 9);
-    
+
     const characterPrompt = `${phasePrompts[params.trainingPhase as keyof typeof phasePrompts]}
 
 COACH MESSAGE: "${params.userMessage}"${agentContext}
@@ -1539,7 +1539,7 @@ Respond as ${params.characterName} in this training situation. Keep it conversat
       isCharacterSelection: data.isCharacterSelection,
       trainingPhase: data.trainingPhase
     });
-    
+
     // Rate limit training chat (max 30 per minute)
     if (!checkEventRateLimit('training_chat', 30)) {
       socket.emit('training_chat_response', {
@@ -1550,11 +1550,11 @@ Respond as ${params.characterName} in this training situation. Keep it conversat
     }
 
     try {
-      const { 
-        conversationId, 
-        characterId, 
-        characterName, 
-        userMessage, 
+      const {
+        conversationId,
+        characterId,
+        characterName,
+        userMessage,
         trainingPhase = 'planning',
         currentActivity,
         energyLevel = 100,
@@ -1562,7 +1562,7 @@ Respond as ${params.characterName} in this training situation. Keep it conversat
         sessionDuration = 0,
         isCharacterSelection = false
       } = data;
-      
+
       console.log('🤖 Multi-Agent Training Request:', {
         characterId,
         characterName,
@@ -1604,7 +1604,7 @@ Respond as ${params.characterName} in this training situation. Keep it conversat
           trainingPhase
         }
       });
-      
+
       console.log('📤 Multi-agent response sent to frontend');
 
     } catch (error) {
@@ -1620,7 +1620,7 @@ Respond as ${params.characterName} in this training situation. Keep it conversat
   // Real Estate Agent Chat Endpoints
   socket.on('generate_real_estate_agent_response', async (data) => {
     console.log('🏡 REAL ESTATE AGENT REQUEST:', data.agentId, 'from socket:', socket.id);
-    
+
     // Rate limit real estate chat (max 30 per minute)
     if (!checkEventRateLimit('real_estate_chat', 30)) {
       socket.emit('real_estate_agent_response', {
@@ -1631,7 +1631,7 @@ Respond as ${params.characterName} in this training situation. Keep it conversat
 
     try {
       const { agentId, userMessage, context } = data;
-      
+
       console.log('🤖 Real Estate AI Request:', {
         agentId,
         userMessage: userMessage ? userMessage.substring(0, 50) + '...' : 'No message'
@@ -1697,11 +1697,11 @@ Respond as ${params.characterName} in this training situation. Keep it conversat
 
   socket.on('competitor_interruption', async (data) => {
     console.log('🏡 COMPETITOR INTERRUPTION REQUEST:', data.agentId);
-    
+
     try {
       const { agentId, context } = data;
       const competingAgent = context?.competingAgents?.find((agent: any) => agent.id === agentId);
-      
+
       if (competingAgent) {
         const interruptionMessages = [
           `Wait! I have a much better property that would suit your team perfectly.`,
@@ -1710,9 +1710,9 @@ Respond as ${params.characterName} in this training situation. Keep it conversat
           `I represent the premium properties in this area, let me show you something special.`,
           `Hold on - I've got insider information about an upcoming development nearby.`
         ];
-        
+
         const randomMessage = interruptionMessages[Math.floor(Math.random() * interruptionMessages.length)];
-        
+
         socket.emit('competitor_interruption', {
           agentId: competingAgent.id,
           agentName: competingAgent.name,
@@ -1745,23 +1745,23 @@ app.use(csrfErrorHandler);
 // Global error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('❌ Server error:', err);
-  
+
   return res.status(err.status || 500).json({
     success: false,
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
+    error: process.env.NODE_ENV === 'production'
+      ? 'Internal server error'
       : err.message,
   });
 });
 
-// Server startup  
+// Server startup
 const PORT = process.env.PORT || 3006;
 
 async function startServer() {
   try {
     // Initialize database
     await initializeDatabase();
-    
+
     // Start the server
     httpServer.listen(PORT, () => {
       console.log(`🚀 Blank Wars API Server running!`);
