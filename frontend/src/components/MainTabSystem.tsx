@@ -1436,11 +1436,10 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         // Fetch recent judge evaluations for this character
         const fetchJudgeEvaluations = async () => {
           try {
-            const recentEvents = await gameEventBus.getEventsForCharacter(characterId, {
-              category: 'financial',
-              eventTypes: ['judge_financial_evaluation', 'judge_financial_outcome_assessment', 'judge_intervention_recommendation'],
+            const recentEvents = await gameEventBus.getCharacterEvents(characterId, {
+              categories: ['financial'],
               limit: 5,
-              timeRange: 24 * 60 * 60 * 1000 // Last 24 hours
+              timeRange: '1_day'
             });
             
             const evaluations = recentEvents
@@ -1795,7 +1794,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           };
           
           // Simulate the outcome
-          const outcome = psychService.simulateDecisionOutcome(
+          const outcome = await psychService.simulateDecisionOutcome(
             financialDecision,
             decisionQuality,
             character.financials.financialPersonality
@@ -2327,18 +2326,22 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
 
   const GameplanTrackerWrapper = () => {
     // Create demo characters for the tracker
-    const demoCharacters = [demoCharacter].map(char => ({
+    const demoCharacters = [demoCharacter as any].map(char => ({
       character: char,
       currentHealth: char.combatStats.maxHealth,
       currentMana: char.combatStats.maxMana,
-      gameplanAdherenceLevel: 75, // Still using this field internally but conceptually it's adherence
+      physicalDamageDealt: 0,
+      physicalDamageTaken: 0,
+      statusEffects: [],
+      gameplanAdherence: 75, // Still using this field internally but conceptually it's adherence
       mentalState: {
         currentMentalHealth: 80,
         stress: 25,
         confidence: 70,
         teamTrust: 85,
         battleFocus: 90,
-        gameplanDeviationRisk: 15
+        gameplanDeviationRisk: 15,
+        strategyDeviationRisk: 15
       },
       relationshipModifiers: [],
       battlePerformance: {
@@ -2346,6 +2349,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         damageTaken: 0,
         abilitiesUsed: 0,
         deviantActions: 0
+      },
+      equipmentBonuses: {
+        attackBonus: 0,
+        defenseBonus: 0,
+        speedBonus: 0,
+        criticalChanceBonus: 0
       }
     }));
 
@@ -2686,7 +2695,6 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           
           {/* Training Interface */}
           <div className="flex-1">
-            {console.log('🎯 Training render check:', !!selectedCharacter, selectedCharacter?.name)}
             {selectedCharacter ? (
               <TrainingGrounds 
                 globalSelectedCharacterId={globalSelectedCharacterId}
