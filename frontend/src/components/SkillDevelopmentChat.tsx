@@ -215,8 +215,8 @@ export default function SkillDevelopmentChat({
   const eventPublisher = EventPublisher.getInstance();
 
   useEffect(() => {
-    const socketUrl = 'http://localhost:3006';
-    console.log('🔌 [SkillDevelopment] Connecting to local backend:', socketUrl);
+    const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
+    console.log('🔌 [SkillDevelopment] Connecting to backend:', socketUrl);
     
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
