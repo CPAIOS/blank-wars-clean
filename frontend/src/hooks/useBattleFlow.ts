@@ -105,8 +105,8 @@ export const useBattleFlow = ({
       hp: prev.maxHp,
       statusEffects: [],
       battleStats: createBattleStats(),
-      abilities: prev.abilities.map((a: any) => ({ ...a, currentCooldown: 0 })),
-      specialPowers: prev.specialPowers.map((p: any) => ({ ...p, currentCooldown: 0 }))
+      abilities: Array.isArray(prev.abilities) ? prev.abilities.map((a: any) => ({ ...a, currentCooldown: 0 })) : [],
+      specialPowers: Array.isArray(prev.specialPowers) ? prev.specialPowers.map((p: any) => ({ ...p, currentCooldown: 0 })) : []
     }));
     
     actions.setPlayer2((prev: any) => ({
@@ -114,8 +114,8 @@ export const useBattleFlow = ({
       hp: prev.maxHp,
       statusEffects: [],
       battleStats: createBattleStats(),
-      abilities: prev.abilities.map((a: any) => ({ ...a, currentCooldown: 0 })),
-      specialPowers: prev.specialPowers.map((p: any) => ({ ...p, currentCooldown: 0 }))
+      abilities: Array.isArray(prev.abilities) ? prev.abilities.map((a: any) => ({ ...a, currentCooldown: 0 })) : [],
+      specialPowers: Array.isArray(prev.specialPowers) ? prev.specialPowers.map((p: any) => ({ ...p, currentCooldown: 0 })) : []
     }));
   }, [actions]);
 

@@ -359,7 +359,7 @@ export default function SkillDevelopmentChat({
         baseStats: selectedCharacter.baseStats,
         combatStats: selectedCharacter.combatStats,
         // Current abilities and their skill requirements
-        abilities: selectedCharacter.abilities.map(a => ({
+        abilities: Array.isArray(selectedCharacter.abilities) ? selectedCharacter.abilities.map(a => ({
           name: a.name,
           type: a.type,
           power: a.power,
@@ -367,7 +367,7 @@ export default function SkillDevelopmentChat({
           currentCooldown: a.currentCooldown,
           mentalHealthRequired: a.mentalHealthRequired,
           description: a.description
-        })),
+        })) : [],
         // Current status
         experience: selectedCharacter.experience,
         bondLevel: selectedCharacter.displayBondLevel,

@@ -19,7 +19,7 @@ interface TokenRefreshResponse {
 
 class AuthService {
   private readonly baseURL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
-  private readonly timeout = 10000; // 10 seconds
+  private readonly timeout = 30000; // 30 seconds for better reliability
   
   // Helper method to add timeout to fetch requests
   private async fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {

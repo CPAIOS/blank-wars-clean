@@ -46,6 +46,9 @@ const lobbyService = new LobbyService();
 const app = express();
 const httpServer = createServer(app);
 
+// Trust proxy for Railway deployment (fixes X-Forwarded-For header issues)
+app.set('trust proxy', 1);
+
 // Initialize Socket.io with CORS
 const io = new Server(httpServer, {
   cors: {

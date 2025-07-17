@@ -1281,7 +1281,7 @@ export default function ImprovedBattleArena() {
               </h4>
               
               <div className="grid grid-cols-3 gap-3 mb-4 max-h-60 overflow-y-auto">
-                {coachRoster.map((character) => {
+                {Array.isArray(coachRoster) && coachRoster.map((character) => {
                   const isSelected = selectedTeamMembers.includes(character.id);
                   const canSelect = !isSelected && selectedTeamMembers.length < 3;
                   

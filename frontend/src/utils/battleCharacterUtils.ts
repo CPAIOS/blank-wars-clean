@@ -17,7 +17,7 @@ export const convertToBattleCharacter = (character: TeamCharacter, morale: numbe
         speed: character.traditionalStats.speed + character.temporaryStats.speed,
         special: 50 + character.temporaryStats.spirit // Assuming spirit contributes to special
       },
-      abilities: character.abilities.map(ability => ({
+      abilities: Array.isArray(character.abilities) ? character.abilities.map(ability => ({
         id: ability.name.toLowerCase().replace(/\s+/g, '_'),
         name: ability.name,
         type: ability.type === 'attack' ? 'offensive' : ability.type === 'defense' ? 'defensive' : 'support',
@@ -25,7 +25,7 @@ export const convertToBattleCharacter = (character: TeamCharacter, morale: numbe
         damage_multiplier: ability.power / 100,
         cooldown: ability.cooldown || 0,
         mana_cost: 10 // Default mana cost for abilities
-      })),
+      })) : [],
       equipment: [], // TeamCharacter doesn't have items
       personalityTraits: character.personalityTraits || [],
       relationshipModifiers: {},
