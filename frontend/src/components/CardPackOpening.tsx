@@ -100,39 +100,72 @@ export default function CardPackOpening({
   const getCharacterFromTemplate = (characterId: string): TeamCharacter | null => {
     const template = characterTemplates[characterId];
     if (!template) return null;
-    
+
     return {
       id: characterId,
       name: template.name,
-      archetype: template.archetype,
-      rarity: template.rarity,
-      health: template.baseStats.health,
-      attack: template.baseStats.attack,
-      defense: template.baseStats.defense,
-      speed: template.baseStats.speed,
-      abilities: template.abilities,
-      psychologyProfile: template.psychologyProfile,
-      equipment: template.equipment || [],
-      level: 1,
-      experience: 0
+      avatar: template.avatar,
+      archetype: template.archetype as any, // Type conversion needed due to archetype mismatch
+      rarity: template.rarity as any, // Type conversion needed due to rarity mismatch
+      level: template.level || 1,
+      experience: 0,
+      experienceToNext: 100,
+      traditionalStats: {
+        strength: template.baseStats.strength,
+        vitality: template.baseStats.vitality,
+        speed: template.baseStats.agility,
+        dexterity: template.baseStats.agility,
+        stamina: template.baseStats.vitality,
+        intelligence: template.baseStats.intelligence,
+        charisma: template.baseStats.charisma,
+        spirit: template.baseStats.wisdom
+      },
+      currentHp: template.combatStats?.health || template.baseStats.vitality * 10,
+      maxHp: template.combatStats?.maxHealth || template.baseStats.vitality * 10,
+      psychStats: {
+        training: 50,
+        teamPlayer: 50,
+        ego: 50,
+        mentalHealth: 80,
+        communication: 50
+      },
+      temporaryStats: {
+        strength: 0,
+        vitality: 0,
+        speed: 0,
+        dexterity: 0,
+        stamina: 0,
+        intelligence: 0,
+        charisma: 0,
+        spirit: 0
+      },
+      personalityTraits: template.personality?.traits || ['determined'],
+      speakingStyle: 'casual',
+      decisionMaking: 'logical',
+      conflictResponse: 'diplomatic',
+      statusEffects: [],
+      injuries: [],
+      restDaysNeeded: 0,
+      abilities: [],
+      specialPowers: []
     };
   };
 
   const handlePackPurchase = async (pack: CardPack) => {
     if (playerCurrency < pack.price) return;
-    
+
     setSelectedPack(pack);
     setShowPackAnimation(true);
     onCurrencySpent(pack.price);
-    
+
     try {
       // Generate pack via backend
       const packType = packService.mapPackIdToType(pack.id);
       const generateResult = await packService.generatePack(packType);
-      
+
       // Claim the pack immediately
       const claimResult = await packService.claimPack(generateResult.claimToken);
-      
+
       // Convert character IDs to TeamCharacter objects
       const newCards: TeamCharacter[] = [];
       for (const charId of claimResult.grantedCharacters) {
@@ -141,15 +174,15 @@ export default function CardPackOpening({
           newCards.push(character);
         }
       }
-      
+
       setRevealedCards(newCards);
       setEchoesGained(claimResult.echoesGained);
-      
+
       // If we received echoes, show them after cards
       if (claimResult.echoesGained.length > 0 && onEchoesReceived) {
         onEchoesReceived(claimResult.echoesGained);
       }
-      
+
       setTimeout(() => {
         setIsOpening(true);
         setShowPackAnimation(false);
@@ -241,7 +274,7 @@ export default function CardPackOpening({
               >
                 <motion.div
                   initial={{ scale: 0.5, rotateY: 0 }}
-                  animate={{ 
+                  animate={{
                     scale: [0.5, 1.2, 1],
                     rotateY: [0, 360],
                     transition: { duration: 1.5 }
@@ -277,8 +310,8 @@ export default function CardPackOpening({
                   <motion.div
                     key={currentCardIndex}
                     initial={{ scale: 0, rotateY: 180 }}
-                    animate={{ 
-                      scale: 1, 
+                    animate={{
+                      scale: 1,
                       rotateY: 0,
                       transition: { type: "spring", stiffness: 100 }
                     }}
@@ -320,7 +353,7 @@ export default function CardPackOpening({
                       onClick={handleCardReveal}
                       className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105"
                     >
-                      {currentCardIndex < revealedCards.length - 1 ? 'Next Card' : 
+                      {currentCardIndex < revealedCards.length - 1 ? 'Next Card' :
                        echoesGained.length > 0 ? 'View Echoes' : 'Finish'}
                     </button>
                   </div>
@@ -345,8 +378,8 @@ export default function CardPackOpening({
                 <div className="text-center max-w-2xl mx-auto p-8">
                   <motion.div
                     initial={{ scale: 0, y: 50 }}
-                    animate={{ 
-                      scale: 1, 
+                    animate={{
+                      scale: 1,
                       y: 0,
                       transition: { type: "spring", stiffness: 100 }
                     }}
@@ -370,13 +403,13 @@ export default function CardPackOpening({
                         <motion.div
                           key={echo.character_id}
                           initial={{ scale: 0, rotateX: 90 }}
-                          animate={{ 
-                            scale: 1, 
+                          animate={{
+                            scale: 1,
                             rotateX: 0,
-                            transition: { 
+                            transition: {
                               delay: index * 0.2,
-                              type: "spring", 
-                              stiffness: 100 
+                              type: "spring",
+                              stiffness: 100
                             }
                           }}
                           className="bg-gradient-to-br from-yellow-400/20 to-orange-500/20 backdrop-blur-sm border border-yellow-400/30 rounded-xl p-6"
@@ -438,10 +471,10 @@ export default function CardPackOpening({
                       <div className="text-4xl">{pack.packArt}</div>
                       <div className="text-2xl font-bold">{pack.price} 💰</div>
                     </div>
-                    
+
                     <h3 className="text-xl font-bold mb-2">{pack.name}</h3>
                     <p className="text-white/90 mb-4">{pack.description}</p>
-                    
+
                     <div className="flex items-center justify-between text-sm">
                       <span>{pack.cardCount} cards</span>
                       {pack.guaranteedRarity && (
@@ -451,7 +484,7 @@ export default function CardPackOpening({
                       )}
                     </div>
                   </div>
-                  
+
                   {playerCurrency < pack.price && (
                     <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                       <div className="bg-black/80 text-white px-4 py-2 rounded-lg">

@@ -31,16 +31,16 @@ class UsageService {
    */
   async getUserUsageStatus(): Promise<UsageStatus> {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      
+
       // Add token if available
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      
+
       const response = await fetch(`${this.baseUrl}/api/usage/status`, {
         headers,
       });
@@ -71,7 +71,7 @@ class UsageService {
   async getTierLimits(): Promise<TierLimits> {
     try {
       const response = await fetch(`${this.baseUrl}/api/usage/limits`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch tier limits');
       }
@@ -121,37 +121,37 @@ class UsageService {
     imageColor: string;
     battleColor: string;
   } {
-    const chatText = usageStatus.remainingChats === -1 
-      ? 'Unlimited AI interactions' 
+    const chatText = usageStatus.remainingChats === -1
+      ? 'Unlimited AI interactions'
       : `${usageStatus.remainingChats} AI interactions remaining`;
-    
-    const imageText = usageStatus.remainingImages === -1 
-      ? 'Unlimited images' 
+
+    const imageText = usageStatus.remainingImages === -1
+      ? 'Unlimited images'
       : `${usageStatus.remainingImages} images remaining`;
 
-    const battleText = usageStatus.remainingBattles === -1 
-      ? 'Unlimited battles' 
+    const battleText = usageStatus.remainingBattles === -1
+      ? 'Unlimited battles'
       : `${usageStatus.remainingBattles} battles remaining`;
 
-    const chatColor = usageStatus.remainingChats === -1 
+    const chatColor = usageStatus.remainingChats === -1
       ? 'text-yellow-400'
-      : usageStatus.remainingChats > 3 
+      : usageStatus.remainingChats > 3
         ? 'text-green-400'
         : usageStatus.remainingChats > 1
           ? 'text-yellow-400'
           : 'text-red-400';
 
-    const imageColor = usageStatus.remainingImages === -1 
+    const imageColor = usageStatus.remainingImages === -1
       ? 'text-yellow-400'
-      : usageStatus.remainingImages > 2 
+      : usageStatus.remainingImages > 2
         ? 'text-green-400'
         : usageStatus.remainingImages > 0
           ? 'text-yellow-400'
           : 'text-red-400';
 
-    const battleColor = usageStatus.remainingBattles === -1 
+    const battleColor = usageStatus.remainingBattles === -1
       ? 'text-yellow-400'
-      : usageStatus.remainingBattles > 1 
+      : usageStatus.remainingBattles > 1
         ? 'text-green-400'
         : usageStatus.remainingBattles > 0
           ? 'text-yellow-400'

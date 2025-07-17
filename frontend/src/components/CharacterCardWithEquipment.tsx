@@ -2,21 +2,20 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Star, 
-  Zap, 
-  Shield, 
- 
-  Sword, 
+import {
+  Star,
+  Zap,
+  Shield,
+  Sword,
   Crown,
   Plus,
   ArrowRight
 } from 'lucide-react';
 import { Character } from '@/data/characters';
-import { 
-  createEquippedCharacter, 
+import { Equipment } from '@/data/equipment';
+import {
+  createEquippedCharacter,
   getCharacterPowerLevel,
- 
 } from '@/data/characterEquipment';
 import { getCharacterWeaponProgression } from '@/data/equipment';
 
@@ -123,23 +122,23 @@ export default function CharacterCardWithEquipment({
   const equippedCharacter = createEquippedCharacter(character);
   const powerLevel = getCharacterPowerLevel(character);
   const weaponProgression = getCharacterWeaponProgression(character.id);
-  
+
   const config = rarityConfig[character.rarity];
   const sizeConfig_ = sizeConfig[size];
-  
+
   const renderStars = (count: number) => {
     return Array.from({ length: count }).map((_, i) => (
       <Star key={i} className="w-3 h-3 fill-current" />
     ));
   };
 
-  const EquipmentSlot = ({ 
-    slot, 
-    equipment, 
-    icon: Icon 
-  }: { 
+  const EquipmentSlot = ({
+    slot,
+    equipment,
+    icon: Icon
+  }: {
     slot: 'weapon' | 'armor' | 'accessory';
-    equipment: object | null;
+    equipment: Equipment | null;
     icon: React.ComponentType<{ className?: string }>;
   }) => (
     <motion.div
@@ -147,8 +146,8 @@ export default function CharacterCardWithEquipment({
       whileTap={{ scale: 0.95 }}
       className={`
         relative border-2 rounded-lg p-2 cursor-pointer transition-all
-        ${equipment 
-          ? `border-${equipment.rarity === 'legendary' ? 'yellow' : equipment.rarity === 'epic' ? 'purple' : equipment.rarity === 'rare' ? 'blue' : 'gray'}-400 bg-gradient-to-br from-white to-gray-50` 
+        ${equipment
+          ? `border-${equipment.rarity === 'legendary' ? 'yellow' : equipment.rarity === 'epic' ? 'purple' : equipment.rarity === 'rare' ? 'blue' : 'gray'}-400 bg-gradient-to-br from-white to-gray-50`
           : 'border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100'
         }
       `}
@@ -175,10 +174,10 @@ export default function CharacterCardWithEquipment({
     </motion.div>
   );
 
-  const StatBar = ({ 
-    label, 
-    value, 
-    maxValue, 
+  const StatBar = ({
+    label,
+    value,
+    maxValue,
     color = 'blue',
     showEquipmentBonus = false,
     equipmentBonus = 0
@@ -192,21 +191,21 @@ export default function CharacterCardWithEquipment({
   }) => {
     const percentage = Math.min((value / maxValue) * 100, 100);
     const bonusPercentage = Math.min(((equipmentBonus) / maxValue) * 100, 100);
-    
+
     return (
       <div className="flex items-center gap-2 text-xs">
         <span className="w-8 text-gray-600">{label}</span>
         <div className="flex-1 bg-gray-200 rounded-full h-2 relative overflow-hidden">
-          <div 
+          <div
             className={`bg-${color}-500 h-full rounded-full transition-all duration-300`}
             style={{ width: `${percentage}%` }}
           />
           {showEquipmentBonus && equipmentBonus > 0 && (
-            <div 
+            <div
               className={`bg-${color}-300 h-full rounded-full absolute top-0 transition-all duration-300`}
-              style={{ 
+              style={{
                 left: `${percentage}%`,
-                width: `${bonusPercentage}%` 
+                width: `${bonusPercentage}%`
               }}
             />
           )}
@@ -261,18 +260,18 @@ export default function CharacterCardWithEquipment({
         <div className="mb-3">
           <div className="text-xs text-gray-600 mb-2 font-semibold">Equipment</div>
           <div className="grid grid-cols-3 gap-2">
-            <EquipmentSlot 
-              slot="weapon" 
+            <EquipmentSlot
+              slot="weapon"
               equipment={character.equippedItems.weapon}
               icon={Sword}
             />
-            <EquipmentSlot 
-              slot="armor" 
+            <EquipmentSlot
+              slot="armor"
               equipment={character.equippedItems.armor}
               icon={Shield}
             />
-            <EquipmentSlot 
-              slot="accessory" 
+            <EquipmentSlot
+              slot="accessory"
               equipment={character.equippedItems.accessory}
               icon={Crown}
             />
@@ -283,24 +282,24 @@ export default function CharacterCardWithEquipment({
       {/* Character stats */}
       {showStats && size !== 'small' && (
         <div className="space-y-1">
-          <StatBar 
-            label="ATK" 
+          <StatBar
+            label="ATK"
             value={equippedCharacter.finalStats.attack}
             maxValue={200}
             color="red"
             showEquipmentBonus={true}
             equipmentBonus={equippedCharacter.equipmentBonuses.atk || 0}
           />
-          <StatBar 
-            label="DEF" 
+          <StatBar
+            label="DEF"
             value={equippedCharacter.finalStats.defense}
             maxValue={150}
             color="blue"
             showEquipmentBonus={true}
             equipmentBonus={equippedCharacter.equipmentBonuses.def || 0}
           />
-          <StatBar 
-            label="SPD" 
+          <StatBar
+            label="SPD"
             value={equippedCharacter.finalStats.speed}
             maxValue={180}
             color="green"

@@ -76,17 +76,19 @@ const PsychologyMasteryChart: React.FC<{ masteryLevels: Record<string, number> }
           margin={{ top: 50, bottom: 50, left: 50, right: 50 }}
           slotProps={{
             legend: {
-              direction: 'column',
-              position: { vertical: 'middle', horizontal: 'right' },
-              itemMarkWidth: 10,
-              itemMarkHeight: 10,
-              labelStyle: {
-                fontSize: 12,
-                fill: '#E0E0E0', // Light gray for labels
-              },
+              direction: 'vertical' as any,
+              position: { vertical: 'middle', horizontal: 'end' },
             },
           }}
           sx={{
+            '& .MuiChartsLegend-mark': {
+              width: '10px !important',
+              height: '10px !important',
+            },
+            '& .MuiChartsLegend-label': {
+              fontSize: '12px',
+              fill: '#E0E0E0',
+            },
             '& .MuiChartsAxis-tickLabel': {
               fill: '#E0E0E0', // Light gray for axis labels
             },
@@ -133,8 +135,8 @@ const CoachProgressionPage: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white p-8">
       {/* Navigation Header */}
       <div className="flex justify-between items-center mb-8">
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
         >
           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">

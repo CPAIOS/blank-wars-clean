@@ -30,13 +30,14 @@ class RoomImageService {
 
     // Check usage limits before generating image
     if (userId) {
+      const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
       const usageResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/usage/status`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (usageResponse.ok) {
         const usageStatus = await usageResponse.json();
         if (!usageStatus.canGenerateImage) {
@@ -54,7 +55,7 @@ class RoomImageService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
         },
         body: JSON.stringify({
           prompt: prompt,
@@ -68,14 +69,14 @@ class RoomImageService {
       }
 
       const data = await response.json();
-      
+
       // Track image usage if userId provided
       if (userId) {
         try {
           await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/usage/track-image`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+              'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
               'Content-Type': 'application/json',
             },
           });
@@ -83,7 +84,7 @@ class RoomImageService {
           console.error('Failed to track image usage:', error);
         }
       }
-      
+
       return data.data[0].url;
     } catch (error) {
       console.error('DALL-E image generation failed:', error);
@@ -97,7 +98,7 @@ class RoomImageService {
    */
   private buildPrompt(roomName: string, elements: RoomElement[], style: string): string {
     const elementDescriptions = elements.map(el => el.description).join(', ');
-    
+
     const categoryBreakdown = {
       wallDecor: elements.filter(e => e.category === 'wallDecor').map(e => e.name),
       furniture: elements.filter(e => e.category === 'furniture').map(e => e.name),
@@ -107,23 +108,23 @@ class RoomImageService {
     };
 
     let prompt = `A ${style} interior room called "${roomName}" for a competitive training facility, featuring: `;
-    
+
     if (categoryBreakdown.wallDecor.length > 0) {
       prompt += `Wall decorations including ${categoryBreakdown.wallDecor.join(' and ')}. `;
     }
-    
+
     if (categoryBreakdown.furniture.length > 0) {
       prompt += `Furniture featuring ${categoryBreakdown.furniture.join(' and ')}. `;
     }
-    
+
     if (categoryBreakdown.lighting.length > 0) {
       prompt += `Lighting with ${categoryBreakdown.lighting.join(' and ')}. `;
     }
-    
+
     if (categoryBreakdown.accessories.length > 0) {
       prompt += `Accessories including ${categoryBreakdown.accessories.join(' and ')}. `;
     }
-    
+
     if (categoryBreakdown.flooring.length > 0) {
       prompt += `Flooring with ${categoryBreakdown.flooring.join(' and ')}. `;
     }
@@ -138,7 +139,7 @@ class RoomImageService {
    */
   private async generateMockImage(options: RoomImageGenerationOptions): Promise<string> {
     const { roomName, elements } = options;
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -148,16 +149,16 @@ class RoomImageService {
     canvas.width = 512;
     canvas.height = 384;
     const ctx = canvas.getContext('2d');
-    
+
     if (ctx) {
       // Create a gradient background based on elements
       const gradient = ctx.createLinearGradient(0, 0, 512, 384);
-      
+
       // Choose colors based on element types
       const hasGothic = elements.some(e => e.name.toLowerCase().includes('gothic'));
       const hasTech = elements.some(e => e.name.toLowerCase().includes('tech') || e.name.toLowerCase().includes('led'));
       const hasRoyal = elements.some(e => e.name.toLowerCase().includes('royal') || e.name.toLowerCase().includes('golden'));
-      
+
       if (hasGothic) {
         gradient.addColorStop(0, '#2D1B4E');
         gradient.addColorStop(1, '#1A0B2E');
@@ -171,34 +172,34 @@ class RoomImageService {
         gradient.addColorStop(0, '#4A5568');
         gradient.addColorStop(1, '#2D3748');
       }
-      
+
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 512, 384);
-      
+
       // Add room name
       ctx.fillStyle = 'white';
       ctx.font = 'bold 24px Arial';
       ctx.textAlign = 'center';
       ctx.fillText(roomName, 256, 50);
-      
+
       // Add elements list
       ctx.font = '16px Arial';
       ctx.fillText('Generated with elements:', 256, 100);
-      
+
       elements.slice(0, 4).forEach((element, index) => {
         ctx.fillText(`• ${element.name}`, 256, 140 + (index * 25));
       });
-      
+
       if (elements.length > 4) {
         ctx.fillText(`... and ${elements.length - 4} more`, 256, 240);
       }
-      
+
       // Add "AI Generated" watermark
       ctx.font = '12px Arial';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
       ctx.fillText('🎨 AI Generated Room Design', 256, 360);
     }
-    
+
     return canvas.toDataURL('image/png');
   }
 
@@ -206,7 +207,7 @@ class RoomImageService {
    * Check if DALL-E API is available
    */
   isApiAvailable(): boolean {
-    return this.apiKey !== null && !this.apiKey.startsWith('mock');
+    return true; // Backend handles API availability
   }
 
   /**

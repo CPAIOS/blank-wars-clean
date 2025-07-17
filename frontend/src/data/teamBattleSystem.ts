@@ -31,17 +31,17 @@ export interface TeamCharacter {
   avatar: string;
   archetype: 'warrior' | 'mage' | 'trickster' | 'beast' | 'leader' | 'detective' | 'monster' | 'alien' | 'mercenary' | 'cowboy' | 'biker';
   rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
-  
+
   // Core Stats
   level: number;
   experience: number;
   experienceToNext: number;
-  
+
   // Combat Stats (Traditional)
   traditionalStats: TraditionalStats;
   currentHp: number;
   maxHp: number;
-  
+
   // Psychological Stats (Revolutionary)
   psychStats: PsychologicalStats;
 
@@ -49,18 +49,18 @@ export interface TeamCharacter {
   // These are applied during battle and reset when a new battle starts
   // Coaching sessions add to these stats for the duration of the battle
   temporaryStats: TraditionalStats;
-  
+
   // Character Personality
   personalityTraits: string[];
   speakingStyle: 'formal' | 'casual' | 'archaic' | 'technical' | 'poetic' | 'gruff' | 'mysterious';
   decisionMaking: 'logical' | 'emotional' | 'impulsive' | 'calculated';
   conflictResponse: 'aggressive' | 'diplomatic' | 'withdrawn' | 'manipulative';
-  
+
   // Current Status
   statusEffects: string[];
   injuries: string[];
   restDaysNeeded: number;
-  
+
   // Abilities
   abilities: CharacterAbility[];
   specialPowers: SpecialPower[];
@@ -95,18 +95,18 @@ export interface Team {
   name: string;
   coachName: string;
   characters: Character[];
-  
+
   // Team Dynamics
   coachingPoints: number; // Points to spend on coaching actions
   consecutiveLosses: number; // Track losses for coaching points degradation (0-3)
   teamChemistry: number; // 0-100, affects all battles
   teamCulture: 'military' | 'family' | 'divas' | 'chaos' | 'brotherhood';
-  
+
   // Team Stats (derived from characters)
   averageLevel: number;
   totalPower: number;
   psychologyScore: number; // Overall team mental health
-  
+
   // History
   wins: number;
   losses: number;
@@ -153,20 +153,20 @@ export interface BattleState {
   setup: BattleSetup;
   currentRound: number;
   phase: 'pre_battle' | 'huddle' | 'round_combat' | 'coaching_timeout' | 'post_battle';
-  
+
   // Dynamic Battle State
   playerMorale: BattleMorale;
   opponentMorale: BattleMorale;
-  
+
   // Round History
   roundResults: RoundResult[];
-  
+
   // Current Round
   currentFighters: {
     player: TeamCharacter;
     opponent: TeamCharacter;
   };
-  
+
   // Battle Outcome
   winner?: 'player' | 'opponent' | 'draw';
   battleEndReason?: 'total_victory' | 'forfeit' | 'mutual_destruction' | 'time_limit';
@@ -211,64 +211,64 @@ export function getTeamChemistryModifier(chemistry: number): number {
 
 // Team Chemistry Calculation
 export function calculateTeamChemistry(
-  characters: TeamCharacter[], 
+  characters: TeamCharacter[],
   headquartersEffects?: { bonuses: Record<string, number>, penalties: Record<string, number> }
 ): number {
   if (characters.length === 0) return 0;
-  
+
   const avgTeamPlayer = characters.reduce((sum, char) => sum + char.psychStats.teamPlayer, 0) / characters.length;
   const avgCommunication = characters.reduce((sum, char) => sum + char.psychStats.communication, 0) / characters.length;
   const avgEgo = characters.reduce((sum, char) => sum + char.psychStats.ego, 0) / characters.length;
   const avgMentalHealth = characters.reduce((sum, char) => sum + char.psychStats.mentalHealth, 0) / characters.length;
-  
+
   // High team player and communication boost chemistry
   // High ego hurts chemistry
   // Good mental health helps chemistry
   const baseChemistry = (avgTeamPlayer + avgCommunication + avgMentalHealth) / 3;
   const egoReduction = (avgEgo - 50) * 0.3; // Ego above 50 hurts chemistry
-  
+
   // Factor in living conditions
   let environmentalPenalty = 0;
   if (headquartersEffects?.penalties) {
     const moralePenalty = Math.abs(headquartersEffects.penalties['Morale'] || 0);
     const teamworkPenalty = Math.abs(headquartersEffects.penalties['Teamwork'] || 0);
-    
+
     // Poor living conditions and personality conflicts devastate team chemistry
     environmentalPenalty = moralePenalty + teamworkPenalty; // -30 morale + -25 teamwork = -55 chemistry
   }
-  
+
   return Math.max(0, Math.min(100, baseChemistry - egoReduction - environmentalPenalty));
 }
 
 // Gameplan Adherence Check - Will character follow coach's strategy?
 export function checkGameplanAdherence(
-  character: TeamCharacter, 
-  teamMorale: number, 
+  character: TeamCharacter,
+  teamMorale: number,
   isInjured: boolean = false,
   isLosing: boolean = false
 ): { willFollow: boolean; adherenceScore: number; reason: string } {
-  
+
   let adherenceScore = character.psychStats.training;
-  
+
   // Modifiers
   const mentalHealthMod = character.psychStats.mentalHealth * 0.4;
   const teamPlayerMod = character.psychStats.teamPlayer * 0.3;
   const egoMod = (100 - character.psychStats.ego) * 0.2;
   const moraleMod = teamMorale * 0.3;
-  
+
   adherenceScore += mentalHealthMod + teamPlayerMod + egoMod + moraleMod;
-  
+
   // Stress factors reduce strategy adherence
   if (isInjured) adherenceScore -= 20;
   if (isLosing) adherenceScore -= 15;
   if (character.psychStats.mentalHealth < 30) adherenceScore -= 25;
-  
+
   // Random factor (chaos element)
   const randomFactor = (Math.random() - 0.5) * 20;
   adherenceScore += randomFactor;
-  
+
   const willFollow = adherenceScore > 50;
-  
+
   let reason = '';
   if (!willFollow) {
     if (character.psychStats.mentalHealth < 30) reason = 'Mental breakdown affects decision making';
@@ -277,14 +277,14 @@ export function checkGameplanAdherence(
     else if (teamMorale < 30) reason = 'Low team morale leads to independent decisions';
     else reason = 'Prefers to adapt strategy based on field conditions';
   }
-  
+
   return { willFollow, adherenceScore: Math.max(0, Math.min(100, adherenceScore)), reason };
 }
 
 // Legacy compatibility function
 export function checkObedience(
-  character: TeamCharacter, 
-  teamMorale: number, 
+  character: TeamCharacter,
+  teamMorale: number,
   isInjured: boolean = false,
   isLosing: boolean = false
 ): { willObey: boolean; obedienceScore: number; reason: string } {
@@ -327,14 +327,14 @@ export function updateCoachingPointsAfterBattle(team: Team, isWin: boolean): Tea
     // Loss: Increment consecutive losses and reduce coaching points
     const newConsecutiveLosses = team.consecutiveLosses + 1;
     let newCoachingPoints: number;
-    
+
     switch (newConsecutiveLosses) {
       case 1: newCoachingPoints = 2; break; // 3→2
-      case 2: newCoachingPoints = 1; break; // 2→1  
+      case 2: newCoachingPoints = 1; break; // 2→1
       case 3: newCoachingPoints = 0; break; // 1→0
       default: newCoachingPoints = 0; break; // Stay at 0
     }
-    
+
     return {
       ...team,
       coachingPoints: newCoachingPoints,
@@ -347,15 +347,15 @@ export function updateCoachingPointsAfterBattle(team: Team, isWin: boolean): Tea
 
 // Enhanced team creation with headquarters bonuses and penalties
 export function createDemoPlayerTeamWithBonuses(
-  headquartersBonuses?: Record<string, number>, 
+  headquartersBonuses?: Record<string, number>,
   headquartersPenalties?: Record<string, number>
 ): Team {
   const baseTeam = createDemoPlayerTeam();
-  
+
   // Apply headquarters effects to all team characters
   baseTeam.characters = baseTeam.characters.map(character => {
     let modifiedStats = { ...character.temporaryStats };
-    
+
     // Apply bonuses
     if (headquartersBonuses) {
       Object.entries(headquartersBonuses).forEach(([bonusName, bonusValue]) => {
@@ -388,7 +388,7 @@ export function createDemoPlayerTeamWithBonuses(
         }
       });
     }
-    
+
     // Apply penalties
     if (headquartersPenalties) {
       Object.entries(headquartersPenalties).forEach(([penaltyName, penaltyValue]) => {
@@ -444,28 +444,28 @@ export function createDemoPlayerTeamWithBonuses(
         }
       });
     }
-    
+
     return {
       ...character,
       temporaryStats: modifiedStats
     };
   });
-  
+
   // Recalculate team chemistry with headquarters effects
   baseTeam.teamChemistry = calculateTeamChemistry(
-    baseTeam.characters, 
+    baseTeam.characters,
     { bonuses: headquartersBonuses || {}, penalties: headquartersPenalties || {} }
   );
-  
+
   return baseTeam;
 }
 
 // Helper function to create a full Character from template
 // Create properly initialized character with equipment and real stats
-function createBattleReadyCharacter(templateKey: string, characterId: string, level: number = 1): Character {
+export function createBattleReadyCharacter(templateKey: string, characterId: string, level: number = 1): Character {
   // Use the proper initialization system that includes weapons!
   const character = initializeCharacterWithStartingEquipment(templateKey, level);
-  
+
   // Override the ID to match battle system naming
   return {
     ...character,
@@ -477,17 +477,17 @@ function createBattleReadyCharacter(templateKey: string, characterId: string, le
 export function createDemoPlayerTeam(): Team {
   // Create properly initialized characters with realistic levels and equipment
   const achilles = createBattleReadyCharacter('achilles', 'achilles_001', 12);
-  const merlin = createBattleReadyCharacter('merlin', 'merlin_001', 15);  
+  const merlin = createBattleReadyCharacter('merlin', 'merlin_001', 15);
   const fenrir = createBattleReadyCharacter('fenrir', 'fenrir_001', 8);
-  
+
   // Debug: Log weapon status to verify weapons are equipped
   console.log('🗡️ WEAPON DEBUG:');
   console.log(`Achilles weapon: ${achilles.equippedItems?.weapon?.name || 'NO WEAPON'}`);
   console.log(`Merlin weapon: ${merlin.equippedItems?.weapon?.name || 'NO WEAPON'}`);
   console.log(`Fenrir weapon: ${fenrir.equippedItems?.weapon?.name || 'NO WEAPON'}`);
-  
+
   const characters = [achilles, merlin, fenrir] as Character[];
-  
+
   const team: Team = {
     id: 'demo_team_001',
     name: 'Legendary Squad',
@@ -506,7 +506,7 @@ export function createDemoPlayerTeam(): Team {
     battlesPlayed: 0,
     lastBattleDate: new Date()
   };
-  
+
   // Calculate actual team chemistry (using safe fallback for now due to interface mismatch)
   try {
     team.teamChemistry = calculateTeamChemistry(team.characters as any, undefined);
@@ -514,7 +514,7 @@ export function createDemoPlayerTeam(): Team {
     console.log('Team chemistry calculation failed, using default value');
     team.teamChemistry = 75; // Default reasonable value
   }
-  
+
   return team;
 }
 

@@ -1,6 +1,6 @@
 /**
  * Real Estate Agent Bonus Service
- * 
+ *
  * This service handles applying real estate agent bonuses to facility purchases,
  * training, and other game systems as promised by the agents.
  */
@@ -49,7 +49,7 @@ const AGENT_BONUSES = {
     color: 'text-yellow-400'
   },
   'lmb_3000': {
-    name: 'Dramatic Ambition', 
+    name: 'Dramatic Ambition',
     effects: ['5-12% XP gain increase (by tier)', 'Team "Ambition" trait unlock'],
     icon: '👑',
     color: 'text-purple-400'
@@ -116,7 +116,7 @@ class RealEstateAgentBonusService {
           hasTeamAmbitionTrait: false,
           hasClimateImmunity: false
         };
-      
+
       case 'lmb_3000':
         return {
           facilityCostReduction: 0,
@@ -126,7 +126,7 @@ class RealEstateAgentBonusService {
           hasTeamAmbitionTrait: true,
           hasClimateImmunity: false
         };
-      
+
       case 'zyxthala_reptilian':
         return {
           facilityCostReduction: 0,
@@ -136,7 +136,7 @@ class RealEstateAgentBonusService {
           hasTeamAmbitionTrait: false,
           hasClimateImmunity: true
         };
-      
+
       default:
         return this.getDefaultEffects();
     }
@@ -147,17 +147,17 @@ class RealEstateAgentBonusService {
    */
   applyFacilityCostReduction(originalCost: Cost): Cost {
     const effects = this.getAgentBonusEffects(originalCost);
-    
+
     if (effects.facilityCostReduction > 0) {
       const reduction = effects.facilityCostReduction / 100;
       const reducedCost = {
         coins: Math.floor(originalCost.coins * (1 - reduction)),
         gems: Math.floor(originalCost.gems * (1 - reduction))
       };
-      
+
       const totalCost = originalCost.coins + (originalCost.gems * 100);
       const tier = this.getFacilityTier(totalCost);
-      
+
       console.log(`🏠 Applied ${effects.facilityCostReduction}% cost reduction (${tier} tier):`, {
         original: originalCost,
         reduced: reducedCost,
@@ -166,10 +166,10 @@ class RealEstateAgentBonusService {
           gems: originalCost.gems - reducedCost.gems
         }
       });
-      
+
       return reducedCost;
     }
-    
+
     return originalCost;
   }
 
@@ -178,20 +178,20 @@ class RealEstateAgentBonusService {
    */
   applyTrainingSpeedBoost(baseTime: number): number {
     const effects = this.getAgentBonusEffects();
-    
+
     if (effects.trainingSpeedBoost > 0) {
       const boost = effects.trainingSpeedBoost / 100;
       const reducedTime = Math.floor(baseTime * (1 - boost));
-      
+
       console.log(`🏠 Applied ${effects.trainingSpeedBoost}% training speed boost:`, {
         originalTime: baseTime,
         reducedTime: reducedTime,
         timeSaved: baseTime - reducedTime
       });
-      
+
       return reducedTime;
     }
-    
+
     return baseTime;
   }
 
@@ -200,20 +200,20 @@ class RealEstateAgentBonusService {
    */
   applyXpGainBonus(baseXp: number): number {
     const effects = this.getAgentBonusEffects();
-    
+
     if (effects.xpGainIncrease > 0) {
       const bonus = effects.xpGainIncrease / 100;
       const boostedXp = Math.floor(baseXp * (1 + bonus));
-      
+
       console.log(`🏠 Applied ${effects.xpGainIncrease}% XP gain bonus:`, {
         baseXp: baseXp,
         boostedXp: boostedXp,
         bonus: boostedXp - baseXp
       });
-      
+
       return boostedXp;
     }
-    
+
     return baseXp;
   }
 
@@ -222,20 +222,20 @@ class RealEstateAgentBonusService {
    */
   applyEnergyRegenBonus(baseRegen: number): number {
     const effects = this.getAgentBonusEffects();
-    
+
     if (effects.energyRegenBonus > 0) {
       const bonus = effects.energyRegenBonus / 100;
       const boostedRegen = Math.floor(baseRegen * (1 + bonus));
-      
+
       console.log(`🏠 Applied ${effects.energyRegenBonus}% energy regen bonus:`, {
         baseRegen: baseRegen,
         boostedRegen: boostedRegen,
         bonus: boostedRegen - baseRegen
       });
-      
+
       return boostedRegen;
     }
-    
+
     return baseRegen;
   }
 
@@ -263,7 +263,7 @@ class RealEstateAgentBonusService {
 
     // Use standard tier as default for global XP calculations
     const xpBonus = this.getLmbTieredBonus('standard');
-    
+
     return {
       id: 'lmb_xp_bonus',
       name: 'LMB-3000 XP Boost',
@@ -285,7 +285,7 @@ class RealEstateAgentBonusService {
     const totalCost = facilityCost ? facilityCost.coins + (facilityCost.gems * 100) : 0;
     const tier = this.getFacilityTier(totalCost);
     const bonus = this.getZyxthalaTieredBonus(tier);
-    
+
     return 1 + (bonus / 100);
   }
 
@@ -296,7 +296,7 @@ class RealEstateAgentBonusService {
     if (!this.selectedAgentId) {
       return null;
     }
-    
+
     return AGENT_BONUSES[this.selectedAgentId] || null;
   }
 
@@ -305,10 +305,10 @@ class RealEstateAgentBonusService {
    */
   private logCurrentBonuses(): void {
     const effects = this.getAgentBonusEffects();
-    const agentName = this.selectedAgentId ? 
-      AGENT_BONUSES[this.selectedAgentId]?.name || 'Unknown' : 
+    const agentName = this.selectedAgentId ?
+      AGENT_BONUSES[this.selectedAgentId]?.name || 'Unknown' :
       'None';
-    
+
     console.log(`🏠 Active Real Estate Agent Bonuses (${agentName}):`, {
       facilityCostReduction: `${effects.facilityCostReduction}%`,
       trainingSpeedBoost: `${effects.trainingSpeedBoost}%`,
@@ -340,6 +340,9 @@ class RealEstateAgentBonusService {
    */
   private saveToStorage(): void {
     try {
+      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+        return; // Skip localStorage in SSR
+      }
       if (this.selectedAgentId) {
         localStorage.setItem(this.STORAGE_KEY, this.selectedAgentId);
       } else {
@@ -355,6 +358,9 @@ class RealEstateAgentBonusService {
    */
   private loadFromStorage(): void {
     try {
+      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+        return; // Skip localStorage in SSR
+      }
       const savedAgentId = localStorage.getItem(this.STORAGE_KEY);
       if (savedAgentId && AGENT_BONUSES[savedAgentId]) {
         this.selectedAgentId = savedAgentId;

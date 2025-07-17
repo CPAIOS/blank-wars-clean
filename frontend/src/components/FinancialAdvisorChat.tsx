@@ -10,7 +10,7 @@ import { Character } from '../data/characters';
 import ConflictContextService from '../services/conflictContextService';
 import EventContextService from '../services/eventContextService';
 import { makeFinancialJudgeDecision, FinancialJudgeDecision, FinancialEventContext } from '../data/aiJudgeSystem';
-import { financialPsychologyService } from '../services/financialPsychologyService';
+import { FinancialPsychologyService } from '../services/financialPsychologyService';
 import { FinancialPromptTemplateService } from '../data/financialPromptTemplateService';
 
 interface Message {
@@ -43,14 +43,7 @@ interface FinancialDecision {
 
 interface EnhancedCharacter extends Character {
   baseName: string;
-  financials?: {
-    wallet: number;
-    financialStress: number;
-    coachTrustLevel: number;
-    spendingPersonality: string;
-    recentDecisions: any[];
-    monthlyEarnings: number;
-  };
+  displayBondLevel?: number;
 }
 
 interface FinancialAdvisorChatProps {
@@ -132,7 +125,7 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
 
     socketRef.current.on('chat_response', (data) => {
       setIsLoading(false);
-      
+
       if (data.error) {
         const errorMessage: Message = {
           id: Date.now(),
@@ -209,7 +202,7 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
     ];
 
     const decision = decisionTypes[Math.floor(Math.random() * decisionTypes.length)];
-    
+
     return {
       id: `decision_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       characterId: character.id,
@@ -228,34 +221,34 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
   const processCharacterDecision = async (decision: FinancialDecision, coachInput?: string) => {
     if (!selectedCharacter) return;
 
-    const trustLevel = selectedCharacter.financials?.coachTrustLevel || 50;
+    const trustLevel = selectedCharacter.financials?.coachFinancialTrust || 50;
     const stressLevel = selectedCharacter.financials?.financialStress || 30;
-    const spendingPersonality = selectedCharacter.financials?.spendingPersonality || 'moderate';
-    
+    const spendingPersonality = selectedCharacter.financialPersonality?.spendingStyle || 'moderate';
+
     // Calculate decision factors
     let decisionScore = Math.random() * 100;
-    
+
     // Adjust based on coach trust
     if (coachInput && trustLevel > 60) {
       decisionScore += 20; // More likely to listen to good advice
     }
-    
+
     // Adjust based on stress (stressed characters make worse decisions)
     if (stressLevel > 70) {
       decisionScore -= 25;
     }
-    
+
     // Adjust based on personality
     if (spendingPersonality === 'impulsive') {
       decisionScore -= 15;
     } else if (spendingPersonality === 'conservative') {
       decisionScore += 15;
     }
-    
+
     // Decision is handled by the WebSocket response
     // Clear the pending decision after processing
     setPendingDecision(null);
-    
+
     return { decisionScore };
   };
 
@@ -275,13 +268,13 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
 
     try {
       const characterId = getCharacterId(selectedCharacter);
-      
+
       // Get context services like other working chats
       const eventContextService = EventContextService.getInstance();
       const conflictService = ConflictContextService.getInstance();
-      
+
       console.log('🆔 Financial chat using character ID:', characterId, 'for character:', selectedCharacter.name);
-      
+
       // Try to get living context with graceful error handling
       let livingContext = null;
       try {
@@ -291,7 +284,7 @@ const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({
         console.warn('⚠️ Could not generate living context for financial chat:', error);
         livingContext = `Living in team quarters with other legendary figures. Current living situation affects financial decisions and stress levels.`;
       }
-      
+
       // Generate event context for financial domain
       let eventContext = null;
       try {
@@ -385,7 +378,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
           pendingFinancialDecision: pendingDecision,
           // Add comprehensive financial coaching conversation context like CoachingSessionChat
           conversationContext: `${financialPrompt}`,
-          
+
           // Domain-specific coaching context enhanced with proper templates
           sessionContext: {
             type: 'financial_advisory',
@@ -402,7 +395,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
 
       // Note: Don't automatically process decisions here - let the coach use the preset buttons
       // The processCharacterDecision function will be called from handlePresetDecision instead
-      
+
       // Decision generation is now only done once per character selection in the initial greeting
     } catch (error) {
       console.error('Error in financial chat:', error);
@@ -436,20 +429,20 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
     const stress = character.financials?.financialStress || 30;
     const trust = character.financials?.coachTrustLevel || 50;
     const monthlyEarnings = character.financials?.monthlyEarnings || 6055;
-    
+
     // Calculate decision amount as percentage of available funds
     const percentOfWallet = (decision.amount / wallet) * 100;
     const percentOfMonthlyEarnings = (decision.amount / monthlyEarnings) * 100;
-    
+
     // EXTREMELY RESTRICTIVE automated decisions - almost never automate
     // The coaching interaction is the core gameplay experience
-    
+
     // Only automate VERY obvious tiny purchases
     if (percentOfWallet < 2 && percentOfMonthlyEarnings < 10 && decision.amount < 500) return 'good'; // Tiny purchases like coffee
-    
+
     // Only automate completely impossible purchases (10x wallet amount)
     if (decision.amount > wallet * 10) return 'bad'; // Impossible purchases like $200k car with $19k wallet
-    
+
     // Everything else goes to manual coaching - this is the core gameplay
     // Even "can't afford" decisions should be shown to coach for educational value
     return null;
@@ -603,7 +596,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
         financialStress: Math.max(0, Math.min(100, (selectedCharacter.financials?.financialStress || 0) + outcome.stressChange)),
         coachTrustLevel: Math.max(0, Math.min(100, (selectedCharacter.financials?.coachTrustLevel || 0) + outcome.trustChange))
       });
-      
+
       await characterAPI.saveDecision(selectedCharacter.id, {
         decision: decision.description,
         amount: decision.amount,
@@ -611,7 +604,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
         outcome: outcome.result,
         timestamp: new Date()
       });
-      
+
       console.log('Financial decision saved to backend successfully');
     } catch (error) {
       console.error('Failed to save financial decision:', error);
@@ -636,10 +629,10 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
 
     const trustLevel = selectedCharacter.financials?.coachTrustLevel || 50;
     const stressLevel = selectedCharacter.financials?.financialStress || 30;
-    
+
     let outcome: any;
     let coachMessage: string;
-    
+
     if (decisionType === 'bad') {
       // Coach rejects the decision
       outcome = await processDecisionOutcome(pendingDecision, 'rejected', trustLevel, stressLevel);
@@ -667,10 +660,10 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
     // Send through WebSocket for character response
     if (socketRef.current && connected) {
       setIsLoading(true);
-      
+
       // Use the same format as handleSendMessage for consistency
       const characterId = getCharacterId(selectedCharacter);
-      
+
       // Get living context and event context for robust response
       const getLivingContext = async () => {
         try {
@@ -773,7 +766,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
             // Decision context
             decisionOutcome: outcome,
             coachDecision: decisionType,
-            
+
             // Domain-specific coaching context enhanced with proper templates
             sessionContext: {
               type: 'financial_advisory',
@@ -808,9 +801,9 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
           const characterId = getCharacterId(selectedCharacter);
           const conflictService = ConflictContextService.getInstance();
           const eventContextService = EventContextService.getInstance();
-          
+
           console.log('🆔 Financial greeting using character ID:', characterId, 'for character:', selectedCharacter.name);
-          
+
           // Try to get living context with graceful error handling
           let livingContext = null;
           try {
@@ -820,7 +813,7 @@ Respond as ${selectedCharacter?.name} would in a real financial coaching session
             console.warn('⚠️ Could not generate living context for financial greeting:', error);
             livingContext = `Living in team quarters with other legendary figures. Current living situation affects financial decisions and stress levels.`;
           }
-          
+
           // Generate event context for initial greeting
           let eventContext = null;
           try {
@@ -904,7 +897,7 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
               },
               // Add comprehensive financial coaching conversation context like CoachingSessionChat
               conversationContext: `${greetingPrompt}`,
-              
+
               // Domain-specific coaching context enhanced with proper templates
               sessionContext: {
                 type: 'financial_advisory',
@@ -929,15 +922,15 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
       };
 
       initializeChat();
-      
+
       // Generate an initial decision after a short delay
       const timeoutId = setTimeout(async () => {
         if (!pendingDecision) { // Double check to prevent race conditions
           const decision = generateFinancialDecision(selectedCharacter);
-          
+
           // Check if this should be automated
           const autoDecision = shouldAutomate(decision, selectedCharacter);
-          
+
           console.log('🤖 Initial decision automation check:', {
             decision: decision.description,
             amount: decision.amount,
@@ -945,23 +938,23 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
             autoDecision,
             percentOfWallet: ((decision.amount / (selectedCharacter.financials?.wallet || 19073)) * 100).toFixed(1) + '%'
           });
-          
+
           if (autoDecision) {
             // Process automatically without showing to user
             const outcome = await processDecisionOutcome(decision, autoDecision === 'bad' ? 'rejected' : 'approved', selectedCharacter.financials?.coachTrustLevel || 50, selectedCharacter.financials?.financialStress || 30);
-            
+
             const autoMessage: Message = {
               id: Date.now() + 1,
               type: 'system',
               content: `${selectedCharacter.name} ${autoDecision === 'bad' ? 'decided against' : 'went ahead with'} ${decision.description} (${autoDecision === 'bad' ? 'clearly risky' : 'obviously good'} decision). ${outcome?.message || ''}`,
               timestamp: new Date()
             };
-            
+
             setMessages(prev => [...prev, autoMessage]);
           } else {
             // Show to user for manual coaching
             setPendingDecision(decision);
-            
+
             const decisionMessage: Message = {
               id: Date.now() + 1,
               type: 'decision',
@@ -975,12 +968,12 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
                 urgency: decision.urgency
               }
             };
-            
+
             setMessages(prev => [...prev, decisionMessage]);
           }
         }
       }, 8000); // Wait longer for initial greeting to complete
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [selectedCharacter, connected]);
@@ -1007,7 +1000,7 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
           </span>
         </div>
       </div>
-      
+
       {/* Financial Status Bar */}
       <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-gray-700/30 rounded-lg">
         <div className="text-center">
@@ -1036,8 +1029,8 @@ Respond as ${selectedCharacter?.name} would when first meeting a financial coach
             className={`flex ${message.type === 'player' ? 'justify-end' : 'justify-start'}`}
           >
             <div className={`max-w-xs lg:max-w-md xl:max-w-lg px-4 py-2 rounded-lg ${
-              message.type === 'player' 
-                ? 'bg-green-600 text-white' 
+              message.type === 'player'
+                ? 'bg-green-600 text-white'
                 : message.type === 'decision'
                 ? 'bg-yellow-600/80 text-white border-2 border-yellow-400'
                 : 'bg-gray-700 text-gray-100'
