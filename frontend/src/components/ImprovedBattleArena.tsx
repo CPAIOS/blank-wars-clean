@@ -193,6 +193,14 @@ export default function ImprovedBattleArena() {
       } catch (error) {
         console.error('Failed to load headquarters data:', error);
         setHeadquartersError('Unable to load headquarters data. Using default setup.');
+        // Set default headquarters data when API fails
+        setHeadquarters({
+          facilities: [],
+          bonuses: {},
+          penalties: {},
+          tier: 'basic',
+          upgrades: []
+        });
         // Clear error after 5 seconds
         setTimeout(() => setHeadquartersError(null), 5000);
       }

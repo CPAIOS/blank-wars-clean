@@ -110,7 +110,7 @@ function HomePageContent() {
         {/* Arena-like gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-black/50 to-red-900/30 animate-gradient-shift"></div>
         {/* Subtle pattern overlay for "cramped living quarters" feel */}
-        <div className="absolute inset-0 bg-[url('/images/cramped_quarters_pattern.png')] opacity-5 pointer-events-none"></div>
+        {/* <div className="absolute inset-0 bg-[url('/images/cramped_quarters_pattern.png')] opacity-5 pointer-events-none"></div> */}
         {/* Optional: Placeholder for a subtle video loop or animation */}
         {/* <video autoPlay loop muted className="absolute inset-0 w-full h-full object-cover opacity-20">
           <source src="/videos/homepage_bg_loop.mp4" type="video/mp4" />
