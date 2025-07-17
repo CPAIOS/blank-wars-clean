@@ -248,7 +248,7 @@ export default function LobbyComponent({ userProfile }: LobbyProps) {
                   <button onClick={leaveLobby} className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white p-4 rounded-lg font-semibold text-xl shadow-lg transition-all duration-300 transform hover:scale-105">
                     <LogOut className="inline-block mr-2 w-6 h-6" /> Close Lobby
                   </button>
-                  
+
                   <div className="mt-8 pt-6 border-t border-gray-700">
                     <h4 className="text-xl font-semibold mb-4 text-gray-300">Lobby Settings</h4>
                     <label className="flex items-center cursor-pointer">

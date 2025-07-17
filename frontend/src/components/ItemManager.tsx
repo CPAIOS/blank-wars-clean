@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Package, 
-  Pill, 
-  Zap, 
-  BookOpen, 
+import {
+  Package,
+  Pill,
+  Zap,
+  BookOpen,
   Sword,
   Star,
   Plus,
@@ -22,8 +22,8 @@ import {
   Info
 } from 'lucide-react';
 import {
-  Item, 
-  ItemType, 
+  Item,
+  ItemType,
   ItemRarity,
   UsageContext,
   allItems,
@@ -73,20 +73,20 @@ export default function ItemManager({
     .filter(invItem => {
       const item = allItems.find(i => i.id === invItem.itemId);
       if (!item) return false;
-      
+
       const typeMatch = selectedType === 'all' || item.type === selectedType;
       const rarityMatch = selectedRarity === 'all' || item.rarity === selectedRarity;
       const searchMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
       const contextMatch = canUseItem(item, characterLevel, context);
-      
+
       return typeMatch && rarityMatch && searchMatch && contextMatch;
     })
     .sort((a, b) => {
       const itemA = allItems.find(i => i.id === a.itemId);
       const itemB = allItems.find(i => i.id === b.itemId);
       if (!itemA || !itemB) return 0;
-      
+
       switch (sortBy) {
         case 'name':
           return itemA.name.localeCompare(itemB.name);
@@ -109,13 +109,13 @@ export default function ItemManager({
       const rarityMatch = selectedRarity === 'all' || item.rarity === selectedRarity;
       const searchMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const obtainMatch = item.obtainMethod === 'shop';
-      
+
       return typeMatch && rarityMatch && searchMatch && obtainMatch;
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Available crafting recipes
-  const availableRecipes = craftingRecipes.filter(recipe => 
+  const availableRecipes = craftingRecipes.filter(recipe =>
     !recipe.requiredLevel || characterLevel >= recipe.requiredLevel
   );
 
@@ -142,7 +142,7 @@ export default function ItemManager({
 
   const canCraft = (recipe: CraftingRecipe): boolean => {
     if (gold < recipe.goldCost) return false;
-    
+
     return recipe.materials.every(material => {
       const available = getInventoryQuantity(material.itemId);
       return available >= material.quantity;
@@ -280,7 +280,7 @@ export default function ItemManager({
               {filteredInventory.map((invItem) => {
                 const item = allItems.find(i => i.id === invItem.itemId);
                 if (!item) return null;
-                
+
                 const rarity = itemRarityConfig[item.rarity];
 
                 return (
@@ -304,7 +304,7 @@ export default function ItemManager({
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="text-right">
                         <div className="text-lg font-bold text-white">
                           {invItem.quantity}
@@ -383,7 +383,7 @@ export default function ItemManager({
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="text-right">
                         <div className={`text-lg font-bold ${affordable ? 'text-yellow-400' : 'text-red-400'}`}>
                           {item.price} 🪙
@@ -607,7 +607,7 @@ export default function ItemManager({
                     Use Item
                   </button>
                 )}
-                
+
                 {activeTab === 'shop' && onBuyItem && canAfford(selectedItem) && (
                   <button
                     onClick={() => {
@@ -619,7 +619,7 @@ export default function ItemManager({
                     Buy Item
                   </button>
                 )}
-                
+
                 <button
                   onClick={() => setSelectedItem(null)}
                   className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Package,
   Sword,
   Shield,
@@ -55,7 +55,7 @@ import {
   Equipment,
   // Item, // Not exported
   allEquipment,
-  // allItems, // Not exported  
+  // allItems, // Not exported
   // getEquipmentById, // Not exported
   // getItemById, // Not exported
   // getRarityColor, // Not exported - defined locally instead
@@ -129,7 +129,7 @@ export default function InventoryManager({
   // Get filtered and sorted items
   const getFilteredItems = () => {
     let items = inventory.items;
-    
+
     // Apply tab filter
     if (activeTab === 'equipment') {
       items = items.filter(item => {
@@ -145,7 +145,7 @@ export default function InventoryManager({
 
     // Apply filters
     items = filterInventoryItems(items, filter);
-    
+
     // Apply search
     if (filter.search) {
       items = items.filter(item => {
@@ -170,7 +170,7 @@ export default function InventoryManager({
   // Calculate total character stats with equipment
   const calculateTotalStats = () => {
     const baseStats = { ...character.stats };
-    
+
     Object.values(inventory.equipped).forEach(item => {
       if (item) {
         const equipment = getEquipmentById(item.itemId) as Equipment;
@@ -203,7 +203,7 @@ export default function InventoryManager({
     if (target.startsWith('equip_')) {
       const slot = target.replace('equip_', '') as 'weapon' | 'armor' | 'accessory';
       const equipment = getEquipmentById(draggedItem.itemId) as Equipment;
-      
+
       if (equipment && equipment.slot === slot) {
         const result = equipItem(inventory, draggedItem.id, slot);
         if (result.success) {
@@ -256,7 +256,7 @@ export default function InventoryManager({
     if (result.success) {
       setInventory(result.updatedInventory);
       onInventoryChange?.(result.updatedInventory);
-      
+
       // Apply item effects (demo)
       console.log(`Used ${gameItem.name}: ${gameItem.description}`);
     }
@@ -316,12 +316,12 @@ export default function InventoryManager({
               <Star className="w-5 h-5 text-yellow-400" />
               Character Stats
             </h2>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {Object.entries(totalStats).map(([stat, value]) => {
                 const baseStat = character.stats[stat] || 0;
                 const bonus = value - baseStat;
-                
+
                 return (
                   <div key={stat} className="text-center">
                     <div className="text-2xl font-bold text-white mb-1">
@@ -367,18 +367,18 @@ export default function InventoryManager({
           <Shield className="w-5 h-5 text-blue-400" />
           Equipment Slots
         </h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {(['weapon', 'armor', 'accessory'] as const).map((slot) => {
             const equippedItem = inventory.equipped[slot];
             const itemData = equippedItem ? getItemData(equippedItem) : null;
-            
+
             return (
               <div
                 key={slot}
                 className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-                  dropTarget === `equip_${slot}` 
-                    ? 'border-green-500 bg-green-500/20' 
+                  dropTarget === `equip_${slot}`
+                    ? 'border-green-500 bg-green-500/20'
                     : 'border-gray-600 hover:border-gray-500'
                 }`}
                 onDragOver={(e) => {
@@ -392,11 +392,11 @@ export default function InventoryManager({
                 }}
               >
                 <div className="text-4xl mb-2">
-                  {equippedItem ? getItemIcon(itemData!) : 
-                   slot === 'weapon' ? '⚔️' : 
+                  {equippedItem ? getItemIcon(itemData!) :
+                   slot === 'weapon' ? '⚔️' :
                    slot === 'armor' ? '🛡️' : '💍'}
                 </div>
-                
+
                 {equippedItem && itemData ? (
                   <div>
                     <h3 className={`font-bold mb-1 ${getRarityColor(itemData.rarity).replace('from-', 'text-').replace('to-', '').split(' ')[0]}`}>
@@ -428,13 +428,13 @@ export default function InventoryManager({
             {[1, 2, 3, 4].map((slotNumber) => {
               const slotItem = inventory.quickAccess[`slot${slotNumber}` as keyof typeof inventory.quickAccess];
               const itemData = slotItem ? getItemData(slotItem) : null;
-              
+
               return (
                 <div
                   key={slotNumber}
                   className={`border-2 border-dashed rounded-lg p-4 text-center aspect-square flex flex-col items-center justify-center transition-all ${
-                    dropTarget === `quick_${slotNumber}` 
-                      ? 'border-green-500 bg-green-500/20' 
+                    dropTarget === `quick_${slotNumber}`
+                      ? 'border-green-500 bg-green-500/20'
                       : 'border-gray-600 hover:border-gray-500'
                   }`}
                   onDragOver={(e) => {
@@ -588,8 +588,8 @@ export default function InventoryManager({
       {activeTab !== 'loadouts' && (
         <div className="bg-gray-900/50 rounded-xl border border-gray-700 p-6">
           <div className={`grid gap-4 ${
-            viewMode === 'grid' 
-              ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6' 
+            viewMode === 'grid'
+              ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6'
               : 'grid-cols-1'
           }`}>
             {filteredItems.map((item) => {
@@ -597,7 +597,7 @@ export default function InventoryManager({
               if (!itemData) return null;
 
               const isEquipment = 'slot' in itemData;
-              const canEquip = isEquipment && !item.isEquipped && 
+              const canEquip = isEquipment && !item.isEquipped &&
                 canEquipItem(itemData as Equipment, character);
 
               return (
@@ -605,7 +605,7 @@ export default function InventoryManager({
                   key={item.id}
                   layout
                   className={`border rounded-xl cursor-pointer transition-all ${
-                    item.isEquipped 
+                    item.isEquipped
                       ? 'border-green-500 bg-green-500/10'
                       : 'border-gray-600 hover:border-blue-500'
                   } ${viewMode === 'list' ? 'flex gap-4 p-4' : 'p-3'}`}
@@ -620,7 +620,7 @@ export default function InventoryManager({
                 >
                   <div className={`${viewMode === 'list' ? 'w-16 h-16' : 'aspect-square mb-2'} bg-gradient-to-br ${getRarityColor(itemData.rarity)}/20 rounded-lg flex items-center justify-center relative`}>
                     <div className="text-3xl">{getItemIcon(itemData)}</div>
-                    
+
                     {/* Quantity badge */}
                     {item.quantity > 1 && (
                       <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs px-1 py-0.5 rounded-full">
@@ -647,7 +647,7 @@ export default function InventoryManager({
                       {itemData.name}
                     </h3>
                     <p className="text-xs text-gray-400 capitalize mb-2">{itemData.rarity}</p>
-                    
+
                     {viewMode === 'list' && (
                       <p className="text-xs text-gray-300 mb-2">{itemData.description}</p>
                     )}
@@ -674,7 +674,7 @@ export default function InventoryManager({
                             <Zap className="w-3 h-3" />
                           </button>
                         )}
-                        
+
                         {!isEquipment && (itemData as Item).type === 'consumable' && (
                           <button
                             onClick={(e) => {
@@ -733,7 +733,7 @@ export default function InventoryManager({
                       <span className="bg-green-500 text-white text-xs px-2 py-1 rounded">ACTIVE</span>
                     )}
                   </div>
-                  
+
                   {loadout.description && (
                     <p className="text-sm text-gray-400 mb-3">{loadout.description}</p>
                   )}
@@ -875,7 +875,7 @@ export default function InventoryManager({
                             Equip
                           </button>
                         )}
-                        
+
                         {!isEquipment && (itemData as Item).type === 'consumable' && (
                           <button
                             onClick={() => {
@@ -887,7 +887,7 @@ export default function InventoryManager({
                             Use Item
                           </button>
                         )}
-                        
+
                         <button
                           onClick={() => setShowItemDetails(false)}
                           className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg font-semibold transition-colors"

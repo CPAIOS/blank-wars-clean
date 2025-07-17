@@ -27,28 +27,28 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     console.error('API Response Error:', error);
-    
+
     // Handle specific error types
     if (error.code === 'ECONNABORTED') {
       throw new Error('Request timeout - please check your connection');
     }
-    
+
     if (error.response?.status === 401) {
       throw new Error('Authentication required - please log in');
     }
-    
+
     if (error.response?.status === 403) {
       throw new Error('Permission denied');
     }
-    
+
     if (error.response?.status === 404) {
       throw new Error('Resource not found');
     }
-    
+
     if (error.response?.status >= 500) {
       throw new Error('Server error - please try again later');
     }
-    
+
     throw new Error(error.response?.data?.message || 'Network error - please check your connection');
   }
 );
@@ -131,42 +131,42 @@ export const characterAPI = {
     console.log('🔄 [characterAPI] Response data:', response.data);
     return response.data;
   },
-  
+
   updateCharacter: async (characterId: string, updates: CharacterUpdates) => {
     const response = await apiClient.put(`/characters/${characterId}`, updates);
     return response.data;
   },
-  
+
   updateFinancials: async (characterId: string, financialData: FinancialData) => {
     const response = await apiClient.put(`/characters/${characterId}/financials`, financialData);
     return response.data;
   },
-  
+
   saveDecision: async (characterId: string, decision: FinancialDecision) => {
     const response = await apiClient.post(`/characters/${characterId}/decisions`, decision);
     return response.data;
   },
-  
+
   updateStats: async (characterId: string, stats: CharacterStats) => {
     const response = await apiClient.put(`/characters/${characterId}/stats`, stats);
     return response.data;
   },
-  
+
   incrementStats: async (characterId: string, statChanges: CharacterStats) => {
     const response = await apiClient.post(`/characters/${characterId}/stats/increment`, statChanges);
     return response.data;
   },
-  
+
   saveTherapySession: async (characterId: string, sessionData: TherapySessionData) => {
     const response = await apiClient.post(`/characters/${characterId}/therapy`, sessionData);
     return response.data;
   },
-  
+
   saveTrainingProgress: async (characterId: string, trainingData: TrainingData) => {
     const response = await apiClient.post(`/characters/${characterId}/training`, trainingData);
     return response.data;
   },
-  
+
   getHeadquarters: async (userId: string) => {
     const response = await apiClient.get(`/users/${userId}/headquarters`);
     return response.data;
