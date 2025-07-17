@@ -10,6 +10,7 @@ import { createDemoCharacterCollection } from '@/data/characters';
 import ConflictDatabaseService, { ConflictData, TherapyContext } from '@/services/ConflictDatabaseService';
 import { characterAPI } from '@/services/apiClient';
 import { therapyChatService } from '@/data/therapyChatService';
+import { io, Socket } from 'socket.io-client';
 
 // Team Building Events (from TeamBuildingWrapper)
 interface TeamEvent {
@@ -238,6 +239,7 @@ export default function CombinedGroupActivitiesWrapper() {
   
   // Chat window refs
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const groupSocketRef = useRef<Socket | null>(null);
   const conflictService = ConflictDatabaseService.getInstance();
 
   // Load characters with conflict data on component mount
@@ -277,6 +279,38 @@ export default function CombinedGroupActivitiesWrapper() {
     };
     
     loadCharactersAndConflicts();
+  }, []);
+
+  // Initialize Socket.IO connection like working components
+  useEffect(() => {
+    // Determine backend URL based on environment
+    let socketUrl: string;
+    
+    if (process.env.NODE_ENV === 'production') {
+      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-backend.railway.app';
+    } else {
+      socketUrl = 'http://localhost:3006';
+    }
+    
+    console.log('🔌 [GroupChat] Connecting to backend:', socketUrl);
+    
+    groupSocketRef.current = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      forceNew: true,
+    });
+
+    groupSocketRef.current.on('connect', () => {
+      console.log('✅ GroupChat Socket connected!');
+    });
+
+    groupSocketRef.current.on('disconnect', () => {
+      console.log('❌ GroupChat Socket disconnected');
+    });
+
+    return () => {
+      groupSocketRef.current?.disconnect();
+    };
   }, []);
 
   // Auto-scroll chat to bottom
@@ -687,41 +721,28 @@ export default function CombinedGroupActivitiesWrapper() {
   ): Promise<string> => {
     console.log('🎭 Generating response for:', character.name, 'to message:', facilitatorMessage.substring(0, 50) + '...');
     
-    try {
-      // Build conflict-aware character prompt
-      const characterPrompt = await buildConflictAwareCharacterPrompt(
-        character, 
-        facilitatorMessage, 
-        eventType, 
-        chatHistory
-      );
-      
-      console.log('📝 Generated prompt length:', characterPrompt.length);
-      
-      // Use environment-based URL selection
-      let BACKEND_URL: string;
-      const isLocalhost = typeof window !== 'undefined' && 
-                         (window.location.hostname === 'localhost' || 
-                          window.location.hostname === '127.0.0.1');
-      
-      if (isLocalhost) {
-        BACKEND_URL = 'http://localhost:3006';
-      } else {
-        BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-clean-production.up.railway.app';
-      }
-      
-      console.log('🌐 Making API call to:', `${BACKEND_URL}/api/coaching/group-activity`);
-      
-      const response = await fetch(`${BACKEND_URL}/api/coaching/group-activity`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+    return new Promise((resolve, reject) => {
+      try {
+        // Build conflict-aware character prompt
+        const characterPrompt = buildConflictAwareCharacterPrompt(
+          character, 
+          facilitatorMessage, 
+          eventType, 
+          chatHistory
+        );
+        
+        console.log('📝 Generated prompt length:', characterPrompt.length);
+        
+        // Use Socket.IO like working components
+        if (!groupSocketRef.current) {
+          reject(new Error('Socket not connected'));
+          return;
+        }
+        
+        const requestData = {
           characterId: character.templateId || character.id,
           characterName: character.name,
-          coachMessage: facilitatorMessage,
+          message: facilitatorMessage,
           eventType: eventType,
           promptOverride: characterPrompt,
           context: {
@@ -739,41 +760,53 @@ export default function CombinedGroupActivitiesWrapper() {
               content: msg.message
             }))
           }
-        })
-      });
-
-      console.log('🌐 API Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ API Error:', response.status, errorText);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        };
+        
+        // Create unique response handler
+        const responseHandler = (data: { character: string; message: string }) => {
+          if (data.character === character.name) {
+            groupSocketRef.current?.off('chat_response', responseHandler);
+            console.log('✅ Received socket response for:', character.name);
+            resolve(data.message);
+          }
+        };
+        
+        const errorHandler = (error: { message: string }) => {
+          groupSocketRef.current?.off('chat_response', responseHandler);
+          groupSocketRef.current?.off('chat_error', errorHandler);
+          console.error('❌ Socket error for:', character.name, error);
+          reject(new Error(error.message));
+        };
+        
+        // Set up listeners
+        groupSocketRef.current.on('chat_response', responseHandler);
+        groupSocketRef.current.on('chat_error', errorHandler);
+        
+        // Send message via socket
+        console.log('📤 Sending group chat message for:', character.name);
+        groupSocketRef.current.emit('chat_message', requestData);
+        
+        // Timeout after 15 seconds
+        setTimeout(() => {
+          groupSocketRef.current?.off('chat_response', responseHandler);
+          groupSocketRef.current?.off('chat_error', errorHandler);
+          reject(new Error('Response timeout'));
+        }, 15000);
+        
+      } catch (error) {
+        console.error('❌ Error setting up socket response:', error);
+        reject(error);
       }
-
-      const data = await response.json();
-      console.log('✅ API Response data:', data);
-      
-      if (data.message) {
-        console.log('✅ Using real AI response:', data.message.substring(0, 100) + '...');
-        return data.message;
-      } else {
-        console.error('❌ No message in API response');
-        throw new Error('No message in API response');
-      }
-      
-    } catch (error) {
-      console.error('❌ CRITICAL: Real API failed:', error);
-      throw error; // Don't use fallback - we need real API
-    }
+    });
   };
 
   // Build conflict-aware character prompt for group activities
-  const buildConflictAwareCharacterPrompt = async (
+  const buildConflictAwareCharacterPrompt = (
     character: any,
     facilitatorMessage: string,
     eventType: string,
     chatHistory: ChatMessage[]
-  ): Promise<string> => {
+  ): string => {
     try {
       // Get character's specific conflicts
       const characterKey = character.templateId || character.id;

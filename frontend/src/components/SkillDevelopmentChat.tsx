@@ -54,7 +54,7 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
         },
         level: char.level || 1,
         experience: char.experience || 0,
-        abilities: char.abilities || [],
+        abilities: Array.isArray(char.abilities) ? char.abilities : [],
         archetype: char.archetype || 'warrior',
         avatar: char.avatar || '⚔️',
         name: char.name || 'Unknown Character',
@@ -82,11 +82,11 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   const { baseStats, combatStats, abilities, archetype } = character;
   
   // Ability-specific skill development advice
-  if (abilities && abilities.length > 0) {
-    const attackAbilities = abilities.filter(a => a.type === 'attack');
-    const defenseAbilities = abilities.filter(a => a.type === 'defense');
-    const specialAbilities = abilities.filter(a => a.type === 'special');
-    const supportAbilities = abilities.filter(a => a.type === 'support');
+  if (Array.isArray(abilities) && abilities.length > 0) {
+    const attackAbilities = abilities.filter(a => a && a.type === 'attack');
+    const defenseAbilities = abilities.filter(a => a && a.type === 'defense');
+    const specialAbilities = abilities.filter(a => a && a.type === 'special');
+    const supportAbilities = abilities.filter(a => a && a.type === 'support');
     
     if (attackAbilities.length > 2) {
       advice.push(`Focus on mastering your ${attackAbilities.length} attack abilities for maximum damage`);
@@ -202,7 +202,11 @@ export default function SkillDevelopmentChat({
 
   // Use props if available, otherwise use local state
   const availableCharacters = propAvailableCharacters || localAvailableCharacters;
-  const selectedCharacter = propSelectedCharacter || availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
+  const selectedCharacter = propSelectedCharacter || availableCharacters.find(c => 
+    c.baseName === globalSelectedCharacterId || 
+    c.name?.toLowerCase() === globalSelectedCharacterId.toLowerCase() ||
+    c.id === globalSelectedCharacterId
+  ) || availableCharacters[0];
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -382,7 +386,7 @@ export default function SkillDevelopmentChat({
 IMPORTANT: You MUST reference your actual skills, abilities, and training progress in conversation. You are fully aware of:
 
 YOUR CURRENT ABILITIES AND SKILLS:
-${selectedCharacter.abilities?.length > 0 ? 
+${Array.isArray(selectedCharacter.abilities) && selectedCharacter.abilities.length > 0 ? 
   selectedCharacter.abilities.map(ability => `- ${ability.name}: ${ability.description || 'Special ability'} (Power: ${ability.power}, Cooldown: ${ability.cooldown})`).join('\n') : 
   '- No abilities learned yet'
 }
@@ -400,12 +404,12 @@ YOUR CURRENT STATS (reference these specific numbers):
 YOUR TRAINING PROGRESS:
 - Training Points Available: ${Math.floor(selectedCharacter.level * 1.5)}
 - Bond Level: ${selectedCharacter.bondLevel || selectedCharacter.bond_level || 50}
-- Skills Learned: ${selectedCharacter.abilities?.length || 0} abilities
+- Skills Learned: ${Array.isArray(selectedCharacter.abilities) ? selectedCharacter.abilities.length : 0} abilities
 
-You should naturally reference your current abilities, discuss which skills you want to learn next, and explain how new abilities would improve your combat effectiveness. For example: "I currently have ${selectedCharacter.abilities?.length || 0} abilities, but I think learning a defensive skill would help since my defense is only ${selectedCharacter.baseStats?.wisdom || selectedCharacter.base_defense || 70}" or "My ${selectedCharacter.archetype} archetype suggests I should focus on [specific skill type] abilities."`,
+You should naturally reference your current abilities, discuss which skills you want to learn next, and explain how new abilities would improve your combat effectiveness. For example: "I currently have ${Array.isArray(selectedCharacter.abilities) ? selectedCharacter.abilities.length : 0} abilities, but I think learning a defensive skill would help since my defense is only ${selectedCharacter.baseStats?.wisdom || selectedCharacter.base_defense || 70}" or "My ${selectedCharacter.archetype} archetype suggests I should focus on [specific skill type] abilities."`,
         skillData: {
           availableSkillPoints: Math.floor(selectedCharacter.level * 1.5),
-          currentAbilities: selectedCharacter.abilities || [],
+          currentAbilities: Array.isArray(selectedCharacter.abilities) ? selectedCharacter.abilities : [],
           realCharacterStats: {
             base_attack: selectedCharacter.base_attack,
             base_health: selectedCharacter.base_health,
@@ -437,7 +441,7 @@ You should naturally reference your current abilities, discuss which skills you 
           },
           archetypeSkillTrees: {
             primary: selectedCharacter.archetype,
-            abilityCount: selectedCharacter.abilities?.length || 0
+            abilityCount: Array.isArray(selectedCharacter.abilities) ? selectedCharacter.abilities.length : 0
           }
         },
         // Add living context for kitchen table conflict awareness
@@ -472,7 +476,8 @@ You should naturally reference your current abilities, discuss which skills you 
 
   const getSkillIntro = (character: EnhancedCharacter): string => {
     // Simple intro that lets the AI take over from there
-    return `Coach, I have ${character.abilities.length} abilities and ${Math.floor(character.level * 1.5)} skill points available. What skill development do you recommend for my ${character.archetype} build?`;
+    const abilitiesCount = Array.isArray(character.abilities) ? character.abilities.length : 0;
+    return `Coach, I have ${abilitiesCount} abilities and ${Math.floor(character.level * 1.5)} skill points available. What skill development do you recommend for my ${character.archetype} build?`;
   };
 
   useEffect(() => {
