@@ -107,7 +107,7 @@ export default function Clubhouse({
       }
 
       // Call backend API to generate AI responses
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/social/message-board`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006'}/api/social/message-board`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

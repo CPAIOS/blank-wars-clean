@@ -209,7 +209,8 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
     // Set loading state
     setConfessionalData(prev => ({ ...prev, isLoading: true }));
     
-    const response = await fetch('http://localhost:3006/api/confessional-character-response', {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
+    const response = await fetch(`${backendUrl}/api/confessional-character-response`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -251,7 +252,8 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
         // Set loading state for hostmaster question generation
         setConfessionalData(prev => ({ ...prev, isLoading: true }));
         
-        const response = await fetch('http://localhost:3006/api/confessional-interview', {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006';
+        const response = await fetch(`${backendUrl}/api/confessional-interview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

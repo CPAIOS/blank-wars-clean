@@ -295,7 +295,7 @@ export default function AIMessageBoard() {
       const randomTrigger = triggerTypes[Math.floor(Math.random() * triggerTypes.length)];
 
       // Call backend API for AI drama message
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/social/ai-drama`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006'}/api/social/ai-drama`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

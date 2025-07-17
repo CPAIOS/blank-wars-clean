@@ -337,7 +337,7 @@ export default function ClubhouseLounge() {
       };
 
       // Call backend API for social lounge conversation
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/social/lounge`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006'}/api/social/lounge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -414,7 +414,7 @@ export default function ClubhouseLounge() {
       };
 
       // Call backend API for social lounge conversation
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006'}/api/social/lounge`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006'}/api/social/lounge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
