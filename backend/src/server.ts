@@ -59,6 +59,9 @@ const io = new Server(httpServer, {
   },
 });
 
+// Trust proxy for Railway deployment
+app.set('trust proxy', true);
+
 // Middleware
 app.use(helmet());
 app.use(cors({

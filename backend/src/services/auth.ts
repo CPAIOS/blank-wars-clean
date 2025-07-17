@@ -83,7 +83,7 @@ export class AuthService {
     // Check if user exists
     console.log('🔍 Checking for existing user...');
     const existingUser = await query(
-      'SELECT id FROM users WHERE email = ? OR username = ?',
+      'SELECT id FROM users WHERE email = $1 OR username = $2',
       [email, username]
     );
 
