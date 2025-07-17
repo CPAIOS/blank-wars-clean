@@ -167,12 +167,12 @@ export default function AbilityManager({
           userMessage: currentChatMessage,
           context: {
             level: characterLevel,
-            currentSkills: selectedAbilities,
+            currentSkills: selectedAbility ? [selectedAbility.name] : [],
             skillFocus: filterType,
-            skillPoints: availableSkillPoints || 0,
+            skillPoints: characterLevel || 0,
             bondLevel: 50,
             previousMessages: chatMessages.slice(-5).map(msg => ({
-              role: msg.sender === 'user' ? 'user' : 'assistant',
+              role: msg.sender === 'coach' ? 'assistant' : 'user',
               content: msg.message
             }))
           }

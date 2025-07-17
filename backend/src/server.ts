@@ -155,7 +155,7 @@ app.post('/api/seed-17-characters', async (req, res) => {
     console.error('Seeding error:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to seed characters' 
+      error: error instanceof Error ? error.message : 'Failed to seed characters' 
     });
   }
 });
@@ -218,7 +218,7 @@ app.post('/api/grant-all-characters/:userId', async (req, res) => {
     console.error('Grant error:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to grant characters' 
+      error: error instanceof Error ? error.message : 'Failed to grant characters' 
     });
   }
 });

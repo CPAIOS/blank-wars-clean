@@ -29,8 +29,8 @@ export interface TeamCharacter {
   id: string;
   name: string;
   avatar: string;
-  archetype: 'warrior' | 'mage' | 'trickster' | 'beast' | 'leader' | 'detective' | 'monster' | 'alien' | 'mercenary' | 'cowboy' | 'biker';
-  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
+  archetype: 'warrior' | 'mage' | 'assassin' | 'tank' | 'support' | 'beast' | 'trickster' | 'mystic' | 'elementalist' | 'berserker' | 'scholar' | 'leader' | 'detective' | 'monster' | 'alien' | 'mercenary' | 'cowboy' | 'biker';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
   
   // Core Stats
   level: number;
