@@ -17,7 +17,6 @@ import {
   CoachingTimeout,
   PostBattleAnalysis,
   RelationshipChange,
-  BattleMemory,
   PsychologicalConsequence,
   TrainingRecommendation,
   CharacterEvaluation

@@ -27,7 +27,7 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
   try {
     const response = await characterAPI.getUserCharacters();
     const characters = response.characters || [];
-    
+
     return characters.map((char: any) => {
       const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
       return {
@@ -73,21 +73,22 @@ const loadUserCharacters = async (): Promise<EnhancedCharacter[]> => {
 // Generate character-specific skill advice based on actual abilities and stats
 const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   const advice: string[] = [];
-  
+
   // Safety check to prevent destructuring errors
   if (!character) {
     return ["Focus on basic skill development", "Practice fundamental techniques", "Build core competencies"];
   }
-  
+
   const { baseStats, combatStats, abilities, archetype } = character;
-  
+
   // Ability-specific skill development advice
-  if (abilities && abilities.length > 0) {
-    const attackAbilities = abilities.filter(a => a.type === 'attack');
-    const defenseAbilities = abilities.filter(a => a.type === 'defense');
-    const specialAbilities = abilities.filter(a => a.type === 'special');
-    const supportAbilities = abilities.filter(a => a.type === 'support');
-    
+  if (abilities) {
+    const allAbilities = [...(abilities.active || []), ...(abilities.passive || []), ...(abilities.signature || [])];
+    const attackAbilities = allAbilities.filter(a => a && typeof a === 'string' && a.toLowerCase().includes('attack'));
+    const defenseAbilities = allAbilities.filter(a => a && typeof a === 'string' && (a.toLowerCase().includes('defense') || a.toLowerCase().includes('shield')));
+    const specialAbilities = abilities.signature || [];
+    const supportAbilities = allAbilities.filter(a => a && typeof a === 'string' && (a.toLowerCase().includes('heal') || a.toLowerCase().includes('support')));
+
     if (attackAbilities.length > 2) {
       advice.push(`Focus on mastering your ${attackAbilities.length} attack abilities for maximum damage`);
     }
@@ -98,7 +99,7 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
       advice.push(`Your ${specialAbilities[0].name} special ability needs skill point investment`);
     }
   }
-  
+
   // Stat-based skill recommendations
   if (baseStats?.strength && baseStats.strength > 80) {
     advice.push(`Your high strength (${baseStats.strength}) should guide physical skill development`);
@@ -112,7 +113,7 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   if (combatStats?.speed && combatStats.speed > 80) {
     advice.push(`Your speed (${combatStats.speed}) enables agility-based skill trees`);
   }
-  
+
   // Combat stat-based training approach
   if (combatStats?.accuracy && combatStats.accuracy > 80) {
     advice.push(`Your excellent accuracy (${combatStats.accuracy}%) allows complex skill combinations`);
@@ -123,7 +124,7 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   if (baseStats?.vitality && baseStats.vitality < 60) {
     advice.push(`Focus on basic skills until your vitality (${baseStats.vitality}) improves`);
   }
-  
+
   // Archetype-specific skill paths
   if (archetype === 'warrior') {
     advice.push('Prioritize combat mastery and weapon specialization skills');
@@ -134,7 +135,7 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   if (archetype === 'detective') {
     advice.push('Focus on observation and deduction skill trees');
   }
-  
+
   // Character-specific approaches
   if (character.personality?.traits?.includes('Analytical')) {
     advice.push('Your analytical nature suits systematic skill progression');
@@ -145,14 +146,14 @@ const generateSkillAdvice = (character: EnhancedCharacter): string[] => {
   if (character.personality?.traits?.includes('Perfectionist')) {
     advice.push('Master each skill completely before moving to the next');
   }
-  
+
   // Fallback advice
   if (advice.length === 0) {
     advice.push('Balance offensive and defensive skill development');
     advice.push('Focus on skills that complement your strongest abilities');
     advice.push('Consider cross-training between different skill trees');
   }
-  
+
   return advice.slice(0, 8);
 };
 
@@ -163,8 +164,8 @@ interface SkillDevelopmentChatProps {
   availableCharacters?: EnhancedCharacter[];
 }
 
-export default function SkillDevelopmentChat({ 
-  selectedCharacterId, 
+export default function SkillDevelopmentChat({
+  selectedCharacterId,
   onCharacterChange,
   selectedCharacter: propSelectedCharacter,
   availableCharacters: propAvailableCharacters
@@ -183,7 +184,7 @@ export default function SkillDevelopmentChat({
         setLocalAvailableCharacters(characters);
         setCharactersLoading(false);
       };
-      
+
       loadCharacters();
     } else {
       setCharactersLoading(false);
@@ -217,7 +218,7 @@ export default function SkillDevelopmentChat({
   useEffect(() => {
     const socketUrl = 'http://localhost:3006';
     console.log('🔌 [SkillDevelopment] Connecting to local backend:', socketUrl);
-    
+
     socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
@@ -245,7 +246,7 @@ export default function SkillDevelopmentChat({
 
     socketRef.current.on('chat_response', (data: { character: string; message: string; bondIncrease?: boolean }) => {
       console.log('📨 SkillDevelopment response:', data);
-      
+
       const characterMessage: Message = {
         id: Date.now(),
         type: 'character',
@@ -253,7 +254,7 @@ export default function SkillDevelopmentChat({
         timestamp: new Date(),
         bondIncrease: data.bondIncrease || false,
       };
-      
+
       setMessages(prev => [...prev, characterMessage]);
       setIsTyping(false);
     });
@@ -278,7 +279,7 @@ export default function SkillDevelopmentChat({
       if (selectedCharacter) {
         try {
           console.log('🏠 SkillDevelopment loading living context for:', selectedCharacter.baseName || selectedCharacter.name);
-          const context = await conflictService.generateLivingContext(selectedCharacter.baseName || 
+          const context = await conflictService.generateLivingContext(selectedCharacter.baseName ||
             selectedCharacter.name?.toLowerCase() || selectedCharacter.id);
           setLivingContext(context);
           console.log('✅ SkillDevelopment living context loaded:', context);
@@ -297,11 +298,11 @@ export default function SkillDevelopmentChat({
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
-      console.log('❌ Skill chat cannot send message:', { 
-        hasContent: !!content.trim(), 
-        isTyping, 
-        connected, 
-        hasSocket: !!socketRef.current 
+      console.log('❌ Skill chat cannot send message:', {
+        hasContent: !!content.trim(),
+        isTyping,
+        connected,
+        hasSocket: !!socketRef.current
       });
       return;
     }
@@ -377,8 +378,8 @@ export default function SkillDevelopmentChat({
 IMPORTANT: You MUST reference your actual skills, abilities, and training progress in conversation. You are fully aware of:
 
 YOUR CURRENT ABILITIES AND SKILLS:
-${selectedCharacter.abilities?.length > 0 ? 
-  selectedCharacter.abilities.map(ability => `- ${ability.name}: ${ability.description || 'Special ability'} (Power: ${ability.power}, Cooldown: ${ability.cooldown})`).join('\n') : 
+${selectedCharacter.abilities?.length > 0 ?
+  selectedCharacter.abilities.map(ability => `- ${ability.name}: ${ability.description || 'Special ability'} (Power: ${ability.power}, Cooldown: ${ability.cooldown})`).join('\n') :
   '- No abilities learned yet'
 }
 
@@ -492,7 +493,7 @@ You should naturally reference your current abilities, discuss which skills you 
 
   return (
     <div className="max-w-6xl mx-auto">
-      <motion.div 
+      <motion.div
         className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 rounded-xl backdrop-blur-sm border border-purple-500/30 overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -556,7 +557,7 @@ You should naturally reference your current abilities, discuss which skills you 
                   }`}>
                     <p>{message.content}</p>
                     {message.bondIncrease && (
-                      <motion.div 
+                      <motion.div
                         className="mt-2 flex items-center gap-1 text-xs text-yellow-200"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -568,7 +569,7 @@ You should naturally reference your current abilities, discuss which skills you 
                   </div>
                 </motion.div>
               ))}
-              
+
               {isTyping && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -584,17 +585,17 @@ You should naturally reference your current abilities, discuss which skills you 
                   </div>
                 </motion.div>
               )}
-              
+
               <div ref={messagesEndRef} />
             </div>
 
             <div className="p-4 border-t border-purple-500/30 bg-purple-900/10">
               <div className="text-xs text-purple-300 mb-2">
-                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} | 
-                {isTyping ? ' ⏳ Contemplating skills...' : ' ✅ Ready for development discussion'} | 
+                Status: {socketRef.current?.connected ? '🟢 Connected' : '🔴 Disconnected'} |
+                {isTyping ? ' ⏳ Contemplating skills...' : ' ✅ Ready for development discussion'} |
                 Messages: {messages.length}
               </div>
-              
+
               <div className="flex gap-2">
                 <input
                   type="text"
