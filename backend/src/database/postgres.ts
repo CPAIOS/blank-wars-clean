@@ -266,4 +266,3 @@ export const initializeDatabase = async (): Promise<void> => {
 import { cacheService } from '../services/cacheService';
 export const cache = cacheService;
 
-export { db };

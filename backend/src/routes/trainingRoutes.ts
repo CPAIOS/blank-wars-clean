@@ -85,7 +85,8 @@ router.get('/character/:characterId/state', async (req, res) => {
       WHERE characterId = $1
     `;
     
-    const state = db.prepare(query).get(characterId);
+    const result = await db.query(query, [characterId]);
+    const state = result.rows[0];
 
     res.json({
       success: true,

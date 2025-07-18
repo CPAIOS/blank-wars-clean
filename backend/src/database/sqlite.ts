@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+// import Database from 'better-sqlite3'; // Commented out - migrated to PostgreSQL
 import path from 'path';
 import fs from 'fs';
 
@@ -11,10 +11,11 @@ if (!fs.existsSync(dataDir)) {
 }
 
 // Initialize SQLite database
-const db = new Database(DB_PATH);
+// const db = new Database(DB_PATH); // Commented out - migrated to PostgreSQL
+const db = null; // Stub for legacy code
 
 // Enable foreign keys
-db.exec('PRAGMA foreign_keys = ON');
+// db.exec('PRAGMA foreign_keys = ON'); // Commented out - migrated to PostgreSQL
 
 // Initialize database schema
 export const initializeDatabase = async (): Promise<void> => {

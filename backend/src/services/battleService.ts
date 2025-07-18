@@ -350,7 +350,7 @@ export class BattleManager extends EventEmitter {
       
       // Check daily battle limits
       const { usageTrackingService } = require('./usageTrackingService');
-      const { db } = require('../database/sqlite');
+      const { db } = require('../database/postgres');
       
       const canBattle = await usageTrackingService.trackBattleUsage(userId, db);
       if (!canBattle) {
@@ -617,7 +617,7 @@ export class BattleManager extends EventEmitter {
       try {
         // Use real AI chat service for battle combat responses
         const { aiChatService } = require('./aiChatService');
-        const { db } = require('../database/sqlite');
+        const { db } = require('../database/postgres');
         
         // Build character context for battle
         const chatContext = {
