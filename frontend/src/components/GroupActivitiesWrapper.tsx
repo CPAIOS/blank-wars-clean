@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Activity, Users, Gamepad2, Brain, Music, Coffee, Trophy, Clock } from 'lucide-react';
 import { createDemoCharacterCollection } from '@/data/characters';
+import GameEventBus from '../services/gameEventBus';
+import EventContextService from '../services/eventContextService';
 
 interface GroupActivity {
   id: string;
@@ -105,9 +107,62 @@ export default function GroupActivitiesWrapper() {
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const characters = createDemoCharacterCollection();
 
-  const handleStartActivity = (activity: GroupActivity) => {
+  const handleStartActivity = async (activity: GroupActivity) => {
     if (selectedParticipants.length >= activity.minParticipants) {
-      setOngoingActivities(prev => [...prev, { ...activity, id: `${activity.id}-${Date.now()}` }]);
+      const newActivity = { ...activity, id: `${activity.id}-${Date.now()}` };
+      setOngoingActivities(prev => [...prev, newActivity]);
+
+      // Publish group activity events for each participant
+      try {
+        const eventBus = GameEventBus.getInstance();
+        
+        for (const participantId of selectedParticipants) {
+          // Import group activities context for enhanced interactions
+          let groupActivitiesContext = '';
+          try {
+            const contextService = EventContextService.getInstance();
+            groupActivitiesContext = await contextService.getGroupActivitiesContext(participantId);
+          } catch (error) {
+            console.error(`Error getting group activities context for ${participantId}:`, error);
+          }
+
+          let eventType = 'group_activity_started';
+          let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+          
+          if (activity.type === 'group_therapy') {
+            eventType = 'group_therapy_session';
+            severity = 'high';
+          } else if (activity.type === 'tournament') {
+            eventType = 'group_competition';
+            severity = 'high';
+          } else if (activity.type === 'meditation') {
+            eventType = 'group_wellness_session';
+            severity = 'medium';
+          }
+
+          await eventBus.publish({
+            type: eventType as any,
+            source: 'group_activities',
+            primaryCharacterId: participantId,
+            secondaryCharacterIds: selectedParticipants.filter(id => id !== participantId),
+            severity,
+            category: 'group_activities',
+            description: `${participantId} joined ${activity.title}: ${activity.description}`,
+            metadata: { 
+              activityType: activity.type,
+              activityId: newActivity.id,
+              participantCount: selectedParticipants.length,
+              duration: activity.duration,
+              difficulty: activity.difficulty,
+              benefits: activity.benefits
+            },
+            tags: ['group_activities', activity.type, 'team_building']
+          });
+        }
+      } catch (error) {
+        console.error('Error publishing group activity events:', error);
+      }
+
       setSelectedActivity(null);
       setSelectedParticipants([]);
     }

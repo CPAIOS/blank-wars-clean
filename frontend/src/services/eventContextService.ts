@@ -2,6 +2,7 @@
 // Generates concise, efficient context from the centralized event system
 
 import GameEventBus, { GameEvent, CharacterMemory, CharacterRelationship, EventFilter, EventCategory } from './gameEventBus';
+import ComedyTemplateService from './comedyTemplateService';
 
 export interface ContextConfig {
   maxTokens: number;
@@ -656,6 +657,236 @@ export class EventContextService {
     if (diff > 2) return 'improving';
     if (diff < -2) return 'declining';
     return 'stable';
+  }
+
+  /**
+   * Get confessional context - Heavy on shame, secrets, guilt
+   */
+  async getConfessionalContext(characterId: string): Promise<string> {
+    // Get memories from multiple types - we'll need to call multiple times since API only supports single memoryType
+    const allMemories = this.eventBus.getCharacterMemories(characterId, { limit: 20 });
+    const memories = allMemories.filter(m => 
+      ['conflict', 'therapy', 'personal_problems', 'drama', 'confession'].includes(m.memoryType)
+    ).slice(0, 8);
+
+    const relevantMemories = memories.filter(memory => {
+      const embarrassing = memory.crossReferenceData?.embarrassmentLevel >= 3;
+      const secretive = memory.crossReferenceData?.secretLevel >= 3;
+      const emotional = memory.emotionalIntensity >= 6;
+      return embarrassing || secretive || emotional;
+    });
+
+    let context = `Recent memories weighing on ${characterId}:\n`;
+    
+    relevantMemories.forEach(memory => {
+      const embarrassmentNote = memory.crossReferenceData?.embarrassmentLevel >= 5 ? " (deeply embarrassing)" : "";
+      const secretNote = memory.crossReferenceData?.secretLevel >= 5 ? " (secret shame)" : "";
+      context += `- ${memory.content}${embarrassmentNote}${secretNote}\n`;
+    });
+
+    // Add cross-references to other chats
+    const crossRefs = this.generateComedyReferences(characterId, 'confessional');
+    if (crossRefs.length > 0) {
+      context += `\nPotential contradictions to address:\n`;
+      crossRefs.forEach(ref => context += `- ${ref}\n`);
+    }
+
+    return context;
+  }
+
+  /**
+   * Get real estate context - Focus on living conditions, complaints
+   */
+  async getRealEstateContext(characterId: string): Promise<string> {
+    const allMemories = this.eventBus.getCharacterMemories(characterId, { limit: 20 });
+    const memories = allMemories.filter(m => 
+      ['social', 'conflict', 'bonding', 'real_estate', 'therapy'].includes(m.memoryType)
+    ).slice(0, 6);
+
+    const livingRelevant = memories.filter(memory => {
+      const socialConflict = memory.memoryType === 'conflict' && memory.associatedCharacters.length > 0;
+      const privacyIssues = memory.tags.includes('privacy') || memory.tags.includes('space');
+      const therapyRelated = memory.memoryType === 'therapy' && memory.tags.includes('boundaries');
+      return socialConflict || privacyIssues || therapyRelated;
+    });
+
+    let context = `Living situation insights for ${characterId}:\n`;
+    
+    livingRelevant.forEach(memory => {
+      const privacyNote = memory.tags.includes('privacy') ? " (privacy concern)" : "";
+      const conflictNote = memory.associatedCharacters.length > 1 ? ` (involves ${memory.associatedCharacters.join(', ')})` : "";
+      context += `- ${memory.content}${privacyNote}${conflictNote}\n`;
+    });
+
+    // Add therapy session references
+    const therapyMemories = memories.filter(m => m.memoryType === 'therapy');
+    if (therapyMemories.length > 0) {
+      context += `\nTherapy insights affecting living preferences:\n`;
+      therapyMemories.slice(0, 2).forEach(memory => {
+        context += `- ${memory.content}\n`;
+      });
+    }
+
+    return context;
+  }
+
+  /**
+   * Get training context - Physical achievements, failures, progress
+   */
+  async getTrainingContext(characterId: string): Promise<string> {
+    const allMemories = this.eventBus.getCharacterMemories(characterId, { limit: 20 });
+    const memories = allMemories.filter(m => 
+      ['training', 'battle', 'achievement', 'personal_problems', 'therapy'].includes(m.memoryType)
+    ).slice(0, 8);
+
+    const trainingRelevant = memories.filter(memory => {
+      const physicalProgress = memory.tags.includes('physical') || memory.tags.includes('training');
+      const mentalBlockage = memory.memoryType === 'therapy' && memory.tags.includes('confidence');
+      const personalStruggles = memory.memoryType === 'personal_problems';
+      return physicalProgress || mentalBlockage || personalStruggles;
+    });
+
+    let context = `Training history and mental state for ${characterId}:\n`;
+    
+    trainingRelevant.forEach(memory => {
+      const progressNote = memory.emotionalValence === 'positive' ? " (progress)" : memory.emotionalValence === 'negative' ? " (setback)" : "";
+      context += `- ${memory.content}${progressNote}\n`;
+    });
+
+    // Add cross-references for comedy
+    const crossRefs = this.generateComedyReferences(characterId, 'training');
+    if (crossRefs.length > 0) {
+      context += `\nIronic contrasts with other areas:\n`;
+      crossRefs.forEach(ref => context += `- ${ref}\n`);
+    }
+
+    return context;
+  }
+
+  /**
+   * Get personal problems context - Emotional support and advice
+   */
+  async getPersonalProblemsContext(characterId: string): Promise<string> {
+    const allMemories = this.eventBus.getCharacterMemories(characterId, { limit: 20 });
+    const memories = allMemories.filter(m => 
+      ['personal_problems', 'therapy', 'conflict', 'social'].includes(m.memoryType)
+    ).slice(0, 10);
+
+    const supportRelevant = memories.filter(memory => {
+      const emotionallyIntense = memory.emotionalIntensity >= 5;
+      const recentConflict = memory.memoryType === 'conflict' && memory.createdAt > Date.now() - (7 * 24 * 60 * 60 * 1000);
+      return emotionallyIntense || recentConflict;
+    });
+
+    let context = `Personal struggles and emotional state for ${characterId}:\n`;
+    
+    supportRelevant.forEach(memory => {
+      const intensityNote = memory.emotionalIntensity >= 8 ? " (very intense)" : memory.emotionalIntensity >= 6 ? " (significant)" : "";
+      context += `- ${memory.content}${intensityNote}\n`;
+    });
+
+    // Add therapy session context
+    const therapyMemories = memories.filter(m => m.memoryType === 'therapy');
+    if (therapyMemories.length > 0) {
+      context += `\nTherapy progress relevant to current problems:\n`;
+      therapyMemories.slice(0, 2).forEach(memory => {
+        context += `- ${memory.content}\n`;
+      });
+    }
+
+    return context;
+  }
+
+  /**
+   * Get kitchen context - Social conflicts and living arrangements
+   */
+  async getKitchenContext(characterId: string): Promise<string> {
+    const allMemories = this.eventBus.getCharacterMemories(characterId, { limit: 20 });
+    const memories = allMemories.filter(m => 
+      ['social', 'conflict', 'drama', 'kitchen'].includes(m.memoryType)
+    ).slice(0, 8);
+
+    const kitchenRelevant = memories.filter(memory => {
+      const livingConflict = memory.tags.includes('kitchen') || memory.tags.includes('living');
+      const socialTension = memory.memoryType === 'conflict' && memory.associatedCharacters.length > 0;
+      const dailyDrama = memory.tags.includes('daily') || memory.tags.includes('routine');
+      return livingConflict || socialTension || dailyDrama;
+    });
+
+    let context = `Recent kitchen and living arrangement dynamics for ${characterId}:\n`;
+    
+    kitchenRelevant.forEach(memory => {
+      const conflictNote = memory.associatedCharacters.length > 1 ? ` (tension with ${memory.associatedCharacters.join(', ')})` : "";
+      const intensityNote = memory.emotionalIntensity >= 7 ? " (heated)" : "";
+      context += `- ${memory.content}${conflictNote}${intensityNote}\n`;
+    });
+
+    return context;
+  }
+
+  /**
+   * Get group activities context - Team dynamics and social interactions
+   */
+  async getGroupActivitiesContext(characterId: string): Promise<string> {
+    const allMemories = this.eventBus.getCharacterMemories(characterId, { limit: 20 });
+    const memories = allMemories.filter(m => 
+      ['group_activity', 'social', 'conflict', 'bonding'].includes(m.memoryType)
+    ).slice(0, 8);
+
+    const groupRelevant = memories.filter(memory => {
+      const multipleParticipants = memory.associatedCharacters.length >= 2;
+      const teamDynamics = memory.tags.includes('team') || memory.tags.includes('group');
+      return multipleParticipants || teamDynamics;
+    });
+
+    let context = `Group dynamics and social patterns for ${characterId}:\n`;
+    
+    groupRelevant.forEach(memory => {
+      const participantNote = memory.associatedCharacters.length > 0 ? ` (with ${memory.associatedCharacters.join(', ')})` : "";
+      const roleNote = memory.tags.includes('leadership') ? " (leadership moment)" : memory.tags.includes('cooperation') ? " (cooperation)" : "";
+      context += `- ${memory.content}${participantNote}${roleNote}\n`;
+    });
+
+    return context;
+  }
+
+  /**
+   * Generate comedy references from past events for cross-chat humor using flexible templates
+   */
+  generateComedyReferences(characterId: string, currentChatType: string, currentTopic: string = ''): string[] {
+    const allMemories = this.eventBus.getCharacterMemories(characterId, { limit: 20 });
+    const comedyService = ComedyTemplateService.getInstance();
+
+    const relevantMemories = allMemories.filter(memory => {
+      const hasComedyPotential = memory.crossReferenceData?.comedyPotential >= 6;
+      const canReference = memory.crossReferenceData?.canReferencedIn?.includes(currentChatType);
+      const hasContradiction = memory.crossReferenceData?.contradictionPotential >= 5;
+      const hasEmbarrassment = memory.crossReferenceData?.embarrassmentLevel >= 5;
+      const hasQuotability = memory.crossReferenceData?.quotability >= 5;
+      
+      return hasComedyPotential || canReference || hasContradiction || hasEmbarrassment || hasQuotability;
+    });
+
+    // Use flexible template system to generate comedy references
+    return comedyService.generateMultipleReferences(relevantMemories, currentChatType, currentTopic, 3);
+  }
+
+  /**
+   * Get comedy context for a specific chat interaction
+   */
+  getComedyContext(characterId: string, currentChatType: string, currentTopic: string = ''): string {
+    const comedyReferences = this.generateComedyReferences(characterId, currentChatType, currentTopic);
+    
+    if (comedyReferences.length === 0) {
+      return '';
+    }
+
+    let context = 'Recent moments that could create humor or tension:\n';
+    comedyReferences.forEach((reference, index) => {
+      context += `${index + 1}. ${reference}\n`;
+    });
+
+    return context;
   }
 }
 

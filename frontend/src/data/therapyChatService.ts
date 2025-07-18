@@ -3,6 +3,8 @@ import { Character } from '../data/characters';
 import { ConflictData, TherapyContext, TherapistPromptStyle } from '@/services/ConflictDatabaseService';
 import ConflictDatabaseService from '../services/ConflictDatabaseService';
 import { TherapyPromptTemplateService } from './therapyPromptTemplateService';
+import GameEventBus from '../services/gameEventBus';
+import EventContextService from '../services/eventContextService';
 
 interface TherapySession {
   id: string;
@@ -111,6 +113,23 @@ export class TherapyChatService {
     };
 
     this.activeSessions.set(sessionId, session);
+    
+    // Publish therapy session start event
+    const eventBus = GameEventBus.getInstance();
+    await eventBus.publish({
+      type: 'therapy_session_start',
+      source: 'therapy_room',
+      primaryCharacterId: characterId,
+      severity: 'medium',
+      category: 'therapy',
+      description: `${characterId} started individual therapy session with ${therapistId}`,
+      metadata: { 
+        sessionType: 'individual',
+        therapistId,
+        sessionStage: 'initial'
+      },
+      tags: ['therapy', 'individual', 'session_start']
+    });
     
     // Generate opening question using real API (automatically adds to session history)
     await this.generateTherapistQuestion(sessionId);
@@ -287,7 +306,7 @@ export class TherapyChatService {
         reject(new Error('Patient response timeout'));
       }, 30000);
 
-      const responseHandler = (data: any) => {
+      const responseHandler = async (data: any) => {
         if (data.messageId === messageId || data.character === characterId) {
           clearTimeout(timeout);
           this.socket!.off('chat_response', responseHandler);
@@ -303,6 +322,48 @@ export class TherapyChatService {
           };
           
           session.sessionHistory.push(patientMessage);
+          
+          // Analyze patient response for therapeutic events
+          const responseText = data.message.toLowerCase();
+          let eventType = 'therapy_session_progress';
+          let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+          let emotionalIntensity = 5;
+          
+          if (responseText.includes('breakthrough') || responseText.includes('realize') || responseText.includes('understand now')) {
+            eventType = 'therapy_breakthrough';
+            severity = 'high';
+            emotionalIntensity = 8;
+          } else if (responseText.includes('resist') || responseText.includes('don\'t want') || responseText.includes('won\'t talk')) {
+            eventType = 'therapy_resistance';
+            severity = 'medium';
+            emotionalIntensity = 6;
+          } else if (responseText.includes('trauma') || responseText.includes('hurt') || responseText.includes('pain')) {
+            eventType = 'past_trauma_revealed';
+            severity = 'high';
+            emotionalIntensity = 9;
+          }
+          
+          // Publish therapy response event (fire and forget to avoid blocking)
+          const eventBus = GameEventBus.getInstance();
+          eventBus.publish({
+            type: eventType as any,
+            source: 'therapy_room',
+            primaryCharacterId: characterId,
+            secondaryCharacterIds: [session.therapistId],
+            severity,
+            category: 'therapy',
+            description: `${characterId} in therapy: "${data.message.substring(0, 100)}..."`,
+            metadata: { 
+              sessionId,
+              therapistId: session.therapistId,
+              sessionStage: session.stage,
+              responseLength: data.message.length,
+              emotionalIntensity,
+              breakthroughIndicator: eventType === 'therapy_breakthrough'
+            },
+            tags: ['therapy', 'individual', 'patient_response', eventType.replace('therapy_', '')]
+          }).catch(error => console.error('Error publishing therapy event:', error));
+          
           resolve(data.message || 'Patient response unavailable');
         }
       };
@@ -969,6 +1030,10 @@ Remember: You are the THERAPIST asking questions, not the patient sharing proble
     try {
       console.log('🏗️ Building patient prompt for:', characterId, 'with question:', therapistQuestion.substring(0, 50) + '...');
       
+      // Import character context from recent experiences
+      const contextService = EventContextService.getInstance();
+      const recentContext = await contextService.getPersonalProblemsContext(characterId);
+      
       // Use ConflictDatabaseService for authentic patient prompts with real conflicts
       const conflictService = ConflictDatabaseService.getInstance();
       
@@ -988,6 +1053,9 @@ Remember: You are the THERAPIST asking questions, not the patient sharing proble
       // Add the specific therapist question and response context
       const enhancedPrompt = `
 ${basePrompt}
+
+RECENT EXPERIENCES AND EMOTIONAL STATE:
+${recentContext}
 
 CURRENT THERAPEUTIC EXCHANGE:
 Therapist just asked you: "${therapistQuestion}"

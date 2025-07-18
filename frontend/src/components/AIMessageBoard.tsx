@@ -15,6 +15,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { formatTimeAgo } from '@/data/clubhouse';
+import GameEventBus from '../services/gameEventBus';
+import EventContextService from '../services/eventContextService';
 
 interface AIMessage {
   id: string;
@@ -334,6 +336,43 @@ export default function AIMessageBoard() {
       setMessages(prev => [newMessage, ...prev]);
       setHighlightedMessage(newMessage.id);
       setTimeout(() => setHighlightedMessage(null), 3000);
+
+      // Publish AI drama board event
+      try {
+        const eventBus = GameEventBus.getInstance();
+        const messageText = data.message?.toLowerCase() || '';
+        let eventType = 'ai_drama_post';
+        let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+        
+        if (randomTrigger === 'rivalry_escalation' || messageText.includes('trash') || messageText.includes('pathetic')) {
+          eventType = 'ai_rivalry_escalation';
+          severity = 'high';
+        } else if (randomTrigger === 'battle_victory') {
+          eventType = 'ai_victory_celebration';
+          severity = 'medium';
+        } else if (randomTrigger === 'battle_defeat') {
+          eventType = 'ai_defeat_complaint';
+          severity = 'medium';
+        }
+
+        await eventBus.publish({
+          type: eventType as any,
+          source: 'ai_drama_board',
+          primaryCharacterId: randomCharacter,
+          severity,
+          category: 'social',
+          description: `AI ${data.character} posted drama: "${data.message.substring(0, 100)}..."`,
+          metadata: { 
+            triggerType: randomTrigger,
+            messageType: newMessage.type,
+            isAIGenerated: true,
+            dramaLevel: messageText.includes('!') ? 'high' : 'medium'
+          },
+          tags: ['ai_drama', 'social', 'message_board', randomTrigger]
+        });
+      } catch (error) {
+        console.error('Error publishing AI drama event:', error);
+      }
       
     } catch (error) {
       console.error('Failed to generate AI message:', error);

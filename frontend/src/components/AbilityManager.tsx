@@ -29,6 +29,8 @@ import {
   canUseAbility,
   getExperienceToNextRank
 } from '@/data/abilities';
+import GameEventBus from '../services/gameEventBus';
+import EventContextService from '../services/eventContextService';
 
 interface AbilityManagerProps {
   characterId?: string;
@@ -148,8 +150,18 @@ export default function AbilityManager({
     };
 
     setChatMessages(prev => [...prev, userMessage]);
+    const messageContent = currentChatMessage;
     setCurrentChatMessage('');
     setIsChatLoading(true);
+
+    // Import skills context for enhanced conversations
+    let skillsContext = '';
+    try {
+      const contextService = EventContextService.getInstance();
+      skillsContext = await contextService.getSkillsContext(characterId || 'achilles');
+    } catch (error) {
+      console.error('Error getting skills context:', error);
+    }
 
     try {
       // Real API call to skills coaching service
@@ -163,14 +175,15 @@ export default function AbilityManager({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          characterId: characterName.toLowerCase().replace(' ', '_'), // Convert name to ID format
-          userMessage: currentChatMessage,
+          characterId: characterName?.toLowerCase().replace(' ', '_') || characterId, // Convert name to ID format
+          userMessage: messageContent,
           context: {
             level: characterLevel,
-            currentSkills: selectedAbilities,
+            currentSkills: filteredAbilities.slice(0, 5).map(a => a.name),
             skillFocus: filterType,
-            skillPoints: availableSkillPoints || 0,
+            skillPoints: 0,
             bondLevel: 50,
+            skillsContext: skillsContext || 'No recent skill development context.',
             previousMessages: chatMessages.slice(-5).map(msg => ({
               role: msg.sender === 'user' ? 'user' : 'assistant',
               content: msg.message
@@ -194,6 +207,44 @@ export default function AbilityManager({
       };
       
       setChatMessages(prev => [...prev, aiResponse]);
+
+      // Publish skills coaching event
+      try {
+        const eventBus = GameEventBus.getInstance();
+        const responseText = data.message?.toLowerCase() || '';
+        let eventType = 'skill_development_session';
+        let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+        
+        if (responseText.includes('breakthrough') || responseText.includes('mastered') || responseText.includes('advanced')) {
+          eventType = 'skill_breakthrough';
+          severity = 'high';
+        } else if (responseText.includes('struggle') || responseText.includes('difficulty') || responseText.includes('practice more')) {
+          eventType = 'skill_plateau';
+          severity = 'medium';
+        } else if (responseText.includes('new technique') || responseText.includes('learned') || responseText.includes('improved')) {
+          eventType = 'technique_learned';
+          severity = 'medium';
+        }
+
+        await eventBus.publish({
+          type: eventType as any,
+          source: 'skills_advisor',
+          primaryCharacterId: characterId || 'achilles',
+          severity,
+          category: 'skills',
+          description: `${characterName} skills coaching: "${messageContent.substring(0, 100)}..."`,
+          metadata: { 
+            skillFocus: filterType,
+            characterLevel: characterLevel || 1,
+            responseLength: data.message?.length || 0,
+            coachingType: 'skills_development'
+          },
+          tags: ['skills', 'coaching', 'development']
+        });
+      } catch (error) {
+        console.error('Error publishing skills event:', error);
+      }
+
       setIsChatLoading(false);
     } catch (error) {
       console.error('Skill chat error:', error);

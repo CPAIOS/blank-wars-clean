@@ -15,6 +15,8 @@ import {
   Star,
   Activity
 } from 'lucide-react';
+import GameEventBus from '../services/gameEventBus';
+import EventContextService from '../services/eventContextService';
 
 interface LoungeCharacter {
   id: string;
@@ -468,11 +470,20 @@ export default function ClubhouseLounge() {
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!userInput.trim()) return;
     
     const yourChar = characters.find(c => c.id === selectedCharacter);
     if (!yourChar) return;
+
+    // Import clubhouse context for enhanced conversations
+    let clubhouseContext = '';
+    try {
+      const contextService = EventContextService.getInstance();
+      clubhouseContext = await contextService.getClubhouseContext(yourChar.id);
+    } catch (error) {
+      console.error('Error getting clubhouse context:', error);
+    }
     
     const newMessage: LoungeMessage = {
       id: `msg_${Date.now()}`,
@@ -486,14 +497,52 @@ export default function ClubhouseLounge() {
     };
     
     setMessages(prev => [...prev, newMessage]);
+    const messageContent = userInput;
     setUserInput('');
+
+    // Publish clubhouse social event
+    try {
+      const eventBus = GameEventBus.getInstance();
+      const messageText = messageContent.toLowerCase();
+      let eventType = 'social_lounge_chat';
+      let severity: 'low' | 'medium' | 'high' | 'critical' = 'low';
+      
+      if (messageText.includes('battle') || messageText.includes('fight') || messageText.includes('combat')) {
+        eventType = 'battle_discussion';
+        severity = 'medium';
+      } else if (messageText.includes('drama') || messageText.includes('conflict') || messageText.includes('problem')) {
+        eventType = 'social_drama';
+        severity = 'medium';
+      } else if (messageText.includes('strategy') || messageText.includes('team') || messageText.includes('tactics')) {
+        eventType = 'team_strategy_chat';
+        severity = 'medium';
+      }
+
+      await eventBus.publish({
+        type: eventType as any,
+        source: 'clubhouse_lounge',
+        primaryCharacterId: yourChar.id,
+        severity,
+        category: 'social',
+        description: `${yourChar.name} in clubhouse: "${messageContent.substring(0, 100)}..."`,
+        metadata: { 
+          loungeActivity: true,
+          messageType: newMessage.type,
+          teamOwner: 'player',
+          socialContext: clubhouseContext ? 'enriched' : 'basic'
+        },
+        tags: ['clubhouse', 'social', 'lounge']
+      });
+    } catch (error) {
+      console.error('Error publishing clubhouse event:', error);
+    }
     
     // Generate AI response to user message
     setTimeout(async () => {
       if (Math.random() > 0.3) { // 70% chance of AI response
         const responder = characters.filter(c => !c.isYourCharacter && c.status === 'active')[0];
         if (responder) {
-          await generateAIUserResponse(responder, userInput);
+          await generateAIUserResponse(responder, messageContent);
         }
       }
     }, 2000 + Math.random() * 3000);

@@ -1,6 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 import { Character } from '../data/characters';
 import { PromptTemplateService } from './promptTemplateService';
+import GameEventBus from './gameEventBus';
+import EventContextService from './eventContextService';
 
 interface TrainingChatContext {
   character: Character;
@@ -140,7 +142,7 @@ export class TrainingChatService {
     }
 
     // Add all agent responses to conversation
-    agents.forEach((agent: any) => {
+    agents.forEach(async (agent: any) => {
       conversation.responses.push({
         characterId: agent.agentType,
         agentType: agent.agentType,
@@ -148,6 +150,54 @@ export class TrainingChatService {
         message: agent.message,
         timestamp: new Date(agent.timestamp)
       });
+
+      // Publish training events based on agent responses
+      if (agent.agentType === 'character' && agent.message) {
+        const responseText = agent.message.toLowerCase();
+        let eventType = 'skill_practiced';
+        let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+        let emotionalIntensity = 5;
+        
+        if (responseText.includes('breakthrough') || responseText.includes('mastered') || responseText.includes('personal record')) {
+          eventType = 'training_breakthrough';
+          severity = 'high';
+          emotionalIntensity = 9;
+        } else if (responseText.includes('struggle') || responseText.includes('difficult') || responseText.includes('exhausted')) {
+          eventType = 'training_plateau';
+          severity = 'medium';
+          emotionalIntensity = 6;
+        } else if (responseText.includes('injury') || responseText.includes('hurt') || responseText.includes('pain')) {
+          eventType = 'training_injury';
+          severity = 'high';
+          emotionalIntensity = 8;
+        } else if (responseText.includes('technique') || responseText.includes('form') || responseText.includes('skill')) {
+          eventType = 'technique_mastered';
+          severity = 'medium';
+          emotionalIntensity = 7;
+        }
+
+        try {
+          const eventBus = GameEventBus.getInstance();
+          await eventBus.publish({
+            type: eventType as any,
+            source: 'training_grounds',
+            primaryCharacterId: agent.agentName || 'unknown',
+            severity,
+            category: 'training',
+            description: `${agent.agentName} in training: "${agent.message.substring(0, 100)}..."`,
+            metadata: { 
+              conversationId,
+              agentType: agent.agentType,
+              responseLength: agent.message.length,
+              emotionalIntensity,
+              trainingProgress: true
+            },
+            tags: ['training', 'character_response', eventType.replace('training_', '').replace('_', '-')]
+          });
+        } catch (error) {
+          console.error('Error publishing training event:', error);
+        }
+      }
     });
     
     // Emit event for UI to update with multi-agent data
@@ -172,7 +222,39 @@ export class TrainingChatService {
       throw new Error('Training chat service not connected');
     }
 
+    // Import training context for enhanced conversations
+    let trainingContext = '';
+    try {
+      const contextService = EventContextService.getInstance();
+      trainingContext = await contextService.getTrainingContext(character.id);
+    } catch (error) {
+      console.error('Error getting training context:', error);
+    }
+
     const conversationId = `training_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Publish training session start event
+    try {
+      const eventBus = GameEventBus.getInstance();
+      await eventBus.publish({
+        type: 'training_session_start',
+        source: 'training_grounds',
+        primaryCharacterId: character.id,
+        severity: 'medium',
+        category: 'training',
+        description: `${character.name} started training session: ${userMessage.substring(0, 50)}`,
+        metadata: { 
+          trainingPhase: context.trainingEnvironment.trainingPhase || 'planning',
+          currentActivity: context.trainingEnvironment.currentActivity,
+          energyLevel: context.trainingEnvironment.energyLevel,
+          trainingProgress: context.trainingEnvironment.trainingProgress,
+          facilityTier: context.trainingEnvironment.facilityTier
+        },
+        tags: ['training', 'session_start', context.trainingEnvironment.trainingPhase || 'general']
+      });
+    } catch (error) {
+      console.error('Error publishing training session start event:', error);
+    }
     
     const requestData = {
       conversationId,
@@ -184,6 +266,7 @@ export class TrainingChatService {
       energyLevel: context.trainingEnvironment.energyLevel,
       trainingProgress: context.trainingEnvironment.trainingProgress,
       sessionDuration: context.trainingEnvironment.sessionDuration || 0,
+      trainingContext, // Add imported context
       isCharacterSelection
     };
 
@@ -303,6 +386,7 @@ TEAM TRAINING DYNAMICS: You're training alongside diverse fighters from differen
     };
     userMessage: string;
     recentEvents: string[];
+    importedContext?: string; // Add imported memory context
   }): string {
     
     const facilityTemplate = this.FACILITY_TEMPLATES[context.facilityTier as keyof typeof this.FACILITY_TEMPLATES] || this.FACILITY_TEMPLATES.community;
@@ -331,13 +415,17 @@ TEAM TRAINING DYNAMICS: You're training alongside diverse fighters from differen
       ? `\nRECENT TRAINING EVENTS: ${context.recentEvents.join('; ')}`
       : '';
 
+    const importedContextText = context.importedContext 
+      ? `\nRECENT EXPERIENCES AND MENTAL STATE:\n${context.importedContext}`
+      : '';
+
     return `${characterTemplate}
 
 ${facilityTemplate}
 
 ${teamTemplate}
 
-${trainingContextTemplate}${recentEventsText}
+${trainingContextTemplate}${recentEventsText}${importedContextText}
 
 CONVERSATION GUIDELINES:
 - Stay in character with your personality and speech style

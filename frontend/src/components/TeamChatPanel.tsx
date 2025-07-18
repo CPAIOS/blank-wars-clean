@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Send, Users, Brain, Target, Shield } from 'lucide-react';
 import { TeamCharacter } from '@/data/teamBattleSystem';
 import { io, Socket } from 'socket.io-client';
+import GameEventBus from '../services/gameEventBus';
+import EventContextService from '../services/eventContextService';
 
 interface ChatMessage {
   id: string;
@@ -201,10 +203,11 @@ export default function TeamChatPanel({
     }
   }, [phase, currentMatch, currentRound, playerTeam.characters]);
 
-  const handleSendCoachMessage = () => {
+  const handleSendCoachMessage = async () => {
     if (!coachMessage.trim()) return;
     if (usageLimitReached) return;
 
+    const messageContent = coachMessage;
     const newMessage: ChatMessage = {
       id: `coach-${Date.now()}`,
       sender: 'coach',
@@ -221,6 +224,57 @@ export default function TeamChatPanel({
     setMessages(prev => [...prev, newMessage]);
     onSendCoachMessage(coachMessage);
     setCoachMessage('');
+
+    // Publish team chat events for each character
+    try {
+      const eventBus = GameEventBus.getInstance();
+      
+      for (const character of playerTeam.characters) {
+        // Import team battle context for enhanced conversations
+        let teamBattleContext = '';
+        try {
+          const contextService = EventContextService.getInstance();
+          teamBattleContext = await contextService.getTeamBattleContext(character.id);
+        } catch (error) {
+          console.error(`Error getting team battle context for ${character.id}:`, error);
+        }
+
+        let eventType = 'team_battle_communication';
+        let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+        
+        if (newMessage.messageType === 'strategy') {
+          eventType = 'battle_strategy_discussion';
+          severity = 'high';
+        } else if (newMessage.messageType === 'encouragement') {
+          eventType = 'team_morale_boost';
+          severity = 'medium';
+        } else if (newMessage.messageType === 'concern') {
+          eventType = 'battle_concern_raised';
+          severity = 'high';
+        }
+
+        await eventBus.publish({
+          type: eventType as any,
+          source: 'team_battle_chat',
+          primaryCharacterId: character.id,
+          secondaryCharacterIds: playerTeam.characters.filter(c => c.id !== character.id).map(c => c.id),
+          severity,
+          category: 'battle',
+          description: `Coach to team in battle: "${messageContent.substring(0, 100)}..."`,
+          metadata: { 
+            battlePhase: phase.name,
+            currentRound,
+            currentMatch,
+            messageType: newMessage.messageType,
+            teamSize: playerTeam.characters.length,
+            isCoachMessage: true
+          },
+          tags: ['team_battle', 'coaching', 'battle_communication', newMessage.messageType]
+        });
+      }
+    } catch (error) {
+      console.error('Error publishing team chat events:', error);
+    }
 
     // Generate AI character responses using real OpenAI
     if (connected && socketRef.current) {

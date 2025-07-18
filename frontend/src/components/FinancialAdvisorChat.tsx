@@ -12,6 +12,7 @@ import EventContextService from '../services/eventContextService';
 import { makeFinancialJudgeDecision, FinancialJudgeDecision, FinancialEventContext } from '../data/aiJudgeSystem';
 import { financialPsychologyService } from '../services/financialPsychologyService';
 import { FinancialPromptTemplateService } from '../data/financialPromptTemplateService';
+import GameEventBus from '../services/gameEventBus';
 
 interface Message {
   id: number;

@@ -45,11 +45,97 @@ export type EventType =
   | 'financial_wildcard_triggered' | 'battle_financial_decision' | 'adrenaline_investment'
   | 'victory_splurge' | 'defeat_desperation' | 'panic_selling'
   // Judge Evaluation Events - NEW
-  | 'judge_financial_evaluation' | 'judge_financial_outcome_assessment' | 'judge_intervention_recommendation';
+  | 'judge_financial_evaluation' | 'judge_financial_outcome_assessment' | 'judge_intervention_recommendation'
+  
+  // Personal Problems Chat Events - NEW
+  | 'personal_problem_shared' | 'advice_given' | 'problem_ignored'
+  | 'support_requested' | 'emotional_support_given' | 'problem_resolved'
+  | 'personal_crisis' | 'confidence_boost' | 'vulnerability_shown'
+  | 'embarrassing_admission' | 'trust_betrayed' | 'secret_kept'
+  
+  // Therapy Chat Events - EXPANDED
+  | 'therapy_homework_assigned' | 'therapy_relapse' | 'emotional_breakthrough'
+  | 'past_trauma_revealed' | 'coping_mechanism_learned' | 'self_awareness_gained'
+  | 'therapeutic_goal_set' | 'healing_milestone' | 'therapy_resistance_overcome'
+  | 'family_issue_discussed' | 'relationship_pattern_identified' | 'behavioral_change'
+  
+  // Group Activities Events - NEW
+  | 'team_building_activity' | 'group_exercise' | 'team_bonding'
+  | 'group_conflict' | 'leadership_shown' | 'cooperation_displayed'
+  | 'group_achievement' | 'team_failure' | 'social_dynamics_shift'
+  | 'peer_pressure_situation' | 'group_decision_made' | 'team_chemistry_improved'
+  
+  // Training Activities Events - EXPANDED
+  | 'training_session_start' | 'skill_practiced' | 'technique_mastered'
+  | 'training_milestone' | 'endurance_test' | 'strength_gained'
+  | 'training_injury' | 'comeback_attempt' | 'personal_record'
+  | 'training_plateau' | 'motivation_lost' | 'training_breakthrough'
+  | 'form_corrected' | 'partner_training' | 'solo_achievement'
+  
+  // Equipment Chat Events - EXPANDED
+  | 'equipment_consultation' | 'gear_recommendation' | 'weapon_analysis'
+  | 'armor_fitting' | 'equipment_maintenance' | 'gear_malfunction'
+  | 'upgrade_planning' | 'equipment_comparison' | 'gear_envy'
+  | 'specialized_equipment' | 'equipment_mastery' | 'gear_attachment'
+  
+  // Skills/Abilities Chat Events - EXPANDED
+  | 'skill_consultation' | 'ability_planning' | 'talent_discovered'
+  | 'skill_tree_navigation' | 'ability_synergy' | 'skill_disappointment'
+  | 'learning_difficulty' | 'natural_aptitude' | 'skill_jealousy'
+  | 'ability_unlock' | 'skill_mastery' | 'talent_wasted'
+  
+  // Confessional Events - NEW
+  | 'confession_made' | 'secret_revealed' | 'guilt_expressed'
+  | 'shame_addressed' | 'forgiveness_sought' | 'burden_lifted'
+  | 'dark_thought_shared' | 'redemption_attempt' | 'moral_struggle'
+  | 'past_mistake_admitted' | 'hidden_desire_revealed' | 'fear_confessed'
+  | 'regret_expressed' | 'inner_conflict_shared' | 'cathartic_moment'
+  
+  // Real Estate/Facilities Events - NEW
+  | 'room_upgrade_requested' | 'living_complaint' | 'space_improvement'
+  | 'roommate_assignment' | 'privacy_request' | 'comfort_enhancement'
+  | 'facility_evaluation' | 'upgrade_approved' | 'renovation_completed'
+  | 'housing_dissatisfaction' | 'luxury_desire' | 'practical_needs'
+  | 'living_situation_analysis' | 'space_optimization' | 'comfort_priority'
+  
+  // Battle Strategy Events - NEW
+  | 'strategy_discussed' | 'formation_planned' | 'weakness_analyzed'
+  | 'counter_strategy' | 'tactical_adjustment' | 'leadership_decision'
+  | 'strategy_success' | 'strategy_failure' | 'tactical_innovation'
+  | 'team_coordination_planned' | 'battle_preparation' | 'strategic_disagreement'
+  
+  // Message Board Events - NEW
+  | 'message_posted' | 'announcement_made' | 'community_update'
+  | 'bulletin_shared' | 'team_news' | 'achievement_celebrated'
+  | 'message_replied' | 'discussion_started' | 'information_shared'
+  
+  // AI Drama Board Events - NEW
+  | 'drama_started' | 'gossip_shared' | 'rumor_spread'
+  | 'scandal_revealed' | 'controversy_discussed' | 'drama_escalated'
+  | 'alliance_politics' | 'betrayal_exposed' | 'drama_resolved'
+  | 'juicy_revelation' | 'social_manipulation' | 'reputation_damaged'
+  
+  // Social Lounge Events - NEW
+  | 'casual_conversation' | 'friendship_deepened' | 'romantic_tension'
+  | 'social_gathering' | 'party_planned' | 'community_event'
+  | 'small_talk' | 'personal_sharing' | 'social_bonding'
+  | 'awkward_moment' | 'social_success' | 'interpersonal_conflict'
+  
+  // Clubhouse/Team Chat Events - NEW
+  | 'team_meeting' | 'club_discussion' | 'group_planning'
+  | 'team_announcement' | 'collective_decision' | 'group_celebration'
+  | 'team_conflict' | 'unity_moment' | 'leadership_emergence'
+  | 'team_identity_formation' | 'group_norm_established' | 'collective_achievement';
 
 export type EventSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type EventCategory = 'battle' | 'social' | 'therapy' | 'training' | 'progression' | 'communication' | 'financial';
-export type EventSource = 'battle_arena' | 'kitchen_table' | 'therapy_room' | 'training_grounds' | 'equipment_room' | 'chat_system' | 'financial_advisory' | 'bank' | 'marketplace';
+export type EventCategory = 'battle' | 'social' | 'therapy' | 'training' | 'progression' | 'communication' | 'financial' 
+  | 'personal_problems' | 'group_activities' | 'equipment' | 'skills' | 'confessional' 
+  | 'real_estate' | 'strategy' | 'drama' | 'casual_social';
+
+export type EventSource = 'battle_arena' | 'kitchen_table' | 'therapy_room' | 'training_grounds' | 'equipment_room' 
+  | 'chat_system' | 'financial_advisory' | 'bank' | 'marketplace' | 'confessional_booth' 
+  | 'real_estate_office' | 'strategy_room' | 'message_board' | 'drama_board' | 'social_lounge' 
+  | 'clubhouse' | 'personal_problems_chat' | 'group_activities_room' | 'skills_development_center';
 
 export interface GameEvent {
   id: string;
@@ -103,7 +189,9 @@ export interface CharacterMemory {
   id: string;
   characterId: string;
   eventId: string;
-  memoryType: 'battle' | 'social' | 'training' | 'achievement' | 'conflict' | 'bonding' | 'financial';
+  memoryType: 'battle' | 'social' | 'training' | 'achievement' | 'conflict' | 'bonding' | 'financial'
+            | 'therapy' | 'confession' | 'real_estate' | 'personal_problems' | 'group_activity' 
+            | 'equipment' | 'skills' | 'strategy' | 'drama' | 'casual_social';
   content: string;
   emotionalIntensity: number; // 1-10
   emotionalValence: 'positive' | 'negative' | 'neutral';
@@ -114,6 +202,27 @@ export interface CharacterMemory {
   associatedCharacters: string[];
   tags: string[];
   decayRate: number; // How quickly this memory fades
+  
+  // Chat context for cross-references
+  chatContext?: {
+    originalChatType: string;
+    conversationTopic: string;
+    participantCount: number;
+    comedyPotential: number; // 1-10 for cross-reference humor
+    awkwardnessLevel: number; // 1-10 for embarrassing moments
+  };
+  
+  // Cross-reference data for comedy system
+  crossReferenceData?: {
+    canReferencedIn: string[]; // Which chats can reference this memory
+    comedyTags: string[]; // For funny cross-references ('embarrassing', 'hypocritical', 'ironic')
+    embarrassmentLevel: number; // 1-10
+    secretLevel: number; // 1-10 (how private this memory is)
+    contradictionPotential: number; // 1-10 (for catching hypocrisy)
+    quotability: number; // 1-10 (how memorable/quotable this moment was)
+    comedyPotential: number; // 1-10 (overall comedy value for cross-references)
+  };
+  
   // Financial memory specific data
   financialMetadata?: {
     decisionType: 'investment' | 'purchase' | 'advice' | 'crisis' | 'spiral' | 'breakthrough';
@@ -121,6 +230,26 @@ export interface CharacterMemory {
     outcome: 'success' | 'failure' | 'pending';
     stressImpact: number;
     trustImpact: number;
+  };
+  
+  // Therapy-specific metadata
+  therapyMetadata?: {
+    sessionType: 'individual' | 'group';
+    breakthroughLevel: number; // 1-10
+    resistanceShown: boolean;
+    traumaAddressed: boolean;
+    copingMechanismLearned: string[];
+    homeworkAssigned: string[];
+  };
+  
+  // Confessional-specific metadata
+  confessionalMetadata?: {
+    guiltLevel: number; // 1-10
+    shameLevel: number; // 1-10
+    redemptionSought: boolean;
+    secretRevealed: boolean;
+    forgivenessRequested: boolean;
+    burdenLifted: boolean;
   };
 }
 
@@ -355,11 +484,67 @@ export class GameEventBus {
 
   // Helper Methods
   private getMemoryType(eventType: EventType): CharacterMemory['memoryType'] {
-    if (eventType.includes('battle')) return 'battle';
-    if (eventType.includes('training')) return 'training';
-    if (eventType.includes('conflict') || eventType.includes('argument')) return 'conflict';
-    if (eventType.includes('alliance') || eventType.includes('conversation')) return 'bonding';
-    if (eventType.includes('achievement') || eventType.includes('level')) return 'achievement';
+    // Financial events
+    if (eventType.includes('financial') || eventType.includes('investment') || eventType.includes('purchase')) return 'financial';
+    
+    // Therapy events
+    if (eventType.includes('therapy') || eventType.includes('therapeutic') || eventType.includes('healing')) return 'therapy';
+    
+    // Confessional events
+    if (eventType.includes('confession') || eventType.includes('guilt') || eventType.includes('shame') || 
+        eventType.includes('secret') || eventType.includes('redemption')) return 'confession';
+    
+    // Real estate events
+    if (eventType.includes('room') || eventType.includes('living') || eventType.includes('space') || 
+        eventType.includes('facility') || eventType.includes('upgrade') || eventType.includes('privacy')) return 'real_estate';
+    
+    // Personal problems events
+    if (eventType.includes('personal_problem') || eventType.includes('support') || eventType.includes('crisis') || 
+        eventType.includes('vulnerability') || eventType.includes('embarrassing')) return 'personal_problems';
+    
+    // Group activities events
+    if (eventType.includes('group') || eventType.includes('team_building') || eventType.includes('cooperation') || 
+        eventType.includes('leadership') || eventType.includes('collective')) return 'group_activity';
+    
+    // Equipment events
+    if (eventType.includes('equipment') || eventType.includes('gear') || eventType.includes('weapon') || 
+        eventType.includes('armor') || eventType.includes('maintenance')) return 'equipment';
+    
+    // Skills events
+    if (eventType.includes('skill') || eventType.includes('ability') || eventType.includes('talent') || 
+        eventType.includes('mastery') || eventType.includes('learning')) return 'skills';
+    
+    // Strategy events
+    if (eventType.includes('strategy') || eventType.includes('formation') || eventType.includes('tactical') || 
+        eventType.includes('planning') || eventType.includes('coordination')) return 'strategy';
+    
+    // Drama events
+    if (eventType.includes('drama') || eventType.includes('gossip') || eventType.includes('rumor') || 
+        eventType.includes('scandal') || eventType.includes('betrayal') || eventType.includes('manipulation')) return 'drama';
+    
+    // Casual social events
+    if (eventType.includes('casual') || eventType.includes('small_talk') || eventType.includes('social_gathering') || 
+        eventType.includes('party') || eventType.includes('community')) return 'casual_social';
+    
+    // Training events
+    if (eventType.includes('training') || eventType.includes('exercise') || eventType.includes('endurance') || 
+        eventType.includes('strength') || eventType.includes('technique')) return 'training';
+    
+    // Battle events
+    if (eventType.includes('battle') || eventType.includes('combat') || eventType.includes('victory') || eventType.includes('defeat')) return 'battle';
+    
+    // Conflict events
+    if (eventType.includes('conflict') || eventType.includes('argument') || eventType.includes('disagreement')) return 'conflict';
+    
+    // Achievement events
+    if (eventType.includes('achievement') || eventType.includes('milestone') || eventType.includes('success') || 
+        eventType.includes('breakthrough') || eventType.includes('level') || eventType.includes('unlock')) return 'achievement';
+    
+    // Bonding/social events
+    if (eventType.includes('alliance') || eventType.includes('conversation') || eventType.includes('friendship') || 
+        eventType.includes('bonding') || eventType.includes('romantic') || eventType.includes('message')) return 'bonding';
+    
+    // Default to social
     return 'social';
   }
 

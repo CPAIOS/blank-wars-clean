@@ -9,6 +9,7 @@ import { Character } from '../data/characters';
 import ConflictContextService, { LivingContext } from '../services/conflictContextService';
 import EventContextService from '../services/eventContextService';
 import EventPublisher from '../services/eventPublisher';
+import GameEventBus from '../services/gameEventBus';
 
 interface Message {
   id: number;
@@ -391,9 +392,48 @@ export default function PerformanceCoachingChat({
     };
 
     setMessages(prev => [...prev, playerMessage]);
+    const messageContent = content;
     setInputMessage('');
 
     console.log('📤 PerformanceCoaching message:', content);
+
+    // Publish 1-on-1 combat coaching event
+    try {
+      const eventBus = GameEventBus.getInstance();
+      const messageText = messageContent.toLowerCase();
+      let eventType = 'combat_coaching_session';
+      let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+      
+      if (messageText.includes('strategy') || messageText.includes('tactics') || messageText.includes('technique')) {
+        eventType = 'combat_strategy_coaching';
+        severity = 'high';
+      } else if (messageText.includes('improve') || messageText.includes('better') || messageText.includes('help')) {
+        eventType = 'performance_improvement_request';
+        severity = 'medium';
+      } else if (messageText.includes('problem') || messageText.includes('struggle') || messageText.includes('losing')) {
+        eventType = 'combat_performance_concern';
+        severity = 'high';
+      }
+
+      await eventBus.publish({
+        type: eventType as any,
+        source: 'combat_coaching',
+        primaryCharacterId: selectedCharacter.baseName || selectedCharacter.name?.toLowerCase() || selectedCharacter.id,
+        severity,
+        category: 'coaching',
+        description: `${selectedCharacter.name} in 1-on-1 combat coaching: "${messageContent.substring(0, 100)}..."`,
+        metadata: { 
+          coachingType: '1on1_combat',
+          characterLevel: selectedCharacter.level || 1,
+          winRate: Math.round(((selectedCharacter.wins || 0) / Math.max((selectedCharacter.wins || 0) + (selectedCharacter.losses || 0), 1)) * 100),
+          totalBattles: (selectedCharacter.wins || 0) + (selectedCharacter.losses || 0),
+          messageLength: messageContent.length
+        },
+        tags: ['combat_coaching', '1on1', 'performance', 'coaching']
+      });
+    } catch (error) {
+      console.error('Error publishing combat coaching event:', error);
+    }
 
     // Only proceed if connected and socket available
     if (!connected || !socketRef.current) {

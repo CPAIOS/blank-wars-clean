@@ -9,6 +9,7 @@ import { Character } from '../data/characters';
 import ConflictContextService, { LivingContext } from '../services/conflictContextService';
 import EventContextService from '../services/eventContextService';
 import EventPublisher from '../services/eventPublisher';
+import GameEventBus from '../services/gameEventBus';
 
 interface Message {
   id: number;
@@ -438,14 +439,24 @@ You should naturally reference your current equipment, mention specific items in
 
     // Publish equipment chat event
     try {
-      await eventPublisher.publishChatInteraction({
-        characterId,
-        chatType: 'equipment',
-        message: content,
-        outcome: 'helpful' // Default, could be determined by AI response
+      const eventBus = GameEventBus.getInstance();
+      await eventBus.publish({
+        type: 'equipment_advice_requested',
+        source: 'equipment_advisor',
+        primaryCharacterId: characterId,
+        severity: 'low',
+        category: 'equipment',
+        description: `${selectedCharacter.name} asked for equipment advice: "${content.substring(0, 100)}..."`,
+        metadata: { 
+          requestType: 'equipment_advice',
+          messageLength: content.length,
+          characterLevel: selectedCharacter.level || 1,
+          currentArchetype: selectedCharacter.archetype
+        },
+        tags: ['equipment', 'advice', 'coaching']
       });
     } catch (error) {
-      console.warn('Could not publish chat event:', error);
+      console.warn('Could not publish equipment event:', error);
     }
 
   };

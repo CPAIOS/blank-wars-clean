@@ -1,4 +1,6 @@
 // OpenAI client removed for security - all AI calls now go through backend API
+import GameEventBus from './gameEventBus';
+import EventContextService from './eventContextService';
 
 export interface AIMessageRequest {
   characterId: string;
@@ -135,6 +137,15 @@ const getCharacterPromptTemplate = (characterId: string): string => {
 
 export async function generateAIMessage(request: AIMessageRequest): Promise<AIMessageResponse> {
   const characterPrompt = getCharacterPromptTemplate(request.characterId);
+
+  // Import memory context for enhanced message generation
+  let messageBoardContext = '';
+  try {
+    const contextService = EventContextService.getInstance();
+    messageBoardContext = await contextService.getMessageBoardContext(request.characterId);
+  } catch (error) {
+    console.error('Error getting message board context:', error);
+  }
   
   // Build context about recent events
   const recentContext = `
@@ -160,6 +171,9 @@ Recent Message History:
 ${request.messageHistory.slice(-5).map(msg => 
   `- ${msg.characterId}: "${msg.content}" (${msg.type})`
 ).join('\n')}
+
+RECENT EXPERIENCES AND MEMORIES:
+${messageBoardContext || 'No recent significant memories.'}
 `;
 
   const systemPrompt = `${characterPrompt}
@@ -199,6 +213,44 @@ Respond with a JSON object containing:
     });
 
     const response = JSON.parse(completion.choices[0].message.content || '{}');
+
+    // Publish message board post event
+    try {
+      const eventBus = GameEventBus.getInstance();
+      const messageText = response.content || '';
+      let eventType = 'message_board_post';
+      let severity: 'low' | 'medium' | 'high' | 'critical' = 'low';
+      
+      if (response.type === 'trash_talk' || response.emotionalTone > 70) {
+        eventType = 'public_callout';
+        severity = 'medium';
+      } else if (response.type === 'challenge') {
+        eventType = 'battle_challenge_issued';
+        severity = 'medium';
+      } else if (response.type === 'complaint') {
+        eventType = 'public_complaint';
+        severity = 'medium';
+      }
+
+      await eventBus.publish({
+        type: eventType as any,
+        source: 'message_board',
+        primaryCharacterId: request.characterId,
+        secondaryCharacterIds: response.targetCharacterId ? [response.targetCharacterId] : undefined,
+        severity,
+        category: 'social',
+        description: `${request.characterName} posted: "${messageText.substring(0, 100)}..."`,
+        metadata: { 
+          messageType: response.type,
+          emotionalTone: response.emotionalTone,
+          targetCharacter: response.targetCharacterId,
+          shouldTriggerReply: response.shouldTriggerReply
+        },
+        tags: ['message_board', 'social', response.type]
+      });
+    } catch (error) {
+      console.error('Error publishing message board event:', error);
+    }
     
     return {
       content: response.content || "...",

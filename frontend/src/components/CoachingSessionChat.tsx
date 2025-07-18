@@ -6,6 +6,8 @@ import { Send, Heart, Star, User, Brain, MessageCircle, Clock, Shield } from 'lu
 import { io, Socket } from 'socket.io-client';
 import { characterAPI } from '../services/apiClient';
 import { Character } from '../data/characters';
+import GameEventBus from '../services/gameEventBus';
+import EventContextService from '../services/eventContextService';
 
 interface Message {
   id: number;
@@ -447,7 +449,7 @@ export default function CoachingSessionChat({
       setConnected(false);
     });
 
-    socketRef.current.on('chat_response', (data: { character: string; message: string; bondIncrease?: boolean }) => {
+    socketRef.current.on('chat_response', async (data: { character: string; message: string; bondIncrease?: boolean }) => {
       console.log('📨 CoachingSession response:', data);
       
       const characterMessage: Message = {
@@ -460,6 +462,55 @@ export default function CoachingSessionChat({
       
       setMessages(prev => [...prev, characterMessage]);
       setIsTyping(false);
+
+      // Analyze personal problems coaching response for event publishing
+      if (selectedCharacter && data.message) {
+        const responseText = data.message.toLowerCase();
+        let eventType = 'personal_problem_shared';
+        let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+        let emotionalIntensity = 5;
+        
+        if (responseText.includes('vulnerable') || responseText.includes('opening up') || responseText.includes('trust')) {
+          eventType = 'vulnerability_shown';
+          severity = 'high';
+          emotionalIntensity = 8;
+        } else if (responseText.includes('support') || responseText.includes('help') || responseText.includes('guidance')) {
+          eventType = 'support_requested';
+          severity = 'medium';
+          emotionalIntensity = 6;
+        } else if (responseText.includes('confident') || responseText.includes('better') || responseText.includes('progress')) {
+          eventType = 'confidence_boost';
+          severity = 'low';
+          emotionalIntensity = 7;
+        } else if (responseText.includes('struggle') || responseText.includes('difficult') || responseText.includes('hard')) {
+          eventType = 'personal_crisis';
+          severity = 'high';
+          emotionalIntensity = 8;
+        }
+
+        // Publish personal problems coaching event
+        try {
+          const eventBus = GameEventBus.getInstance();
+          await eventBus.publish({
+            type: eventType as any,
+            source: 'personal_problems_chat',
+            primaryCharacterId: selectedCharacter.baseName,
+            severity,
+            category: 'personal_problems',
+            description: `${selectedCharacter.name} in personal coaching: "${data.message.substring(0, 100)}..."`,
+            metadata: { 
+              sessionType: currentSessionType,
+              responseLength: data.message.length,
+              emotionalIntensity,
+              bondIncrease: data.bondIncrease,
+              coachingType: 'personal_problems'
+            },
+            tags: ['personal_problems', 'coaching', 'emotional_support', eventType.replace('_', '-')]
+          });
+        } catch (error) {
+          console.error('Error publishing personal coaching event:', error);
+        }
+      }
     });
 
     socketRef.current.on('chat_error', (error: { message: string }) => {
@@ -480,7 +531,7 @@ export default function CoachingSessionChat({
   const coachingPrompts = selectedCharacter ? generateCoachingPrompts(selectedCharacter) : [];
   const sessionTypes = selectedCharacter ? generateSessionTypes(selectedCharacter) : [];
 
-  const sendMessage = (content: string) => {
+  const sendMessage = async (content: string) => {
     if (!content.trim() || isTyping || !connected || !socketRef.current) {
       return;
     }
@@ -495,6 +546,17 @@ export default function CoachingSessionChat({
     setMessages(prev => [...prev, playerMessage]);
     setInputMessage('');
     setIsTyping(true);
+
+    // Import character context for personalized coaching
+    let personalContext = '';
+    if (selectedCharacter) {
+      try {
+        const contextService = EventContextService.getInstance();
+        personalContext = await contextService.getPersonalProblemsContext(selectedCharacter.baseName);
+      } catch (error) {
+        console.error('Error getting personal context:', error);
+      }
+    }
 
     console.log('📤 CoachingSession message:', content);
 
@@ -523,6 +585,9 @@ export default function CoachingSessionChat({
         conversationContext: `This is a private, confidential coaching session. You are ${selectedCharacter?.name || 'the character'}, and you're talking with your coach (the user) about personal, emotional, psychological, and mental health topics.
 
 SESSION TYPE: ${currentSessionType}
+
+RECENT EXPERIENCES AND EMOTIONAL CONTEXT:
+${personalContext || 'No recent emotional context available.'}
 
 CURRENT CHARACTER PSYCHOLOGICAL PROFILE:
 - Personality: ${selectedCharacter?.personalityTraits?.join(', ') || 'Determined'}

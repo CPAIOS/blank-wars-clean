@@ -4,6 +4,8 @@ import { kitchenChatService } from '../data/kitchenChatService';
 import { PromptTemplateService } from '../services/promptTemplateService';
 import { usageService, UsageStatus } from '../services/usageService';
 import { calculateSleepingArrangement, calculateRoomCapacity } from '../utils/roomCalculations';
+import GameEventBus from './gameEventBus';
+import EventContextService from './eventContextService';
 
 // Re-export the original service for backwards compatibility
 export { kitchenChatService };
@@ -55,6 +57,17 @@ export const startNewScene = async (
       const teammates = availableCharacters.filter(c => 
         allRoommates.includes(c.id) && c.id !== charName
       );
+
+      // Import kitchen context for enhanced conversations
+      let kitchenContext = '';
+      let comedyContext = '';
+      try {
+        const contextService = EventContextService.getInstance();
+        kitchenContext = await contextService.getKitchenContext(charName);
+        comedyContext = contextService.getComedyContext(charName, 'kitchen_table', trigger);
+      } catch (error) {
+        console.error('Error getting kitchen context:', error);
+      }
       
       // Calculate sleeping arrangement for this character
       const room = headquarters.rooms.find(r => r.assignedCharacters.includes(charName)) || headquarters.rooms[0];
@@ -79,7 +92,9 @@ export const startNewScene = async (
           floorSleeperCount: Math.max(0, room.assignedCharacters.length - roomCapacity),
           roommateCount: room.assignedCharacters.length
         },
-        recentEvents: [trigger]
+        recentEvents: [trigger],
+        kitchenContext, // Add imported context
+        comedyContext // Add comedy cross-references for humor
       };
       
       try {
@@ -94,6 +109,44 @@ export const startNewScene = async (
           isAI: true,
           round: 1
         });
+
+        // Publish kitchen conversation event
+        try {
+          const eventBus = GameEventBus.getInstance();
+          const responseText = response.toLowerCase();
+          let eventType = 'kitchen_conversation';
+          let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+          
+          if (responseText.includes('annoying') || responseText.includes('frustrating') || responseText.includes('!')) {
+            eventType = 'social_conflict';
+            severity = 'high';
+          } else if (responseText.includes('tired') || responseText.includes('sleep') || responseText.includes('floor')) {
+            eventType = 'living_complaint';
+            severity = 'medium';
+          } else if (responseText.includes('bathroom') || responseText.includes('privacy') || responseText.includes('space')) {
+            eventType = 'privacy_concern';
+            severity = 'high';
+          }
+
+          await eventBus.publish({
+            type: eventType as any,
+            source: 'kitchen_table',
+            primaryCharacterId: charName,
+            severity,
+            category: 'social',
+            description: `${character.name} in kitchen: "${response.substring(0, 100)}..."`,
+            metadata: { 
+              sceneType: 'opening',
+              round: 1,
+              apartmentTier: headquarters.currentTier,
+              roomOvercrowded: isOvercrowded,
+              isComplaint: response.includes('!') || response.toLowerCase().includes('annoying')
+            },
+            tags: ['kitchen', 'social', 'conversation']
+          });
+        } catch (error) {
+          console.error('Error publishing kitchen event:', error);
+        }
       } catch (error: any) {
         console.error(`Scene generation failed for ${charName}:`, error);
         

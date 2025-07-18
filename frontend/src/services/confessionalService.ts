@@ -1,5 +1,6 @@
 import { HeadquartersState } from '../types/headquarters';
 import { Character } from '../data/characters';
+import EventContextService from './eventContextService';
 
 export interface ConfessionalMessage {
   id: number;
@@ -61,6 +62,9 @@ export const startConfessional = async (
 
   // Set new interview data (complete replacement, not updating previous state)
   setConfessionalData(initialConfessionalData);
+
+  // Import past memories for confessional context (no export - confessionals are private)
+  console.log('🎬 Preparing confessional context for:', characterName);
 
   // Automatically generate character's response to the initial question
   const timeoutId = setTimeout(() => {
@@ -144,6 +148,10 @@ export const generateCharacterResponse = async (
   }
 
   try {
+    // Import past memories for confessional context (import-only, no export)
+    const contextService = new EventContextService();
+    const confessionalContext = await contextService.getConfessionalContext(characterName);
+    
     // First, generate the character's response to the HOSTMASTER question
     const characterContext = {
       characterId: character.id,
@@ -152,7 +160,8 @@ export const generateCharacterResponse = async (
       historicalPeriod: character.historicalPeriod,
       mythology: character.mythology,
       currentBondLevel: character.bondLevel,
-      previousMessages: []
+      previousMessages: [],
+      pastMemories: confessionalContext // Add imported context for richer storytelling
     };
 
     // Get other characters for context
@@ -185,6 +194,11 @@ YOUR CHARACTER ESSENCE:
 - Background: ${character.historicalPeriod} - ${character.mythology}
 - Speech Style: ${character.personality.speechStyle}
 - Core Motivations: ${character.personality.motivations.join(', ')}
+
+RECENT EXPERIENCES TO REFLECT ON:
+${confessionalContext || 'No significant recent memories to reference.'}
+
+Use these experiences to add depth and authenticity to your confessional response. Reference past events naturally!
 
 INVISIBLE DIRECTOR RESPONSE STYLE:
 - Begin your response as if reacting to their inaudible question
@@ -225,6 +239,10 @@ Remember: Only YOUR voice is heard. React to the invisible director's question n
 
     const characterResponse = await response.json();
     console.log('✅ Character response received:', characterResponse.message?.substring(0, 100) + '...');
+
+    // Note: Confessionals are private - no memories exported to other systems
+    // Characters can reflect on past events but confessional content stays private
+    console.log('🤐 Confessional content remains private - no memory export');
 
     // Add character response to messages
     setConfessionalData(prev => ({
