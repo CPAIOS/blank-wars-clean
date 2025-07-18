@@ -72,25 +72,25 @@ class CoachProgressionAPI {
   
   // Get coach progression
   async getProgression(): Promise<CoachProgressionResponse> {
-    const response = await apiClient.get('/api/coach-progression');
+    const response = await apiClient.get('/coach-progression');
     return response.data;
   }
 
   // Get XP history
   async getXPHistory(limit: number = 50): Promise<{ history: CoachXPEvent[]; count: number }> {
-    const response = await apiClient.get(`/api/coach-progression/xp-history?limit=${limit}`);
+    const response = await apiClient.get(`/coach-progression/xp-history?limit=${limit}`);
     return response.data;
   }
 
   // Get coach skills
   async getSkills(): Promise<{ skills: CoachSkill[]; count: number }> {
-    const response = await apiClient.get('/api/coach-progression/skills');
+    const response = await apiClient.get('/coach-progression/skills');
     return response.data;
   }
 
   // Get leaderboard
   async getLeaderboard(limit: number = 10): Promise<{ leaderboard: LeaderboardEntry[]; count: number }> {
-    const response = await apiClient.get(`/api/coach-progression/leaderboard?limit=${limit}`);
+    const response = await apiClient.get(`/coach-progression/leaderboard?limit=${limit}`);
     return response.data;
   }
 
@@ -102,7 +102,7 @@ class CoachProgressionAPI {
     bonusMultiplier?: number,
     bonusReason?: string
   ): Promise<{ success: boolean; battleResult: string; leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
-    const response = await apiClient.post('/api/coach-progression/award-battle-xp', {
+    const response = await apiClient.post('/coach-progression/award-battle-xp', {
       isWin,
       battleId,
       characterId,
@@ -119,7 +119,7 @@ class CoachProgressionAPI {
     averageDeviationSeverity: 'minor' | 'moderate' | 'major' | 'extreme',
     battleId: string
   ): Promise<{ success: boolean; adherenceRate: number; deviationsBlocked: number; leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
-    const response = await apiClient.post('/api/coach-progression/award-gameplan-adherence-xp', {
+    const response = await apiClient.post('/coach-progression/award-gameplan-adherence-xp', {
       adherenceRate,
       deviationsBlocked,
       averageDeviationSeverity,
@@ -134,7 +134,7 @@ class CoachProgressionAPI {
     finalChemistry: number,
     battleId: string
   ): Promise<{ success: boolean; chemistryImprovement: number; finalChemistry: number; leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
-    const response = await apiClient.post('/api/coach-progression/award-team-chemistry-xp', {
+    const response = await apiClient.post('/coach-progression/award-team-chemistry-xp', {
       chemistryImprovement,
       finalChemistry,
       battleId
@@ -149,7 +149,7 @@ class CoachProgressionAPI {
     description: string,
     characterId?: string
   ): Promise<{ success: boolean; developmentType: string; xpAwarded: number; leveledUp: boolean; newLevel?: number; oldLevel?: number }> {
-    const response = await apiClient.post('/api/coach-progression/award-character-development-xp', {
+    const response = await apiClient.post('/coach-progression/award-character-development-xp', {
       developmentType,
       xpAmount,
       description,

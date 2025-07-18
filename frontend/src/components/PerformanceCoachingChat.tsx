@@ -343,7 +343,12 @@ export default function PerformanceCoachingChat({
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      const container = messagesEndRef.current.parentElement;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
   }, [messages]);
 
   // Load living context when character changes
@@ -493,7 +498,15 @@ export default function PerformanceCoachingChat({
         injuries: selectedCharacter.injuries,
         bondLevel: selectedCharacter.displayBondLevel,
         // Performance-specific context
-        conversationContext: `This is a performance coaching session. You are ${selectedCharacter.name}, speaking to your coach about your combat performance.
+        conversationContext: `This is a performance coaching session. You are ${selectedCharacter.name}, a warrior/fighter character speaking to your coach about YOUR OWN combat performance.
+
+CRITICAL ROLE CLARIFICATION: 
+- YOU ARE THE CHARACTER BEING COACHED, NOT THE COACH
+- YOU are ${selectedCharacter.name}, the character with these stats
+- The human user is your COACH who is helping you improve
+- These are YOUR stats, YOUR performance data, YOUR battle record
+- You should talk about YOUR performance, YOUR strengths, YOUR areas for improvement
+- DO NOT refer to these as "your stats" when talking to your coach - they are YOUR stats
 
 IMPORTANT: You MUST reference your actual stats and performance data in conversation. You are aware of your:
 
@@ -520,7 +533,15 @@ EQUIPMENT & COMBAT TOOLS:
 - Available Abilities: ${selectedCharacter.abilities?.length || 0} combat abilities
 - Preferred Strategies: ${selectedCharacter.preferredStrategies?.join(', ') || 'Adaptive'}
 
-You should naturally reference these numbers when discussing your performance, comparing to previous levels, or talking about areas for improvement. For example: "My attack is at ${selectedCharacter.base_attack || selectedCharacter.baseStats?.strength || 'N/A'} now, which feels stronger than when I was level ${Math.max(1, (selectedCharacter.level || 1) - 1)}" or "I've won ${selectedCharacter.wins || 0} out of my last ${(selectedCharacter.wins || 0) + (selectedCharacter.losses || 0)} battles. My gameplan adherence has been ${Math.round((selectedCharacter.gameplanAdherence || 0) * 100)}%, which ${(selectedCharacter.gameplanAdherence || 0) > 0.7 ? 'shows good discipline' : 'needs improvement'}."`,
+You should naturally reference these numbers when discussing your performance, comparing to previous levels, or talking about areas for improvement. 
+
+EXAMPLE DIALOGUE (speak as the character):
+- "My attack is at ${selectedCharacter.base_attack || selectedCharacter.baseStats?.strength || 'N/A'} now, which feels stronger than when I was level ${Math.max(1, (selectedCharacter.level || 1) - 1)}"
+- "I've won ${selectedCharacter.wins || 0} out of my last ${(selectedCharacter.wins || 0) + (selectedCharacter.losses || 0)} battles. My gameplan adherence has been ${Math.round((selectedCharacter.gameplanAdherence || 0) * 100)}%, which ${(selectedCharacter.gameplanAdherence || 0) > 0.7 ? 'shows good discipline' : 'needs improvement'}"
+- "Coach, I think my speed of ${selectedCharacter.base_speed || selectedCharacter.baseStats?.agility || 'N/A'} is holding me back"
+- "I need help improving my defense rating of ${selectedCharacter.base_defense || selectedCharacter.baseStats?.wisdom || 'N/A'}"
+
+REMEMBER: You are the character seeking coaching advice, not giving it!`,
         performanceData: {
           recentBattles,
           battlesWon,

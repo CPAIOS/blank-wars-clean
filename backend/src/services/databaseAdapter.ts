@@ -117,6 +117,11 @@ interface Character {
   artwork_url?: string;
   abilities: any[];
   created_at: Date;
+  training: number;
+  team_player: number;
+  ego: number;
+  mental_health: number;
+  communication: number;
 }
 
 /**
@@ -278,7 +283,8 @@ export const dbAdapter = {
           SELECT uc.*, c.name, c.title, c.archetype, c.origin_era, c.rarity,
                  c.base_health, c.base_attack, c.base_defense, c.base_speed, c.base_special,
                  c.personality_traits, c.conversation_style, c.backstory, c.conversation_topics,
-                 c.avatar_emoji, c.artwork_url, c.abilities
+                 c.avatar_emoji, c.artwork_url, c.abilities,
+                 c.training, c.team_player, c.ego, c.mental_health, c.communication
           FROM user_characters uc
           JOIN characters c ON uc.character_id = c.id
           WHERE uc.user_id = $1

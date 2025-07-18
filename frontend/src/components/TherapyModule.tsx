@@ -148,7 +148,8 @@ const TherapyModule = () => {
       'vega-x': { name: 'Cyborg', count: 3 }, // Vega-X maps to Cyborg therapy images
       'sammy_slugger': { name: 'sammy_slugger', count: 1 }, // Special case - only one image and different naming
       'sammy_slugger_sullivan': { name: 'sammy_slugger', count: 1 },
-      'sammy_"slugger"_sullivan': { name: 'sammy_slugger', count: 1 } // Handle quotes in name
+      'sammy_"slugger"_sullivan': { name: 'sammy_slugger', count: 1 }, // Handle quotes in name
+      'merlin': { name: 'merlin', count: 1, isSpecial: true }
     };
     
     const imageInfo = characterImageMap[normalizedName];
@@ -169,6 +170,12 @@ const TherapyModule = () => {
       const sammyPath = `${baseImagePath}${imageInfo.name}.jpg`;
       console.log('Generated Sammy therapy image path:', sammyPath);
       return sammyPath;
+    }
+    
+    if (normalizedName === 'merlin') {
+      const merlinPath = `${baseImagePath}therapy ${imageInfo.name}.png`;
+      console.log('Generated Merlin therapy image path:', merlinPath);
+      return merlinPath;
     }
     
     // Fixed index for testing - always use 01

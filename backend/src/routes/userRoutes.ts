@@ -152,7 +152,34 @@ router.get('/characters', async (req: any, res) => {
         significant_memories: [],
         personality_drift: {},
         acquired_at: new Date(),
-        last_battle_at: null
+        last_battle_at: null,
+        // Map psychStats from characters table
+        psychStats: {
+          training: char.training,
+          teamPlayer: char.team_player,
+          ego: char.ego,
+          mentalHealth: char.mental_health,
+          communication: char.communication
+        },
+        // Add required battle stats
+        traditionalStats: {
+          strength: char.base_attack,
+          speed: char.base_speed,
+          dexterity: char.base_defense,
+          stamina: char.base_health,
+          intelligence: char.base_special,
+          charisma: 50,
+          spirit: 50
+        },
+        temporaryStats: {
+          strength: 0,
+          speed: 0,
+          dexterity: 0,
+          stamina: 0,
+          intelligence: 0,
+          charisma: 0,
+          spirit: 0
+        }
       }));
       
       return res.json({
@@ -166,9 +193,39 @@ router.get('/characters', async (req: any, res) => {
     console.log('📊 [/characters] Found characters:', userCharacters.length);
     console.log('🔍 [/characters] First character sample:', userCharacters[0] ? JSON.stringify(userCharacters[0], null, 2) : 'None');
     
+    // Characters from JOIN already have psychStats from characters table
+    const charactersWithPsychStats = userCharacters.map(character => ({
+      ...character,
+      psychStats: {
+        training: character.training,
+        teamPlayer: character.team_player,
+        ego: character.ego,
+        mentalHealth: character.mental_health,
+        communication: character.communication
+      },
+      traditionalStats: {
+        strength: character.base_attack,
+        speed: character.base_speed,
+        dexterity: character.base_defense,
+        stamina: character.base_health,
+        intelligence: character.base_special,
+        charisma: 50,
+        spirit: 50
+      },
+      temporaryStats: {
+        strength: 0,
+        speed: 0,
+        dexterity: 0,
+        stamina: 0,
+        intelligence: 0,
+        charisma: 0,
+        spirit: 0
+      }
+    }));
+    
     return res.json({
       success: true,
-      characters: userCharacters
+      characters: charactersWithPsychStats
     });
   } catch (error: any) {
     console.error('❌ Error getting user characters:', error);

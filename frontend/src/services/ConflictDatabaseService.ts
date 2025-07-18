@@ -216,7 +216,11 @@ class ConflictDatabaseService {
   async generateTherapyContext(characterId: string): Promise<TherapyContext> {
     await this.loadCharacters();
     
-    const character = this.characters.find(c => c.id === characterId);
+    // Try to find by ID first, then by name (case-insensitive)
+    let character = this.characters.find(c => c.id === characterId);
+    if (!character) {
+      character = this.characters.find(c => c.name.toLowerCase() === characterId.toLowerCase());
+    }
     if (!character) {
       throw new Error(`Character ${characterId} not found`);
     }

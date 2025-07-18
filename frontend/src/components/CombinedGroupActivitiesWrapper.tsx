@@ -251,17 +251,32 @@ export default function CombinedGroupActivitiesWrapper() {
         const response = await characterAPI.getUserCharacters();
         const charactersData = response.characters || [];
         
+        // Import character templates for enrichment
+        const { characterTemplates } = await import('@/data/characters');
+        
         const mappedCharacters = charactersData.map((char: any) => {
           const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
+          
+          // Find the template data for this character
+          const template = characterTemplates[char.character_id] || characterTemplates[char.template_id];
+          
           return {
             ...char,
             baseName,
             templateId: char.character_id, // For conflict tracking
-            avatar: char.avatar_emoji || char.avatar || '⚔️',
-            name: char.name || 'Unknown Character',
+            avatar: char.avatar_emoji || char.avatar || template?.avatar || '⚔️',
+            name: char.name || template?.name || 'Unknown Character',
             level: char.level || 1,
-            archetype: char.archetype || 'warrior',
-            bond_level: char.bond_level || 0
+            archetype: char.archetype || template?.archetype || 'warrior',
+            bond_level: char.bond_level || 0,
+            // Add missing template properties for group activity prompts
+            historicalPeriod: template?.historicalPeriod || 'Unknown era',
+            description: template?.description || 'A legendary character',
+            mythology: template?.mythology || 'Ancient legends',
+            personality: template?.personality || { traits: [], speechStyle: '', motivations: [] },
+            speaking_style: template?.personality?.speechStyle || 'Direct',
+            conflict_response: template?.personality?.traits?.includes('Aggressive') ? 'Confrontational' : 'Diplomatic',
+            personality_traits: template?.personality?.traits || []
           };
         });
         
@@ -283,13 +298,20 @@ export default function CombinedGroupActivitiesWrapper() {
 
   // Initialize Socket.IO connection like working components
   useEffect(() => {
-    // Determine backend URL based on environment
+    // Determine backend URL based on environment - following working components pattern
     let socketUrl: string;
     
-    if (process.env.NODE_ENV === 'production') {
-      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-clean-production.up.railway.app';
-    } else {
+    // Check if we're running locally (either in dev or local production build)
+    const isLocalhost = typeof window !== 'undefined' && 
+                        (window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1');
+    
+    if (isLocalhost) {
+      // Local development or local production build
       socketUrl = 'http://localhost:3006';
+    } else {
+      // Deployed production
+      socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://blank-wars-clean-production.up.railway.app';
     }
     
     console.log('🔌 [GroupChat] Connecting to backend:', socketUrl);
@@ -297,6 +319,7 @@ export default function CombinedGroupActivitiesWrapper() {
     groupSocketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
+      withCredentials: true, // Include cookies for authentication
       forceNew: true,
     });
 
@@ -631,7 +654,7 @@ export default function CombinedGroupActivitiesWrapper() {
       const session: ActiveSession = {
         eventId: 'general-chat',
         eventTitle: 'Group Chat',
-        eventType: 'group_chat',
+        eventType: 'Group Hangout', // General group interaction when no specific activity selected
         participants: participants,
         startTime: new Date(),
         isActive: true,
@@ -672,8 +695,8 @@ export default function CombinedGroupActivitiesWrapper() {
       // Shuffle participants order for more natural conversation flow
       const shuffledParticipants = [...currentParticipants].sort(() => Math.random() - 0.5);
       
-      // Have most participants respond each time - ensure good participation
-      const respondingParticipants = shuffledParticipants.slice(0, Math.max(1, Math.floor(shuffledParticipants.length * 0.9)));
+      // Have ALL participants respond each time - ensure everyone participates
+      const respondingParticipants = shuffledParticipants.slice(0, shuffledParticipants.length);
       
       for (let i = 0; i < respondingParticipants.length; i++) {
         const characterName = respondingParticipants[i];
@@ -688,7 +711,8 @@ export default function CombinedGroupActivitiesWrapper() {
             character,
             chatMessage,
             activeSession?.eventTitle || 'group_chat',
-            activeSession?.chatMessages || []
+            activeSession?.chatMessages || [],
+            activeSession?.participants
           );
 
           const characterMsg: ChatMessage = {
@@ -718,21 +742,33 @@ export default function CombinedGroupActivitiesWrapper() {
     character: any, 
     facilitatorMessage: string, 
     eventType: string, 
-    chatHistory: ChatMessage[]
+    chatHistory: ChatMessage[],
+    sessionParticipants?: string[]
   ): Promise<string> => {
     console.log('🎭 Generating response for:', character.name, 'to message:', facilitatorMessage.substring(0, 50) + '...');
     
     return new Promise((resolve, reject) => {
       try {
         // Build conflict-aware character prompt
+        console.log('🔍 Character data for prompt:', {
+          name: character.name,
+          archetype: character.archetype,
+          historicalPeriod: character.historicalPeriod,
+          description: character.description?.substring(0, 100)
+        });
+        console.log('🔍 EventType:', eventType);
+        console.log('🔍 ActiveSession participants:', activeSession?.participants);
+        
         const characterPrompt = buildConflictAwareCharacterPrompt(
           character, 
           facilitatorMessage, 
           eventType, 
-          chatHistory
+          chatHistory,
+          sessionParticipants
         );
         
         console.log('📝 Generated prompt length:', characterPrompt.length);
+        console.log('📝 Generated prompt preview:', characterPrompt.substring(0, 300) + '...');
         
         // Use Socket.IO like working components
         if (!groupSocketRef.current) {
@@ -745,7 +781,7 @@ export default function CombinedGroupActivitiesWrapper() {
           characterName: character.name,
           message: facilitatorMessage,
           eventType: eventType,
-          promptOverride: characterPrompt,
+          conversationContext: characterPrompt,
           context: {
             sessionStage: activeSession?.sessionStage,
             conflictContext: activeSession?.conflictContext,
@@ -765,9 +801,16 @@ export default function CombinedGroupActivitiesWrapper() {
         
         // Create unique response handler
         const responseHandler = (data: { character: string; message: string }) => {
-          if (data.character === character.name) {
+          // Check multiple possible character identifiers
+          const sentCharacterId = character.baseName || character.name?.toLowerCase() || character.id;
+          const matchesName = data.character === character.name;
+          const matchesBaseName = data.character === character.baseName;
+          const matchesLowerName = data.character === character.name?.toLowerCase();
+          const matchesSentId = data.character === sentCharacterId;
+          
+          if (matchesName || matchesBaseName || matchesLowerName || matchesSentId) {
             groupSocketRef.current?.off('chat_response', responseHandler);
-            console.log('✅ Received socket response for:', character.name);
+            console.log('✅ Received socket response for:', character.name, 'matched via:', data.character);
             resolve(data.message);
           }
         };
@@ -810,7 +853,8 @@ export default function CombinedGroupActivitiesWrapper() {
     character: any,
     facilitatorMessage: string,
     eventType: string,
-    chatHistory: ChatMessage[]
+    chatHistory: ChatMessage[],
+    sessionParticipants?: string[]
   ): string => {
     try {
       // Get character's specific conflicts
@@ -820,7 +864,9 @@ export default function CombinedGroupActivitiesWrapper() {
       ) || [];
 
       // Get relationship context with other participants
-      const otherParticipants = activeSession?.participants.filter(p => p !== character.name) || [];
+      const participants = sessionParticipants || activeSession?.participants || [];
+      console.log('🔍 Session participants:', participants);
+      const otherParticipants = participants.filter(p => p !== character.name) || [];
       const relationshipTensions = characterConflicts.filter(c => 
         c.characters_involved.some(id => 
           otherParticipants.some(participant =>
@@ -980,8 +1026,8 @@ RESPOND AS ${character.name}: ${facilitatorMessage === 'Start a natural conversa
       // Shuffle participants for natural conversation flow
       const shuffledParticipants = [...session.participants].sort(() => Math.random() - 0.5);
       
-      // Have most participants respond initially (ensure good participation)
-      const respondingCount = Math.max(1, Math.floor(shuffledParticipants.length * 0.8));
+      // Have ALL participants respond initially (ensure everyone participates)
+      const respondingCount = shuffledParticipants.length; // All participants
       const respondingParticipants = shuffledParticipants.slice(0, respondingCount);
       
       // Get responses from selected participants
@@ -996,8 +1042,9 @@ RESPOND AS ${character.name}: ${facilitatorMessage === 'Start a natural conversa
             const characterResponse = await generateCharacterResponse(
               character,
               'Start a natural conversation', // Natural conversation starter
-              session.eventType,
-              session.chatMessages
+              session.eventType, // Use the session's event type
+              session.chatMessages,
+              session.participants
             );
 
             const characterMsg: ChatMessage = {
@@ -1050,9 +1097,9 @@ RESPOND AS ${character.name}: ${facilitatorMessage === 'Start a natural conversa
       // Skip facilitator - go directly to character responses
       console.log('🎯 Continuing session without facilitator - characters only');
       
-      // Get responses from participants (randomized and not everyone)
+      // Get responses from participants (randomized - all participants)
       const shuffledParticipants = [...activeSession.participants].sort(() => Math.random() - 0.5);
-      const respondingCount = Math.max(1, Math.floor(shuffledParticipants.length * 0.9));
+      const respondingCount = shuffledParticipants.length; // All participants
       const respondingParticipants = shuffledParticipants.slice(0, respondingCount);
       
       for (let i = 0; i < respondingParticipants.length; i++) {
@@ -1067,7 +1114,8 @@ RESPOND AS ${character.name}: ${facilitatorMessage === 'Start a natural conversa
               character,
               'Continue the group conversation naturally',
               activeSession.eventType,
-              activeSession.chatMessages
+              activeSession.chatMessages,
+              activeSession.participants
             );
 
             const characterMsg: ChatMessage = {

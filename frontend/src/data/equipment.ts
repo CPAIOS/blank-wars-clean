@@ -881,8 +881,11 @@ export const accessories: Equipment[] = [
   }
 ];
 
-// All equipment combined
-export const allEquipment: Equipment[] = [...weapons, ...historicalWeapons, ...armor, ...accessories];
+// All equipment combined with deduplication
+const combinedEquipment = [...weapons, ...historicalWeapons, ...armor, ...accessories];
+export const allEquipment: Equipment[] = combinedEquipment.filter((item, index, array) => 
+  array.findIndex(i => i.id === item.id) === index
+);
 
 // Helper functions
 export function getEquipmentBySlot(slot: EquipmentSlot): Equipment[] {

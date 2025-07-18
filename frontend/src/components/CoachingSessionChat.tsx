@@ -524,7 +524,12 @@ export default function CoachingSessionChat({
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      const container = messagesEndRef.current.parentElement;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
   }, [messages]);
 
   // Generate coaching prompts and session types

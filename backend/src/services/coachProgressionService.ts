@@ -98,10 +98,9 @@ export class CoachProgressionService {
           psychology_skill_points, battle_strategy_skill_points, character_development_skill_points,
           total_battles_coached, total_wins_coached, psychology_interventions,
           successful_interventions, gameplan_adherence_rate, team_chemistry_improvements,
-          character_developments, financial_advice_given, successful_financial_advice,
-          spirals_prevented, financial_conflicts_resolved
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [userId, 1, 0, 'Rookie Coach', 0, 0, 0, 0, 0, 0, 0, 0.0, 0, 0, 0, 0, 0, 0]
+          character_developments
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+        [userId, 1, 0, 'Rookie Coach', 0, 0, 0, 0, 0, 0, 0, 0.0, 0, 0]
       );
 
       return {
@@ -162,7 +161,7 @@ export class CoachProgressionService {
       await query(
         `INSERT INTO coach_xp_events (
           id, user_id, event_type, event_subtype, xp_gained, description, battle_id, character_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [eventId, userId, eventType, eventSubtype, xpGained, description, battleId, characterId]
       );
 
@@ -597,7 +596,7 @@ export class CoachProgressionService {
         `SELECT * FROM coach_xp_events 
          WHERE user_id = $1 
          ORDER BY created_at DESC 
-         LIMIT ?`,
+         LIMIT $2`,
         [userId, limit]
       );
 
@@ -760,7 +759,7 @@ export class CoachProgressionService {
         FROM coach_progression cp
         JOIN users u ON cp.user_id = u.id
         ORDER BY cp.coach_level DESC, cp.coach_experience DESC
-        LIMIT ?`,
+        LIMIT $1`,
         [limit]
       );
 

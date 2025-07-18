@@ -87,21 +87,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
+      
+      // Check if we have any cookies first to avoid unnecessary network calls
+      const hasCookies = document.cookie.includes('accessToken') || document.cookie.includes('refreshToken');
+      
+      if (!hasCookies) {
+        // No cookies = definitely not logged in, skip network calls
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         const profile = await authService.getProfile();
         setUser(profile);
       } catch (error) {
-        console.log('No valid session found');
+        // Silently handle expected "not logged in" state
         setUser(null);
         // If we get a token expired error on initial load, try to refresh once
         if (error instanceof Error && error.message.includes('Token expired')) {
           try {
-            console.log('🔄 Attempting token refresh on app initialization');
             await authService.refreshToken();
             const profile = await authService.getProfile();
             setUser(profile);
           } catch (refreshError) {
-            console.log('Token refresh failed on initialization, user needs to log in');
+            // Silently handle expected "no refresh token" state
             setUser(null);
           }
         }

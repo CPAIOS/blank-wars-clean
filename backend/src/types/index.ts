@@ -53,6 +53,11 @@ export interface Character {
   artwork_url?: string;
   abilities: Ability[];
   created_at: Date;
+  training: number;
+  team_player: number;
+  ego: number;
+  mental_health: number;
+  communication: number;
 }
 
 export interface Ability {

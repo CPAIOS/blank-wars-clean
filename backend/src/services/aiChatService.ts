@@ -222,6 +222,10 @@ export class AIChatService {
   private buildCharacterPrompt(context: ChatContext, additionalContext?: any): string {
     const { characterName, personality, historicalPeriod, mythology, conversationContext } = context;
     
+    console.log('🔍 Building prompt for character:', characterName);
+    console.log('🔍 Has conversationContext:', !!conversationContext);
+    console.log('🔍 ConversationContext type check:', conversationContext?.includes('GROUP ACTIVITY SESSION'));
+    
     let prompt = '';
 
     // Build base character identity first
@@ -233,7 +237,11 @@ export class AIChatService {
     
     // Add conversationContext as additional context (not replacement)
     if (conversationContext) {
+      console.log('📋 Adding conversationContext for', characterName, '- Length:', conversationContext.length);
+      console.log('📋 Context preview:', conversationContext.substring(0, 200) + '...');
       prompt += `\n\n${conversationContext}`;
+    } else {
+      console.log('⚠️ No conversationContext provided for', characterName);
     }
     
     // Safety check for personality structure
@@ -438,6 +446,30 @@ Examples of authentic responses:
       prompt += `\n\nAs Joan of Arc: You're deeply faithful but also bold and determined. You care about justice and protecting others. You can discuss strategy, faith, France, but also show your human side - your hopes, the weight of your mission, what gives you strength.`;
     } else if (characterName.toLowerCase().includes('achilles')) {
       prompt += `\n\nAs Achilles: You're proud and fierce but also capable of deep emotion and loyalty. You can discuss honor, battle, but also show passion for glory, your relationships, what drives your legendary rage and dedication.`;
+    }
+    
+    // CRITICAL: Reinforce coaching context at the end to ensure it takes precedence
+    if (conversationContext && (conversationContext.includes('coaching session') || conversationContext.includes('performance coaching'))) {
+      prompt += `\n\n🎯 FINAL ROLE REMINDER: You are ${characterName}, the character being coached. The human user is your coach. DO NOT call them by your name (${characterName}). DO NOT refer to your stats as "your stats" - they are YOUR stats. Ask for coaching advice, don't give advice.`;
+      console.log('✅ Applied coaching role reinforcement for', characterName);
+    }
+    
+    // CRITICAL: Reinforce group activity context at the end to ensure it takes precedence
+    if (conversationContext && conversationContext.includes('GROUP ACTIVITY SESSION')) {
+      prompt += `\n\n🎭 FINAL GROUP ACTIVITY REMINDER: You are ${characterName} participating in a GROUP ACTIVITY. This is a group conversation with multiple characters. Stay in character, respond naturally to the group discussion, and avoid generic phrases like "Greetings, traveler." Be authentic to your character's personality and historical background.`;
+      console.log('✅ Applied group activity role reinforcement for', characterName);
+    }
+    
+    // Debug: Log if we're dealing with coaching context
+    if (conversationContext && (conversationContext.includes('performance coaching') || conversationContext.includes('coaching session'))) {
+      console.log('🎯 Performance coaching context detected for', characterName);
+      console.log('📋 Final prompt preview:', prompt.substring(prompt.length - 300));
+    }
+    
+    // Debug: Log if we're dealing with group activity context
+    if (conversationContext && conversationContext.includes('GROUP ACTIVITY SESSION')) {
+      console.log('🎭 Group activity context detected for', characterName);
+      console.log('📋 Final prompt preview:', prompt.substring(prompt.length - 300));
     }
     
     return prompt;

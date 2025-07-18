@@ -132,7 +132,10 @@ class AuthService {
 
       return data.user;
     } catch (error) {
-      console.error('Get profile error:', error);
+      // Only log unexpected errors, not 401 (normal when not logged in)
+      if (error instanceof Error && !error.message.includes('Token expired')) {
+        console.error('Get profile error:', error);
+      }
       throw error instanceof Error ? error : new Error('Failed to get profile');
     }
   }
@@ -161,7 +164,10 @@ class AuthService {
       // SECURITY: New tokens are now set as httpOnly cookies by server
       // No need to return them
     } catch (error) {
-      console.error('Token refresh error:', error);
+      // Only log unexpected errors, not 400 (normal when no refresh token)
+      if (error instanceof Error && !error.message.includes('Refresh token required')) {
+        console.error('Token refresh error:', error);
+      }
       throw error instanceof Error ? error : new Error('Token refresh failed');
     }
   }
