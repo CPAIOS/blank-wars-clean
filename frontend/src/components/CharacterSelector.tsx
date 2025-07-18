@@ -192,7 +192,7 @@ export default function CharacterSelector({
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setCurrentPage(0);
+                // Don't reset page to prevent jarring scroll
               }}
               className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
             />
@@ -203,7 +203,7 @@ export default function CharacterSelector({
             value={filterArchetype}
             onChange={(e) => {
               setFilterArchetype(e.target.value);
-              setCurrentPage(0);
+              // Don't reset page to prevent jarring scroll
             }}
             className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
           >
@@ -255,7 +255,6 @@ export default function CharacterSelector({
                 }`}
                 whileHover={canSelect ? { scale: 1.02 } : {}}
                 onClick={() => canSelect && toggleSelection(character.characterId)}
-                layout
               >
                 {/* Selection Indicator */}
                 <div className="flex items-start justify-between mb-3">

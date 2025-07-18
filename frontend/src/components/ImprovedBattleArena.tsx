@@ -93,8 +93,15 @@ import type { BattleCharacter, ExecutedAction, PlannedAction } from '@/data/batt
 // BattlePhase type imported from @/data/battleFlow
 
 export default function ImprovedBattleArena() {
-  // Get user data for persistent battle state
-  const { user } = useAuth();
+  // Get user data for persistent battle state with error handling
+  let user;
+  try {
+    const authData = useAuth();
+    user = authData.user;
+  } catch (error) {
+    console.warn('ImprovedBattleArena: AuthContext not available, running in standalone mode');
+    user = null;
+  }
   
   // Memory leak prevention with timeout manager
   const timeoutManager = useTimeoutManager();

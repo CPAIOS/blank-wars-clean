@@ -232,6 +232,9 @@ export const HEADQUARTERS_TIER_PENALTIES: Record<string, HeadquartersPenalty> = 
  * Calculate battle bonuses from headquarters room themes
  */
 export function calculateHeadquartersBonuses(headquarters: HeadquartersState): HeadquartersBonus {
+  if (!headquarters?.rooms) {
+    return {};
+  }
   return headquarters.rooms.reduce((bonuses: HeadquartersBonus, room) => {
     if (room.theme && room.assignedCharacters.length > 0) {
       const theme = ROOM_THEMES.find(t => t.id === room.theme);
@@ -267,6 +270,10 @@ export function mapBonusToStat(bonusName: string): string {
  */
 export function calculateHeadquartersPenalties(headquarters: HeadquartersState): HeadquartersPenalty {
   const penalties: HeadquartersPenalty = {};
+
+  if (!headquarters?.rooms) {
+    return penalties;
+  }
 
   // 1. Overcrowding penalties
   headquarters.rooms.forEach(room => {
@@ -381,6 +388,10 @@ export function calculateSleepComfortBonus(
  */
 export function calculateHQSleepBonuses(headquarters: HeadquartersState): Record<string, number> {
   const sleepBonuses: Record<string, number> = {};
+
+  if (!headquarters?.rooms) {
+    return sleepBonuses;
+  }
 
   headquarters.rooms.forEach(room => {
     room.assignedCharacters.forEach((characterId, index) => {

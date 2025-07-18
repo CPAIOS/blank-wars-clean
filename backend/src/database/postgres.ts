@@ -1,60 +1,30 @@
 import { Pool } from 'pg';
 
-// Database connection using environment variable or fallback to SQLite for local development
+// PostgreSQL database connection for all environments
 const databaseUrl = process.env.DATABASE_URL;
 
-let db: any;
-
-if (databaseUrl && databaseUrl.startsWith('postgres')) {
-  // Production: Use PostgreSQL
-  console.log('🐘 Using PostgreSQL database');
-  db = new Pool({
-    connectionString: databaseUrl,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-  });
-} else {
-  // Development: Use SQLite
-  console.log('🗄️ Using SQLite database for development');
-  const Database = require('better-sqlite3');
-  const path = require('path');
-  const fs = require('fs');
-
-  const DB_PATH = path.join(__dirname, '../../data/blankwars.db');
-  const dataDir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  
-  db = new Database(DB_PATH);
-  db.exec('PRAGMA foreign_keys = ON');
+if (!databaseUrl || !databaseUrl.startsWith('postgres')) {
+  throw new Error('DATABASE_URL must be a PostgreSQL connection string');
 }
 
-// Universal query function that works with both PostgreSQL and SQLite
+console.log('🐘 Using PostgreSQL database');
+export const db = new Pool({
+  connectionString: databaseUrl,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// PostgreSQL query function
 export const query = async (sql: string, params?: any[]): Promise<any> => {
   try {
-    if (databaseUrl && databaseUrl.startsWith('postgres')) {
-      // PostgreSQL query
-      const result = await db.query(sql, params || []);
-      return { 
-        rows: result.rows,
-        rowCount: result.rowCount 
-      };
-    } else {
-      // SQLite query
-      if (sql.trim().toLowerCase().startsWith('select')) {
-        const stmt = db.prepare(sql);
-        return { rows: stmt.all(params || []) };
-      } else {
-        const stmt = db.prepare(sql);
-        const result = stmt.run(params || []);
-        return { 
-          rows: [{ id: result.lastInsertRowid }],
-          rowCount: result.changes 
-        };
-      }
-    }
+    const result = await db.query(sql, params || []);
+    return { 
+      rows: result.rows,
+      rowCount: result.rowCount 
+    };
   } catch (error) {
-    console.error('❌ Database query failed:', error);
+    console.error('Database query error:', error);
+    console.error('SQL:', sql);
+    console.error('Params:', params);
     throw error;
   }
 };
@@ -64,10 +34,7 @@ export const initializeDatabase = async (): Promise<void> => {
   try {
     console.log('🗄️ Initializing database...');
     
-    // Check if we're using PostgreSQL
-    const isPostgres = databaseUrl && databaseUrl.startsWith('postgres');
-    
-    // Create tables with PostgreSQL/SQLite compatible syntax
+    // Create tables with PostgreSQL syntax
     const createTablesSQL = `
       -- Users table
       CREATE TABLE IF NOT EXISTS users (
@@ -76,7 +43,7 @@ export const initializeDatabase = async (): Promise<void> => {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT,
         subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'premium', 'legendary')),
-        subscription_expires_at ${isPostgres ? 'TIMESTAMP' : 'DATETIME'},
+        subscription_expires_at TIMESTAMP,
         level INTEGER DEFAULT 1,
         experience INTEGER DEFAULT 0,
         total_battles INTEGER DEFAULT 0,
@@ -91,8 +58,8 @@ export const initializeDatabase = async (): Promise<void> => {
         daily_training_count INTEGER DEFAULT 0,
         daily_training_reset_date TEXT DEFAULT '',
         character_slot_capacity INTEGER DEFAULT 6,
-        created_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
-        updated_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'}
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
       -- Characters table
@@ -115,7 +82,7 @@ export const initializeDatabase = async (): Promise<void> => {
         avatar_emoji TEXT,
         artwork_url TEXT,
         abilities TEXT,
-        created_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'}
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
       -- User Characters table
@@ -133,14 +100,14 @@ export const initializeDatabase = async (): Promise<void> => {
         current_health INTEGER NOT NULL,
         max_health INTEGER NOT NULL,
         is_injured BOOLEAN DEFAULT FALSE,
-        recovery_time ${isPostgres ? 'TIMESTAMP' : 'DATETIME'},
+        recovery_time TIMESTAMP,
         equipment TEXT DEFAULT '[]',
         enhancements TEXT DEFAULT '[]',
         conversation_memory TEXT DEFAULT '[]',
         significant_memories TEXT DEFAULT '[]',
         personality_drift TEXT DEFAULT '{}',
-        acquired_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
-        last_battle_at ${isPostgres ? 'TIMESTAMP' : 'DATETIME'},
+        acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_battle_at TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (character_id) REFERENCES characters(id)
       );
@@ -164,8 +131,8 @@ export const initializeDatabase = async (): Promise<void> => {
         xp_gained INTEGER DEFAULT 0,
         bond_gained INTEGER DEFAULT 0,
         currency_gained INTEGER DEFAULT 0,
-        started_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
-        ended_at ${isPostgres ? 'TIMESTAMP' : 'DATETIME'},
+        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        ended_at TIMESTAMP,
         FOREIGN KEY (player1_id) REFERENCES users(id),
         FOREIGN KEY (player2_id) REFERENCES users(id),
         FOREIGN KEY (character1_id) REFERENCES user_characters(id),
@@ -187,7 +154,7 @@ export const initializeDatabase = async (): Promise<void> => {
         response_time_ms INTEGER,
         bond_increase BOOLEAN DEFAULT FALSE,
         memory_saved BOOLEAN DEFAULT FALSE,
-        created_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (character_id) REFERENCES user_characters(id),
         FOREIGN KEY (battle_id) REFERENCES battles(id)
@@ -198,7 +165,7 @@ export const initializeDatabase = async (): Promise<void> => {
         user_id TEXT PRIMARY KEY,
         battle_tokens INTEGER DEFAULT 100,
         premium_currency INTEGER DEFAULT 0,
-        last_updated ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
 
@@ -218,8 +185,8 @@ export const initializeDatabase = async (): Promise<void> => {
         gameplan_adherence_rate REAL DEFAULT 0.0,
         team_chemistry_improvements INTEGER DEFAULT 0,
         character_developments INTEGER DEFAULT 0,
-        created_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
-        updated_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
 
@@ -233,7 +200,7 @@ export const initializeDatabase = async (): Promise<void> => {
         description TEXT,
         battle_id TEXT,
         character_id TEXT,
-        created_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (battle_id) REFERENCES battles(id),
         FOREIGN KEY (character_id) REFERENCES user_characters(id)
@@ -246,22 +213,17 @@ export const initializeDatabase = async (): Promise<void> => {
         skill_tree TEXT NOT NULL CHECK (skill_tree IN ('psychology_mastery', 'battle_strategy', 'character_development')),
         skill_name TEXT NOT NULL,
         skill_level INTEGER DEFAULT 1,
-        unlocked_at ${isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `;
 
-    if (isPostgres) {
-      // Execute each CREATE TABLE statement separately for PostgreSQL
-      const statements = createTablesSQL.split(';').filter(stmt => stmt.trim());
-      for (const statement of statements) {
-        if (statement.trim()) {
-          await query(statement.trim());
-        }
+    // Execute each CREATE TABLE statement separately for PostgreSQL
+    const statements = createTablesSQL.split(';').filter(stmt => stmt.trim());
+    for (const statement of statements) {
+      if (statement.trim()) {
+        await query(statement.trim());
       }
-    } else {
-      // SQLite can handle multiple statements
-      db.exec(createTablesSQL);
     }
 
     // Create indexes

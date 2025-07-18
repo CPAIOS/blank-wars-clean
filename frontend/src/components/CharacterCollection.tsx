@@ -302,7 +302,6 @@ export default function CharacterCollection({
               }`}
               whileHover={{ scale: 1.02 }}
               onClick={() => onSelectCharacter?.(character)}
-              layout
             >
               {viewMode === 'grid' ? (
                 // Grid View

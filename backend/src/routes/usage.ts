@@ -2,7 +2,7 @@ import express from 'express';
 import { usageTrackingService } from '../services/usageTrackingService';
 import { AuthRequest } from '../types/index';
 import { authenticateToken } from '../services/auth';
-import { db } from '../database/sqlite';
+import { db } from '../database/index';
 
 const router = express.Router();
 

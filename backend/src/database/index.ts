@@ -1,4 +1,4 @@
-// Auto-detects database type based on DATABASE_URL
-// Uses PostgreSQL in production, SQLite for local development
+// PostgreSQL database connection for all environments
+// Ensures development and production parity
 
 export * from './postgres';

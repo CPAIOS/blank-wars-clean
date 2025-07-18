@@ -1581,6 +1581,9 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         'cleopatra': 'Cleopatra_balling.jpg',
         'space_cyborg': 'zeta_balling.png', // Assuming cyborg maps to zeta
         'dracula': 'dracula_balling.jpg',
+        'count_dracula': 'dracula_balling.jpg', // Fix for Count Dracula character name
+        'cleopatra_vii': 'Cleopatra_balling.jpg', // Fix for Cleopatra VII character name
+        'space_cyborg_(vega-x)': 'vega_x_balling.png', // Fix for Space Cyborg (Vega-X) character name
         'fenrir': 'fanrir_balling.png',
         'frankenstein_monster': 'frankenstein_balliing.jpg',
         'frankensteins_monster': 'frankenstein_balliing.jpg',
