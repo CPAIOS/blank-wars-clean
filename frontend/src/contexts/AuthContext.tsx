@@ -93,6 +93,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         console.log('No valid session found');
         setUser(null);
+        // If we get a token expired error on initial load, try to refresh once
+        if (error instanceof Error && error.message.includes('Token expired')) {
+          try {
+            console.log('🔄 Attempting token refresh on app initialization');
+            await authService.refreshToken();
+            const profile = await authService.getProfile();
+            setUser(profile);
+          } catch (refreshError) {
+            console.log('Token refresh failed on initialization, user needs to log in');
+            setUser(null);
+          }
+        }
       } finally {
         setIsLoading(false);
       }

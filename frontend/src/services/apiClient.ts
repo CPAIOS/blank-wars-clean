@@ -19,13 +19,13 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
+// Add response interceptor for error handling and automatic token refresh
 apiClient.interceptors.response.use(
   (response) => {
     console.log(`API Response: ${response.status} ${response.config.url}`);
     return response;
   },
-  (error) => {
+  async (error) => {
     console.error('API Response Error:', error);
     
     // Handle specific error types
@@ -34,7 +34,26 @@ apiClient.interceptors.response.use(
     }
     
     if (error.response?.status === 401) {
-      throw new Error('Authentication required - please log in');
+      // Prevent infinite retry loops - only retry once
+      if (error.config._retry) {
+        console.error('Token refresh already attempted, failing request');
+        throw new Error('Session expired - please log in again');
+      }
+      
+      // Try to refresh token automatically
+      try {
+        const { authService } = await import('./authService');
+        await authService.refreshToken();
+        
+        // Mark request as retry and retry with new token
+        error.config._retry = true;
+        console.log('🔄 Token refreshed, retrying original request');
+        return apiClient.request(error.config);
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        // If refresh fails, the auth context will handle logout
+        throw new Error('Session expired - please log in again');
+      }
     }
     
     if (error.response?.status === 403) {
