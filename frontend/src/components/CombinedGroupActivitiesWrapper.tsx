@@ -327,6 +327,7 @@ export default function CombinedGroupActivitiesWrapper() {
       'agent x': 'agent_x_group_activity.png',
       'billy the kid': 'billy_the_kid_group_activity.png',
       'cleopatra': 'cleopatra_group_activity.png',
+      'cleopatra vii': 'cleopatra_group_activity.png', // Fix for Cleopatra VII character name
       'cyborg': 'agent_x_group_activity.png', // Using agent_x as fallback
       'dracula': 'dracula_group_activity.png',
       'count dracula': 'dracula_group_activity.png',

@@ -1155,37 +1155,37 @@ export default function TrainingGrounds({
                         // Handle special cases for newly added images with different naming conventions
                         if (characterName === 'sammy "slugger" sullivan' || characterName === 'sammy_slugger') {
                           const fileName = imageNumber === 1 ? 'training_sammy_slugger.jpg' : `training_sammy_slugger_${imageNumber}.jpg`;
-                          return `/images/Training /${fileName}`;
+                          return `/images/Training/${fileName}`;
                         }
                         
                         if (characterName === 'fenrir') {
                           const fileName = imageNumber === 1 ? 'training_fenrir.png' : `training_fenrir_${imageNumber}.png`;
-                          return `/images/Training /${fileName}`;
+                          return `/images/Training/${fileName}`;
                         }
                         
                         if (characterName === 'cleopatra' || characterName === 'cleopatra vii') {
                           const fileName = imageNumber === 1 ? 'training_cleopatra.png' : `training_cleopatra_${imageNumber}.png`;
-                          return `/images/Training /${fileName}`;
+                          return `/images/Training/${fileName}`;
                         }
                         
                         if (characterName === 'merlin') {
                           const fileName = imageNumber === 1 ? 'training_merlin.jpg' : `training_merlin_${imageNumber}.jpg`;
-                          return `/images/Training /${fileName}`;
+                          return `/images/Training/${fileName}`;
                         }
                         
                         if (characterName === 'sherlock holmes') {
                           if (imageNumber === 1) {
-                            return `/images/Training /training_sherlock_holmes.png`;
+                            return `/images/Training/training_sherlock_holmes.png`;
                           } else if (imageNumber === 2) {
-                            return `/images/Training /training_sherlock_holmes.jpg`;
+                            return `/images/Training/training_sherlock_holmes.jpg`;
                           } else {
-                            return `/images/Training /training_sherlock_holmes_3.png`;
+                            return `/images/Training/training_sherlock_holmes_3.png`;
                           }
                         }
                         
                         if (characterName === 'genghis khan' || characterName === 'gengas khan') {
                           const fileName = imageNumber === 1 ? 'training_genghis_khan.jpg' : `training_genghis_khan_${imageNumber}.jpg`;
-                          return `/images/Training /${fileName}`;
+                          return `/images/Training/${fileName}`;
                         }
                         
                         // Regular mapping for standard format images
@@ -1195,11 +1195,11 @@ export default function TrainingGrounds({
                           characterName,
                           baseImageName,
                           imageNumber,
-                          fullPath: baseImageName ? `/images/Training /${baseImageName} 0${imageNumber}.png` : 'No mapping'
+                          fullPath: baseImageName ? `/images/Training/${baseImageName} 0${imageNumber}.png` : 'No mapping'
                         });
                         
                         if (baseImageName) {
-                          return `/images/Training /${baseImageName} 0${imageNumber}.png`;
+                          return `/images/Training/${baseImageName} 0${imageNumber}.png`;
                         }
                         
                         // Return empty string if no match found

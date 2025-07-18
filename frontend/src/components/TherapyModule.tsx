@@ -120,7 +120,7 @@ const TherapyModule = () => {
 
   // Function to get random therapy image for a character
   const getTherapyCharacterImage = (characterName: string): string => {
-    const baseImagePath = '/images/Coaching/Therapy /';
+    const baseImagePath = '/images/Coaching/Therapy/';
     const normalizedName = characterName.toLowerCase().replace(/["\s]+/g, '_').replace(/_+/g, '_');
     
     // Special cases for characters with different naming patterns
@@ -143,6 +143,7 @@ const TherapyModule = () => {
       'nikola_tesla': { name: 'Tesla', count: 4 }, // Alternative name
       'alien_grey': { name: 'Zeta', count: 3 },
       'zeta_reticulan': { name: 'Zeta', count: 3 }, // Alternative name
+      'vega-x': { name: 'Cyborg', count: 3 }, // Vega-X maps to Cyborg therapy images
       'sammy_slugger': { name: 'sammy_slugger', count: 1 }, // Special case - only one image and different naming
       'sammy_slugger_sullivan': { name: 'sammy_slugger', count: 1 }
     };
@@ -191,7 +192,7 @@ const TherapyModule = () => {
         
         // Map database characters to therapy format
         const mappedCharacters = characters.map((char: any) => ({
-          id: char.character_id, // Use base character ID from database
+          id: char.id, // Use actual database ID
           name: char.name,
           archetype: char.archetype || 'warrior',
           level: char.level || 1,
@@ -199,7 +200,7 @@ const TherapyModule = () => {
           base_attack: char.base_attack || 50,
           experience: char.experience || 0,
           bond_level: char.bond_level || 0,
-          templateId: char.character_id  // Use database character ID for conflict matching
+          templateId: char.character_id  // Keep template ID for other uses
         }));
         
         console.log('🎭 Loaded therapy characters from database:', mappedCharacters.map(c => c.name));
@@ -220,8 +221,8 @@ const TherapyModule = () => {
     const loadTherapyContext = async () => {
       if (selectedCharacter && therapyType === 'individual') {
         try {
-          // Use templateId which matches the database character IDs
-          const characterKey = (selectedCharacter as any).templateId || selectedCharacter.id;
+          // Use the actual database ID that ConflictDatabaseService expects
+          const characterKey = selectedCharacter.id;
           console.log('🔍 Loading therapy context for:', characterKey);
           
           const context = await conflictService.getTherapyContextForCharacter(characterKey);
