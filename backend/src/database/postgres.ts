@@ -106,6 +106,9 @@ export const initializeDatabase = async (): Promise<void> => {
         conversation_memory TEXT DEFAULT '[]',
         significant_memories TEXT DEFAULT '[]',
         personality_drift TEXT DEFAULT '{}',
+        wallet INTEGER DEFAULT 0,
+        financial_stress INTEGER DEFAULT 0,
+        coach_trust_level INTEGER DEFAULT 0,
         acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_battle_at TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -223,6 +226,22 @@ export const initializeDatabase = async (): Promise<void> => {
     for (const statement of statements) {
       if (statement.trim()) {
         await query(statement.trim());
+      }
+    }
+
+    // Add financial columns to existing user_characters table if they don't exist
+    const alterTableStatements = [
+      `ALTER TABLE user_characters ADD COLUMN IF NOT EXISTS wallet INTEGER DEFAULT 0`,
+      `ALTER TABLE user_characters ADD COLUMN IF NOT EXISTS financial_stress INTEGER DEFAULT 0`,
+      `ALTER TABLE user_characters ADD COLUMN IF NOT EXISTS coach_trust_level INTEGER DEFAULT 0`
+    ];
+
+    for (const alterSQL of alterTableStatements) {
+      try {
+        await query(alterSQL);
+      } catch (error) {
+        // Column might already exist, continue
+        console.log('Note: Column might already exist:', error);
       }
     }
 

@@ -15,6 +15,7 @@ interface EventContext {
 const cleanApiKey = process.env.OPENAI_API_KEY?.replace(/\s/g, '').trim();
 const openai = new OpenAI({
   apiKey: cleanApiKey,
+  timeout: 30000, // 30 second timeout for API requests
 });
 
 export interface ChatContext {

@@ -34,7 +34,6 @@ import RealEstateAgentChat from './RealEstateAgentChat';
 import FacilitiesManager from './FacilitiesManager';
 import SkillTree from './SkillTree';
 import AICoach from './AICoach';
-import PersonalTrainerChat from './PersonalTrainerChat';
 import CharacterDatabase from './CharacterDatabase';
 // CoachingInterface is lazy-loaded below
 import TeamManagementCoaching from './TeamManagementCoaching';
@@ -961,120 +960,6 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
   };
 
 
-  const PersonalTrainerWrapper = () => {
-    const [availableCharacters, setAvailableCharacters] = useState<any[]>([]);
-    const [charactersLoading, setCharactersLoading] = useState(true);
-    
-    // Load characters on component mount
-    useEffect(() => {
-      const loadCharacters = async () => {
-        setCharactersLoading(true);
-        try {
-          const response = await characterAPI.getUserCharacters();
-          const characters = response.characters || [];
-          
-          const mappedCharacters = characters.map((char: any) => {
-            const baseName = char.name?.toLowerCase() || char.id?.split('_')[0] || 'unknown';
-            return {
-              ...char,
-              baseName,
-              displayBondLevel: char.bond_level || Math.floor((char.base_health || 80) / 10),
-              // Map database fields to component expectations
-              baseStats: {
-                strength: char.base_attack || 70,
-                vitality: char.base_health || 80,
-                agility: char.base_speed || 70,
-                intelligence: char.base_special || 70,
-                wisdom: char.base_defense || 70,
-                charisma: char.bond_level || 5
-              },
-              combatStats: {
-                health: char.current_health || char.base_health || 80,
-                maxHealth: char.max_health || char.base_health || 80,
-                attack: char.base_attack || 70,
-                defense: char.base_defense || 70,
-                speed: char.base_speed || 70,
-                criticalChance: 15,
-                accuracy: 85
-              },
-              level: char.level || 1,
-              experience: char.experience || 0,
-              abilities: char.abilities || [],
-              archetype: char.archetype || 'warrior',
-              avatar: char.avatar_emoji || char.avatar || '⚔️',
-              name: char.name || 'Unknown Character'
-            };
-          });
-          
-          setAvailableCharacters(mappedCharacters);
-        } catch (error) {
-          console.error('❌ Failed to load characters:', error);
-          console.error('❌ Error details:', error.response?.data || error.message);
-          setAvailableCharacters([]);
-        } finally {
-          setCharactersLoading(false);
-        }
-      };
-      
-      loadCharacters();
-    }, []);
-    
-    const selectedCharacter = useMemo(() => {
-      return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
-    }, [availableCharacters, globalSelectedCharacterId]);
-    
-    return (
-      <div className="space-y-6">
-        <div className="flex gap-6">
-          {/* Character Sidebar */}
-          <div className="w-80 bg-gray-800/80 rounded-xl p-4 h-fit">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Characters
-            </h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {charactersLoading ? (
-                <div className="text-center text-gray-400 py-4">Loading characters...</div>
-              ) : (
-                availableCharacters.map((character) => (
-                  <button
-                    key={character.id}
-                    onClick={() => {
-                      console.log('PersonalTrainer - Clicking character:', character.name, character.baseName);
-                      setGlobalSelectedCharacterId(character.baseName);
-                    }}
-                    className={`w-full p-3 rounded-lg border transition-all text-left ${
-                      globalSelectedCharacterId === character.baseName
-                        ? 'border-green-500 bg-green-500/20 text-white'
-                        : 'border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">{character.avatar}</div>
-                      <div>
-                        <div className="font-semibold">{character.name}</div>
-                        <div className="text-xs opacity-75">Lv.{character.level} {character.archetype}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-          
-          {/* Personal Trainer Chat */}
-          <div className="flex-1">
-            {selectedCharacter && (
-              <PersonalTrainerChat 
-                selectedCharacterId={globalSelectedCharacterId}
-                onCharacterChange={setGlobalSelectedCharacterId}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const ClubhouseWrapper = () => {
     try {
@@ -2753,7 +2638,6 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         { id: 'activities', label: 'Activities', icon: Target, component: TrainingGroundsWrapper, description: 'Daily training sessions' },
         { id: 'progress', label: 'Progress', icon: Trophy, component: TrainingProgressComponent, description: 'Training limits & daily progress' },
         { id: 'membership', label: 'Membership', icon: Crown, component: MembershipSelection, description: 'Training tier subscriptions' },
-        { id: 'trainer', label: 'Personal Trainer', icon: Brain, component: PersonalTrainerWrapper, description: 'Training recommendations & guidance' },
       ]
     },
     {

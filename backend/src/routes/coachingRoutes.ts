@@ -549,8 +549,25 @@ router.post('/group-activity', authenticateToken, async (req: any, res) => {
       bondIncrease: response.bondIncrease
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Group activity coaching error:', error);
+    
+    // Handle timeout errors specifically
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      return res.status(408).json({ 
+        error: 'Response timeout - the character is taking time to think. Please try again.',
+        timeout: true
+      });
+    }
+    
+    // Handle other AI service errors
+    if (error.message?.includes('rate limit') || error.status === 429) {
+      return res.status(429).json({ 
+        error: 'Too many requests - please wait a moment before trying again.',
+        rateLimited: true
+      });
+    }
+    
     res.status(500).json({ error: 'Failed to generate group activity response' });
   }
 });

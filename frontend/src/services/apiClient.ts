@@ -4,7 +4,7 @@ import axios from 'axios';
 const apiClient = axios.create({
   baseURL: (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3006') + '/api',
   withCredentials: true,
-  timeout: 10000, // 10 second timeout
+  timeout: 35000, // 35 second timeout to accommodate AI processing
 });
 
 // Add request interceptor for error handling
@@ -186,7 +186,7 @@ export const characterAPI = {
   },
   
   getHeadquarters: async (userId: string) => {
-    const response = await apiClient.get(`/users/${userId}/headquarters`);
+    const response = await apiClient.get(`/headquarters`);
     return response.data;
   }
 };

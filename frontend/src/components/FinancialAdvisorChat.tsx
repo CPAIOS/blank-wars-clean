@@ -62,7 +62,8 @@ interface FinancialAdvisorChatProps {
 
 // Helper function to get character ID following the pattern from other chats
 const getCharacterId = (character: EnhancedCharacter): string => {
-  return character.baseName || character.name?.toLowerCase() || character.id;
+  // Always use the database ID for API calls
+  return character.id;
 };
 
 const FinancialAdvisorChat: React.FC<FinancialAdvisorChatProps> = ({

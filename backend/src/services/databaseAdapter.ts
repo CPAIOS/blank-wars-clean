@@ -39,6 +39,9 @@ interface UserCharacter {
   conversation_memory: any[];
   significant_memories: any[];
   personality_drift: Record<string, any>;
+  wallet: number;
+  financial_stress: number;
+  coach_trust_level: number;
   acquired_at: Date;
   last_battle_at?: Date;
   // Character fields from JOIN
@@ -137,18 +140,16 @@ export const dbAdapter = {
         const allowedFields = ['username', 'email', 'rating', 'total_battles', 'total_wins', 
           'subscription_tier', 'level', 'experience', 'character_slot_capacity'];
         
-        const updates = Object.entries(data)
-          .filter(([key]) => allowedFields.includes(key))
-          .map(([key]) => `${key} = ?`);
+        const updateEntries = Object.entries(data)
+          .filter(([key]) => allowedFields.includes(key));
         
-        if (updates.length === 0) return false;
+        if (updateEntries.length === 0) return false;
         
-        const values = Object.entries(data)
-          .filter(([key]) => allowedFields.includes(key))
-          .map(([, value]) => value);
+        const updates = updateEntries.map(([key], index) => `${key} = $${index + 1}`);
+        const values = updateEntries.map(([, value]) => value);
         
         await query(
-          `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+          `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${values.length + 1}`,
           [...values, id]
         );
         return true;
@@ -174,7 +175,7 @@ export const dbAdapter = {
           INSERT INTO users (
             id, username, email, subscription_tier, level, experience,
             total_battles, total_wins, rating, character_slot_capacity
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         `, [
           data.id,
           data.username,
@@ -207,7 +208,7 @@ export const dbAdapter = {
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc
           JOIN characters c ON uc.character_id = c.id
-          WHERE uc.id = ?
+          WHERE uc.id = $1
         `, [id]);
         
         if (result.rows[0]) {
@@ -238,7 +239,7 @@ export const dbAdapter = {
           'total_battles', 'total_wins', 'current_health', 'max_health', 
           'is_injured', 'recovery_time', 'equipment', 'enhancements', 
           'conversation_memory', 'significant_memories', 'personality_drift', 
-          'last_battle_at'];
+          'wallet', 'financial_stress', 'coach_trust_level', 'last_battle_at'];
         
         const updates: Record<string, any> = {};
         
@@ -257,11 +258,11 @@ export const dbAdapter = {
         
         if (Object.keys(updates).length === 0) return false;
         
-        const fields = Object.keys(updates).map(key => `${key} = ?`);
+        const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 1}`);
         const values = Object.values(updates);
         
         await query(
-          `UPDATE user_characters SET ${fields.join(', ')} WHERE id = $1`,
+          `UPDATE user_characters SET ${fields.join(', ')} WHERE id = $${values.length + 1}`,
           [...values, id]
         );
         return true;
@@ -280,7 +281,7 @@ export const dbAdapter = {
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc
           JOIN characters c ON uc.character_id = c.id
-          WHERE uc.user_id = ?
+          WHERE uc.user_id = $1
           ORDER BY uc.acquired_at DESC
         `, [userId]);
         
@@ -318,8 +319,9 @@ export const dbAdapter = {
             id, user_id, character_id, serial_number, nickname,
             level, experience, bond_level, total_battles, total_wins,
             current_health, max_health, is_injured, equipment, enhancements,
-            conversation_memory, significant_memories, personality_drift
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            conversation_memory, significant_memories, personality_drift,
+            wallet, financial_stress, coach_trust_level
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
         `, [
           id,
           data.user_id,
@@ -333,12 +335,15 @@ export const dbAdapter = {
           data.total_wins || 0,
           character.base_health,
           character.base_health,
-          0, // is_injured (0 = false)
+          false, // is_injured
           JSON.stringify(data.equipment || []),
           JSON.stringify(data.enhancements || []),
           JSON.stringify(data.conversation_memory || []),
           JSON.stringify(data.significant_memories || []),
-          JSON.stringify(data.personality_drift || {})
+          JSON.stringify(data.personality_drift || {}),
+          data.wallet || 0,
+          data.financial_stress || 0,
+          data.coach_trust_level || 0
         ]);
 
         return await this.findById(id);
@@ -357,7 +362,7 @@ export const dbAdapter = {
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc 
           JOIN characters c ON uc.character_id = c.id
-          WHERE uc.user_id = ? AND uc.character_id = ?
+          WHERE uc.user_id = $1 AND uc.character_id = $2
         `, [userId, characterId]);
         
         if (result.rows[0]) {
@@ -392,7 +397,7 @@ export const dbAdapter = {
             id, player1_id, player2_id, character1_id, character2_id,
             status, current_round, turn_count, combat_log, chat_logs,
             xp_gained, bond_gained, currency_gained, started_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
         `, [
           id,
           data.player1_id,
@@ -458,11 +463,11 @@ export const dbAdapter = {
         
         if (Object.keys(updates).length === 0) return false;
         
-        const fields = Object.keys(updates).map(key => `${key} = ?`);
+        const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 1}`);
         const values = Object.values(updates);
         
         await query(
-          `UPDATE battles SET ${fields.join(', ')} WHERE id = $1`,
+          `UPDATE battles SET ${fields.join(', ')} WHERE id = $${values.length + 1}`,
           [...values, id]
         );
         return true;
@@ -476,7 +481,7 @@ export const dbAdapter = {
       try {
         const result = await query(`
           SELECT * FROM battles 
-          WHERE (player1_id = ? OR player2_id = ?) 
+          WHERE (player1_id = $1 OR player2_id = $2) 
             AND status IN ('matchmaking', 'active', 'paused')
           ORDER BY started_at DESC
         `, [userId, userId]);
@@ -535,7 +540,7 @@ export const dbAdapter = {
   currency: {
     async findByUserId(userId: string): Promise<{ battle_tokens: number; premium_currency: number } | null> {
       try {
-        const result = await query('SELECT * FROM user_currency WHERE user_id = ?', [userId]);
+        const result = await query('SELECT * FROM user_currency WHERE user_id = $1', [userId]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error finding user currency:', error);
@@ -551,23 +556,21 @@ export const dbAdapter = {
         if (existing) {
           // SECURITY: Whitelist allowed fields to prevent SQL injection
           const allowedFields = ['battle_tokens', 'premium_currency'];
-          const updates = Object.entries(data)
-            .filter(([key]) => allowedFields.includes(key))
-            .map(([key]) => `${key} = ?`);
+          const updateEntries = Object.entries(data)
+            .filter(([key]) => allowedFields.includes(key));
           
-          if (updates.length === 0) return false;
+          if (updateEntries.length === 0) return false;
           
-          const values = Object.entries(data)
-            .filter(([key]) => allowedFields.includes(key))
-            .map(([, value]) => value);
+          const updates = updateEntries.map(([key], index) => `${key} = $${index + 1}`);
+          const values = updateEntries.map(([, value]) => value);
           
           await query(
-            `UPDATE user_currency SET ${updates.join(', ')} WHERE user_id = ?`,
+            `UPDATE user_currency SET ${updates.join(', ')} WHERE user_id = $${values.length + 1}`,
             [...values, userId]
           );
         } else {
           await query(
-            `INSERT INTO user_currency (user_id, battle_tokens, premium_currency) VALUES (?, ?, ?)`,
+            `INSERT INTO user_currency (user_id, battle_tokens, premium_currency) VALUES ($1, $2, $3)`,
             [userId, data.battle_tokens || 100, data.premium_currency || 0]
           );
         }
