@@ -190,4 +190,50 @@ router.get('/team-stats', authenticateToken, async (req: any, res) => {
   }
 });
 
+router.post('/assign-starter-pack', authenticateToken, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    console.log('🎁 Assigning starter pack for user:', userId);
+
+    // Check if user already has characters
+    const existingCharacters = await dbAdapter.userCharacters.findByUserId(userId);
+
+    if (existingCharacters.length > 0) {
+      return res.json({
+        success: true,
+        message: 'User already has characters',
+        characters: existingCharacters.length
+      });
+    }
+
+    // Import PackService here to avoid circular dependencies
+    const { PackService } = require('../services/packService');
+    const packService = new PackService();
+
+    // Generate and claim starter pack
+    console.log('🆓 Generating starter pack...');
+    const starterPackToken = await packService.generatePack('standard_starter');
+    console.log(`📦 Generated starter pack token: ${starterPackToken}`);
+    
+    await packService.claimPack(userId, starterPackToken);
+    console.log('✅ Starter pack assigned successfully');
+
+    // Get the assigned characters to return
+    const userCharacters = await dbAdapter.userCharacters.findByUserId(userId);
+
+    res.json({
+      success: true,
+      message: 'Starter pack assigned successfully',
+      characters: userCharacters.length
+    });
+
+  } catch (error: any) {
+    console.error('❌ Error assigning starter pack:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 export default router;

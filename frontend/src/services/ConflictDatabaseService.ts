@@ -277,7 +277,7 @@ class ConflictDatabaseService {
   } {
     try {
       // Import financial psychology service dynamically to avoid circular dependencies
-      const { FinancialPsychologyService } = require('./FinancialPsychologyService');
+      const { FinancialPsychologyService } = require('./financialPsychologyService');
       const financialService = FinancialPsychologyService.getInstance();
       
       // Get current financial state from the character

@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import NewUserOnboarding from './NewUserOnboarding';
+import { characterAPI } from '@/services/apiClient';
 
 interface NavigationPanel {
   id: string;
@@ -24,6 +26,8 @@ interface NavigationPanel {
 export default function Homepage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [userStats, setUserStats] = useState({
     unopenedPacks: 0,
     totalCharacters: 0,
@@ -43,6 +47,58 @@ export default function Homepage() {
       });
     }
   }, [user]);
+
+  // Check if user needs onboarding
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (user && !onboardingChecked) {
+        try {
+          // Check if user has any characters
+          const response = await characterAPI.getUserCharacters();
+          const hasCharacters = response.characters && response.characters.length > 0;
+          
+          // Show onboarding if user has no characters (new user)
+          if (!hasCharacters) {
+            setShowOnboarding(true);
+          }
+          
+          setOnboardingChecked(true);
+        } catch (error) {
+          console.error('Error checking onboarding status:', error);
+          setOnboardingChecked(true);
+        }
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [user, onboardingChecked]);
+
+  // Handle onboarding completion and grant starter pack
+  const handleOnboardingComplete = async (starterCharacters: any[]) => {
+    try {
+      // Assign starter pack to the user (uses existing API)
+      const response = await characterAPI.assignStarterPack();
+      
+      console.log('Assigned starter pack:', response.message);
+      console.log('Characters granted:', response.characters);
+      
+      // Update user stats to reflect new characters
+      setUserStats(prev => ({
+        ...prev,
+        totalCharacters: response.characters || starterCharacters.length
+      }));
+      
+      // Hide onboarding
+      setShowOnboarding(false);
+      
+      // You might want to show a success message here
+      
+    } catch (error) {
+      console.error('Error assigning starter pack:', error);
+      // Still hide onboarding even if there's an error
+      setShowOnboarding(false);
+    }
+  };
 
   const navigationPanels: NavigationPanel[] = [
     {
@@ -144,6 +200,15 @@ export default function Homepage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      {/* New User Onboarding Overlay */}
+      {showOnboarding && user && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center">
+          <NewUserOnboarding 
+            onComplete={handleOnboardingComplete}
+            username={user.username}
+          />
+        </div>
+      )}
       {/* Hero image section */}
       <div className="relative h-[85vh] w-full overflow-hidden">
         <motion.div

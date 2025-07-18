@@ -169,6 +169,11 @@ export const characterAPI = {
   getHeadquarters: async (userId: string) => {
     const response = await apiClient.get(`/users/${userId}/headquarters`);
     return response.data;
+  },
+
+  assignStarterPack: async () => {
+    const response = await apiClient.post('/user/assign-starter-pack');
+    return response.data;
   }
 };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 interface NewUserOnboardingProps {
-  onComplete: () => void;
+  onComplete: (starterCharacters: any[]) => void;
   username: string;
 }
 
@@ -36,28 +36,19 @@ export default function NewUserOnboarding({ onComplete, username }: NewUserOnboa
       )
     },
     {
-      title: "Meet Robin Hood",
-      description: "Your first companion, the clever Forest Outlaw, is ready to join your cause.",
+      title: "Your Starter Pack",
+      description: "You'll receive 3 legendary characters to begin your journey.",
       icon: Target,
       content: (
         <div className="text-center space-y-4">
-          <div className="relative mx-auto w-32 h-32 bg-gradient-to-br from-green-600 to-green-800 rounded-full flex items-center justify-center border-4 border-green-400">
-            <span className="text-4xl">🏹</span>
-            <div className="absolute -top-2 -right-2 bg-yellow-500 rounded-full p-1">
-              <Star className="w-4 h-4 text-yellow-900" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold text-green-400">Robin Hood</h3>
-            <p className="text-sm text-gray-400">The Forest Outlaw • Trickster</p>
-            <div className="flex justify-center space-x-4 text-sm">
-              <span className="text-green-400">Noble</span>
-              <span className="text-blue-400">Cheeky</span>
-              <span className="text-yellow-400">Resourceful</span>
-            </div>
+          <div className="text-6xl mb-4">📦</div>
+          <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border border-indigo-500/30 rounded-lg p-6">
+            <h3 className="text-xl font-bold text-indigo-400 mb-2">Starter Pack Contents</h3>
+            <p className="text-lg text-white mb-2">3 Random Characters</p>
+            <p className="text-sm text-gray-300">Each with unique abilities and personalities</p>
           </div>
           <p className="text-gray-300">
-            Robin's quick wit and moral compass make him perfect for learning the psychology system.
+            Your starter characters will help you learn the psychology system and strategic team building.
           </p>
         </div>
       )
@@ -85,14 +76,14 @@ export default function NewUserOnboarding({ onComplete, username }: NewUserOnboa
             </div>
           </div>
           <p className="text-center text-gray-300">
-            Robin Hood will teach you how different personalities respond to coaching styles.
+            Your starter champions will teach you how different personalities respond to coaching styles.
           </p>
         </div>
       )
     },
     {
       title: "Ready for Adventure!",
-      description: "Robin Hood is now in your collection. Time to begin your first campaign!",
+      description: "Your starter champions are now in your collection. Time to begin your first campaign!",
       icon: Trophy,
       content: (
         <div className="text-center space-y-4">
@@ -128,7 +119,7 @@ export default function NewUserOnboarding({ onComplete, username }: NewUserOnboa
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      onComplete();
+      onComplete([]);
     }
   };
 
