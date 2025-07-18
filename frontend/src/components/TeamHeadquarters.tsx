@@ -146,25 +146,11 @@ export default function TeamHeadquarters() {
               archetype: char.archetype || 'warrior',
               rarity: char.rarity || 'common',
               
-              // Parse JSON fields from database with error handling
+              // Use pre-parsed arrays from backend
               personality: {
-                traits: (() => {
-                  try {
-                    return char.personality_traits ? JSON.parse(char.personality_traits) : ['Determined'];
-                  } catch (error) {
-                    console.warn(`Error parsing personality_traits for ${char.name}:`, error);
-                    return ['Determined'];
-                  }
-                })(),
+                traits: Array.isArray(char.personality_traits) ? char.personality_traits : ['Determined'],
                 speechStyle: char.conversation_style || 'Direct',
-                motivations: (() => {
-                  try {
-                    return char.conversation_topics ? JSON.parse(char.conversation_topics).slice(0, 3) : ['Victory'];
-                  } catch (error) {
-                    console.warn(`Error parsing conversation_topics for ${char.name}:`, error);
-                    return ['Victory'];
-                  }
-                })(),
+                motivations: Array.isArray(char.conversation_topics) ? char.conversation_topics.slice(0, 3) : ['Victory'],
                 fears: ['Defeat'], // Default fallback
                 relationships: []
               },

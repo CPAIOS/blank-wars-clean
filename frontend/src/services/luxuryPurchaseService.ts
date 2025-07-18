@@ -105,10 +105,17 @@ export class LuxuryPurchaseService {
 
   private constructor() {
     this.eventBus = GameEventBus.getInstance();
-    this.financialPsychology = FinancialPsychologyService.getInstance();
+    // Lazy load FinancialPsychologyService to break circular dependency
     
     // Start decay processing for all active luxury effects
     this.startDecayProcessor();
+  }
+
+  private getFinancialPsychology(): FinancialPsychologyService {
+    if (!this.financialPsychology) {
+      this.financialPsychology = FinancialPsychologyService.getInstance();
+    }
+    return this.financialPsychology;
   }
 
   static getInstance(): LuxuryPurchaseService {

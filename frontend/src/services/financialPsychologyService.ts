@@ -40,7 +40,14 @@ export class FinancialPsychologyService {
 
   private constructor() {
     this.eventBus = GameEventBus.getInstance();
-    this.luxuryService = LuxuryPurchaseService.getInstance();
+    // Lazy load LuxuryPurchaseService to break circular dependency
+  }
+
+  private getLuxuryService(): LuxuryPurchaseService {
+    if (!this.luxuryService) {
+      this.luxuryService = LuxuryPurchaseService.getInstance();
+    }
+    return this.luxuryService;
   }
 
   static getInstance(): FinancialPsychologyService {
@@ -244,7 +251,7 @@ export class FinancialPsychologyService {
         const luxuryDescription = decision.metadata?.description || decision.description;
         
         // Process through luxury service for proper effect tracking
-        const luxuryPurchase = this.luxuryService.processLuxuryPurchase(
+        const luxuryPurchase = this.getLuxuryService().processLuxuryPurchase(
           decision.characterId,
           decision.amount,
           luxuryCategory,
@@ -871,8 +878,8 @@ export class FinancialPsychologyService {
     activeLuxuryCount: number;
     luxuryAddictionRisk: 'low' | 'medium' | 'high' | 'critical';
   } {
-    const luxuryData = this.luxuryService.getCurrentLuxuryHappiness(characterId);
-    const addictionData = this.luxuryService.calculateLuxuryAddictionRisk(characterId);
+    const luxuryData = this.getLuxuryService().getCurrentLuxuryHappiness(characterId);
+    const addictionData = this.getLuxuryService().calculateLuxuryAddictionRisk(characterId);
     
     return {
       totalHappiness: luxuryData.totalHappiness,
@@ -904,7 +911,7 @@ export class FinancialPsychologyService {
     };
   }> {
     // Process the luxury purchase
-    const luxuryPurchase = await this.luxuryService.processLuxuryPurchase(
+    const luxuryPurchase = await this.getLuxuryService().processLuxuryPurchase(
       characterId,
       amount,
       category as any,
@@ -935,7 +942,7 @@ export class FinancialPsychologyService {
     }
 
     // Addiction risk modifier
-    const addictionRisk = this.luxuryService.calculateLuxuryAddictionRisk(characterId);
+    const addictionRisk = this.getLuxuryService().calculateLuxuryAddictionRisk(characterId);
     if (addictionRisk.riskLevel === 'high' || addictionRisk.riskLevel === 'critical') {
       stressChange += 5; // Additional stress from problematic spending pattern
       trustChange -= 2; // Coach loses trust if enabling addiction

@@ -131,9 +131,11 @@ const TherapyModule = () => {
       'cleopatra': { name: 'Cleopatra', count: 4 },
       'space_cyborg': { name: 'Cyborg', count: 3 },
       'dracula': { name: 'Dracula', count: 3 },
+      'count_dracula': { name: 'Dracula', count: 3 }, // Handle "Count Dracula"
       'fenrir': { name: 'Fenrir', count: 3 },
       'frankenstein_monster': { name: 'Frankenstein', count: 3 },
       'frankensteins_monster': { name: 'Frankenstein', count: 3 },
+      'frankenstein\'s_monster': { name: 'Frankenstein', count: 3 },
       'genghis_khan': { name: 'Genghis Khan', count: 3 },
       'joan_of_arc': { name: 'Joan of Arc', count: 3 },
       'robin_hood': { name: 'Robin Hood', count: 3 },
@@ -145,16 +147,25 @@ const TherapyModule = () => {
       'zeta_reticulan': { name: 'Zeta', count: 3 }, // Alternative name
       'vega-x': { name: 'Cyborg', count: 3 }, // Vega-X maps to Cyborg therapy images
       'sammy_slugger': { name: 'sammy_slugger', count: 1 }, // Special case - only one image and different naming
-      'sammy_slugger_sullivan': { name: 'sammy_slugger', count: 1 }
+      'sammy_slugger_sullivan': { name: 'sammy_slugger', count: 1 },
+      'sammy_"slugger"_sullivan': { name: 'sammy_slugger', count: 1 } // Handle quotes in name
     };
     
     const imageInfo = characterImageMap[normalizedName];
     if (!imageInfo) {
-      console.warn(`No therapy image mapping found for character: ${characterName}`);
+      console.warn(`No therapy image mapping found for character: ${characterName} (normalized: ${normalizedName})`);
+      // Try fallback with just the first word
+      const firstWord = normalizedName.split('_')[0];
+      const fallbackInfo = characterImageMap[firstWord];
+      if (fallbackInfo) {
+        console.log(`Using fallback mapping for ${characterName}: ${firstWord} -> ${fallbackInfo.name}`);
+        const finalPath = `${baseImagePath}Therapy ${fallbackInfo.name} 01.png`;
+        return finalPath;
+      }
       return '/images/placeholder.png';
     }
     
-    if (normalizedName === 'sammy_slugger' || normalizedName === 'sammy_slugger_sullivan') {
+    if (normalizedName.includes('sammy_slugger')) {
       const sammyPath = `${baseImagePath}${imageInfo.name}.jpg`;
       console.log('Generated Sammy therapy image path:', sammyPath);
       return sammyPath;
