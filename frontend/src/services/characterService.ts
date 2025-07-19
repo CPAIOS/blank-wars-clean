@@ -1,6 +1,7 @@
 import { HeadquartersState } from '../types/headquarters';
 import { Character } from '../data/characters';
 import { calculateRoomCapacity } from '../utils/roomCalculations';
+import { characterAPI } from './apiClient';
 
 /**
  * Assign a character to a room
@@ -117,4 +118,12 @@ export const getUnassignedCharacters = (
 ) => {
   const assignedCharacters = headquarters.rooms.flatMap(room => room.assignedCharacters);
   return availableCharacters.filter(char => !assignedCharacters.includes(char.baseName));
+};
+
+/**
+ * Character service object with API methods
+ */
+export const characterService = {
+  getUserCharacters: () => characterAPI.getUserCharacters(),
+  // Add other character-related API methods here as needed
 };

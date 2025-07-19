@@ -6,6 +6,8 @@ import { cache } from '../database/index';
 import { hostmasterService, HostmasterContext } from './hostmasterService';
 import { applyHeadquartersEffectsToCharacter, getHeadquartersData } from './headquartersEffectsService';
 import { CoachProgressionService } from './coachProgressionService';
+import { CharacterProgressionService } from './characterProgressionService';
+import { ResurrectionService } from './resurrectionService';
 
 // Types
 interface BattleCharacter {
@@ -1148,7 +1150,7 @@ export class BattleManager extends EventEmitter {
     const winner = battleState[winnerSide as keyof Pick<BattleState, 'player1' | 'player2'>];
     const loser = winnerSide === 'player1' ? battleState.player2 : battleState.player1;
     
-    // Update winner
+    // Update winner character stats
     await dbAdapter.userCharacters.update(winner.characterId, {
       total_battles: winner.character.total_battles + 1,
       total_wins: winner.character.total_wins + 1,
@@ -1157,15 +1159,88 @@ export class BattleManager extends EventEmitter {
       last_battle_at: new Date()
     });
     
-    // Update loser
-    await dbAdapter.userCharacters.update(loser.characterId, {
-      total_battles: loser.character.total_battles + 1,
-      experience: loser.character.experience + Math.round(rewards.xp * 0.3), // 30% XP for losing
-      current_health: loser.health,
-      is_injured: loser.health === 0,
-      recovery_time: loser.health === 0 ? new Date(Date.now() + 30 * 60 * 1000) : undefined, // 30 min recovery
-      last_battle_at: new Date()
-    });
+    // Update loser character stats and handle death/injury
+    if (loser.health === 0) {
+      // Determine if character dies or just gets injured
+      const deathChance = this.calculateDeathChance(loser.character.level, battleState.round);
+      const shouldDie = Math.random() < deathChance;
+      
+      if (shouldDie) {
+        // Character dies - handle death
+        await ResurrectionService.handleCharacterDeath(loser.characterId, {
+          battleId: battleState.id,
+          round: battleState.round,
+          opponent: winner.character.name
+        });
+        
+        // Update basic stats (death handler updates death-related fields)
+        await dbAdapter.userCharacters.update(loser.characterId, {
+          total_battles: loser.character.total_battles + 1,
+          experience: loser.character.experience + Math.round(rewards.xp * 0.3), // 30% XP for losing
+          last_battle_at: new Date()
+        });
+      } else {
+        // Character is severely injured but alive
+        const injurySeverity = this.calculateInjurySeverity(loser.health, loser.maxHealth, battleState.round);
+        const recoveryTime = this.calculateInjuryRecoveryTime(injurySeverity);
+        
+        await dbAdapter.userCharacters.update(loser.characterId, {
+          total_battles: loser.character.total_battles + 1,
+          experience: loser.character.experience + Math.round(rewards.xp * 0.3), // 30% XP for losing
+          current_health: 1, // Barely alive
+          is_injured: true,
+          injury_severity: injurySeverity,
+          recovery_time: new Date(Date.now() + recoveryTime * 60 * 60 * 1000), // Recovery in hours
+          last_battle_at: new Date()
+        });
+      }
+    } else {
+      // Character survived with health - minor or no injury
+      const injurySeverity = this.calculateInjurySeverity(loser.health, loser.maxHealth, battleState.round);
+      const recoveryTime = injurySeverity !== 'healthy' ? this.calculateInjuryRecoveryTime(injurySeverity) : 0;
+      
+      await dbAdapter.userCharacters.update(loser.characterId, {
+        total_battles: loser.character.total_battles + 1,
+        experience: loser.character.experience + Math.round(rewards.xp * 0.3), // 30% XP for losing
+        current_health: loser.health,
+        is_injured: injurySeverity !== 'healthy',
+        injury_severity: injurySeverity,
+        recovery_time: recoveryTime > 0 ? new Date(Date.now() + recoveryTime * 60 * 60 * 1000) : null,
+        last_battle_at: new Date()
+      });
+    }
+    
+    // Award character progression XP to both characters
+    try {
+      // Award XP to winner character (full amount with victory bonus)
+      await CharacterProgressionService.awardExperience(
+        winner.characterId,
+        rewards.xp,
+        'battle',
+        `Victory in battle ${battleState.id}`,
+        1.5 // 50% bonus for winning
+      );
+      
+      // Award XP to loser character (reduced amount)
+      await CharacterProgressionService.awardExperience(
+        loser.characterId,
+        Math.round(rewards.xp * 0.6), // 60% XP for losing (more than the old system's 30%)
+        'battle',
+        `Battle experience from ${battleState.id}`,
+        1.0 // No bonus for losing
+      );
+      
+      // Award skill progression based on battle performance
+      // Both characters gain combat skill experience
+      await CharacterProgressionService.progressSkill(winner.characterId, 'combat_mastery', 50);
+      await CharacterProgressionService.progressSkill(loser.characterId, 'combat_mastery', 25);
+      
+      // Winner gets additional skill progression for victory
+      await CharacterProgressionService.progressSkill(winner.characterId, 'battle_tactics', 30);
+      
+    } catch (error) {
+      console.error('Error awarding character progression XP:', error);
+    }
     
     // Update user currencies
     await dbAdapter.currency.update(winner.userId, { battle_tokens: rewards.currency });
@@ -1297,6 +1372,54 @@ export class BattleManager extends EventEmitter {
   // Helper function for delays
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Calculate death chance based on character level and battle intensity
+   */
+  private calculateDeathChance(characterLevel: number, battleRounds: number): number {
+    // Base death chance starts at 15% for level 1, decreases as level increases
+    const baseMortality = 0.15 - (characterLevel * 0.002); // -0.2% per level
+    
+    // Battle intensity factor - longer battles are more deadly
+    const intensityFactor = Math.min(2, 1 + (battleRounds - 10) * 0.1); // +10% per round after 10
+    
+    // Final death chance (minimum 1%, maximum 25%)
+    return Math.max(0.01, Math.min(0.25, baseMortality * intensityFactor));
+  }
+
+  /**
+   * Calculate injury severity based on remaining health and battle context
+   */
+  private calculateInjurySeverity(currentHealth: number, maxHealth: number, battleRounds: number): string {
+    const healthPercent = currentHealth / maxHealth;
+    
+    if (currentHealth === 0) {
+      return 'critical'; // On death's door but alive
+    } else if (healthPercent <= 0.1) {
+      return 'severe';   // 0-10% health
+    } else if (healthPercent <= 0.3) {
+      return 'moderate'; // 11-30% health
+    } else if (healthPercent <= 0.6) {
+      return 'light';    // 31-60% health
+    } else {
+      return 'healthy';  // 61%+ health
+    }
+  }
+
+  /**
+   * Calculate recovery time for different injury severities
+   */
+  private calculateInjuryRecoveryTime(severity: string): number {
+    const recoveryHours = {
+      'healthy': 0,
+      'light': 1,      // 1 hour
+      'moderate': 4,   // 4 hours 
+      'severe': 12,    // 12 hours
+      'critical': 24   // 24 hours
+    };
+    
+    return recoveryHours[severity as keyof typeof recoveryHours] || 0;
   }
 
   // Public methods for external access

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { characterAPI } from '@/services/apiClient';
@@ -242,11 +242,9 @@ export default function ImprovedBattleArena() {
         setRosterError(null);
       } catch (error) {
         console.error('Failed to load character roster:', error);
-        setRosterError('Unable to load your character roster. Using demo characters.');
-        // Fallback to demo collection if API fails
-        setCoachRoster(createDemoCharacterCollection());
-        // Clear error after 5 seconds
-        setTimeout(() => setRosterError(null), 5000);
+        setRosterError('Unable to load your character roster. Please check your connection and try again.');
+        setCoachRoster([]); // Don't use demo characters - they don't save progress
+        // Don't clear error automatically - let user fix it
       }
     };
     
@@ -267,7 +265,7 @@ export default function ImprovedBattleArena() {
   
   // Initialize player team with 3 random characters from roster
   useEffect(() => {
-    if (state.playerTeam.characters.length === 0) {
+    if (state.playerTeam.characters.length === 0 && coachRoster.length >= 3) {
       // Select 3 random characters from coach's roster
       const shuffled = [...coachRoster].sort(() => 0.5 - Math.random());
       const randomTeam = shuffled.slice(0, 3);
@@ -289,7 +287,7 @@ export default function ImprovedBattleArena() {
       // Set selected team members for the UI
       setSelectedTeamMembers(randomTeam.map(char => char.id));
     }
-  }, [state.playerTeam.characters.length]);
+  }, [state.playerTeam.characters.length, coachRoster.length]);
   
   // Destructure state for easier access (maintaining original variable names)
   const {
@@ -987,30 +985,66 @@ export default function ImprovedBattleArena() {
       )}
       {rosterError && (
         <div className="bg-orange-900/50 border border-orange-500 rounded-lg p-4 text-orange-200">
-          {rosterError}
+          <div className="flex items-center justify-between">
+            <span>{rosterError}</span>
+            <button
+              onClick={async () => {
+                setRosterError(null);
+                try {
+                  const response = await characterAPI.getUserCharacters();
+                  const characters = response.characters || [];
+                  setCoachRoster(Array.isArray(characters) ? characters : []);
+                } catch (error) {
+                  console.error('Retry failed:', error);
+                  setRosterError('Still unable to load characters. Please check your login status.');
+                }
+              }}
+              className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-sm transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Show message when no characters are loaded */}
+      {coachRoster.length === 0 && !rosterError && (
+        <div className="bg-blue-900/50 border border-blue-500 rounded-lg p-8 text-center">
+          <div className="text-blue-200 text-lg mb-2">Loading your character roster...</div>
+          <div className="text-blue-300 text-sm">Please wait while we load your characters.</div>
+        </div>
+      )}
+      
+      {coachRoster.length === 0 && rosterError && (
+        <div className="bg-gray-900/50 border border-gray-500 rounded-lg p-8 text-center">
+          <div className="text-gray-200 text-lg mb-2">Battle Arena Unavailable</div>
+          <div className="text-gray-300 text-sm mb-4">You need at least 3 characters to enter the arena.</div>
+          <div className="text-gray-400 text-xs">Please resolve the character loading issue above to continue.</div>
         </div>
       )}
       
       {/* 1. Current Round Fighters (TOP) - Team Display fighters only */}
-      <TeamDisplay
-        playerTeam={playerTeam}
-        opponentTeam={opponentTeam}
-        currentRound={currentRound}
-        phase={phase}
-        battleCries={battleCries}
-        chatMessages={chatMessages}
-        customMessage={customMessage}
-        isCharacterTyping={isCharacterTyping}
-        chatContainerRef={chatContainerRef}
-        selectedChatCharacter={selectedChatCharacter}
-        onCustomMessageChange={setCustomMessage}
-        onSendMessage={battleChat.handleCustomMessage}
-        playerRoundWins={playerRoundWins}
-        opponentRoundWins={opponentRoundWins}
-        currentMatch={currentMatch}
-        playerMatchWins={playerMatchWins}
-        opponentMatchWins={opponentMatchWins}
-      />
+      {coachRoster.length >= 3 && (
+        <TeamDisplay
+          playerTeam={playerTeam}
+          opponentTeam={opponentTeam}
+          currentRound={currentRound}
+          phase={phase}
+          battleCries={battleCries}
+          chatMessages={chatMessages}
+          customMessage={customMessage}
+          isCharacterTyping={isCharacterTyping}
+          chatContainerRef={chatContainerRef}
+          selectedChatCharacter={selectedChatCharacter}
+          onCustomMessageChange={setCustomMessage}
+          onSendMessage={battleChat.handleCustomMessage}
+          playerRoundWins={playerRoundWins}
+          opponentRoundWins={opponentRoundWins}
+          currentMatch={currentMatch}
+          playerMatchWins={playerMatchWins}
+          opponentMatchWins={opponentMatchWins}
+        />
+      )}
 
       {/* AI Chaos Monitor - Shows during combat phases */}
       {(phase === 'round-combat' || phase === 'round-end' || activeDeviations.length > 0) && (

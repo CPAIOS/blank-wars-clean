@@ -204,7 +204,7 @@ export function createDemoCharacterRoster(): Character[] {
     'merlin', 
     'sherlock_holmes',
     'billy_the_kid',
-    'space_cyborg_vega_x'
+    'space_cyborg'
   ];
   
   return demoCharacters.map((id, index) => {

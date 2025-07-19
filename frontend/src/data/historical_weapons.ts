@@ -842,7 +842,7 @@ export const historicalWeapons: Equipment[] = [
     obtainMethod: 'event'
   },
 
-  // SPACE CYBORG VEGA-X - Far Future
+  // SPACE CYBORG - Far Future
   {
     id: 'energy_blade_vega',
     name: 'Plasma Energy Blade',
@@ -853,7 +853,7 @@ export const historicalWeapons: Equipment[] = [
     level: 1,
     requiredLevel: 1,
     requiredArchetype: ['warrior', 'assassin'],
-    preferredCharacter: 'space_cyborg_vega_x',
+    preferredCharacter: 'space_cyborg',
     stats: { atk: 18, spd: 8 },
     effects: [],
     icon: '⚡',
@@ -871,7 +871,7 @@ export const historicalWeapons: Equipment[] = [
     level: 15,
     requiredLevel: 15,
     requiredArchetype: ['warrior', 'assassin'],
-    preferredCharacter: 'space_cyborg_vega_x',
+    preferredCharacter: 'space_cyborg',
     stats: { atk: 44, accuracy: 35, magicAttack: 20 },
     effects: [
       {
@@ -897,7 +897,7 @@ export const historicalWeapons: Equipment[] = [
     level: 30,
     requiredLevel: 30,
     requiredArchetype: ['warrior', 'assassin'],
-    preferredCharacter: 'space_cyborg_vega_x',
+    preferredCharacter: 'space_cyborg',
     stats: { atk: 60, magicAttack: 40, accuracy: 50 },
     effects: [
       {

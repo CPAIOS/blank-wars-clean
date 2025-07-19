@@ -133,7 +133,11 @@ export default function TeamChatPanel({
     });
 
     return () => {
-      socketRef.current?.disconnect();
+      console.log('Cleaning up WebSocket listeners');
+      if (socketRef.current?.connected) {
+        socketRef.current.disconnect();
+      }
+      socketRef.current = null;
     };
   }, []); // Remove dependency to prevent constant reconnects
 

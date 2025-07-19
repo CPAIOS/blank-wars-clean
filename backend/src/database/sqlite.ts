@@ -625,7 +625,7 @@ const seedCharacters = async (): Promise<void> => {
     },
     {
       id: 'space_cyborg',
-      name: 'Vega-X',
+      name: 'Space Cyborg',
       title: 'Galactic Mercenary',
       archetype: 'tank',
       origin_era: 'Sci-Fi Future',

@@ -145,7 +145,7 @@ const TherapyModule = () => {
       'nikola_tesla': { name: 'Tesla', count: 4 }, // Alternative name
       'alien_grey': { name: 'Zeta', count: 3 },
       'zeta_reticulan': { name: 'Zeta', count: 3 }, // Alternative name
-      'vega-x': { name: 'Cyborg', count: 3 }, // Vega-X maps to Cyborg therapy images
+      'space cyborg': { name: 'Cyborg', count: 3 }, // Space Cyborg maps to Cyborg therapy images
       'sammy_slugger': { name: 'sammy_slugger', count: 1 }, // Special case - only one image and different naming
       'sammy_slugger_sullivan': { name: 'sammy_slugger', count: 1 },
       'sammy_"slugger"_sullivan': { name: 'sammy_slugger', count: 1 }, // Handle quotes in name

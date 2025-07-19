@@ -888,6 +888,45 @@ export class EventContextService {
 
     return context;
   }
+
+  /**
+   * Get team battle context for battle communications
+   */
+  async getTeamBattleContext(characterId: string): Promise<string> {
+    const config: ContextConfig = {
+      maxTokens: 250,
+      domainFocus: 'performance',
+      includeLivingContext: false,
+      includeRelationships: true,
+      includeRecentEvents: true,
+      includeEmotionalState: true,
+      timeRange: '1_day'
+    };
+
+    const context = await this.generateCompressedContext(characterId, config);
+    
+    // Add battle-specific context
+    let battleContext = '';
+    
+    // Get recent battle events
+    const battleEvents = this.eventBus.getEventHistory(characterId, {
+      categories: ['battle'],
+      timeRange: '1_day',
+      limit: 3
+    });
+
+    if (battleEvents.length > 0) {
+      const recentBattles = battleEvents.map(event => {
+        const timeAgo = this.getTimeAgo(event.timestamp);
+        const result = event.type.includes('victory') ? 'victory' : event.type.includes('defeat') ? 'defeat' : 'participation';
+        return `• Recent ${result}: ${event.description} (${timeAgo})`;
+      });
+      
+      battleContext += `RECENT BATTLE HISTORY:\n${recentBattles.join('\n')}\n\n`;
+    }
+
+    return battleContext + this.formatContextForPrompt(context);
+  }
 }
 
 export default EventContextService;

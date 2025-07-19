@@ -100,7 +100,14 @@ export const initializeDatabase = async (): Promise<void> => {
         current_health INTEGER NOT NULL,
         max_health INTEGER NOT NULL,
         is_injured BOOLEAN DEFAULT FALSE,
+        injury_severity TEXT DEFAULT 'healthy' CHECK (injury_severity IN ('healthy', 'light', 'moderate', 'severe', 'critical', 'dead')),
+        is_dead BOOLEAN DEFAULT FALSE,
+        death_timestamp TIMESTAMP,
         recovery_time TIMESTAMP,
+        resurrection_available_at TIMESTAMP,
+        death_count INTEGER DEFAULT 0,
+        pre_death_level INTEGER,
+        pre_death_experience INTEGER,
         equipment TEXT DEFAULT '[]',
         enhancements TEXT DEFAULT '[]',
         conversation_memory TEXT DEFAULT '[]',
@@ -237,6 +244,35 @@ export const initializeDatabase = async (): Promise<void> => {
         character_id TEXT NOT NULL REFERENCES characters(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Healing Facilities table
+      CREATE TABLE IF NOT EXISTS healing_facilities (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        facility_type TEXT NOT NULL CHECK (facility_type IN ('basic_medical', 'advanced_medical', 'premium_medical', 'resurrection_chamber')),
+        healing_rate_multiplier DECIMAL(3,2) DEFAULT 1.0,
+        currency_cost_per_hour INTEGER DEFAULT 0,
+        premium_cost_per_hour INTEGER DEFAULT 0,
+        max_injury_severity TEXT CHECK (max_injury_severity IN ('light', 'moderate', 'severe', 'critical', 'dead')),
+        headquarters_tier_required TEXT,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Character Healing Sessions table
+      CREATE TABLE IF NOT EXISTS character_healing_sessions (
+        id TEXT PRIMARY KEY,
+        character_id TEXT NOT NULL REFERENCES user_characters(id) ON DELETE CASCADE,
+        facility_id TEXT NOT NULL REFERENCES healing_facilities(id),
+        session_type TEXT NOT NULL CHECK (session_type IN ('injury_healing', 'resurrection')),
+        start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        estimated_completion_time TIMESTAMP NOT NULL,
+        currency_paid INTEGER DEFAULT 0,
+        premium_paid INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE,
+        is_completed BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `;
 
     // Execute each CREATE TABLE statement separately for PostgreSQL
@@ -247,7 +283,7 @@ export const initializeDatabase = async (): Promise<void> => {
       }
     }
 
-    // Add financial columns to existing tables if they don't exist
+    // Add financial columns and character progression tables if they don't exist
     const alterTableStatements = [
       `ALTER TABLE user_characters ADD COLUMN IF NOT EXISTS wallet INTEGER DEFAULT 0`,
       `ALTER TABLE user_characters ADD COLUMN IF NOT EXISTS financial_stress INTEGER DEFAULT 0`,
@@ -260,12 +296,70 @@ export const initializeDatabase = async (): Promise<void> => {
       `ALTER TABLE coach_xp_events ADD CONSTRAINT coach_xp_events_event_type_check CHECK (event_type IN ('battle_win', 'battle_loss', 'psychology_management', 'character_development', 'financial_coaching'))`
     ];
 
+    // Character progression tables
+    const characterProgressionTables = [
+      `CREATE TABLE IF NOT EXISTS character_progression (
+        character_id TEXT PRIMARY KEY REFERENCES user_characters(id) ON DELETE CASCADE,
+        stat_points INTEGER DEFAULT 0,
+        skill_points INTEGER DEFAULT 0,
+        ability_points INTEGER DEFAULT 0,
+        tier TEXT DEFAULT 'novice',
+        title TEXT DEFAULT 'Novice',
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+      
+      `CREATE TABLE IF NOT EXISTS character_skills (
+        id TEXT PRIMARY KEY,
+        character_id TEXT REFERENCES user_characters(id) ON DELETE CASCADE,
+        skill_id TEXT NOT NULL,
+        skill_name TEXT NOT NULL,
+        level INTEGER DEFAULT 1,
+        experience INTEGER DEFAULT 0,
+        max_level INTEGER DEFAULT 10,
+        unlocked BOOLEAN DEFAULT false,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(character_id, skill_id)
+      )`,
+      
+      `CREATE TABLE IF NOT EXISTS character_abilities (
+        id TEXT PRIMARY KEY,
+        character_id TEXT REFERENCES user_characters(id) ON DELETE CASCADE,
+        ability_id TEXT NOT NULL,
+        ability_name TEXT NOT NULL,
+        rank INTEGER DEFAULT 1,
+        max_rank INTEGER DEFAULT 5,
+        unlocked BOOLEAN DEFAULT false,
+        unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(character_id, ability_id)
+      )`,
+      
+      `CREATE TABLE IF NOT EXISTS character_experience_log (
+        id TEXT PRIMARY KEY,
+        character_id TEXT REFERENCES user_characters(id) ON DELETE CASCADE,
+        source TEXT NOT NULL CHECK (source IN ('battle', 'training', 'quest', 'achievement', 'daily', 'event')),
+        amount INTEGER NOT NULL,
+        multiplier DECIMAL(3,2) DEFAULT 1.0,
+        description TEXT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`
+    ];
+
     for (const alterSQL of alterTableStatements) {
       try {
         await query(alterSQL);
       } catch (error) {
         // Column might already exist, continue
         console.log('Note: Column might already exist:', error);
+      }
+    }
+
+    // Create character progression tables
+    for (const tableSQL of characterProgressionTables) {
+      try {
+        await query(tableSQL);
+        console.log('✅ Character progression table created/verified');
+      } catch (error) {
+        console.error('❌ Error creating character progression table:', error);
       }
     }
 
@@ -277,6 +371,10 @@ export const initializeDatabase = async (): Promise<void> => {
       'CREATE INDEX IF NOT EXISTS idx_user_characters_user_id ON user_characters(user_id)',
       'CREATE INDEX IF NOT EXISTS idx_user_characters_character_id ON user_characters(character_id)',
       'CREATE INDEX IF NOT EXISTS idx_battles_player1 ON battles(player1_id)',
+      'CREATE INDEX IF NOT EXISTS idx_character_skills_character_id ON character_skills(character_id)',
+      'CREATE INDEX IF NOT EXISTS idx_character_abilities_character_id ON character_abilities(character_id)',
+      'CREATE INDEX IF NOT EXISTS idx_character_experience_log_character_id ON character_experience_log(character_id)',
+      'CREATE INDEX IF NOT EXISTS idx_character_experience_log_timestamp ON character_experience_log(timestamp DESC)',
       'CREATE INDEX IF NOT EXISTS idx_battles_player2 ON battles(player2_id)',
       'CREATE INDEX IF NOT EXISTS idx_battles_status ON battles(status)',
       'CREATE INDEX IF NOT EXISTS idx_chat_messages_user_character ON chat_messages(user_id, character_id)',

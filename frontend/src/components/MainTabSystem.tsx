@@ -18,6 +18,133 @@ import TeamHeadquarters from './TeamHeadquarters';
 import PerformanceCoachingChat from './PerformanceCoachingChat';
 import EquipmentAdvisorChat from './EquipmentAdvisorChat';
 import SkillDevelopmentChat from './SkillDevelopmentChat';
+
+// Utility function to get character image path
+const getCharacterImagePath = (characterName: string, imageType: 'progression' | 'equipment' | 'skills' | 'performance'): string => {
+  const normalizedName = characterName?.toLowerCase()?.trim();
+  
+  // Standard character name mappings with aliases
+  const characterNameMappings: Record<string, string> = {
+    'achilles': 'achilles',
+    'agent x': 'agent_x',
+    'agent_x': 'agent_x',
+    'billy the kid': 'billy_the_kid',
+    'billy_the_kid': 'billy_the_kid',
+    'cleopatra': 'cleopatra',
+    'cleopatra vii': 'cleopatra',
+    'cyborg': 'space_cyborg',
+    'space_cyborg': 'space_cyborg',
+    'space cyborg': 'space_cyborg',
+    'vega-x': 'space_cyborg',
+    'vega_x': 'space_cyborg',
+    'vega': 'space_cyborg',
+    'dracula': 'dracula',
+    'count dracula': 'dracula',
+    'fenrir': 'fenrir',
+    'frankenstein': 'frankenstein',
+    'frankenstein\'s monster': 'frankenstein',
+    'frankensteins monster': 'frankenstein',
+    'genghis khan': 'genghis_khan',
+    'gengas khan': 'genghis_khan',
+    'joan of arc': 'joan_of_arc',
+    'joan of ark': 'joan_of_arc',
+    'joan': 'joan_of_arc',
+    'merlin': 'merlin',
+    'robin hood': 'robin_hood',
+    'robin_hood': 'robin_hood',
+    'sherlock holmes': 'sherlock_holmes',
+    'holmes': 'sherlock_holmes',
+    'sun wukong': 'sun_wukong',
+    'sun_wukong': 'sun_wukong',
+    'tesla': 'tesla',
+    'nikola tesla': 'tesla',
+    'zeta': 'zeta',
+    'zeta reticulan': 'zeta',
+    'alien_grey': 'zeta',
+    'sammy "slugger" sullivan': 'sammy_slugger',
+    'sammy_slugger': 'sammy_slugger',
+    'sammy slugger': 'sammy_slugger'
+  };
+
+  const baseCharacterName = characterNameMappings[normalizedName];
+  if (!baseCharacterName) {
+    return '';
+  }
+
+  switch (imageType) {
+    case 'progression':
+      // Progression images use different naming convention
+      const progressionMap: Record<string, string> = {
+        'achilles': 'Achilles 02.png',
+        'agent_x': 'Agent X 03.png',
+        'billy_the_kid': 'Billy the Kid 02.png',
+        'cleopatra': 'Cleopatra 01.png',
+        'space_cyborg': 'Cyborg 03.png',
+        'dracula': 'Dracula 02.png',
+        'fenrir': 'Fenrir 01.png',
+        'frankenstein': 'Frankenstein 01.png',
+        'genghis_khan': 'Gengas Khan 01.png',
+        'joan_of_arc': 'Joan of ark 01.png',
+        'merlin': 'Merlin 02.png',
+        'robin_hood': 'robin_hood.png',
+        'sherlock_holmes': 'Sherlock Holmes 01.png',
+        'sun_wukong': 'Sun Wukong 02.png',
+        'tesla': 'Tesla 03.png',
+        'zeta': 'Zeta 01.png',
+        'sammy_slugger': 'sammy_slugger.png',
+        'vega_x': 'Cyborg 03.png'
+      };
+      return progressionMap[baseCharacterName] ? `/images/Character /Progression/${progressionMap[baseCharacterName]}` : '';
+    
+    case 'equipment':
+      if (baseCharacterName === 'zeta') {
+        return `/images/Character /Equipment /zeta__equipment.png`;
+      } else if (baseCharacterName === 'space_cyborg') {
+        return `/images/Character /Equipment /cyborg_equipment.png`;
+      } else if (baseCharacterName === 'agent_x') {
+        return `/images/Character /Equipment /agent_equipment.png`;
+      }
+      return `/images/Character /Equipment /${baseCharacterName}_equipment.png`;
+    
+    case 'skills':
+      // Handle special cases for skills images
+      if (baseCharacterName === 'frankenstein') {
+        return `/images/Character /Skills:Abilities/frankenstein's_monster_skills.png`;
+      } else if (baseCharacterName === 'space_cyborg') {
+        return `/images/Character /Skills:Abilities/vega_x_skills.png`; // Space Cyborg uses vega_x skills image
+      }
+      return `/images/Character /Skills:Abilities/${baseCharacterName}_skills.png`;
+    
+    case 'performance':
+      // Performance coaching uses same images as progression but from different folder
+      const performanceMap: Record<string, string> = {
+        'achilles': 'Achilles 02.png',
+        'agent_x': 'Agent X 03.png',
+        'billy_the_kid': 'Billy the Kid 02.png',
+        'cleopatra': 'Cleopatra 01.png',
+        'space_cyborg': 'space_cyborg_1-on-1.png',
+        'dracula': 'Dracula 02.png',
+        'fenrir': 'Fenrir 01.png',
+        'frankenstein': 'Frankenstein 01.png',
+        'genghis_khan': 'Gengas Khan 01.png',
+        'joan_of_arc': 'Joan of ark 01.png',
+        'merlin': 'Merlin 02.png',
+        'robin_hood': 'robin_hood.png',
+        'sherlock_holmes': 'Sherlock Holmes 01.png',
+        'sun_wukong': 'Sun Wukong 02.png',
+        'tesla': 'Tesla 03.png',
+        'zeta': 'Zeta 01.png',
+        'sammy_slugger': 'sammy_slugger.png'
+      };
+      if (baseCharacterName === 'space_cyborg') {
+        return `/images/1-on-1_coaching/${performanceMap[baseCharacterName]}`;
+      }
+      return performanceMap[baseCharacterName] ? `/images/Coaching/Performance/${performanceMap[baseCharacterName]}` : '';
+    
+    default:
+      return '';
+  }
+};
 import TeamBuildingActivities from './TeamBuildingActivities';
 
 // Import components directly to fix crashes
@@ -273,6 +400,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
     }, []);
 
     const selectedCharacter = useMemo(() => {
+      if (availableCharacters.length === 0) return null;
       return availableCharacters.find(c => c.baseName === globalSelectedCharacterId) || availableCharacters[0];
     }, [availableCharacters, globalSelectedCharacterId]);
     console.log('Progression - Real character data:', selectedCharacter?.name, 'Level:', selectedCharacter?.level, 'Base Attack:', selectedCharacter?.base_attack);
@@ -284,6 +412,17 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
           <div className="text-center">
             <div className="w-8 h-8 border-4 border-orange-600/30 border-t-orange-600 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-400">Loading real character data...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (!selectedCharacter) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <p className="text-gray-400">No character data available.</p>
+            <p className="text-sm text-gray-500 mt-2">Please make sure you have characters in your roster.</p>
           </div>
         </div>
       );
@@ -332,6 +471,8 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 {/* Character Image */}
                 <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
                   <img 
+                    src={getCharacterImagePath(selectedCharacter?.name || '', 'progression')}
+                    /* ORIGINAL PROGRESSION MAPPING (BACKUP):
                     src={(() => {
                       // Map character names to their image file names
                       const characterImageMap: Record<string, string> = {
@@ -380,7 +521,8 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                       
                       // Return empty string if no match found - this will trigger alt text instead of wrong image
                       return '';
-                    })()}
+                    })()
+                    */
                     alt={selectedCharacter?.name || 'Character'}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -589,6 +731,8 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 {/* Character Image */}
                 <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
                   <img 
+                    src={getCharacterImagePath(selectedCharacter?.name || '', 'equipment')}
+                    /* ORIGINAL EQUIPMENT MAPPING (BACKUP):
                     src={(() => {
                       // Map character names to their equipment image file names
                       const characterImageMap: Record<string, string> = {
@@ -636,7 +780,8 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                       
                       // Return empty string if no match found
                       return '';
-                    })()}
+                    })()
+                    */
                     alt={selectedCharacter?.name || 'Character'}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -825,10 +970,12 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 {/* Character Image */}
                 <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
                   <img 
+                    src={getCharacterImagePath(selectedCharacter?.name || '', 'skills')}
+                    /* ORIGINAL MAPPING LOGIC (BACKUP):
                     src={(() => {
                       // Map character names to their skills image file names
                       const characterImageMap: Record<string, string> = {
-                        'achilles': 'achillies_skills.png',
+                        'achilles': 'achilles_skills.png',
                         'agent x': 'agent_x_skills.png',
                         'billy the kid': 'billy_the_kid_skills.png',
                         'cleopatra': 'cleopatra_skills.png',
@@ -872,7 +1019,8 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                       
                       // Return empty string if no match found
                       return '';
-                    })()}
+                    })()
+                    */
                     alt={selectedCharacter?.name || 'Character'}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -1194,58 +1342,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
                 {/* Character Image */}
                 <div className="w-72 h-72 rounded-xl overflow-hidden border-4 border-gray-600 shadow-2xl">
                   <img 
-                    src={(() => {
-                      // Map character names to their performance coaching image file names
-                      const characterImageMap: Record<string, string> = {
-                        'achilles': 'Achilles 02.png',
-                        'agent x': 'Agent X 03.png',
-                        'billy the kid': 'Billy the Kid 02.png',
-                        'cleopatra': 'Cleopatra 01.png',
-                        'cyborg': 'Cyborg 03.png',
-                        'dracula': 'Dracula 02.png',
-                        'count dracula': 'Dracula 02.png',
-                        'fenrir': 'Fenrir 01.png',
-                        'frankenstein': 'Frankenstein 01.png',
-                        'frankenstein\'s monster': 'Frankenstein 01.png',
-                        'frankensteins monster': 'Frankenstein 01.png',
-                        'genghis khan': 'Gengas Khan 01.png',
-                        'gengas khan': 'Gengas Khan 01.png',
-                        'joan of arc': 'Joan of ark 01.png',
-                        'joan of ark': 'Joan of ark 01.png',
-                        'merlin': 'Merlin 02.png',
-                        'robin hood': 'robin_hood.png',
-                        'robin_hood': 'robin_hood.png',
-                        'sherlock holmes': 'Sherlock Holmes 01.png',
-                        'sun wukong': 'Sun Wukong 02.png',
-                        'tesla': 'Tesla 03.png',
-                        'nikola tesla': 'Tesla 03.png',
-                        'zeta': 'Zeta 01.png',
-                        'zeta reticulan': 'Zeta 01.png',
-                        'sammy "slugger" sullivan': 'sammy_slugger.png',
-                        'sammy_slugger': 'sammy_slugger.png',
-                        'sammy slugger': 'sammy_slugger.png',
-                        'cleopatra vii': 'Cleopatra 01.png',
-                        'vega-x': 'Cyborg 03.png',
-                        'space_cyborg': 'Cyborg 03.png',
-                        'alien_grey': 'Zeta 01.png',
-                        'frankenstein_monster': 'Frankenstein 01.png',
-                      };
-                      
-                      const characterName = selectedCharacter?.name?.toLowerCase()?.trim();
-                      console.log('🎯 Performance Coaching Image Debug:', {
-                        originalName: selectedCharacter?.name,
-                        characterName,
-                        hasMapping: !!characterImageMap[characterName || ''],
-                      });
-                      
-                      // Only use mapped images, no fallback to wrong character
-                      if (characterName && characterImageMap[characterName]) {
-                        return `/images/Coaching/Performance/${characterImageMap[characterName]}`;
-                      }
-                      
-                      // Return empty string if no match found
-                      return '';
-                    })()}
+                    src={getCharacterImagePath(selectedCharacter?.name || '', 'performance')}
                     alt={selectedCharacter?.name || 'Character'}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -1464,11 +1561,10 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         'agent_x': 'agent_x_balling.jpg',
         'billy_the_kid': 'billy_the_kid_balling.jpg',
         'cleopatra': 'Cleopatra_balling.jpg',
-        'space_cyborg': 'zeta_balling.png', // Assuming cyborg maps to zeta
         'dracula': 'dracula_balling.jpg',
         'count_dracula': 'dracula_balling.jpg', // Fix for Count Dracula character name
         'cleopatra_vii': 'Cleopatra_balling.jpg', // Fix for Cleopatra VII character name
-        'space_cyborg_(vega-x)': 'vega_x_balling.png', // Fix for Space Cyborg (Vega-X) character name
+        'space_cyborg': 'vega_x_balling.png', // Fix for Space Cyborg character name
         'fenrir': 'fanrir_balling.png',
         'frankenstein_monster': 'frankenstein_balliing.jpg',
         'frankensteins_monster': 'frankenstein_balliing.jpg',
@@ -1484,9 +1580,7 @@ export default function MainTabSystem({ initialTab = 'characters', initialSubTab
         'sammy_slugger': 'sammy_slugger.jpg',
         'sammy_slugger_sullivan': 'sammy_slugger.jpg',
         'merlin': 'merlin_balling.png',
-        'vega': 'vega_x_balling.png',
-        'vega_x': 'vega_x_balling.png',
-        'vega-x': 'vega_x_balling.png'
+        'space cyborg': 'vega_x_balling.png'
       };
       
       const imageName = characterImageMap[normalizedName];

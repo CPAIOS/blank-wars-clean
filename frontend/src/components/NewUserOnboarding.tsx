@@ -23,14 +23,14 @@ export default function NewUserOnboarding({ onComplete, username }: NewUserOnboa
 
   const steps = [
     {
-      title: `Welcome to WiseSage, ${username}!`,
+      title: `Welcome to _____ Wars, ${username}!`,
       description: "You're about to embark on an epic journey where psychology meets legendary battles.",
       icon: Users,
       content: (
         <div className="text-center space-y-4">
           <div className="text-6xl mb-4">🏹</div>
           <p className="text-lg text-gray-300">
-            In WiseSage, you don't just command characters - you coach them through their psychological challenges.
+            In _____ Wars, you don't just command characters - you coach them through their psychological challenges.
           </p>
         </div>
       )

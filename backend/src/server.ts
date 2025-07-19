@@ -36,6 +36,10 @@ import socialRouter from './routes/socialRoutes';
 import headquartersRouter from './routes/headquartersRoutes';
 import coachingRouter from './routes/coachingRoutes';
 import coachProgressionRouter from './routes/coachProgressionRoutes';
+import characterProgressionRouter from './routes/characterProgressionRoutes';
+import healingRouter from './routes/healingRoutes';
+import { healingScheduler } from './services/healingScheduler';
+import { initializeHealingFacilities } from './services/healingFacilitiesData';
 import jwt from 'jsonwebtoken';
 import { apiLimiter, authLimiter, battleLimiter, wsLimiter } from './middleware/rateLimiter';
 import cookieParser from 'cookie-parser';
@@ -131,6 +135,8 @@ app.use('/api/social', socialRouter);
 app.use('/api/headquarters', headquartersRouter);
 app.use('/api/coaching', coachingRouter);
 app.use('/api/coach-progression', coachProgressionRouter);
+app.use('/api/character-progression', characterProgressionRouter);
+app.use('/api/healing', healingRouter);
 
 
 // New Card Pack Routes (These are now handled by cardPackRouter)
@@ -1680,6 +1686,14 @@ async function startServer() {
     console.log('🟡 Initializing database...');
     await initializeDatabase();
     console.log('✅ Database initialized successfully');
+    
+    // Initialize healing facilities
+    await initializeHealingFacilities();
+    console.log('✅ Healing facilities initialized');
+    
+    // Start healing scheduler
+    healingScheduler.start(5); // Check every 5 minutes
+    console.log('✅ Healing scheduler started');
     
     // Start the server
     console.log('🟡 Starting HTTP server...');

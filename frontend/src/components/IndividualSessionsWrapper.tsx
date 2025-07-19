@@ -82,7 +82,7 @@ export default function IndividualSessionsWrapper() {
       'sammy "slugger" sullivan': 'sammy_slugger_1-on-1.png',
       'sammy_slugger': 'sammy_slugger_1-on-1.png',
       'cleopatra vii': 'cleopatra__1-on-1.png',
-      'vega-x': 'vega_1-on-1.png',
+      'space cyborg': 'vega_1-on-1.png',
     };
     
     const characterName = character?.name?.toLowerCase()?.trim();

@@ -45,7 +45,7 @@ export function runEquipmentIntegrationTest(): {
   const characterIds = [
     'achilles', 'merlin', 'fenrir', 'cleopatra', 'sherlock_holmes',
     'count_dracula', 'joan_of_arc', 'frankensteins_monster', 'sun_wukong',
-    'sammy_slugger', 'billy_the_kid', 'genghis_khan', 'space_cyborg_vega_x',
+    'sammy_slugger', 'billy_the_kid', 'genghis_khan', 'space_cyborg',
     'nikola_tesla', 'zeta_reticulan', 'robin_hood', 'agent_x'
   ];
   

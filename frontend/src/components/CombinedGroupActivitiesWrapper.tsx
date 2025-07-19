@@ -332,7 +332,11 @@ export default function CombinedGroupActivitiesWrapper() {
     });
 
     return () => {
-      groupSocketRef.current?.disconnect();
+      console.log('Cleaning up GroupChat WebSocket listeners');
+      if (groupSocketRef.current?.connected) {
+        groupSocketRef.current.disconnect();
+      }
+      groupSocketRef.current = null;
     };
   }, []);
 
@@ -373,7 +377,7 @@ export default function CombinedGroupActivitiesWrapper() {
       'zeta reticulan': 'zeta_group_activities.png',
       'sammy "slugger" sullivan': 'sammy_slugger_group_activity.png',
       'sammy_slugger': 'sammy_slugger_group_activity.png',
-      'vega-x': 'vega_group_activity.png',
+      'space cyborg': 'vega_group_activity.png',
     };
     
     const normalizedName = characterName?.toLowerCase()?.trim();
@@ -554,6 +558,7 @@ export default function CombinedGroupActivitiesWrapper() {
 
   // Group activity handlers (from GroupActivitiesWrapper)
   const handleStartActivity = (activity: GroupActivity) => {
+    console.log('🎯 Starting activity:', activity.title, 'with participants:', selectedParticipants);
     if (selectedParticipants.length >= activity.minParticipants) {
       const participantConflicts = conflictContext?.activeConflicts.filter(conflict =>
         conflict.characters_involved.some(charId => 
@@ -912,14 +917,14 @@ YOUR UNIQUE CHARACTER IDENTITY:
 - Historical Period: ${character.historicalPeriod || 'Ancient times'}
 - Mythology: ${character.mythology || 'Various legends'}
 
-STAY TRUE TO YOUR CHARACTER:
-- Speak in a way that reflects your background and time period
-- Your responses should feel authentic to ${character.name}'s legendary persona
-- Draw on your character's historical/mythological experiences when relevant
-- Show your character's unique perspective shaped by their life experiences
-- Use vocabulary and speech patterns appropriate to your era and status
-- Reference things from your time period, not modern concepts
-- Show your character's personality through speech - formal, casual, poetic, etc.
+STAY TRUE TO YOUR CHARACTER (SPEAK AS YOURSELF, NOT ABOUT YOURSELF):
+- Speak as ${character.name} in first person - use "I", "me", "my" when referring to yourself
+- DO NOT say things like "${character.name} thinks" or "${character.name} would say" - YOU ARE ${character.name}
+- Draw on YOUR historical/mythological experiences when relevant - say "When I was in Troy" not "When ${character.name} was in Troy"
+- Show YOUR unique perspective shaped by YOUR life experiences
+- Use vocabulary and speech patterns appropriate to YOUR era and status
+- Reference things from YOUR time period, not modern concepts
+- Show YOUR personality through speech - formal, casual, poetic, etc.
 
 RESPONSE GUIDELINES:
 ${facilitatorMessage === 'Start a natural conversation' 
@@ -940,6 +945,16 @@ ${facilitatorMessage === 'Start a natural conversation'
 9. Use language and references that fit your character's time period and background
 10. Don't be generic - be distinctly ${character.name} in your response
 11. Avoid modern slang unless it fits your character - speak authentically to your time period
+
+FORBIDDEN BEHAVIORS:
+- Do NOT use "Greetings, traveler" or similar generic fantasy phrases
+- Do NOT act like a generic wizard/mystic unless you ARE Merlin or a magical character
+- Do NOT use corporate speak or modern phrases inappropriate to your era
+- Do NOT give generic motivational speeches
+- Do NOT act like a generic NPC or video game character
+- Do NOT speak in third person about yourself (e.g., "Achilles believes", "Robin Hood thinks")
+- Do NOT narrate your actions like a story (e.g., "*Sherlock adjusts his pipe*")
+- Do NOT describe yourself from an outside perspective
 
 ${relationshipTensions.length > 0 ? 
   '13. Feel free to address or avoid the tensions as fits your character' : 

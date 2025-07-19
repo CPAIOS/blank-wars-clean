@@ -659,7 +659,7 @@ INSERT INTO characters (
  '🏹',
  '{"baseStats": {"strength": 75, "agility": 90, "intelligence": 75, "vitality": 75, "wisdom": 70, "charisma": 85}, "combatStats": {"maxHealth": 850, "maxMana": 600, "magicAttack": 60, "magicDefense": 70, "criticalChance": 35, "criticalDamage": 190, "accuracy": 95, "evasion": 50}, "battleAI": {"aggression": 60, "defensiveness": 50, "riskTaking": 75, "adaptability": 85, "preferredStrategies": ["precision_archery", "forest_tactics", "guerrilla_warfare"]}, "battleQuotes": ["For the poor and oppressed!", "A shot for justice!", "Sherwood\'s finest!", "Take from the rich!"]}'),
 
-('space_cyborg', 'Vega-X', 'Galactic Mercenary', 'tank', 'Sci-Fi Future', 'epic',
+('space_cyborg', 'Space Cyborg', 'Galactic Mercenary', 'tank', 'Sci-Fi Future', 'epic',
  1500, 145, 160, 80, 85,
  '["Mechanical", "Logical", "Efficient", "Deadly"]',
  'Robotic and precise',

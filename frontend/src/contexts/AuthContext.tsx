@@ -57,11 +57,13 @@ interface AuthContextType {
   tokens: AuthTokens | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  showOnboarding: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<void>;
   updateProfile: (profileData: Partial<UserProfile>) => void;
+  setShowOnboarding: (show: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -83,6 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [tokens, setTokens] = useState<AuthTokens | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -150,6 +153,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // SECURITY: Don't store tokens in localStorage anymore
       // Tokens are automatically sent via httpOnly cookies
       
+      // Show onboarding for new users
+      setShowOnboarding(true);
+      
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
@@ -195,11 +201,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     tokens,
     isAuthenticated,
     isLoading,
+    showOnboarding,
     login,
     register,
     logout,
     refreshToken,
-    updateProfile
+    updateProfile,
+    setShowOnboarding
   };
 
   return (

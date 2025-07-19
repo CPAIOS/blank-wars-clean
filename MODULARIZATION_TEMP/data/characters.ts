@@ -1323,7 +1323,7 @@ export const characterTemplates: Record<string, Omit<Character, 'id' | 'experien
   },
 
   space_cyborg: {
-    name: 'Space Cyborg (Vega-X)',
+    name: 'Space Cyborg',
     title: 'Galactic Mercenary',
     avatar: '🤖',
     archetype: 'tank',

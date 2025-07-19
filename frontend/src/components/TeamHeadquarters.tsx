@@ -1520,7 +1520,9 @@ export default function TeamHeadquarters() {
                                   'agent x': 'Agent_X_Conf_SptnApt.png',
                                   'billy the kid': 'Billy_the_kid_Conf_SptnApt.png',
                                   'cleopatra': 'Cleopatra_Conf_SptnApt.png',
-                                  'cyborg': 'Agent_X_Conf_SptnApt.png', // Using Agent X as placeholder
+                                  'cyborg': 'space_cyborg_Conf_SptnApt.png',
+                                  'space cyborg': 'space_cyborg_Conf_SptnApt.png',
+                                  'space_cyborg': 'space_cyborg_Conf_SptnApt.png',
                                   'dracula': 'dracula_Conf_SptnApt.png',
                                   'count dracula': 'dracula_Conf_SptnApt.png',
                                   'fenrir': 'Fenrir_Conf_SptnApt.png',
@@ -1543,7 +1545,7 @@ export default function TeamHeadquarters() {
                                   'sammy "slugger" sullivan': 'Billy_the_kid_Conf_SptnApt.png', // Using Billy as placeholder for now
                                   'sammy_slugger': 'Billy_the_kid_Conf_SptnApt.png',
                                   'cleopatra vii': 'Cleopatra_Conf_SptnApt.png',
-                                  'vega-x': 'Agent_X_Conf_SptnApt.png',
+                                  'space cyborg': 'Agent_X_Conf_SptnApt.png',
                                 };
                                 
                                 const activeCharacter = availableCharacters.find(c => c.id === confessionalData.activeCharacter);

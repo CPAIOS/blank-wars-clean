@@ -741,7 +741,7 @@ export const genghisKhanAbilities: LegendaryAbility[] = [
   }
 ];
 
-// === SPACE CYBORG (VEGA-X) - GALACTIC MERCENARY ===
+// === SPACE CYBORG - GALACTIC MERCENARY ===
 export const spaceCyborgAbilities: LegendaryAbility[] = [
   {
     id: 'nanite_regeneration',
@@ -790,7 +790,7 @@ export const spaceCyborgAbilities: LegendaryAbility[] = [
   {
     id: 'target_lock',
     name: 'Target Lock',
-    description: 'Marks a single enemy: all attacks against them from Vega-X are guaranteed crits for 2 turns.',
+    description: 'Marks a single enemy: all attacks against them from Space Cyborg are guaranteed crits for 2 turns.',
     type: 'active',
     cooldown: 5,
     manaCost: 30,

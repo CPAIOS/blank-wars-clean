@@ -1147,7 +1147,7 @@ export default function TrainingGrounds({
                           'nikola tesla': 'Training Tesla',
                           'zeta': 'Training Zeta',
                           'zeta reticulan': 'Training Zeta',
-                          'vega-x': 'Training Cyborg',
+                          'space cyborg': 'Training Cyborg',
                         };
                         
                         const characterName = selectedCharacter?.name?.toLowerCase()?.trim();

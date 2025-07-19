@@ -83,7 +83,14 @@ export interface UserCharacter {
   current_health: number;
   max_health: number;
   is_injured: boolean;
+  injury_severity?: string;
+  is_dead?: boolean;
+  death_timestamp?: Date;
   recovery_time?: Date;
+  resurrection_available_at?: Date;
+  death_count?: number;
+  pre_death_level?: number;
+  pre_death_experience?: number;
   equipment: any[];
   enhancements: any[];
   conversation_memory: ChatMemory[];

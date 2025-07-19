@@ -1,4 +1,4 @@
-// AI Judge System - Judge Dread for Character Chaos
+// AI Judge System - Hanging Judge for Character Chaos
 // Interprets AI-generated chaos and converts it into game mechanics
 
 import { DeviationEvent, DeviationType } from './characterPsychology';

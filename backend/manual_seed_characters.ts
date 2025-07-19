@@ -378,7 +378,7 @@ async function manualSeedCharacters() {
       },
       {
         id: 'unit_734',
-        name: 'Unit 734',
+        name: 'Space Cyborg',
         title: 'Combat Android',
         archetype: 'warrior',
         origin_era: 'Cyberpunk Future (2087)',

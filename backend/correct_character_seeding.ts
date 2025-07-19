@@ -336,7 +336,7 @@ async function seedCorrectCharacters() {
       },
       {
         id: 'space_cyborg',
-        name: 'Vega-X',
+        name: 'Space Cyborg',
         title: 'Space Cyborg',
         archetype: 'tank',
         origin_era: 'Cyberpunk Future (2087)',
