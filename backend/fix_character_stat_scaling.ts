@@ -87,8 +87,8 @@ async function fixCharacterStatScaling() {
       // Update the character's base stats in the database
       await query(`
         UPDATE characters 
-        SET base_health = ?, base_attack = ?, base_defense = ?, base_speed = ?, base_special = ?
-        WHERE id = ?
+        SET base_health = $1, base_attack = $2, base_defense = $3, base_speed = $4, base_special = $5
+        WHERE id = $6
       `, [
         level1Stats.baseHealth,
         level1Stats.baseAttack, 
@@ -135,8 +135,8 @@ async function fixCharacterStatScaling() {
       // Update current and max health based on the character's level
       await query(`
         UPDATE user_characters 
-        SET current_health = ?, max_health = ?
-        WHERE id = ?
+        SET current_health = $1, max_health = $2
+        WHERE id = $3
       `, [
         scaledStats.baseHealth, // Current health = max health
         scaledStats.baseHealth, // Max health based on level
@@ -161,7 +161,7 @@ async function fixCharacterStatScaling() {
 async function demonstrateStatScaling() {
   console.log('\n📈 Stat Scaling Demonstration:');
   
-  const achillesResult = await query('SELECT * FROM characters WHERE name = ?', ['Achilles']);
+  const achillesResult = await query('SELECT * FROM characters WHERE name = $1', ['Achilles']);
   if (achillesResult.rows[0]) {
     const achilles = achillesResult.rows[0];
     const baseStats: ScaledStats = {

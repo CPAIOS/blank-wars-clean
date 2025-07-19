@@ -26,7 +26,7 @@ async function createDevAccount() {
     
     // Check if account already exists
     const existing = await query(
-      'SELECT id FROM users WHERE email = ? OR username = ?',
+      'SELECT id FROM users WHERE email = $1 OR username = $2',
       [devCredentials.email, devCredentials.username]
     );
     
@@ -50,12 +50,12 @@ async function createDevAccount() {
       UPDATE users 
       SET 
         subscription_tier = 'legendary',
-        subscription_expires_at = datetime('now', '+365 days'),
+        subscription_expires_at = NOW() + INTERVAL '365 days',
         level = 100,
         experience = 999999,
         rating = 2500,
         character_slot_capacity = 50
-      WHERE id = ?
+      WHERE id = $1
     `, [userId]);
     
     // Add lots of in-game currency
@@ -63,7 +63,7 @@ async function createDevAccount() {
     
     // Check if currency record exists
     const currencyExists = await query(
-      'SELECT user_id FROM user_currency WHERE user_id = ?',
+      'SELECT user_id FROM user_currency WHERE user_id = $1',
       [userId]
     );
     
@@ -75,13 +75,13 @@ async function createDevAccount() {
           battle_tokens = 999999,
           premium_currency = 999999,
           last_updated = CURRENT_TIMESTAMP
-        WHERE user_id = ?
+        WHERE user_id = $1
       `, [userId]);
     } else {
       // Insert new currency record
       await query(`
         INSERT INTO user_currency (user_id, battle_tokens, premium_currency)
-        VALUES (?, 999999, 999999)
+        VALUES ($1, 999999, 999999)
       `, [userId]);
     }
     
@@ -94,7 +94,7 @@ async function createDevAccount() {
     for (const char of characters.rows) {
       // Check if user already has this character
       const hasChar = await query(
-        'SELECT id FROM user_characters WHERE user_id = ? AND character_id = ?',
+        'SELECT id FROM user_characters WHERE user_id = $1 AND character_id = $2',
         [userId, char.id]
       );
       
@@ -109,7 +109,7 @@ async function createDevAccount() {
             level, experience, bond_level, 
             current_health, max_health,
             total_battles, total_wins
-          ) VALUES (?, ?, ?, ?, 50, 99999, 100, 9999, 9999, 0, 0)
+          ) VALUES ($1, $2, $3, $4, 50, 99999, 100, 9999, 9999, 0, 0)
         `, [userCharId, userId, char.id, serialNumber]);
       }
     }

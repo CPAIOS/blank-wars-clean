@@ -456,8 +456,15 @@ Examples of authentic responses:
     
     // CRITICAL: Reinforce group activity context at the end to ensure it takes precedence
     if (conversationContext && conversationContext.includes('GROUP ACTIVITY SESSION')) {
-      prompt += `\n\n🎭 FINAL GROUP ACTIVITY REMINDER: You are ${characterName} participating in a GROUP ACTIVITY. This is a group conversation with multiple characters. Stay in character, respond naturally to the group discussion, and avoid generic phrases like "Greetings, traveler." Be authentic to your character's personality and historical background.`;
+      prompt += `\n\n🎭 FINAL GROUP ACTIVITY REMINDER: You are ${characterName} participating in a GROUP ACTIVITY. This is a group conversation with multiple characters. Stay in character, respond naturally to the group discussion, and avoid generic phrases like "Greetings, traveler." Be authentic to your character's personality and historical background. DO NOT use generic wizard/mystical phrases if you're not a wizard character.
+
+CRITICAL: SPEAK IN FIRST PERSON AS ${characterName}:
+- Use "I", "me", "my" when referring to yourself
+- Do NOT say "${characterName} thinks" or "${characterName} would say" - YOU ARE ${characterName}
+- Do NOT narrate your actions like "*${characterName} adjusts his hat*"
+- Speak directly as yourself, not about yourself`;
       console.log('✅ Applied group activity role reinforcement for', characterName);
+      console.log('🎭 Final group activity prompt length:', prompt.length);
     }
     
     // Debug: Log if we're dealing with coaching context

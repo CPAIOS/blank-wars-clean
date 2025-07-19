@@ -132,6 +132,7 @@ app.use('/api/headquarters', headquartersRouter);
 app.use('/api/coaching', coachingRouter);
 app.use('/api/coach-progression', coachProgressionRouter);
 
+
 // New Card Pack Routes (These are now handled by cardPackRouter)
 // app.post('/api/packs/purchase', authenticateToken, async (req, res) => {
 //   try {
@@ -437,6 +438,8 @@ io.on('connection', async (socket) => {
       if (user) {
         authenticatedUser = user;
         (socket as any).userId = user.id;
+        socket.data = socket.data || {};
+        socket.data.userId = user.id;
         battleManager.setUserSocket(user.id, socket.id);
         socket.emit('auth_success', { userId: user.id, username: user.username });
         console.log(`👤 User auto-authenticated from cookies: ${user.username} (${user.id})`);

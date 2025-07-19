@@ -91,6 +91,16 @@ export interface UserCharacter {
   personality_drift: any;
   acquired_at: Date;
   last_battle_at?: Date;
+  psychstats?: string; // JSONB column stored as string
+  battle_count?: number;
+  health?: number;
+  strength?: number;
+  vitality?: number;
+  speed?: number;
+  intelligence?: number;
+  wallet?: number;
+  financial_stress?: number;
+  coach_trust_level?: number;
 }
 
 export interface ChatMemory {

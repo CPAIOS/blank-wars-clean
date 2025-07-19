@@ -219,6 +219,24 @@ export const initializeDatabase = async (): Promise<void> => {
         unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
+
+      -- Claimable Packs table (for pack system)
+      CREATE TABLE IF NOT EXISTS claimable_packs (
+        id TEXT PRIMARY KEY,
+        pack_type VARCHAR(50) NOT NULL,
+        is_claimed BOOLEAN DEFAULT FALSE,
+        claimed_by_user_id TEXT REFERENCES users(id),
+        claimed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Claimable Pack Contents table (for pack contents)
+      CREATE TABLE IF NOT EXISTS claimable_pack_contents (
+        id TEXT PRIMARY KEY,
+        pack_id TEXT NOT NULL REFERENCES claimable_packs(id) ON DELETE CASCADE,
+        character_id TEXT NOT NULL REFERENCES characters(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `;
 
     // Execute each CREATE TABLE statement separately for PostgreSQL

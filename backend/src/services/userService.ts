@@ -246,15 +246,15 @@ export class UserService {
       }
 
       // Get currency (battle_tokens for budget)
-      const currencyResult = await query('SELECT battle_tokens FROM user_currency WHERE user_id = ?', [userId]);
+      const currencyResult = await query('SELECT battle_tokens FROM user_currency WHERE user_id = $1', [userId]);
       const currency = currencyResult.rows[0] || { battle_tokens: 0 };
 
       // Get total characters count
       const charactersResult = await query(
-        'SELECT COUNT(*) AS totalCharacters FROM user_characters WHERE user_id = ?',
+        'SELECT COUNT(*) as count FROM user_characters WHERE user_id = $1',
         [userId]
       );
-      const totalCharacters = charactersResult.rows[0]?.totalCharacters || 0;
+      const totalCharacters = parseInt(charactersResult.rows[0]?.count) || 0;
 
       // For now, return basic facilities - we can enhance this later
       const currentFacilities = ['Basic Headquarters'];

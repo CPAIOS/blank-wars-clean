@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from 'dotenv';
 import { query, cache } from '../database';
 import { User, AuthRequest } from '../types';
-// import { PackService } from './packService'; // Temporarily disabled
+import { PackService } from './packService';
 
 // Load environment variables
 config();
@@ -17,7 +17,7 @@ const SALT_ROUNDS = 12;
 export class AuthService {
   private accessSecret: string;
   private refreshSecret: string;
-  // private packService: PackService; // Temporarily disabled
+  private packService: PackService;
 
   constructor() {
     // SECURITY: Never use default JWT secrets
@@ -27,7 +27,7 @@ export class AuthService {
     
     this.accessSecret = process.env.JWT_ACCESS_SECRET;
     this.refreshSecret = process.env.JWT_REFRESH_SECRET;
-    // this.packService = new PackService(); // Temporarily disabled
+    this.packService = new PackService();
     
     // Ensure secrets are strong enough
     if (this.accessSecret.length < 32 || this.refreshSecret.length < 32) {
@@ -123,13 +123,34 @@ export class AuthService {
     const tokens = this.generateTokens(userId);
     console.log('✅ Tokens generated successfully');
 
-    // --- NEW CHARACTER ASSIGNMENT LOGIC ---
-    // TODO: Re-implement character assignment after fixing PackService dependency
-    // For now, just log the claimToken for debugging
-    if (claimToken) {
-      console.log(`Claim token provided for user ${userId}: ${claimToken}`);
+    // --- NEW USER STARTER PACK LOGIC ---
+    try {
+      console.log('🎁 Generating starter pack for new user...');
+      
+      // Generate a standard starter pack for new users
+      const starterPackToken = await this.packService.generatePack('standard_starter');
+      console.log(`✅ Starter pack generated with token: ${starterPackToken}`);
+      
+      // Auto-claim the starter pack for the new user
+      const packResult = await this.packService.claimPack(userId, starterPackToken);
+      console.log(`✅ Starter pack claimed! Granted characters: ${packResult.grantedCharacters.length}, Echoes: ${packResult.echoesGained.length}`);
+      
+      // Handle claim token if provided (additional gift pack)
+      if (claimToken) {
+        console.log(`🎁 Processing additional claim token: ${claimToken}`);
+        try {
+          const additionalPackResult = await this.packService.claimPack(userId, claimToken);
+          console.log(`✅ Additional pack claimed! Granted characters: ${additionalPackResult.grantedCharacters.length}, Echoes: ${additionalPackResult.echoesGained.length}`);
+        } catch (claimError) {
+          console.warn(`⚠️ Failed to claim additional pack: ${claimError}`);
+          // Don't fail registration if claim token is invalid
+        }
+      }
+    } catch (packError) {
+      console.error('❌ Failed to generate/claim starter pack:', packError);
+      // Don't fail registration if pack generation fails
     }
-    // --- END NEW CHARACTER ASSIGNMENT LOGIC ---
+    // --- END NEW USER STARTER PACK LOGIC ---
 
     // Cache user session - skip caching to avoid timeout
     // await cache.set(`user:${userId}`, JSON.stringify(user), 900); // 15 minutes

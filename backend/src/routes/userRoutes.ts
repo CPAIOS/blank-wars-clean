@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { UserService } from '../services/userService';
 import { authenticateToken } from '../services/auth';
 import { dbAdapter } from '../services/databaseAdapter';
+import { AuthRequest } from '../types';
 
 const router = Router();
 const userService = new UserService();
@@ -119,55 +120,51 @@ router.get('/test', async (req: any, res) => {
   res.json({ success: true, message: 'Test endpoint working' });
 });
 
-// Get user's characters (temporarily bypassed auth for demo)
-router.get('/characters', async (req: any, res) => {
+// Get user's characters
+router.get('/characters', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    // For demo purposes, create demo characters if no user is authenticated
-    const userId = req.user?.id || 'demo-user';
-    
-    // If no authenticated user, return demo characters with required UserCharacter structure
     if (!req.user?.id) {
-      const basicCharacters = await dbAdapter.characters.findAll();
-      const demoUserCharacters = basicCharacters.map(char => ({
-        // Include character data first
-        ...char,
-        // Override with user-specific data
-        id: `demo-${char.id}`,
-        user_id: 'demo-user',
-        character_id: char.id,
-        serial_number: null,
-        nickname: null,
-        level: 1,
-        experience: 0,
-        bond_level: 0,
-        total_battles: 0,
-        total_wins: 0,
-        current_health: char.base_health,
-        max_health: char.base_health,
-        is_injured: false,
-        recovery_time: null,
-        equipment: [],
-        enhancements: [],
-        conversation_memory: [],
-        significant_memories: [],
-        personality_drift: {},
-        acquired_at: new Date(),
-        last_battle_at: null,
-        // Map psychStats from characters table
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const userId = req.user.id;
+    
+    // Get user's actual characters from database
+    const userCharacters = await dbAdapter.userCharacters.findByUserId(userId);
+    
+    if (userCharacters.length === 0) {
+      // User has no characters yet - they need to open packs to get characters
+      return res.json({ 
+        success: true, 
+        characters: [],
+        message: 'No characters owned. Open packs to get characters!'
+      });
+    }
+    
+    console.log('🔍 [/characters] Getting characters for user:', userId);
+    console.log('📊 [/characters] Found characters:', userCharacters.length);
+    console.log('🔍 [/characters] First character sample:', userCharacters[0] ? JSON.stringify(userCharacters[0], null, 2) : 'None');
+    
+    // Characters from JOIN already have psychStats from characters table
+    const charactersWithPsychStats = userCharacters.map(character => {
+      // psychstats from JSONB column is already parsed as object in PostgreSQL
+      const psychStats = (character as any).psychstats || {};
+      
+      return {
+        ...character,
         psychStats: {
-          training: char.training,
-          teamPlayer: char.team_player,
-          ego: char.ego,
-          mentalHealth: char.mental_health,
-          communication: char.communication
+          training: psychStats.training || 50,
+          teamPlayer: psychStats.teamPlayer || 50,
+          ego: psychStats.ego || 50,
+          mentalHealth: psychStats.mentalHealth || 80,
+          communication: psychStats.communication || 50
         },
-        // Add required battle stats
         traditionalStats: {
-          strength: char.base_attack,
-          speed: char.base_speed,
-          dexterity: char.base_defense,
-          stamina: char.base_health,
-          intelligence: char.base_special,
+          strength: character.base_attack,
+          speed: character.base_speed,
+          dexterity: character.base_defense,
+          stamina: character.base_health,
+          intelligence: character.base_special,
           charisma: 50,
           spirit: 50
         },
@@ -180,48 +177,8 @@ router.get('/characters', async (req: any, res) => {
           charisma: 0,
           spirit: 0
         }
-      }));
-      
-      return res.json({
-        success: true,
-        characters: demoUserCharacters
-      });
-    }
-    console.log('🔍 [/characters] Getting characters for user:', userId);
-    
-    const userCharacters = await dbAdapter.userCharacters.findByUserId(userId);
-    console.log('📊 [/characters] Found characters:', userCharacters.length);
-    console.log('🔍 [/characters] First character sample:', userCharacters[0] ? JSON.stringify(userCharacters[0], null, 2) : 'None');
-    
-    // Characters from JOIN already have psychStats from characters table
-    const charactersWithPsychStats = userCharacters.map(character => ({
-      ...character,
-      psychStats: {
-        training: character.training,
-        teamPlayer: character.team_player,
-        ego: character.ego,
-        mentalHealth: character.mental_health,
-        communication: character.communication
-      },
-      traditionalStats: {
-        strength: character.base_attack,
-        speed: character.base_speed,
-        dexterity: character.base_defense,
-        stamina: character.base_health,
-        intelligence: character.base_special,
-        charisma: 50,
-        spirit: 50
-      },
-      temporaryStats: {
-        strength: 0,
-        speed: 0,
-        dexterity: 0,
-        stamina: 0,
-        intelligence: 0,
-        charisma: 0,
-        spirit: 0
-      }
-    }));
+      };
+    });
     
     return res.json({
       success: true,

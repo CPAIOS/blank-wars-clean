@@ -12,7 +12,7 @@ export class CharacterEchoService {
 
   async addEcho(userId: string, characterTemplateId: string, count: number = 1): Promise<void> {
     await query(
-      'INSERT INTO user_character_echoes (user_id, character_template_id, echo_count) VALUES (?, ?, ?) ON CONFLICT(user_id, character_template_id) DO UPDATE SET echo_count = echo_count + ?',
+      'INSERT INTO user_character_echoes (user_id, character_template_id, echo_count) VALUES ($1, $2, $3) ON CONFLICT(user_id, character_template_id) DO UPDATE SET echo_count = user_character_echoes.echo_count + $4',
       [userId, characterTemplateId, count, count]
     );
   }
@@ -24,7 +24,7 @@ export class CharacterEchoService {
     }
 
     await query(
-      'UPDATE user_character_echoes SET echo_count = echo_count - $1 WHERE user_id = $1 AND character_template_id = $2',
+      'UPDATE user_character_echoes SET echo_count = echo_count - $1 WHERE user_id = $2 AND character_template_id = $3',
       [count, userId, characterTemplateId]
     );
     return true;
