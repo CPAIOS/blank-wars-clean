@@ -70,7 +70,7 @@ export class UserService {
       
       // Check for existing friendship
       const existing = await query(
-        'SELECT * FROM user_friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)',
+        'SELECT * FROM user_friendships WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $3 AND friend_id = $4)',
         [userId1, userId2, userId2, userId1]
       );
       
@@ -100,11 +100,11 @@ export class UserService {
   async acceptFriendRequest(friendshipId: string): Promise<Friendship | undefined> {
     try {
       await query(
-        'UPDATE user_friendships SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?',
+        'UPDATE user_friendships SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND status = $3',
         ['accepted', friendshipId, 'pending']
       );
       
-      const result = await query('SELECT * FROM user_friendships WHERE id = ?', [friendshipId]);
+      const result = await query('SELECT * FROM user_friendships WHERE id = $1', [friendshipId]);
       const row = result.rows[0];
       if (!row) return undefined;
       
@@ -125,11 +125,11 @@ export class UserService {
   async rejectFriendRequest(friendshipId: string): Promise<Friendship | undefined> {
     try {
       await query(
-        'UPDATE user_friendships SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?',
+        'UPDATE user_friendships SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND status = $3',
         ['blocked', friendshipId, 'pending']
       );
       
-      const result = await query('SELECT * FROM user_friendships WHERE id = ?', [friendshipId]);
+      const result = await query('SELECT * FROM user_friendships WHERE id = $1', [friendshipId]);
       const row = result.rows[0];
       if (!row) return undefined;
       
@@ -152,9 +152,9 @@ export class UserService {
       const result = await query(`
         SELECT u.* FROM users u
         JOIN user_friendships f ON (f.friend_id = u.id OR f.user_id = u.id)
-        WHERE (f.user_id = ? OR f.friend_id = ?) 
+        WHERE (f.user_id = $1 OR f.friend_id = $2) 
           AND f.status = 'accepted'
-          AND u.id != ?
+          AND u.id != $3
       `, [userId, userId, userId]);
       
       return result.rows.map((row: any) => ({
@@ -174,7 +174,7 @@ export class UserService {
   async getPendingFriendRequests(userId: string): Promise<Friendship[]> {
     try {
       const result = await query(
-        'SELECT * FROM user_friendships WHERE friend_id = ? AND status = ?',
+        'SELECT * FROM user_friendships WHERE friend_id = $1 AND status = $2',
         [userId, 'pending']
       );
       
@@ -239,19 +239,19 @@ export class UserService {
   async getTeamStats(userId: string) {
     try {
       // Get user level and basic info
-      const userResult = await query('SELECT level FROM users WHERE id = ?', [userId]);
+      const userResult = await query('SELECT level FROM users WHERE id = $1', [userId]);
       const user = userResult.rows[0];
       if (!user) {
         throw new Error('User not found');
       }
 
       // Get currency (battle_tokens for budget)
-      const currencyResult = await query('SELECT battle_tokens FROM user_currency WHERE user_id = ?', [userId]);
+      const currencyResult = await query('SELECT battle_tokens FROM user_currency WHERE user_id = $1', [userId]);
       const currency = currencyResult.rows[0] || { battle_tokens: 0 };
 
       // Get total characters count
       const charactersResult = await query(
-        'SELECT COUNT(*) AS totalCharacters FROM user_characters WHERE user_id = ?',
+        'SELECT COUNT(*) AS totalCharacters FROM user_characters WHERE user_id = $1',
         [userId]
       );
       const totalCharacters = charactersResult.rows[0]?.totalCharacters || 0;

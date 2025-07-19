@@ -160,7 +160,7 @@ export const dbAdapter = {
   users: {
     async findById(id: string): Promise<User | null> {
       try {
-        const result = await query('SELECT *, character_slot_capacity FROM users WHERE id = ?', [id]);
+        const result = await query('SELECT *, character_slot_capacity FROM users WHERE id = $1', [id]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error finding user by ID:', error);
@@ -176,7 +176,7 @@ export const dbAdapter = {
         
         const updates = Object.entries(data)
           .filter(([key]) => allowedFields.includes(key))
-          .map(([key]) => `${key} = ?`);
+          .map(([key], index) => `${key} = $${index + 1}`);
         
         if (updates.length === 0) return false;
         
@@ -185,7 +185,7 @@ export const dbAdapter = {
           .map(([, value]) => value);
         
         await query(
-          `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${values.length + 1}`,
           [...values, id]
         );
         return true;
@@ -197,7 +197,7 @@ export const dbAdapter = {
 
     async findByEmail(email: string): Promise<User | null> {
       try {
-        const result = await query('SELECT *, character_slot_capacity FROM users WHERE email = ?', [email]);
+        const result = await query('SELECT *, character_slot_capacity FROM users WHERE email = $1', [email]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error finding user by email:', error);
@@ -211,7 +211,7 @@ export const dbAdapter = {
           INSERT INTO users (
             id, username, email, subscription_tier, level, experience,
             total_battles, total_wins, rating, character_slot_capacity
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         `, [
           data.id,
           data.username,
@@ -225,7 +225,7 @@ export const dbAdapter = {
           data.character_slot_capacity || 12
         ]);
 
-        const result = await query('SELECT * FROM users WHERE id = ?', [data.id]);
+        const result = await query('SELECT * FROM users WHERE id = $1', [data.id]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error creating user:', error);
@@ -244,7 +244,7 @@ export const dbAdapter = {
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc
           JOIN characters c ON uc.character_id = c.id
-          WHERE uc.id = ?
+          WHERE uc.id = $1
         `, [id]);
         
         if (result.rows[0]) {
@@ -294,11 +294,11 @@ export const dbAdapter = {
         
         if (Object.keys(updates).length === 0) return false;
         
-        const fields = Object.keys(updates).map(key => `${key} = ?`);
+        const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 1}`);
         const values = Object.values(updates);
         
         await query(
-          `UPDATE user_characters SET ${fields.join(', ')} WHERE id = ?`,
+          `UPDATE user_characters SET ${fields.join(', ')} WHERE id = $${values.length + 1}`,
           [...values, id]
         );
         return true;
@@ -317,7 +317,7 @@ export const dbAdapter = {
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc
           JOIN characters c ON uc.character_id = c.id
-          WHERE uc.user_id = ?
+          WHERE uc.user_id = $1
           ORDER BY uc.acquired_at DESC
         `, [userId]);
         
@@ -344,7 +344,7 @@ export const dbAdapter = {
         const serialNumber = `${data.character_id.slice(-3)}-${Date.now().toString().slice(-6)}`;
         
         // Get the base character data for health values
-        const charResult = await query('SELECT * FROM characters WHERE id = ?', [data.character_id]);
+        const charResult = await query('SELECT * FROM characters WHERE id = $1', [data.character_id]);
         if (!charResult.rows[0]) {
           throw new Error('Character not found');
         }
@@ -356,7 +356,7 @@ export const dbAdapter = {
             level, experience, bond_level, total_battles, total_wins,
             current_health, max_health, is_injured, equipment, enhancements,
             conversation_memory, significant_memories, personality_drift
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         `, [
           id,
           data.user_id,
@@ -394,7 +394,7 @@ export const dbAdapter = {
                  c.avatar_emoji, c.artwork_url, c.abilities
           FROM user_characters uc 
           JOIN characters c ON uc.character_id = c.id
-          WHERE uc.user_id = ? AND uc.character_id = ?
+          WHERE uc.user_id = $1 AND uc.character_id = $2
         `, [userId, characterId]);
         
         if (result.rows[0]) {
@@ -429,7 +429,7 @@ export const dbAdapter = {
             id, player1_id, player2_id, character1_id, character2_id,
             status, current_round, turn_count, combat_log, chat_logs,
             xp_gained, bond_gained, currency_gained, started_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
         `, [
           id,
           data.player1_id,
@@ -455,7 +455,7 @@ export const dbAdapter = {
 
     async findById(id: string): Promise<Battle | null> {
       try {
-        const result = await query('SELECT * FROM battles WHERE id = ?', [id]);
+        const result = await query('SELECT * FROM battles WHERE id = $1', [id]);
         if (result.rows[0]) {
           const row = result.rows[0];
           return {
@@ -495,11 +495,11 @@ export const dbAdapter = {
         
         if (Object.keys(updates).length === 0) return false;
         
-        const fields = Object.keys(updates).map(key => `${key} = ?`);
+        const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 1}`);
         const values = Object.values(updates);
         
         await query(
-          `UPDATE battles SET ${fields.join(', ')} WHERE id = ?`,
+          `UPDATE battles SET ${fields.join(', ')} WHERE id = $${values.length + 1}`,
           [...values, id]
         );
         return true;
@@ -513,7 +513,7 @@ export const dbAdapter = {
       try {
         const result = await query(`
           SELECT * FROM battles 
-          WHERE (player1_id = ? OR player2_id = ?) 
+          WHERE (player1_id = $1 OR player2_id = $2) 
             AND status IN ('matchmaking', 'active', 'paused')
           ORDER BY started_at DESC
         `, [userId, userId]);
@@ -533,7 +533,7 @@ export const dbAdapter = {
   characters: {
     async findById(id: string): Promise<Character | null> {
       try {
-        const result = await query('SELECT * FROM characters WHERE id = ?', [id]);
+        const result = await query('SELECT * FROM characters WHERE id = $1', [id]);
         if (result.rows[0]) {
           const row = result.rows[0];
           return {
@@ -572,7 +572,7 @@ export const dbAdapter = {
   currency: {
     async findByUserId(userId: string): Promise<{ battle_tokens: number; premium_currency: number } | null> {
       try {
-        const result = await query('SELECT * FROM user_currency WHERE user_id = ?', [userId]);
+        const result = await query('SELECT * FROM user_currency WHERE user_id = $1', [userId]);
         return result.rows[0] || null;
       } catch (error) {
         console.error('Error finding user currency:', error);
@@ -590,7 +590,7 @@ export const dbAdapter = {
           const allowedFields = ['battle_tokens', 'premium_currency'];
           const updates = Object.entries(data)
             .filter(([key]) => allowedFields.includes(key))
-            .map(([key]) => `${key} = ?`);
+            .map(([key], index) => `${key} = $${index + 1}`);
           
           if (updates.length === 0) return false;
           
@@ -599,12 +599,12 @@ export const dbAdapter = {
             .map(([, value]) => value);
           
           await query(
-            `UPDATE user_currency SET ${updates.join(', ')} WHERE user_id = ?`,
+            `UPDATE user_currency SET ${updates.join(', ')} WHERE user_id = $${values.length + 1}`,
             [...values, userId]
           );
         } else {
           await query(
-            `INSERT INTO user_currency (user_id, battle_tokens, premium_currency) VALUES (?, ?, ?)`,
+            `INSERT INTO user_currency (user_id, battle_tokens, premium_currency) VALUES ($1, $2, $3)`,
             [userId, data.battle_tokens || 100, data.premium_currency || 0]
           );
         }

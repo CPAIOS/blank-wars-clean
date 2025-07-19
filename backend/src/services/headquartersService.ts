@@ -49,7 +49,7 @@ export class HeadquartersService {
   async initializeUserHeadquarters(userId: string): Promise<void> {
     try {
       // Check if headquarters already exists
-      const existing = await query('SELECT id FROM user_headquarters WHERE user_id = ?', [userId]);
+      const existing = await query('SELECT id FROM user_headquarters WHERE user_id = $1', [userId]);
       if (existing.rows.length > 0) {
         console.log('📦 [Headquarters] User already has headquarters, skipping initialization');
         return;
@@ -62,7 +62,7 @@ export class HeadquartersService {
       await query(
         `INSERT INTO user_headquarters 
          (id, user_id, tier_id, coins, gems, unlocked_themes, created_at, updated_at) 
-         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+         VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
         [
           hqId,
           userId,
@@ -78,7 +78,7 @@ export class HeadquartersService {
       await query(
         `INSERT INTO headquarters_rooms 
          (id, headquarters_id, room_id, name, theme, elements, assigned_characters, max_characters) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           roomId,
           hqId,
@@ -103,7 +103,7 @@ export class HeadquartersService {
     // For now, we'll just update the capacity
 
     const userResult = await query(
-      'SELECT character_slot_capacity FROM users WHERE id = ?',
+      'SELECT character_slot_capacity FROM users WHERE id = $1',
       [userId]
     );
 
@@ -115,12 +115,12 @@ export class HeadquartersService {
     const newCapacity = currentCapacity + 5; // Example: Increase by 5 slots per upgrade
 
     await query(
-      'UPDATE users SET character_slot_capacity = ? WHERE id = ?',
+      'UPDATE users SET character_slot_capacity = $1 WHERE id = $2',
       [newCapacity, userId]
     );
 
     const updatedUserResult = await query(
-      'SELECT id, username, email, subscription_tier, level, experience, total_battles, total_wins, rating, created_at, updated_at, character_slot_capacity FROM users WHERE id = ?',
+      'SELECT id, username, email, subscription_tier, level, experience, total_battles, total_wins, rating, created_at, updated_at, character_slot_capacity FROM users WHERE id = $1',
       [userId]
     );
 
@@ -129,7 +129,7 @@ export class HeadquartersService {
 
   async getHeadquarters(userId: string): Promise<HeadquartersState | null> {
     const hqResult = await query(
-      'SELECT * FROM user_headquarters WHERE user_id = ?',
+      'SELECT * FROM user_headquarters WHERE user_id = $1',
       [userId]
     );
 
@@ -141,7 +141,7 @@ export class HeadquartersService {
     
     // Get rooms
     const roomsResult = await query(
-      'SELECT * FROM headquarters_rooms WHERE headquarters_id = ? ORDER BY room_id',
+      'SELECT * FROM headquarters_rooms WHERE headquarters_id = $1 ORDER BY room_id',
       [hq.id]
     );
 
@@ -149,7 +149,7 @@ export class HeadquartersService {
     for (const roomRow of roomsResult.rows) {
       // Get beds for this room
       const bedsResult = await query(
-        'SELECT * FROM room_beds WHERE room_id = ? ORDER BY bed_id',
+        'SELECT * FROM room_beds WHERE room_id = $1 ORDER BY bed_id',
         [roomRow.id]
       );
 
@@ -197,7 +197,7 @@ export class HeadquartersService {
       await query(
         `INSERT INTO user_headquarters 
          (id, user_id, tier_id, coins, gems, unlocked_themes, updated_at) 
-         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
          ON CONFLICT (id) DO UPDATE SET
            user_id = EXCLUDED.user_id,
            tier_id = EXCLUDED.tier_id,
@@ -218,8 +218,8 @@ export class HeadquartersService {
       );
 
       // Clear existing rooms and beds
-      await query('DELETE FROM room_beds WHERE room_id IN (SELECT id FROM headquarters_rooms WHERE headquarters_id = ?)', [hqId]);
-      await query('DELETE FROM headquarters_rooms WHERE headquarters_id = ?', [hqId]);
+      await query('DELETE FROM room_beds WHERE room_id IN (SELECT id FROM headquarters_rooms WHERE headquarters_id = $1)', [hqId]);
+      await query('DELETE FROM headquarters_rooms WHERE headquarters_id = $1', [hqId]);
 
       // Insert rooms
       for (const room of headquarters.rooms || []) {
@@ -227,7 +227,7 @@ export class HeadquartersService {
         await query(
           `INSERT INTO headquarters_rooms 
            (id, headquarters_id, room_id, name, theme, elements, assigned_characters, max_characters, custom_image_url) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [
             roomDbId,
             hqId,
@@ -246,7 +246,7 @@ export class HeadquartersService {
           await query(
             `INSERT INTO room_beds 
              (id, room_id, bed_id, bed_type, position_x, position_y, capacity, comfort_bonus) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
             [
               `${roomDbId}_${bed.id}`,
               roomDbId,
@@ -281,7 +281,7 @@ export class HeadquartersService {
 
     // Deduct currency
     await query(
-      'UPDATE user_headquarters SET coins = coins - ?, gems = gems - ? WHERE user_id = ?',
+      'UPDATE user_headquarters SET coins = coins - $1, gems = gems - $2 WHERE user_id = $3',
       [bedData.cost.coins, bedData.cost.gems, userId]
     );
 
@@ -301,7 +301,7 @@ export class HeadquartersService {
     await query(
       `INSERT INTO room_beds 
        (id, room_id, bed_id, bed_type, position_x, position_y, capacity, comfort_bonus) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         bedDbId,
         roomDbId,

@@ -14,6 +14,22 @@ interface Character {
   speaking_style?: string;
   decision_making?: string;
   conflict_response?: string;
+  financialData?: {
+    wallet?: number;
+    monthlyEarnings?: number;
+    debt?: number;
+    decisions?: Array<{
+      optionChosen: string;
+      outcome?: {
+        success: boolean;
+      };
+    }>;
+    personality?: {
+      spendingStyle: string;
+      riskTolerance: string;
+    };
+    coachTrust?: number;
+  };
 }
 
 interface ConflictData {

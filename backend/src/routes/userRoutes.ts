@@ -124,6 +124,7 @@ router.get('/characters', async (req: any, res) => {
   try {
     // For demo purposes, create demo characters if no user is authenticated
     const userId = req.user?.id || 'demo-user';
+    console.log('🔍 Getting characters for user:', userId);
     
     // If no authenticated user, return demo characters with required UserCharacter structure
     if (!req.user?.id) {

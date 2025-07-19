@@ -15,12 +15,20 @@ import {
   PlannedAction,
   PreBattleHuddle,
   CoachingTimeout,
+  TimeoutAction,
   PostBattleAnalysis,
   RelationshipChange,
   BattleMemory,
   PsychologicalConsequence,
   TrainingRecommendation,
-  CharacterEvaluation
+  CharacterEvaluation,
+  ActionOutcome,
+  PsychologyFactor,
+  ChemistryEvolution,
+  UrgentIssue,
+  TimeoutCharacterState,
+  QuickFix,
+  StrategicOption
 } from '../data/battleFlow';
 
 // Import the corrected physical combat engine
