@@ -247,11 +247,17 @@ export const initializeDatabase = async (): Promise<void> => {
       }
     }
 
-    // Add financial columns to existing user_characters table if they don't exist
+    // Add financial columns to existing tables if they don't exist
     const alterTableStatements = [
       `ALTER TABLE user_characters ADD COLUMN IF NOT EXISTS wallet INTEGER DEFAULT 0`,
       `ALTER TABLE user_characters ADD COLUMN IF NOT EXISTS financial_stress INTEGER DEFAULT 0`,
-      `ALTER TABLE user_characters ADD COLUMN IF NOT EXISTS coach_trust_level INTEGER DEFAULT 0`
+      `ALTER TABLE user_characters ADD COLUMN IF NOT EXISTS coach_trust_level INTEGER DEFAULT 0`,
+      `ALTER TABLE coach_progression ADD COLUMN IF NOT EXISTS financial_advice_given INTEGER DEFAULT 0`,
+      `ALTER TABLE coach_progression ADD COLUMN IF NOT EXISTS successful_financial_advice INTEGER DEFAULT 0`,
+      `ALTER TABLE coach_progression ADD COLUMN IF NOT EXISTS spirals_prevented INTEGER DEFAULT 0`,
+      `ALTER TABLE coach_progression ADD COLUMN IF NOT EXISTS financial_conflicts_resolved INTEGER DEFAULT 0`,
+      `ALTER TABLE coach_xp_events DROP CONSTRAINT IF EXISTS coach_xp_events_event_type_check`,
+      `ALTER TABLE coach_xp_events ADD CONSTRAINT coach_xp_events_event_type_check CHECK (event_type IN ('battle_win', 'battle_loss', 'psychology_management', 'character_development', 'financial_coaching'))`
     ];
 
     for (const alterSQL of alterTableStatements) {

@@ -191,7 +191,7 @@ export class CoachProgressionService {
           coach_experience = $2, 
           coach_title = $3,
           updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $1`,
+        WHERE user_id = $4`,
         [newLevel, newExperience, newTitle, userId]
       );
 
@@ -220,10 +220,10 @@ export class CoachProgressionService {
 
       await query(
         `UPDATE coach_progression SET 
-          psychology_skill_points = psychology_skill_points + ?,
-          battle_strategy_skill_points = battle_strategy_skill_points + ?,
-          character_development_skill_points = character_development_skill_points + ?
-        WHERE user_id = $1`,
+          psychology_skill_points = psychology_skill_points + $1,
+          battle_strategy_skill_points = battle_strategy_skill_points + $2,
+          character_development_skill_points = character_development_skill_points + $3
+        WHERE user_id = $4`,
         [
           pointsPerTree + (remainder > 0 ? 1 : 0), // Psychology gets first remainder point
           pointsPerTree + (remainder > 1 ? 1 : 0), // Battle Strategy gets second remainder point  
@@ -578,10 +578,10 @@ export class CoachProgressionService {
       await query(
         `UPDATE coach_progression SET 
           total_battles_coached = total_battles_coached + 1,
-          total_wins_coached = total_wins_coached + ?,
+          total_wins_coached = total_wins_coached + $2,
           updated_at = CURRENT_TIMESTAMP
         WHERE user_id = $1`,
-        [isWin ? 1 : 0, userId]
+        [userId, isWin ? 1 : 0]
       );
     } catch (error) {
       console.error('Error updating battle stats:', error);
